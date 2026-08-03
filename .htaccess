@@ -1,0 +1,30 @@
+# .htaccess – FOR RENDER
+RewriteEngine On
+RewriteBase /
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?page=$1 [QSA,L]
+
+Options -Indexes
+
+RedirectMatch 403 ^/config/.*$
+RedirectMatch 403 ^/controllers/.*$
+RedirectMatch 403 ^/models/.*$
+RedirectMatch 403 ^/helpers/.*$
+RedirectMatch 403 ^/includes/.*$
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript
+</IfModule>
