@@ -715,6 +715,10 @@ class Report {
      * If $categoryId is provided (> 0), results are limited to that category,
      * since a "did you mean...?" prompt should only surface likely duplicates
      * of the same kind of issue (e.g. flooding near flooding, not near a streetlight report).
+     * 
+     * Excludes:
+     * - Reports owned by $excludeUserId
+     * - Reports already supported/verified by $excludeUserId
      */
     public function getActiveReportsNearLocation($lat, $lng, $radiusMeters = 50, $categoryId = 0, $excludeUserId = null) {
         $radiusKm = $radiusMeters / 1000;
@@ -737,6 +741,11 @@ class Report {
         }
         if ($excludeUserId) {
             $sql .= " AND r.user_id != :exclude_user_id";
+            // Also exclude reports that this user has already supported
+            $sql .= " AND NOT EXISTS (
+                SELECT 1 FROM report_verifications rv 
+                WHERE rv.report_id = r.id AND rv.user_id = :exclude_user_id
+            )";
         }
         $sql .= "
             HAVING distance_km <= :radius_km

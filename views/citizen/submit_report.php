@@ -996,7 +996,7 @@ if (file_exists($geojson_file)) {
                     </div>
 
                     <!-- FORM ACTIONS -->
-                    <div class="form-actions pt-3 border-t border-emerald-50">
+                    <div class="form-actions pt-3 border-t border-emerald-50 flex justify-end gap-3">
                         <button type="button" id="resetBtn" class="btn-secondary">
                             <i class="fas fa-redo mr-2"></i>Reset
                         </button>
@@ -2088,6 +2088,19 @@ if (file_exists($geojson_file)) {
     resetBtn.addEventListener('click', resetForm);
     switchCameraBtn.addEventListener('click', switchCamera);
     flashToggleBtn.addEventListener('click', toggleFlash);
+    
+    // Map button event listeners
+    getLocationBtn.addEventListener('click', getCurrentLocation);
+    clearLocationBtn.addEventListener('click', function() {
+        if (userMarker) {
+            map.removeLayer(userMarker);
+            userMarker = null;
+        }
+        latitudeInput.value = '';
+        longitudeInput.value = '';
+        document.getElementById('locationStatus').innerHTML = '';
+        showToast('Location cleared', 'info');
+    });
 
     // Duplicate Modal events
     dupYesBtn.addEventListener('click', handleUpvote);

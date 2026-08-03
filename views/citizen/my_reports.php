@@ -3,6 +3,7 @@
 // UPDATED: Verify button only appears for reports not owned by the current user
 // WITH TOOLBAR/POPOVER FILTER, PAGINATION, SORT, VIEW TOGGLE, AND AJAX UPDATES
 // UPDATED: Added "Supported Reports" tab with enhanced card design matching own report cards
+// UPDATED: Added stats summary cards (matching admin dashboard design)
 
 require_once dirname(dirname(__DIR__)) . '/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
@@ -140,6 +141,16 @@ while ($row = $risk_result->fetch(PDO::FETCH_ASSOC)) {
         $risk_summary[$row['risk_level']] = $row['cnt'];
     }
 }
+
+// ============================================================
+// STATS FOR SUMMARY CARDS (unfiltered counts for user's reports)
+// ============================================================
+$stats_total = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id")->fetchColumn();
+$stats_pending = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status = 'pending'")->fetchColumn();
+$stats_under_review = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status = 'under_review'")->fetchColumn();
+$stats_in_progress = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status = 'in_progress'")->fetchColumn();
+$stats_escalated = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status IN ('escalated_pending','escalated')")->fetchColumn();
+$stats_resolved = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status = 'resolved'")->fetchColumn();
 
 // Helper labels for chips
 $status_labels = [
@@ -1196,6 +1207,30 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <span class="text-xs md:text-sm">New Report</span>
                 </a>
             </div>
+        </div>
+
+        <!-- ===== STATISTICS CARDS (matching all_reports.php design) ===== -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+            <?php
+            $stats_metrics = [
+                ['label' => 'Total', 'value' => $stats_total, 'color' => 'text-[#10A37F]', 'icon' => 'fa-flag', 'iconBg' => 'bg-[#10A37F]/10', 'iconColor' => 'text-[#10A37F]'],
+                ['label' => 'Pending', 'value' => $stats_pending, 'color' => 'text-yellow-600', 'icon' => 'fa-clock', 'iconBg' => 'bg-yellow-100', 'iconColor' => 'text-yellow-700'],
+                ['label' => 'Under Review', 'value' => $stats_under_review, 'color' => 'text-blue-600', 'icon' => 'fa-search', 'iconBg' => 'bg-blue-100', 'iconColor' => 'text-blue-700'],
+                ['label' => 'In Progress', 'value' => $stats_in_progress, 'color' => 'text-pink-600', 'icon' => 'fa-spinner', 'iconBg' => 'bg-pink-100', 'iconColor' => 'text-pink-700'],
+                ['label' => 'Escalated', 'value' => $stats_escalated, 'color' => 'text-orange-600', 'icon' => 'fa-exclamation-triangle', 'iconBg' => 'bg-orange-100', 'iconColor' => 'text-orange-700'],
+                ['label' => 'Resolved', 'value' => $stats_resolved, 'color' => 'text-[#10A37F]', 'icon' => 'fa-check-circle', 'iconBg' => 'bg-green-100', 'iconColor' => 'text-[#10A37F]'],
+            ];
+            foreach($stats_metrics as $m): ?>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full <?php echo $m['iconBg']; ?> flex items-center justify-center <?php echo $m['iconColor']; ?> flex-shrink-0">
+                    <i class="fas <?php echo $m['icon']; ?> text-sm md:text-base"></i>
+                </div>
+                <div>
+                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $m['value']; ?></div>
+                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider"><?php echo $m['label']; ?></div>
+                </div>
+            </div>
+            <?php endforeach; ?>
         </div>
 
         <!-- Tab Switcher -->

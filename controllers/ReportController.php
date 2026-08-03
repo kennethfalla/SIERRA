@@ -230,7 +230,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
         $radius = (int)SettingsHelper::get('clustering_radius_meters', 50);
 
         try {
-            $nearby = $report->getActiveReportsNearLocation($lat, $lng, $radius, $category_id ?: 0);
+            // Exclude current user's own reports from nearby detection
+            $nearby = $report->getActiveReportsNearLocation($lat, $lng, $radius, $category_id ?: 0, $_SESSION['user_id']);
             echo json_encode(['success' => true, 'reports' => $nearby, 'debug_radius' => $radius, 'debug_lat' => $lat, 'debug_lng' => $lng]);
         } catch (\PDOException $e) {
             error_log('check_nearby_reports failed: ' . $e->getMessage());

@@ -134,9 +134,7 @@ $under_review = $db->query("SELECT COUNT(*) FROM reports WHERE barangay_id = $ba
 $progress = $db->query("SELECT COUNT(*) FROM reports WHERE barangay_id = $barangay_id AND status = 'in_progress'")->fetchColumn();
 $escalated = $db->query("SELECT COUNT(*) FROM reports WHERE barangay_id = $barangay_id AND status IN ('escalated_pending', 'escalated')")->fetchColumn();
 $resolved = $db->query("SELECT COUNT(*) FROM reports WHERE barangay_id = $barangay_id AND status = 'resolved'")->fetchColumn();
-$rejected = $db->query("SELECT COUNT(*) FROM reports WHERE barangay_id = $barangay_id AND status = 'rejected'")->fetchColumn();
-$cancelled = $db->query("SELECT COUNT(*) FROM reports WHERE barangay_id = $barangay_id AND status = 'cancelled'")->fetchColumn();
-$resolution_rate = $total > 0 ? round(($resolved / $total) * 100) : 0;
+// (Removed rejected & cancelled to keep 6 cards matching all_reports.php)
 
 // Risk summary for this barangay
 $risk_summary = ['low' => 0, 'medium' => 0, 'high' => 0, 'critical' => 0];
@@ -222,63 +220,8 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             }
         }
         
-        /* ===== STAT CARDS (updated to match admin dashboard) ===== */
-        .stat-card {
-            background: white;
-            border-radius: 1rem;
-            border: 1px solid rgba(16, 163, 127, 0.08);
-            padding: 1.25rem 1rem;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        @media (min-width: 640px) {
-            .stat-card {
-                padding: 1.5rem;
-            }
-        }
-        .stat-card:hover {
-            transform: translateY(-3px);
-            border-color: #10A37F;
-            box-shadow: 0 12px 24px -8px rgba(16, 163, 127, 0.12);
-        }
-        .stat-card .stat-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #8aa38a;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-top: 0.15rem;
-        }
-        @media (min-width: 640px) {
-            .stat-card .stat-label {
-                font-size: 0.75rem;
-            }
-        }
-        .stat-card .stat-value {
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: #1a2e1a;
-            letter-spacing: -0.02em;
-        }
-        @media (min-width: 640px) {
-            .stat-card .stat-value {
-                font-size: 2rem;
-            }
-        }
-        .stat-card .stat-icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        @media (min-width: 640px) {
-            .stat-card .stat-icon {
-                width: 3rem;
-                height: 3rem;
-            }
-        }
+        /* ===== STAT CARDS (updated to match all_reports.php) ===== */
+        /* No custom classes needed – we use Tailwind utilities directly in the HTML */
         
         /* ===== STATUS BADGES ===== */
         .status-badge {
@@ -1027,26 +970,26 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             </div>
         <?php endif; ?>
         
-        <!-- Statistics Cards (updated to match admin dashboard design with icons) -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 md:gap-4 mb-6">
+        <!-- ===== STATISTICS CARDS (updated to match all_reports.php design) ===== -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
             <?php
+            // Define stats array (matches all_reports.php style)
             $stats_metrics = [
-                ['label' => 'Total', 'value' => $total, 'color' => 'gray-800', 'icon' => 'fa-flag', 'iconBg' => 'emerald-100', 'iconColor' => 'emerald-600'],
-                ['label' => 'Pending', 'value' => $pending, 'color' => 'amber-600', 'icon' => 'fa-clock', 'iconBg' => 'amber-50', 'iconColor' => 'amber-500'],
-                ['label' => 'Under Review', 'value' => $under_review, 'color' => 'blue-600', 'icon' => 'fa-search', 'iconBg' => 'blue-50', 'iconColor' => 'blue-500'],
-                ['label' => 'In Progress', 'value' => $progress, 'color' => 'pink-600', 'icon' => 'fa-spinner', 'iconBg' => 'pink-50', 'iconColor' => 'pink-500'],
-                ['label' => 'Escalated', 'value' => $escalated, 'color' => 'orange-600', 'icon' => 'fa-share-alt', 'iconBg' => 'orange-50', 'iconColor' => 'orange-500'],
-                ['label' => 'Resolved', 'value' => $resolved, 'color' => '[#10A37F]', 'icon' => 'fa-check-circle', 'iconBg' => 'emerald-50', 'iconColor' => '[#10A37F]'],
-                ['label' => 'Rejected', 'value' => $rejected, 'color' => 'red-600', 'icon' => 'fa-times-circle', 'iconBg' => 'red-50', 'iconColor' => 'red-500'],
+                ['label' => 'Total', 'value' => $total, 'color' => 'text-[#10A37F]', 'icon' => 'fa-flag', 'iconBg' => 'bg-[#10A37F]/10', 'iconColor' => 'text-[#10A37F]'],
+                ['label' => 'Pending', 'value' => $pending, 'color' => 'text-yellow-600', 'icon' => 'fa-clock', 'iconBg' => 'bg-yellow-100', 'iconColor' => 'text-yellow-700'],
+                ['label' => 'Under Review', 'value' => $under_review, 'color' => 'text-blue-600', 'icon' => 'fa-search', 'iconBg' => 'bg-blue-100', 'iconColor' => 'text-blue-700'],
+                ['label' => 'In Progress', 'value' => $progress, 'color' => 'text-pink-600', 'icon' => 'fa-spinner', 'iconBg' => 'bg-pink-100', 'iconColor' => 'text-pink-700'],
+                ['label' => 'Escalated', 'value' => $escalated, 'color' => 'text-orange-600', 'icon' => 'fa-exclamation-triangle', 'iconBg' => 'bg-orange-100', 'iconColor' => 'text-orange-700'],
+                ['label' => 'Resolved', 'value' => $resolved, 'color' => 'text-[#10A37F]', 'icon' => 'fa-check-circle', 'iconBg' => 'bg-green-100', 'iconColor' => 'text-[#10A37F]'],
             ];
-            foreach($stats_metrics as $index => $m): ?>
-            <div class="stat-card">
-                <p class="stat-label"><?php echo $m['label']; ?></p>
-                <p class="stat-value text-<?php echo $m['color']; ?>"><?php echo $m['value']; ?></p>
-                <div class="mt-2 flex justify-end">
-                    <div class="stat-icon bg-<?php echo $m['iconBg']; ?>">
-                        <i class="fas <?php echo $m['icon']; ?> text-<?php echo $m['iconColor']; ?> text-sm md:text-base"></i>
-                    </div>
+            foreach($stats_metrics as $m): ?>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full <?php echo $m['iconBg']; ?> flex items-center justify-center <?php echo $m['iconColor']; ?> flex-shrink-0">
+                    <i class="fas <?php echo $m['icon']; ?> text-sm md:text-base"></i>
+                </div>
+                <div>
+                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $m['value']; ?></div>
+                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider"><?php echo $m['label']; ?></div>
                 </div>
             </div>
             <?php endforeach; ?>

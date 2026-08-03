@@ -3,6 +3,7 @@
 // UPDATED: Added "Under Review" status support
 // UPDATED: Filter design adapted from my_reports.php with toolbar/popover style
 // UPDATED: Page header design matches my_reports.php branding
+// UPDATED: Added stats summary cards
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
 requireRole('admin');
@@ -107,6 +108,14 @@ $barangays = $db->query("SELECT id, name FROM barangays ORDER BY name")->fetchAl
 // Escalated reports summary for MENRO admin visibility
 $escalatedCount = $db->query("SELECT COUNT(*) FROM reports WHERE status IN ('escalated_pending','escalated')")->fetchColumn();
 $escalatedReports = $db->query("SELECT r.id, r.title, r.created_at, b.name as barangay_name, r.risk_level FROM reports r LEFT JOIN barangays b ON r.barangay_id = b.id WHERE r.status IN ('escalated_pending','escalated') ORDER BY r.created_at DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
+
+// ===== STATS FOR SUMMARY CARDS =====
+$totalReports = $db->query("SELECT COUNT(*) FROM reports")->fetchColumn();
+$pendingCount = $db->query("SELECT COUNT(*) FROM reports WHERE status='pending'")->fetchColumn();
+$underReviewCount = $db->query("SELECT COUNT(*) FROM reports WHERE status='under_review'")->fetchColumn();
+$inProgressCount = $db->query("SELECT COUNT(*) FROM reports WHERE status='in_progress'")->fetchColumn();
+// $escalatedCount already defined above
+$highRiskCount = $db->query("SELECT COUNT(*) FROM reports WHERE risk_level IN ('high','critical')")->fetchColumn();
 
 // Active filters count for chips
 $active_filters = 0;
@@ -676,6 +685,70 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                 <div class="text-right text-sm bg-emerald-50 px-4 py-2 rounded-xl">
                     <div class="text-gray-600 font-medium"><?php echo (int)$total; ?> total reports</div>
                     <div class="text-orange-600 font-semibold text-xs">Escalated: <strong><?php echo (int)$escalatedCount; ?></strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== STATS SUMMARY CARDS ===== -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+            <!-- Total -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-[#10A37F]/10 flex items-center justify-center text-[#10A37F] flex-shrink-0">
+                    <i class="fas fa-flag text-sm md:text-base"></i>
+                </div>
+                <div>
+                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $totalReports; ?></div>
+                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">Total</div>
+                </div>
+            </div>
+            <!-- Pending -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-yellow-400 transition-all duration-200">
+                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 flex-shrink-0">
+                    <i class="fas fa-clock text-sm md:text-base"></i>
+                </div>
+                <div>
+                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $pendingCount; ?></div>
+                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">Pending</div>
+                </div>
+            </div>
+            <!-- Under Review -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-blue-400 transition-all duration-200">
+                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 flex-shrink-0">
+                    <i class="fas fa-search text-sm md:text-base"></i>
+                </div>
+                <div>
+                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $underReviewCount; ?></div>
+                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">Under Review</div>
+                </div>
+            </div>
+            <!-- In Progress -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-pink-400 transition-all duration-200">
+                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-700 flex-shrink-0">
+                    <i class="fas fa-spinner text-sm md:text-base"></i>
+                </div>
+                <div>
+                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $inProgressCount; ?></div>
+                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">In Progress</div>
+                </div>
+            </div>
+            <!-- Escalated -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-orange-400 transition-all duration-200">
+                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-sm md:text-base"></i>
+                </div>
+                <div>
+                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $escalatedCount; ?></div>
+                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">Escalated</div>
+                </div>
+            </div>
+            <!-- High Risk -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-red-400 transition-all duration-200">
+                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-red-100 flex items-center justify-center text-red-700 flex-shrink-0">
+                    <i class="fas fa-exclamation-circle text-sm md:text-base"></i>
+                </div>
+                <div>
+                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $highRiskCount; ?></div>
+                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">High Risk</div>
                 </div>
             </div>
         </div>
