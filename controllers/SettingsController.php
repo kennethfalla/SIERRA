@@ -1,5 +1,5 @@
 <?php
-// controllers/SettingsController.php - COMPLETE SETTINGS CONTROLLER (iProg Only)
+// controllers/SettingsController.php - COMPLETE SETTINGS CONTROLLER
 // Features: General Settings, Security, Features, Tags, Algorithm, 
 // Notifications (iProg SMS), Map, Archiving, Barangays, Permissions
 
@@ -263,15 +263,13 @@ class SettingsController {
         }
 
         // ============================================
-        // 6b. SMS GATEWAY SETTINGS (iProg Only - FIXED)
+        // 6b. SMS GATEWAY SETTINGS (iProg Only)
         // ============================================
         $sms_settings = [
             'enable_sms_notifications' => isset($_POST['enable_sms_notifications']) ? 1 : 0,
             'sms_sender_name' => InputSanitizer::sanitizeString($_POST['sms_sender_name'] ?? 'SierraLGU', 11),
-            // 🔥 FIXED: Use trim() - don't sanitize API keys
             'iprog_api_key' => trim($_POST['iprog_api_key'] ?? ''),
             'iprog_sender_id' => trim($_POST['iprog_sender_id'] ?? ''),
-            // 🔥 FIXED: Correct default endpoint
             'iprog_base_url' => trim($_POST['iprog_base_url'] ?? 'https://sms.iprogtech.com/api/v1/sms_messages'),
         ];
 
@@ -279,7 +277,6 @@ class SettingsController {
             SettingsHelper::set($key, $value);
         }
 
-        // 🔥 Force clear cache
         SettingsHelper::clearCache();
 
         $_SESSION['success'] = "Notification templates and SMS settings saved successfully!";
@@ -377,13 +374,7 @@ class SettingsController {
             exit();
         }
 
-        // ============================================
-        // If the admin has an iProg API key typed into the form (whether
-        // it's brand new or an edit), save it now and test with it directly.
-        // Previously the test only ever used whatever was already saved in
-        // the DB, so typing a new key and hitting "Send Test SMS" silently
-        // tested the OLD key until a separate full form save happened.
-        // ============================================
+        // If the admin has entered an API key in the form, save it and test with it.
         $gatewayOverride = null;
         if (isset($_POST['iprog_api_key'])) {
             $apiKey = trim($_POST['iprog_api_key']);
@@ -397,16 +388,13 @@ class SettingsController {
             $baseUrl = trim($_POST['iprog_base_url'] ?? '') ?: 'https://sms.iprogtech.com/api/v1/sms_messages';
             $senderName = InputSanitizer::sanitizeString($_POST['sms_sender_name'] ?? 'SierraLGU', 11);
 
-            // Persist immediately - this is the "update the database" step.
+            // Persist immediately
             SettingsHelper::set('iprog_api_key', $apiKey);
             SettingsHelper::set('iprog_sender_id', $senderId);
             SettingsHelper::set('iprog_base_url', $baseUrl);
             SettingsHelper::set('sms_sender_name', $senderName);
             SettingsHelper::clearCache();
 
-            // Use these values directly for the test, regardless of whether
-            // the "Enable SMS" toggle has been saved on yet - a test should
-            // always be allowed to try the key the admin just entered.
             $gatewayOverride = [
                 'gateway' => 'iprog',
                 'api_key' => $apiKey,
@@ -415,7 +403,7 @@ class SettingsController {
             ];
         }
 
-        // Use SettingsHelper to send SMS (iProg only)
+        // Use SettingsHelper to send SMS
         $result = SettingsHelper::sendSms($phone, $message, $gatewayOverride);
 
         $savedNote = $gatewayOverride ? ' Your API key was saved.' : '';
@@ -425,7 +413,6 @@ class SettingsController {
         } else {
             $gateway = $gatewayOverride ?? SettingsHelper::getActiveSmsGateway();
             if (!$gateway) {
-                // Provide diagnostic flags
                 $status = SettingsHelper::getGatewayStatus();
                 $sms_enabled = (int)SettingsHelper::get('enable_sms_notifications');
                 echo json_encode([
@@ -492,10 +479,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'validate_iprog') {
         exit();
     }
 
-    // Use iProg's "Check Credits" endpoint to validate the token. This is a
-    // read-only GET call that confirms the key works without sending a real
-    // (or fake) SMS message and without spending any SMS credits.
-    // Docs: https://sms.iprogtech.com/api/v1/documentation
     $testUrl = 'https://sms.iprogtech.com/api/v1/account/sms_credits?' . http_build_query(['api_token' => $apiKey]);
 
     $ch = curl_init();

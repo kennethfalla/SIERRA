@@ -1,6 +1,7 @@
 <?php
 // controllers/AuthController.php - COMPLETE AUTHENTICATION CONTROLLER
-// Features: Login (2-Step for staff), Registration, Logout, Duplicate Check, Session Management
+// Features: Registration with SMS OTP, Login (2-Step for staff), Logout,
+// SMS OTP Forgot Password, Duplicate Check, Session Management
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
@@ -21,7 +22,7 @@ if (class_exists('ActivityLog')) {
 }
 
 // ============================================
-// ENSURE 'is_verified' AND 'force_password_reset' COLUMNS EXIST
+// ENSURE REQUIRED COLUMNS EXIST
 // ============================================
 try {
     $checkColumn = $db->query("SHOW COLUMNS FROM users LIKE 'is_verified'");
@@ -120,29 +121,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ========================================
-    // REGISTRATION HANDLER
+    // SEND REGISTRATION OTP (Step 1 → Step 2)
     // ========================================
-    if ($action === 'register') {
+    if ($action === 'send_registration_otp') {
         // CSRF Protection
         if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
-            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                echo json_encode(['error' => 'Invalid security token. Please refresh and try again.']);
-                exit();
-            }
-            $_SESSION['error'] = "Invalid security token. Please try again.";
-            header("Location: " . BASE_URL . "index.php?page=register");
+            echo json_encode(['error' => 'Invalid security token.']);
             exit();
         }
 
-        // Sanitize and prepare user data
+        // Validate all registration fields
         $first_name = InputSanitizer::sanitizeName($_POST['first_name'] ?? '');
         $last_name = InputSanitizer::sanitizeName($_POST['last_name'] ?? '');
         $email = InputSanitizer::sanitizeEmail($_POST['email'] ?? '');
         $contact_number = InputSanitizer::sanitizePhone($_POST['contact_number'] ?? '');
         $password = $_POST['password'] ?? '';
-
         $is_resident = isset($_POST['is_resident']) ? $_POST['is_resident'] : 'yes';
-        $is_resident_int = ($is_resident === 'yes') ? 1 : 0;
 
         $errors = [];
 
@@ -158,11 +152,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "Passwords do not match";
         }
 
-        // Validate address based on resident status
+        // Address validation
         if ($is_resident === 'yes') {
             $barangay_id = filter_var($_POST['barangay_id'] ?? null, FILTER_VALIDATE_INT);
             if (empty($barangay_id) || $barangay_id <= 0) {
                 $errors[] = "Please select your barangay";
+            }
+            $purok_street = InputSanitizer::sanitizeString($_POST['purok_street'] ?? '');
+            if (empty($purok_street)) {
+                $errors[] = "Please enter your Purok/Street";
             }
         } else {
             $province = InputSanitizer::sanitizeString($_POST['province'] ?? '');
@@ -171,52 +169,177 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($municipality)) $errors[] = "Please select your municipality";
         }
 
+        // Check duplicates
         if (empty($errors)) {
             $checkEmail = $db->prepare("SELECT id FROM users WHERE email = :email AND is_active = 1");
             $checkEmail->execute([':email' => $email]);
             if ($checkEmail->rowCount() > 0) {
-                $errors[] = "This email address is already registered. Please use a different email or login.";
+                $errors[] = "This email address is already registered.";
             }
 
             $checkPhone = $db->prepare("SELECT id FROM users WHERE contact_number = :contact_number AND is_active = 1");
             $checkPhone->execute([':contact_number' => $contact_number]);
             if ($checkPhone->rowCount() > 0) {
-                $errors[] = "This mobile number is already registered. Please use a different number or login.";
+                $errors[] = "This mobile number is already registered.";
             }
         }
 
         if (!empty($errors)) {
+            echo json_encode(['error' => implode('. ', $errors)]);
+            exit();
+        }
+
+        // Store validated data in session
+        $_SESSION['registration_data'] = [
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'email' => $email,
+            'contact_number' => $contact_number,
+            'password' => $password,
+            'is_resident' => $is_resident,
+            'barangay_id' => $is_resident === 'yes' ? (int)$_POST['barangay_id'] : null,
+            'purok_street' => $is_resident === 'yes' ? InputSanitizer::sanitizeString($_POST['purok_street'] ?? '') : null,
+            'province' => $is_resident === 'no' ? InputSanitizer::sanitizeString($_POST['province'] ?? '') : null,
+            'municipality' => $is_resident === 'no' ? InputSanitizer::sanitizeString($_POST['municipality'] ?? '') : null,
+            'non_resident_address' => $is_resident === 'no' ? InputSanitizer::sanitizeString($_POST['non_resident_address'] ?? '') : null,
+        ];
+
+        // Generate OTP
+        $otp = sprintf("%06d", random_int(100000, 999999));
+        $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+
+        // Store OTP in verification_codes (user_id = 0 for registration, type = 'registration')
+        try {
+            $checkColumn = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'");
+            if ($checkColumn->rowCount() == 0) {
+                $db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            }
+            $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (0, ?, ?, 'registration')");
+            $stmt->execute([$otp, $expires_at]);
+        } catch (PDOException $e) {
+            // Table may not exist, create it
+            $db->exec("CREATE TABLE IF NOT EXISTS verification_codes (
+                id INT(11) AUTO_INCREMENT PRIMARY KEY,
+                user_id INT(11) NOT NULL,
+                code VARCHAR(10) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                used TINYINT(1) DEFAULT 0,
+                type VARCHAR(20) DEFAULT 'forgot',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (0, ?, ?, 'registration')");
+            $stmt->execute([$otp, $expires_at]);
+        }
+
+        // Send SMS via iProg
+        $system_name = SettingsHelper::get('system_name', 'Sierra');
+        $message = "Your $system_name registration OTP is: $otp. This code expires in 10 minutes.";
+        $sms_sent = SettingsHelper::sendSms($contact_number, $message);
+
+        if ($sms_sent) {
+            echo json_encode(['success' => true, 'message' => 'OTP sent.']);
+        } else {
+            echo json_encode(['error' => 'Failed to send OTP. Please check your mobile number and try again.']);
+        }
+        exit();
+    }
+
+    // ========================================
+    // VERIFY REGISTRATION OTP (Step 2)
+    // ========================================
+    if ($action === 'verify_registration_otp') {
+        if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
+            echo json_encode(['success' => false, 'message' => 'Invalid security token.']);
+            exit();
+        }
+
+        $otp = trim($_POST['otp'] ?? '');
+        if (strlen($otp) !== 6) {
+            echo json_encode(['success' => false, 'message' => 'Invalid OTP.']);
+            exit();
+        }
+
+        if (!isset($_SESSION['registration_data']['contact_number'])) {
+            echo json_encode(['success' => false, 'message' => 'Session expired. Please restart registration.']);
+            exit();
+        }
+
+        // Verify OTP from DB (user_id=0, type='registration', not used, not expired)
+        $stmt = $db->prepare("SELECT id FROM verification_codes 
+                              WHERE user_id = 0 AND code = :code AND type = 'registration' 
+                              AND expires_at > NOW() AND used = 0");
+        $stmt->execute([':code' => $otp]);
+        if ($stmt->rowCount() > 0) {
+            // Mark as used
+            $update = $db->prepare("UPDATE verification_codes SET used = 1 WHERE user_id = 0 AND code = :code AND type = 'registration'");
+            $update->execute([':code' => $otp]);
+            $_SESSION['registration_otp_verified'] = true;
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Invalid or expired OTP.']);
+        }
+        exit();
+    }
+
+    // ========================================
+    // REGISTRATION HANDLER (Step 3)
+    // ========================================
+    if ($action === 'register') {
+        // CSRF Protection
+        if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                echo json_encode(['error' => implode('. ', $errors)]);
+                echo json_encode(['error' => 'Invalid security token. Please refresh and try again.']);
                 exit();
             }
-            $_SESSION['errors'] = $errors;
+            $_SESSION['error'] = "Invalid security token. Please try again.";
             header("Location: " . BASE_URL . "index.php?page=register");
             exit();
         }
 
-        // Prepare fields - convert empty strings to NULL
-        $barangay_id = null;
-        $purok_street = null;
-        $province = null;
-        $municipality = null;
-        $non_resident_address = null;
-
-        if ($is_resident === 'yes') {
-            $barangay_id = filter_var($_POST['barangay_id'] ?? null, FILTER_VALIDATE_INT);
-            if ($barangay_id === false || $barangay_id <= 0) $barangay_id = null;
-            $purok_street = InputSanitizer::sanitizeString($_POST['purok_street'] ?? '');
-            if (empty($purok_street)) $purok_street = null;
-        } else {
-            $province = InputSanitizer::sanitizeString($_POST['province'] ?? '');
-            $municipality = InputSanitizer::sanitizeString($_POST['municipality'] ?? '');
-            $non_resident_address = InputSanitizer::sanitizeString($_POST['non_resident_address'] ?? '');
-            if (empty($province)) $province = null;
-            if (empty($municipality)) $municipality = null;
-            if (empty($non_resident_address)) $non_resident_address = null;
+        // ============================================
+        // CHECK OTP VERIFICATION AND USE SESSION DATA
+        // ============================================
+        if (!isset($_SESSION['registration_otp_verified']) || $_SESSION['registration_otp_verified'] !== true) {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                echo json_encode(['error' => 'OTP verification required.']);
+                exit();
+            }
+            $_SESSION['error'] = "OTP verification required.";
+            header("Location: " . BASE_URL . "index.php?page=register");
+            exit();
         }
 
-        // Email: if empty, set NULL
+        if (!isset($_SESSION['registration_data'])) {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                echo json_encode(['error' => 'Registration data missing. Please restart.']);
+                exit();
+            }
+            $_SESSION['error'] = "Registration data missing. Please restart.";
+            header("Location: " . BASE_URL . "index.php?page=register");
+            exit();
+        }
+
+        // Use data from session
+        $data = $_SESSION['registration_data'];
+        $first_name = $data['first_name'];
+        $last_name = $data['last_name'];
+        $email = $data['email'];
+        $contact_number = $data['contact_number'];
+        $password = $data['password'];
+        $is_resident = $data['is_resident'];
+        $is_resident_int = ($is_resident === 'yes') ? 1 : 0;
+        $barangay_id = $data['barangay_id'];
+        $purok_street = $data['purok_street'];
+        $province = $data['province'];
+        $municipality = $data['municipality'];
+        $non_resident_address = $data['non_resident_address'];
+
+        // Prepare fields - convert empty strings to NULL
+        if (empty($purok_street)) $purok_street = null;
+        if (empty($province)) $province = null;
+        if (empty($municipality)) $municipality = null;
+        if (empty($non_resident_address)) $non_resident_address = null;
         if (empty($email)) $email = null;
 
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -263,6 +386,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($activityLog) {
                 $activityLog->log($user_id, 'User Registration', "New user registered: $first_name $last_name");
             }
+
+            // Clear session data
+            unset($_SESSION['registration_data']);
+            unset($_SESSION['registration_otp_verified']);
 
             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                 echo json_encode(['success' => true, 'message' => 'Registration successful! You can now login.']);
@@ -349,7 +476,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // ========================================
                 // AUTO-VERIFY FOR DEMO ACCOUNTS
-                // If password is 'password', auto-verify
                 // ========================================
                 if ($row['is_verified'] == 0 && $password === 'password') {
                     $verifyStmt = $db->prepare("UPDATE users SET is_verified = 1 WHERE id = ?");
@@ -360,29 +486,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // ========================================
                 // CHECK IF USER NEEDS PASSWORD RESET
                 // ========================================
-                // This applies to staff accounts (barangay_official and admin)
-                // that were created by MENRO with a temporary password.
-                // IMPORTANT: this check runs BEFORE the is_verified check.
-                // Staff/admin accounts created by an admin are trusted
-                // accounts, not self-registrations pending e-mail
-                // verification, so a valid temp-password login must be let
-                // through to the step-2 force-reset page instead of being
-                // blocked by "not yet verified" below.
                 if ($user->needsPasswordReset($row['id'])) {
-                    // Set basic session data so we know who they are
                     $_SESSION['user_id'] = $row['id'];
                     $_SESSION['user_role'] = $row['role'];
                     $_SESSION['user_name'] = $row['first_name'] . ' ' . $row['last_name'];
                     $_SESSION['user_email'] = $row['email'];
                     $_SESSION['user_contact'] = $row['contact_number'];
 
-                    // Set reset flags for the force password reset page
                     $_SESSION['force_password_reset'] = true;
                     $_SESSION['reset_user_id'] = $row['id'];
                     $_SESSION['reset_user_name'] = $row['first_name'] . ' ' . $row['last_name'];
                     $_SESSION['reset_user_email'] = $row['email'];
 
-                    // Log the login attempt
                     if ($activityLog) {
                         $activityLog->log(
                             $row['id'],
@@ -391,17 +506,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         );
                     }
 
-                    // Regenerate CSRF token
                     InputSanitizer::regenerateCsrfToken();
-
                     $_SESSION['info'] = "Welcome! This is your first login. Please set your permanent password to continue.";
                     header("Location: " . BASE_URL . "index.php?page=reset-password");
                     exit();
                 }
 
-                // Check if user is verified (only self-registered citizens
-                // reach this point - staff/admin accounts needing a reset
-                // were already redirected above)
+                // Check if user is verified
                 if ($row['is_verified'] == 0) {
                     $_SESSION['error'] = "Your account is not yet verified. Please check your email or contact support.";
                     header("Location: " . BASE_URL . "index.php?page=login");
@@ -409,7 +520,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // ========================================
-                // STANDARD LOGIN (No password reset needed)
+                // STANDARD LOGIN
                 // ========================================
                 session_regenerate_id(true);
 
@@ -435,7 +546,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $tokenHash = hash('sha256', $token);
 
                     try {
-                        // Check if remember_tokens table exists
                         $stmt = $db->prepare("SHOW TABLES LIKE 'remember_tokens'");
                         $stmt->execute();
                         if ($stmt->rowCount() == 0) {
@@ -526,10 +636,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // HANDLE PASSWORD RESET FROM RESET PAGE
     // ========================================
     elseif ($action === 'reset_password') {
-        // This handles the form submission from reset_password.php
-        // Note: The actual processing is in reset_password.php view
-        // This is a fallback for AJAX or direct POST
-
         if (!isset($_SESSION['force_password_reset']) || $_SESSION['force_password_reset'] !== true) {
             $_SESSION['error'] = "Access denied. Please login first.";
             header("Location: " . BASE_URL . "index.php?page=login");
@@ -552,19 +658,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($user->updatePassword($user_id, $new_password)) {
                 $user->setForcePasswordReset($user_id, 0);
 
-                // Re-fetch the full user row so the session gets populated
-                // exactly like a normal login. Previously only a partial
-                // session (id/role/name/email/contact) was set at the
-                // "needs reset" step, so fields like barangay_id, is_resident,
-                // and profile_picture were left undefined for this first
-                // session - breaking things like a barangay official's
-                // dashboard until they logged out and back in again.
                 $freshStmt = $db->prepare("SELECT * FROM users WHERE id = ?");
                 $freshStmt->execute([$user_id]);
                 $freshUser = $freshStmt->fetch(PDO::FETCH_ASSOC);
 
-                // Regenerate the session ID now that the account's
-                // permanent password has been set (privilege-relevant change).
                 session_regenerate_id(true);
 
                 $_SESSION['user_id'] = $freshUser['id'];
@@ -604,29 +701,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ========================================
-    // FORGOT PASSWORD - Step 1: Request Reset
+    // FORGOT PASSWORD - SMS OTP (Step 1) + Email fallback
     // ========================================
-    elseif ($action === 'forgot_password') {
-        $email = InputSanitizer::sanitizeEmail($_POST['email'] ?? '');
+    if ($action === 'forgot_password') {
+        // CSRF Protection
+        if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                echo json_encode(['error' => 'Invalid security token.']);
+                exit();
+            }
+            $_SESSION['error'] = "Invalid security token. Please try again.";
+            header("Location: " . BASE_URL . "index.php?page=forgot-password");
+            exit();
+        }
 
+        // --- SMS OTP Flow ---
+        if (isset($_POST['mobile']) && !empty($_POST['mobile'])) {
+            $mobile = InputSanitizer::sanitizePhone($_POST['mobile']);
+            if (!$mobile) {
+                if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                    echo json_encode(['success' => false, 'message' => 'Invalid mobile number.']);
+                    exit();
+                }
+                $_SESSION['error'] = "Invalid mobile number.";
+                header("Location: " . BASE_URL . "index.php?page=forgot-password");
+                exit();
+            }
+
+            // Check if user exists
+            $stmt = $db->prepare("SELECT id FROM users WHERE contact_number = :mobile AND is_active = 1");
+            $stmt->execute([':mobile' => $mobile]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$user) {
+                // For security, don't reveal existence
+                if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                    echo json_encode(['success' => true, 'message' => 'If this number is registered, an OTP has been sent.']);
+                    exit();
+                }
+                $_SESSION['success'] = "If this number is registered, an OTP has been sent.";
+                header("Location: " . BASE_URL . "index.php?page=forgot-password");
+                exit();
+            }
+
+            // Generate 6-digit OTP
+            $otp = sprintf("%06d", random_int(100000, 999999));
+            $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+
+            // Store OTP
+            try {
+                $checkColumn = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'");
+                if ($checkColumn->rowCount() == 0) {
+                    $db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+                }
+                $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'forgot')");
+                $stmt->execute([$user['id'], $otp, $expires_at]);
+            } catch (PDOException $e) {
+                $db->exec("CREATE TABLE IF NOT EXISTS verification_codes (
+                    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT(11) NOT NULL,
+                    code VARCHAR(10) NOT NULL,
+                    expires_at DATETIME NOT NULL,
+                    used TINYINT(1) DEFAULT 0,
+                    type VARCHAR(20) DEFAULT 'forgot',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_user_id (user_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'forgot')");
+                $stmt->execute([$user['id'], $otp, $expires_at]);
+            }
+
+            // Send SMS
+            $system_name = SettingsHelper::get('system_name', 'Sierra');
+            $message = "Your $system_name password reset OTP is: $otp. Expires in 10 minutes.";
+            $sms_sent = SettingsHelper::sendSms($mobile, $message);
+
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                echo json_encode(['success' => $sms_sent, 'message' => $sms_sent ? 'OTP sent.' : 'Failed to send OTP.']);
+                exit();
+            }
+
+            $_SESSION[$sms_sent ? 'success' : 'error'] = $sms_sent ? "OTP sent to your mobile." : "Failed to send OTP. Check gateway.";
+            header("Location: " . BASE_URL . "index.php?page=forgot-password");
+            exit();
+        }
+
+        // --- Existing Email Flow (fallback) ---
+        $email = InputSanitizer::sanitizeEmail($_POST['email'] ?? '');
         if (!$email) {
             $_SESSION['error'] = "Please enter a valid email address.";
             header("Location: " . BASE_URL . "index.php?page=forgot-password");
             exit();
         }
 
-        // Check if user exists
         $check = $db->prepare("SELECT id, first_name, last_name FROM users WHERE email = ? AND is_active = 1");
         $check->execute([$email]);
 
         if ($check->rowCount() > 0) {
             $user_data = $check->fetch(PDO::FETCH_ASSOC);
 
-            // Generate reset token
             $token = bin2hex(random_bytes(32));
             $tokenHash = hash('sha256', $token);
 
-            // Save token to database
             $stmt = $db->prepare("
                 INSERT INTO password_resets (user_id, token_hash, expires_at) 
                 VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))
@@ -634,7 +810,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $stmt->execute([$user_data['id'], $tokenHash, $tokenHash]);
 
-            // Send reset email
             $reset_link = BASE_URL . "index.php?page=reset-password&token=" . $token;
             $subject = "Password Reset Request - " . SettingsHelper::get('system_name', 'Sierra');
 
@@ -682,7 +857,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $_SESSION['success'] = "Password reset link sent to your email!";
         } else {
-            // Don't reveal if email exists or not for security
             $_SESSION['success'] = "If an account exists with this email, a password reset link has been sent.";
         }
 
@@ -691,7 +865,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ========================================
-    // FORGOT PASSWORD - Step 2: Reset with Token
+    // VERIFY FORGOT PASSWORD OTP (Step 2)
+    // ========================================
+    if ($action === 'verify_forgot_otp') {
+        if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
+            echo json_encode(['success' => false, 'message' => 'Invalid security token.']);
+            exit();
+        }
+
+        $mobile = InputSanitizer::sanitizePhone($_POST['mobile'] ?? '');
+        $otp = trim($_POST['otp'] ?? '');
+        if (!$mobile || strlen($otp) !== 6) {
+            echo json_encode(['success' => false, 'message' => 'Invalid input.']);
+            exit();
+        }
+
+        $stmt = $db->prepare("SELECT id FROM users WHERE contact_number = :mobile AND is_active = 1");
+        $stmt->execute([':mobile' => $mobile]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$user) {
+            echo json_encode(['success' => false, 'message' => 'Account not found.']);
+            exit();
+        }
+
+        $stmt = $db->prepare("SELECT id FROM verification_codes 
+                              WHERE user_id = :user_id AND code = :code AND type = 'forgot'
+                              AND expires_at > NOW() AND used = 0");
+        $stmt->execute([':user_id' => $user['id'], ':code' => $otp]);
+        if ($stmt->rowCount() > 0) {
+            $update = $db->prepare("UPDATE verification_codes SET used = 1 WHERE user_id = :user_id AND code = :code AND type = 'forgot'");
+            $update->execute([':user_id' => $user['id'], ':code' => $otp]);
+            $_SESSION['reset_otp_verified'] = true;
+            $_SESSION['reset_user_id'] = $user['id'];
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Invalid or expired OTP.']);
+        }
+        exit();
+    }
+
+    // ========================================
+    // RESET PASSWORD WITH OTP (Step 3)
+    // ========================================
+    if ($action === 'reset_password_with_otp') {
+        if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                echo json_encode(['error' => 'Invalid security token.']);
+                exit();
+            }
+            $_SESSION['error'] = "Invalid security token.";
+            header("Location: " . BASE_URL . "index.php?page=login");
+            exit();
+        }
+
+        if (!isset($_SESSION['reset_otp_verified']) || $_SESSION['reset_otp_verified'] !== true) {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                echo json_encode(['error' => 'OTP verification required.']);
+                exit();
+            }
+            $_SESSION['error'] = "OTP verification required.";
+            header("Location: " . BASE_URL . "index.php?page=login");
+            exit();
+        }
+
+        $user_id = $_SESSION['reset_user_id'] ?? 0;
+        if (!$user_id) {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                echo json_encode(['error' => 'Session expired.']);
+                exit();
+            }
+            $_SESSION['error'] = "Session expired.";
+            header("Location: " . BASE_URL . "index.php?page=login");
+            exit();
+        }
+
+        $new_password = $_POST['password'] ?? '';
+        $confirm = $_POST['confirm_password'] ?? '';
+
+        $errors = InputSanitizer::validatePassword($new_password);
+        if ($new_password !== $confirm) {
+            $errors[] = "Passwords do not match.";
+        }
+
+        if (empty($errors)) {
+            if ($user->updatePassword($user_id, $new_password)) {
+                unset($_SESSION['reset_otp_verified']);
+                unset($_SESSION['reset_user_id']);
+                if (class_exists('ActivityLog')) {
+                    $activityLog = new ActivityLog($db);
+                    $activityLog->log($user_id, 'Password Reset', 'User reset password via SMS OTP');
+                }
+                if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                    echo json_encode(['success' => true]);
+                    exit();
+                }
+                $_SESSION['success'] = "Password reset successful!";
+                header("Location: " . BASE_URL . "index.php?page=login");
+                exit();
+            } else {
+                $errors[] = "Failed to update password.";
+            }
+        }
+
+        if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            echo json_encode(['error' => implode('. ', $errors)]);
+            exit();
+        }
+        $_SESSION['errors'] = $errors;
+        header("Location: " . BASE_URL . "index.php?page=login");
+        exit();
+    }
+
+    // ========================================
+    // FORGOT PASSWORD - Step 2: Reset with Token (Email fallback)
     // ========================================
     elseif ($action === 'reset_password_with_token') {
         $token = $_POST['token'] ?? '';
@@ -706,7 +992,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $tokenHash = hash('sha256', $token);
 
-        // Validate token
         $stmt = $db->prepare("
             SELECT user_id FROM password_resets 
             WHERE token_hash = ? AND expires_at > NOW() AND used = 0
@@ -731,7 +1016,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             if ($user->updatePassword($user_id, $new_password)) {
-                // Mark token as used
                 $db->prepare("UPDATE password_resets SET used = 1 WHERE token_hash = ?")->execute([$tokenHash]);
 
                 if ($activityLog) {
@@ -757,7 +1041,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ============================================
 // IF NO VALID ACTION MATCHED
 // ============================================
-// If we get here via POST with no valid action, redirect to login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['error'] = "Invalid request.";
     header("Location: " . BASE_URL . "index.php?page=login");

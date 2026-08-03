@@ -2,10 +2,11 @@
 // views/auth/register.php - 3-STEP REGISTRATION WIZARD WITH FIXED VALIDATION
 // FIXED: Non-resident registration now works properly
 // UPDATED: Dynamic system name and logo from SettingsHelper
+// MODIFIED: Real SMS OTP integration – only JavaScript logic changed, design untouched.
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
-require_once BASE_PATH . 'helpers/SettingsHelper.php'; // <-- ADDED for dynamic settings
+require_once BASE_PATH . 'helpers/SettingsHelper.php';
 
 if (isLoggedIn()) {
     header("Location: " . BASE_URL . "index.php?page=dashboard");
@@ -1258,7 +1259,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     }
     
     // ============================================
-    // STEP 1: VALIDATION - FIXED with purok_street check
+    // STEP 1: VALIDATION - SEND OTP
     // ============================================
     function validateAndProceed() {
         // Hide duplicate error
@@ -1389,11 +1390,51 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                 return;
             }
             
-            // No duplicates - proceed to OTP step
-            proceedToStep2();
+            // No duplicates - proceed to send OTP
+            sendRegistrationOTP();
         })
         .catch(error => {
             console.error('Error checking duplicates:', error);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            alert('Network error. Please try again.');
+        });
+    }
+    
+    // ============================================
+    // SEND OTP TO SERVER
+    // ============================================
+    function sendRegistrationOTP() {
+        // Gather all form data from step1Form
+        const form = document.getElementById('step1Form');
+        const formData = new FormData(form);
+        formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+        formData.append('action', 'send_registration_otp');
+        
+        // Show loading on the Continue button
+        const btn = document.querySelector('#step1 button[onclick="validateAndProceed()"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending OTP...';
+        btn.disabled = true;
+        
+        fetch('/environmental-reporting-app/controllers/AuthController.php', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            if (data.success) {
+                // OTP sent – move to Step 2
+                proceedToStep2();
+            } else {
+                alert(data.error || 'Failed to send OTP. Please try again.');
+            }
+        })
+        .catch(error => {
             btn.innerHTML = originalText;
             btn.disabled = false;
             alert('Network error. Please try again.');
@@ -1558,18 +1599,43 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         document.getElementById('otpSuccess').classList.add('hidden');
         document.getElementById('registerLoading').classList.add('hidden');
         
-        setTimeout(() => {
+        // Send OTP to server for verification
+        const formData = new FormData();
+        formData.append('action', 'verify_registration_otp');
+        formData.append('otp', entered);
+        formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+        
+        fetch('/environmental-reporting-app/controllers/AuthController.php', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
             document.getElementById('verifyBtnText').classList.remove('hidden');
             document.getElementById('verifySpinner').classList.add('hidden');
             
-            document.getElementById('otpSuccess').textContent = '✓ Code verified! Creating account...';
-            document.getElementById('otpSuccess').classList.remove('hidden');
-            document.getElementById('registerLoading').classList.remove('hidden');
-            
-            setTimeout(() => {
+            if (data.success) {
+                document.getElementById('otpSuccess').textContent = '✓ Code verified! Creating account...';
+                document.getElementById('otpSuccess').classList.remove('hidden');
+                document.getElementById('registerLoading').classList.remove('hidden');
+                // Proceed to final registration
                 submitRegistration();
-            }, 1000);
-        }, 1500);
+            } else {
+                document.getElementById('otpError').textContent = data.message || 'Invalid or expired code. Please try again.';
+                document.getElementById('otpError').classList.remove('hidden');
+                document.querySelectorAll('.otp-input').forEach(input => {
+                    input.value = '';
+                    input.classList.remove('filled', 'error');
+                });
+                document.getElementById('otp1').focus();
+            }
+        })
+        .catch(error => {
+            document.getElementById('verifyBtnText').classList.remove('hidden');
+            document.getElementById('verifySpinner').classList.add('hidden');
+            alert('Network error. Please try again.');
+        });
     }
     
     function submitRegistration() {
@@ -1671,8 +1737,35 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         document.getElementById('registerLoading').classList.add('hidden');
         
         const btn = document.getElementById('resendBtn');
-        btn.textContent = 'Sent!';
-        setTimeout(() => { btn.textContent = 'Resend'; }, 2000);
+        btn.textContent = 'Sending...';
+        
+        // Send request to resend OTP – server uses session data
+        const formData = new FormData();
+        formData.append('action', 'send_registration_otp');
+        formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+        
+        fetch('/environmental-reporting-app/controllers/AuthController.php', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.textContent = 'Resend';
+            if (data.success) {
+                startResendTimer();
+                document.getElementById('otpError').classList.add('hidden');
+                document.getElementById('otp1').focus();
+            } else {
+                alert(data.error || 'Failed to resend OTP. Please try again.');
+                document.getElementById('resendBtn').disabled = false;
+            }
+        })
+        .catch(error => {
+            btn.textContent = 'Resend';
+            document.getElementById('resendBtn').disabled = false;
+            alert('Network error. Please try again.');
+        });
     }
     
     function startResendTimer() {

@@ -1,10 +1,14 @@
 <?php
 // helpers/SecurityHelper.php - COMPLETE SECURITY SYSTEM
 // Features: Rate Limiting, Input Sanitization, XSS Prevention, CSRF Protection
+// UPDATED: Dynamic password policies and login lockout via SettingsHelper
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Include SettingsHelper for dynamic settings
+require_once dirname(__DIR__) . '/helpers/SettingsHelper.php';
 
 /**
  * Rate Limiting Class
@@ -18,6 +22,10 @@ class RateLimiter {
     
     public function __construct($db) {
         $this->db = $db;
+        // Read dynamic settings from SettingsHelper
+        $this->maxAttempts = (int) SettingsHelper::get('max_login_attempts', 5);
+        $this->lockoutTime = (int) SettingsHelper::get('lockout_duration_minutes', 30) * 60;
+        $this->windowTime = 300; // fixed 5-minute window
     }
     
     /**
@@ -433,34 +441,44 @@ class InputSanitizer {
     // ========================================
     
     /**
-     * Validate password strength
-     * Requirements: 8+ chars, uppercase, lowercase, number, special char, no spaces
-     * 
+     * Validate password against current security settings.
      * @param string $password
+     * @param array|null $options Override default settings (for testing)
      * @return array Array of error messages (empty if valid)
      */
-    public static function validatePassword($password) {
-        $errors = [];
-        
-        if (strlen($password) < 8) {
-            $errors[] = "Password must be at least 8 characters long";
+    public static function validatePassword($password, $options = null) {
+        if ($options === null) {
+            $options = [
+                'min_length'      => (int) SettingsHelper::get('password_min_length', 8),
+                'require_upper'   => (int) SettingsHelper::get('password_require_upper', 1),
+                'require_lower'   => (int) SettingsHelper::get('password_require_lower', 1),
+                'require_number'  => (int) SettingsHelper::get('password_require_number', 1),
+                'require_special' => (int) SettingsHelper::get('password_require_special', 1),
+            ];
         }
-        if (!preg_match('/[A-Z]/', $password)) {
+
+        $min = $options['min_length'];
+        $errors = [];
+
+        if (strlen($password) < $min) {
+            $errors[] = "Password must be at least $min characters long";
+        }
+        if ($options['require_upper'] && !preg_match('/[A-Z]/', $password)) {
             $errors[] = "Password must contain at least 1 uppercase letter (A-Z)";
         }
-        if (!preg_match('/[a-z]/', $password)) {
+        if ($options['require_lower'] && !preg_match('/[a-z]/', $password)) {
             $errors[] = "Password must contain at least 1 lowercase letter (a-z)";
         }
-        if (!preg_match('/[0-9]/', $password)) {
+        if ($options['require_number'] && !preg_match('/[0-9]/', $password)) {
             $errors[] = "Password must contain at least 1 number (0-9)";
         }
-        if (!preg_match('/[!@#$%^&*()\-_=+{};:,<.>]/', $password)) {
+        if ($options['require_special'] && !preg_match('/[!@#$%^&*()\-_=+{};:,<.>]/', $password)) {
             $errors[] = "Password must contain at least 1 special character (!@#$%^&*...)";
         }
         if (preg_match('/\s/', $password)) {
             $errors[] = "Password cannot contain spaces";
         }
-        
+
         return $errors;
     }
     

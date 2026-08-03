@@ -52,7 +52,7 @@ if($page === 'forgot-password') {
         header("Location: " . BASE_URL . "index.php?page=dashboard");
         exit();
     }
-    require_once 'views/auth/forgot_password.php';
+    require_once 'views/auth/forgot-password.php';
     exit();
 }
 
