@@ -776,23 +776,33 @@ class Report {
         $cat = $catStmt->fetch(PDO::FETCH_ASSOC);
         $baseWeight = $cat ? (int)$cat['base_weight'] : 1;
         
-        // 2. Get Impact Modifier from report
-        $impactModifier = isset($report['impact_modifier']) ? (int)$report['impact_modifier'] : 0;
+        // 2. Impact Modifier: the report stores a raw impact TIER (0/2/4 = Minor/Moderate/Severe).
+        // Look up the admin-configured POINT value for that tier. Falls back to the tier id
+        // itself (0/2/4) if not explicitly configured, matching the factory defaults.
+        $impactTier = isset($report['impact_modifier']) ? (int)$report['impact_modifier'] : 0;
+        $impactPoints = (int)SettingsHelper::get('impact_modifier_' . $impactTier, $impactTier);
         
-        // 3. Count active reports within 50m (excluding this one, and excluding cancelled/resolved/rejected)
+        // 3. Count active reports within the admin-configured clustering radius
+        // (excluding this one, and excluding cancelled/resolved/rejected)
+        $radius = (int)SettingsHelper::get('clustering_radius_meters', 50);
         $densityCount = $this->countActiveReportsWithinRadius(
             $report['latitude'], 
             $report['longitude'], 
-            50, 
+            $radius, 
             $reportId
         );
         
-        // 4. Determine Density Points
-        $densityPoints = 0;
-        if ($densityCount == 1) $densityPoints = 0;
-        elseif ($densityCount == 2) $densityPoints = 2;
-        elseif ($densityCount >= 3 && $densityCount <= 4) $densityPoints = 4;
-        elseif ($densityCount >= 5) $densityPoints = 6;
+        // 4. Determine Density Points using admin-configured brackets
+        // (0 nearby / 1-2 nearby / 3-5 nearby / 6+ nearby, matching the settings UI labels)
+        if ($densityCount == 0) {
+            $densityPoints = (int)SettingsHelper::get('density_points_0', 0);
+        } elseif ($densityCount >= 1 && $densityCount <= 2) {
+            $densityPoints = (int)SettingsHelper::get('density_points_2', 2);
+        } elseif ($densityCount >= 3 && $densityCount <= 5) {
+            $densityPoints = (int)SettingsHelper::get('density_points_4', 4);
+        } else {
+            $densityPoints = (int)SettingsHelper::get('density_points_6', 6);
+        }
         
         // 4.5 Get verification count and compute bonus
         $verificationCount = $this->countVerifications($reportId);
@@ -801,15 +811,21 @@ class Report {
         $verificationBonus = min($verificationCount * $pointsPerUpvote, $maxBonus);
         
         // 5. Calculate Final Score (add verification bonus)
-        $finalScore = $baseWeight + $impactModifier + $densityPoints + $verificationBonus;
+        $finalScore = $baseWeight + $impactPoints + $densityPoints + $verificationBonus;
         
-        // 6. EMERGENCY OVERRIDE RULE
-        if ($impactModifier == 4 && $finalScore < 11) {
-            $finalScore = 11;
+        // 6. Decision Matrix - bands scale off the admin-configured Critical Threshold
+        $criticalThreshold = (int)SettingsHelper::get('critical_threshold_score', 15);
+        $decision = $this->getDecisionFromScore($finalScore, $criticalThreshold);
+        
+        // 7. EMERGENCY OVERRIDE RULE: a Severe-impact report (tier 4) is never allowed to
+        // score below the "Immediate Intervention" (Orange) band, regardless of the math above.
+        if ($impactTier == 4 && $decision['pin'] === 'Green') {
+            $finalScore = max($finalScore, $this->getOrangeBandStart($criticalThreshold));
+            $decision = $this->getDecisionFromScore($finalScore, $criticalThreshold);
+        } elseif ($impactTier == 4 && $decision['pin'] === 'Yellow') {
+            $finalScore = $this->getOrangeBandStart($criticalThreshold);
+            $decision = $this->getDecisionFromScore($finalScore, $criticalThreshold);
         }
-        
-        // 7. Decision Matrix (1-20 scale)
-        $decision = $this->getDecisionFromScore($finalScore);
         
         // Map pin to risk_level
         $risk_level_map = [
@@ -848,34 +864,52 @@ class Report {
     }
 
     /**
-     * Decision Matrix (1-20 scale)
+     * Decision Matrix - three bands (Green/Yellow/Orange) scaled proportionally
+     * below the admin-configured Critical Threshold, which marks the start of Red.
+     * With the default threshold (15) this gives: Green 1-4, Yellow 5-8, Orange 9-14, Red 15+.
      */
-    private function getDecisionFromScore($score) {
-        if ($score >= 1 && $score <= 5) {
+    private function getDecisionFromScore($score, $criticalThreshold = 15) {
+        $criticalThreshold = max(4, $criticalThreshold); // need room for at least 3 bands below it
+        $bandWidth = max(1, (int)floor(($criticalThreshold - 1) / 3));
+        $yellowStart = $bandWidth + 1;
+        $orangeStart = $bandWidth * 2 + 1;
+
+        if ($score < $yellowStart) {
             return [
                 'pin' => 'Green',
                 'classification' => 'Routine Monitoring',
                 'support' => 'Routine Monitoring: No immediate dispatch needed. Handle during standard Barangay clearing operations.'
             ];
-        } elseif ($score >= 6 && $score <= 10) {
+        } elseif ($score < $orangeStart) {
             return [
                 'pin' => 'Yellow',
                 'classification' => 'Action Required',
                 'support' => 'Action Required: Barangay must verify the report and schedule a localized intervention within 48 to 72 hours.'
             ];
-        } elseif ($score >= 11 && $score <= 15) {
+        } elseif ($score < $criticalThreshold) {
             return [
                 'pin' => 'Orange',
                 'classification' => 'Immediate Intervention',
                 'support' => 'Immediate Intervention: Escalate to MENRO. Dispatch hazard clearing team to prevent secondary damage or flooding.'
             ];
-        } else { // 16-20
+        } else {
             return [
                 'pin' => 'Red',
                 'classification' => 'Emergency Response',
                 'support' => 'Emergency Response: Immediate multi-agency coordination required (MENRO/MDRRMO) for urgent mitigation.'
             ];
         }
+    }
+
+    /**
+     * Start-of-Orange-band score for a given critical threshold. Used by the
+     * Emergency Override Rule to guarantee Severe-impact reports never sit below
+     * "Immediate Intervention", matching the same proportional bands above.
+     */
+    private function getOrangeBandStart($criticalThreshold = 15) {
+        $criticalThreshold = max(4, $criticalThreshold);
+        $bandWidth = max(1, (int)floor(($criticalThreshold - 1) / 3));
+        return $bandWidth * 2 + 1;
     }
 
     /**

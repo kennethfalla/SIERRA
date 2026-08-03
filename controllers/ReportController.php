@@ -208,6 +208,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
         exit();
     }
 
+    // ============================================
+    // DUPLICATE DETECTION - Nearby active reports
+    // Powers the "Did you mean...?" modal on submit_report.php
+    // ============================================
+    if ($action === 'check_nearby_reports') {
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'You must be logged in.']);
+            exit();
+        }
+
+        $lat = filter_var($_GET['lat'] ?? null, FILTER_VALIDATE_FLOAT);
+        $lng = filter_var($_GET['lng'] ?? null, FILTER_VALIDATE_FLOAT);
+        $category_id = filter_var($_GET['category_id'] ?? 0, FILTER_VALIDATE_INT);
+
+        if ($lat === false || $lng === false || $lat === null || $lng === null) {
+            echo json_encode(['success' => false, 'message' => 'Invalid coordinates.']);
+            exit();
+        }
+
+        $radius = (int)SettingsHelper::get('clustering_radius_meters', 50);
+
+        try {
+            $nearby = $report->getActiveReportsNearLocation($lat, $lng, $radius, $category_id ?: 0);
+            echo json_encode(['success' => true, 'reports' => $nearby, 'debug_radius' => $radius, 'debug_lat' => $lat, 'debug_lng' => $lng]);
+        } catch (\PDOException $e) {
+            error_log('check_nearby_reports failed: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lookup failed.', 'debug_error' => $e->getMessage()]);
+        }
+        exit();
+    }
+
     echo json_encode(['error' => 'Invalid action']);
     exit();
 }
@@ -306,6 +337,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=my-reports");
             exit();
         }
+    }
+
+    // ============================================
+    // UPVOTE / SUPPORT REPORT (Citizen confirms an existing report is the same issue)
+    // ============================================
+    if ($action === 'upvote_report') {
+        $report_id = filter_var($_POST['report_id'] ?? 0, FILTER_VALIDATE_INT);
+        if ($report_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid report ID.']);
+            exit();
+        }
+
+        $result = $report->addVerification($report_id, $user_id);
+
+        if ($result['success']) {
+            $activityLog->log($user_id, 'Support Report', "Supported/verified report #$report_id");
+        }
+
+        echo json_encode($result);
+        exit();
     }
 
     // ============================================

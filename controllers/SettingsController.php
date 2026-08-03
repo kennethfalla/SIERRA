@@ -226,6 +226,16 @@ class SettingsController {
         $radius = (int)($_POST['clustering_radius_meters'] ?? 50);
         SettingsHelper::set('clustering_radius_meters', max(10, min(200, $radius)));
 
+        // Critical threshold (score at/above which a report is flagged CRITICAL / Red)
+        $critical_threshold = (int)($_POST['critical_threshold_score'] ?? 15);
+        SettingsHelper::set('critical_threshold_score', max(1, min(100, $critical_threshold)));
+
+        // Verification / upvote bonus
+        $points_per_upvote = (int)($_POST['verification_points_per_upvote'] ?? 1);
+        $max_verification_points = (int)($_POST['verification_max_points'] ?? 5);
+        SettingsHelper::set('verification_points_per_upvote', max(0, min(10, $points_per_upvote)));
+        SettingsHelper::set('verification_max_points', max(0, min(20, $max_verification_points)));
+
         SettingsHelper::clearCache();
         $_SESSION['success'] = "Algorithm settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=algorithm");
