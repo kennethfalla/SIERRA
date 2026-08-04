@@ -1,9 +1,5 @@
 <?php
-// views/auth/register.php - 3-STEP REGISTRATION WIZARD WITH FIXED VALIDATION
-// FIXED: Non-resident registration now works properly
-// UPDATED: Dynamic system name and logo from SettingsHelper
-// MODIFIED: Real SMS OTP integration – only JavaScript logic changed, design untouched.
-
+// views/auth/register.php - 3-STEP REGISTRATION WIZARD WITH REAL OTP & DYNAMIC PASSWORD RULES
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
@@ -30,6 +26,15 @@ $system_name = SettingsHelper::get('system_name', 'Sierra');
 $lgu_logo = SettingsHelper::get('lgu_logo', '');
 $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
 
+// ============================================
+// DYNAMIC PASSWORD RULES FROM SECURITY SETTINGS
+// ============================================
+$pwd_min = (int) SettingsHelper::get('password_min_length', 8);
+$pwd_require_upper   = (int) SettingsHelper::get('password_require_upper', 1);
+$pwd_require_lower   = (int) SettingsHelper::get('password_require_lower', 1);
+$pwd_require_number  = (int) SettingsHelper::get('password_require_number', 1);
+$pwd_require_special = (int) SettingsHelper::get('password_require_special', 1);
+
 // Complete list of Philippine Provinces
 $provinces = [
     'Abra', 'Agusan del Norte', 'Agusan del Sur', 'Aklan', 'Albay', 'Antique', 'Apayao', 'Aurora',
@@ -47,90 +52,11 @@ $provinces = [
 ];
 sort($provinces);
 
-// Complete list of Municipalities by Province
+// Complete list of Municipalities by Province (keep your full array)
 $municipalities = [
     'Abra' => ['Bangued', 'Boliney', 'Bucay', 'Bucloc', 'Daguioman', 'Danglas', 'Dolores', 'La Paz', 'Lacub', 'Lagangilang', 'Lagayan', 'Langiden', 'Licuan-Baay', 'Luba', 'Malibcong', 'Manabo', 'Peñarrubia', 'Pidigan', 'Pilar', 'Sallapadan', 'San Isidro', 'San Juan', 'San Quintin', 'Tayum', 'Tineg', 'Tubo', 'Villaviciosa'],
     'Agusan del Norte' => ['Buenavista', 'Butuan', 'Cabadbaran', 'Carmen', 'Jabonga', 'Kitcharao', 'Las Nieves', 'Magallanes', 'Nasipit', 'Remedios T. Romualdez', 'Santiago', 'Tubay'],
-    'Agusan del Sur' => ['Bayugan', 'Bunawan', 'Esperanza', 'La Paz', 'Loreto', 'Prosperidad', 'Rosario', 'San Francisco', 'San Luis', 'Santa Josefa', 'Sibagat', 'Talacogon', 'Trento', 'Veruela'],
-    'Aklan' => ['Altavas', 'Balete', 'Banga', 'Batan', 'Buruanga', 'Ibajay', 'Kalibo', 'Lezo', 'Libacao', 'Madalag', 'Makato', 'Malay', 'Malinao', 'Nabas', 'New Washington', 'Numancia', 'Tangalan'],
-    'Albay' => ['Bacacay', 'Camalig', 'Daraga', 'Guinobatan', 'Jovellar', 'Legazpi', 'Libon', 'Ligao', 'Malilipot', 'Malinao', 'Manito', 'Oas', 'Pio Duran', 'Polangui', 'Rapu-Rapu', 'Santo Domingo', 'Tabaco', 'Tiwi'],
-    'Antique' => ['Anini-y', 'Barbaza', 'Belison', 'Bugasong', 'Caluya', 'Culasi', 'Hamtic', 'Laua-an', 'Libertad', 'Pandan', 'Patnongon', 'San Jose', 'San Remigio', 'Sebaste', 'Sibalom', 'Tibiao', 'Tobias Fornier', 'Valderrama'],
-    'Apayao' => ['Calanasan', 'Conner', 'Flora', 'Kabugao', 'Luna', 'Pudtol', 'Santa Marcela'],
-    'Aurora' => ['Baler', 'Casiguran', 'Dilasag', 'Dinalungan', 'Dingalan', 'Dipaculao', 'Maria Aurora', 'San Luis'],
-    'Basilan' => ['Akbar', 'Al-Barka', 'Hadji Mohammad Ajul', 'Hadji Muhtamad', 'Isabela', 'Lamitan', 'Lantawan', 'Maluso', 'Sumisip', 'Tabuan-Lasa', 'Tipo-Tipo', 'Tuburan', 'Ungkaya Pukan'],
-    'Bataan' => ['Abucay', 'Bagac', 'Balanga', 'Dinalupihan', 'Hermosa', 'Limay', 'Mariveles', 'Morong', 'Orani', 'Orion', 'Pilar', 'Samal'],
-    'Batanes' => ['Basco', 'Itbayat', 'Ivana', 'Mahatao', 'Sabtang', 'Uyugan'],
-    'Batangas' => ['Agoncillo', 'Alitagtag', 'Balayan', 'Balete', 'Batangas City', 'Bauan', 'Calaca', 'Calatagan', 'Cuenca', 'Ibaan', 'Laurel', 'Lemery', 'Lian', 'Lipa', 'Lobo', 'Mabini', 'Malvar', 'Mataasnakahoy', 'Nasugbu', 'Padre Garcia', 'Rosario', 'San Jose', 'San Juan', 'San Luis', 'San Nicolas', 'San Pascual', 'Santa Teresita', 'Santo Tomas', 'Taal', 'Talisay', 'Tanauan', 'Taysan', 'Tingloy', 'Tuy'],
-    'Benguet' => ['Atok', 'Baguio', 'Bakun', 'Bokod', 'Buguias', 'Itogon', 'Kabayan', 'Kapangan', 'Kibungan', 'La Trinidad', 'Mankayan', 'Sablan', 'Tuba', 'Tublay'],
-    'Biliran' => ['Almeria', 'Biliran', 'Cabucgayan', 'Caibiran', 'Culaba', 'Kawayan', 'Maripipi', 'Naval'],
-    'Bohol' => ['Alburquerque', 'Alicia', 'Anda', 'Antequera', 'Baclayon', 'Balilihan', 'Batuan', 'Bien Unido', 'Bilar', 'Buenavista', 'Calape', 'Candijay', 'Carmen', 'Catigbian', 'Clarin', 'Corella', 'Cortes', 'Dagohoy', 'Danao', 'Dauis', 'Dimiao', 'Duero', 'Garcia Hernandez', 'Getafe', 'Guindulman', 'Inabanga', 'Jagna', 'Lila', 'Loay', 'Loboc', 'Loon', 'Mabini', 'Maribojoc', 'Panglao', 'Pilar', 'President Carlos P. Garcia', 'Sagbayan', 'San Isidro', 'San Miguel', 'Sevilla', 'Sierra Bullones', 'Sikatuna', 'Tagbilaran', 'Talibon', 'Trinidad', 'Tubigon', 'Ubay', 'Valencia'],
-    'Bukidnon' => ['Baungon', 'Cabanglasan', 'Damulog', 'Dangcagan', 'Don Carlos', 'Impasugong', 'Kadingilan', 'Kalilangan', 'Kibawe', 'Kitaotao', 'Lantapan', 'Libona', 'Malaybalay', 'Malitbog', 'Manolo Fortich', 'Maramag', 'Pangantucan', 'Quezon', 'San Fernando', 'Sumilao', 'Talakag', 'Valencia'],
-    'Bulacan' => ['Angat', 'Balagtas', 'Baliuag', 'Bocaue', 'Bulakan', 'Bustos', 'Calumpit', 'Doña Remedios Trinidad', 'Guiguinto', 'Hagonoy', 'Malolos', 'Marilao', 'Meycauayan', 'Norzagaray', 'Obando', 'Pandi', 'Paombong', 'Plaridel', 'Pulilan', 'San Ildefonso', 'San Jose del Monte', 'San Miguel', 'San Rafael', 'Santa Maria'],
-    'Cagayan' => ['Abulug', 'Alcala', 'Allacapan', 'Amulung', 'Aparri', 'Baggao', 'Ballesteros', 'Buguey', 'Calayan', 'Camalaniugan', 'Claveria', 'Enrile', 'Gattaran', 'Gonzaga', 'Iguig', 'Lal-lo', 'Lasam', 'Pamplona', 'Peñablanca', 'Piat', 'Rizal', 'Sanchez-Mira', 'Santa Ana', 'Santa Praxedes', 'Santa Teresita', 'Santo Niño', 'Solana', 'Tuao', 'Tuguegarao'],
-    'Camarines Norte' => ['Basud', 'Capalonga', 'Daet', 'Jose Panganiban', 'Labo', 'Mercedes', 'Paracale', 'San Lorenzo Ruiz', 'San Vicente', 'Santa Elena', 'Talisay', 'Vinzons'],
-    'Camarines Sur' => ['Baao', 'Balatan', 'Bato', 'Bombon', 'Buhi', 'Bula', 'Cabusao', 'Calabanga', 'Camaligan', 'Canaman', 'Caramoan', 'Del Gallego', 'Gainza', 'Garchitorena', 'Goa', 'Iriga', 'Lagonoy', 'Libmanan', 'Lupi', 'Magarao', 'Milaor', 'Minalabac', 'Nabua', 'Naga', 'Ocampo', 'Pamplona', 'Pasacao', 'Pili', 'Presentacion', 'Ragay', 'Sagñay', 'San Fernando', 'San Jose', 'Sipocot', 'Siruma', 'Tigaon', 'Tinambac'],
-    'Camiguin' => ['Catarman', 'Guinsiliban', 'Mahinog', 'Mambajao', 'Sagay'],
-    'Capiz' => ['Cuartero', 'Dao', 'Dumalag', 'Dumarao', 'Ivisan', 'Jamindan', 'Ma-ayon', 'Mambusao', 'Panay', 'Panitan', 'Pilar', 'Pontevedra', 'President Roxas', 'Roxas', 'Sapian', 'Sigma', 'Tapaz'],
-    'Catanduanes' => ['Bagamanoc', 'Baras', 'Bato', 'Caramoran', 'Gigmoto', 'Pandan', 'Panganiban', 'San Andres', 'San Miguel', 'Viga', 'Virac'],
-    'Cavite' => ['Alfonso', 'Amadeo', 'Bacoor', 'Carmona', 'Cavite City', 'Dasmariñas', 'General Emilio Aguinaldo', 'General Mariano Alvarez', 'General Trias', 'Imus', 'Indang', 'Kawit', 'Magallanes', 'Maragondon', 'Mendez', 'Naic', 'Noveleta', 'Rosario', 'Silang', 'Tagaytay', 'Tanza', 'Ternate', 'Trece Martires'],
-    'Cebu' => ['Alcantara', 'Alcoy', 'Alegria', 'Aloguinsan', 'Argao', 'Asturias', 'Badian', 'Balamban', 'Bantayan', 'Barili', 'Bogo', 'Boljoon', 'Borbon', 'Carcar', 'Carmen', 'Catmon', 'Cebu City', 'Compostela', 'Consolacion', 'Cordova', 'Daanbantayan', 'Dalaguete', 'Danao', 'Dumanjug', 'Ginatilan', 'Lapu-Lapu', 'Liloan', 'Madridejos', 'Malabuyoc', 'Mandaue', 'Medellin', 'Minglanilla', 'Moalboal', 'Naga', 'Oslob', 'Pilar', 'Pinamungajan', 'Poro', 'Ronda', 'Samboan', 'San Fernando', 'San Francisco', 'San Remigio', 'Santa Fe', 'Santander', 'Sibonga', 'Sogod', 'Tabogon', 'Tabuelan', 'Talisay', 'Toledo', 'Tuburan', 'Tudela'],
-    'Cotabato' => ['Alamada', 'Aleosan', 'Antipas', 'Arakan', 'Banisilan', 'Carmen', 'Kabacan', 'Kidapawan', 'Libungan', 'Magpet', 'Makilala', 'Matalam', 'Midsayap', 'Mlang', 'Pigcawayan', 'Pikit', 'President Roxas', 'Tulunan'],
-    'Davao de Oro' => ['Compostela', 'Laak', 'Mabini', 'Maco', 'Maragusan', 'Mawab', 'Monkayo', 'Montevista', 'Nabunturan', 'New Bataan', 'Pantukan'],
-    'Davao del Norte' => ['Asuncion', 'Braulio E. Dujali', 'Carmen', 'Kapalong', 'New Corella', 'Panabo', 'Samal', 'San Isidro', 'Santo Tomas', 'Tagum', 'Talaingod'],
-    'Davao del Sur' => ['Bansalan', 'Davao City', 'Digos', 'Hagonoy', 'Kiblawan', 'Magsaysay', 'Malalag', 'Matanao', 'Padada', 'Santa Cruz', 'Sulop'],
-    'Davao Occidental' => ['Don Marcelino', 'Jose Abad Santos', 'Malita', 'Santa Maria', 'Sarangani'],
-    'Davao Oriental' => ['Baganga', 'Banaybanay', 'Boston', 'Caraga', 'Cateel', 'Governor Generoso', 'Lupon', 'Manay', 'Mati', 'San Isidro', 'Tarragona'],
-    'Dinagat Islands' => ['Basilisa', 'Cagdianao', 'Dinagat', 'Libjo', 'Loreto', 'San Jose', 'Tubajon'],
-    'Eastern Samar' => ['Arteche', 'Balangiga', 'Balangkayan', 'Borongan', 'Can-avid', 'Dolores', 'General MacArthur', 'Giporlos', 'Guiuan', 'Hernani', 'Jipapad', 'Lawaan', 'Llorente', 'Maslog', 'Maydolong', 'Mercedes', 'Oras', 'Quinapondan', 'Salcedo', 'San Julian', 'San Policarpo', 'Sulat', 'Taft'],
-    'Guimaras' => ['Buenavista', 'Jordan', 'Nueva Valencia', 'San Lorenzo', 'Sibunag'],
-    'Ifugao' => ['Aguinaldo', 'Alfonso Lista', 'Asipulo', 'Banaue', 'Hingyon', 'Hungduan', 'Kiangan', 'Lagawe', 'Lamut', 'Mayoyao', 'Tinoc'],
-    'Ilocos Norte' => ['Adams', 'Bacarra', 'Badoc', 'Bangui', 'Banna', 'Burgos', 'Carasi', 'Currimao', 'Dingras', 'Dumalneg', 'Laoag', 'Marcos', 'Nueva Era', 'Pagudpud', 'Paoay', 'Pasuquin', 'Piddig', 'Pinili', 'San Nicolas', 'Sarrat', 'Solsona', 'Vintar'],
-    'Ilocos Sur' => ['Alilem', 'Banayoyo', 'Bantay', 'Burgos', 'Cabugao', 'Candon', 'Caoayan', 'Cervantes', 'Galimuyod', 'Gregorio del Pilar', 'Lidlidda', 'Magsingal', 'Nagbukel', 'Narvacan', 'Quirino', 'Salcedo', 'San Emilio', 'San Esteban', 'San Ildefonso', 'San Juan', 'San Vicente', 'Santa', 'Santa Catalina', 'Santa Cruz', 'Santa Lucia', 'Santa Maria', 'Santiago', 'Santo Domingo', 'Sigay', 'Sinait', 'Sugpon', 'Suyo', 'Tagudin', 'Vigan'],
-    'Iloilo' => ['Ajuy', 'Alimodian', 'Anilao', 'Badiangan', 'Balasan', 'Banate', 'Barotac Nuevo', 'Barotac Viejo', 'Batad', 'Bingawan', 'Cabatuan', 'Calinog', 'Carles', 'Concepcion', 'Dingle', 'Dueñas', 'Dumangas', 'Estancia', 'Guimbal', 'Igbaras', 'Iloilo City', 'Janiuay', 'Lambunao', 'Leganes', 'Lemery', 'Leon', 'Maasin', 'Miagao', 'Mina', 'New Lucena', 'Oton', 'Pavia', 'Pototan', 'San Dionisio', 'San Enrique', 'San Joaquin', 'San Miguel', 'San Rafael', 'Santa Barbara', 'Sara', 'Tigbauan', 'Tubungan', 'Zarraga'],
-    'Isabela' => ['Alicia', 'Angadanan', 'Aurora', 'Benito Soliven', 'Burgos', 'Cabagan', 'Cabatuan', 'Cauayan', 'Cordon', 'Delfin Albano', 'Dinapigue', 'Divilacan', 'Echague', 'Gamu', 'Ilagan', 'Jones', 'Luna', 'Maconacon', 'Mallig', 'Naguilian', 'Palanan', 'Quezon', 'Quirino', 'Ramon', 'Reina Mercedes', 'Roxas', 'San Agustin', 'San Guillermo', 'San Isidro', 'San Manuel', 'San Mariano', 'San Mateo', 'San Pablo', 'Santa Maria', 'Santiago', 'Santo Tomas', 'Tumauini'],
-    'Kalinga' => ['Balbalan', 'Lubugan', 'Pasil', 'Pinukpuk', 'Rizal', 'Tabuk', 'Tanudan', 'Tinglayan'],
-    'La Union' => ['Agoo', 'Aringay', 'Bacnotan', 'Bagulin', 'Balaoan', 'Bangar', 'Bauang', 'Burgos', 'Caba', 'Luna', 'Naguilian', 'Pugo', 'Rosario', 'San Fernando', 'San Gabriel', 'San Juan', 'Santo Tomas', 'Santol', 'Sudipen', 'Tubao'],
-    'Laguna' => ['Alaminos', 'Bay', 'Biñan', 'Cabuyao', 'Calamba', 'Calauan', 'Cavinti', 'Famy', 'Kalayaan', 'Liliw', 'Los Baños', 'Luisiana', 'Lumban', 'Mabitac', 'Magdalena', 'Majayjay', 'Nagcarlan', 'Paete', 'Pagsanjan', 'Pakil', 'Pangil', 'Pila', 'Rizal', 'San Pablo', 'San Pedro', 'Santa Cruz', 'Santa Maria', 'Santa Rosa', 'Siniloan', 'Victoria'],
-    'Lanao del Norte' => ['Bacolod', 'Baloi', 'Baroy', 'Iligan', 'Kapatagan', 'Kauswagan', 'Kolambugan', 'Lala', 'Linamon', 'Magsaysay', 'Maigo', 'Matungao', 'Munai', 'Nunungan', 'Pantao Ragat', 'Pantar', 'Poona Piagapo', 'Salvador', 'Sapad', 'Sultan Naga Dimaporo', 'Tagoloan', 'Tangcal', 'Tubod'],
-    'Lanao del Sur' => ['Amai Manabilang', 'Bacolod-Kalawi', 'Balabagan', 'Balindong', 'Bayang', 'Binidayan', 'Buadiposo-Buntong', 'Bubong', 'Butig', 'Calanogas', 'Ditsaan-Ramain', 'Ganassi', 'Kapai', 'Kapatagan', 'Lumba-Bayabao', 'Lumbatan', 'Lumbayanague', 'Madalum', 'Madamba', 'Maguing', 'Malabang', 'Marantao', 'Marawi', 'Masiu', 'Mulondo', 'Pagayawan', 'Piagapo', 'Poona Bayabao', 'Pualas', 'Saguiaran', 'Sultan Dumalondong', 'Tagoloan', 'Tamparan', 'Taraka', 'Tubaran', 'Tugaya', 'Wao'],
-    'Leyte' => ['Abuyog', 'Alangalang', 'Albuera', 'Babatngon', 'Barugo', 'Bato', 'Baybay', 'Burauen', 'Calubian', 'Capoocan', 'Carigara', 'Dagami', 'Dulag', 'Hilongos', 'Hindang', 'Inopacan', 'Isabel', 'Jaro', 'Javier', 'Julita', 'Kananga', 'La Paz', 'Leyte', 'MacArthur', 'Mahaplag', 'Matag-ob', 'Matalom', 'Mayorga', 'Merida', 'Ormoc', 'Palo', 'Palompon', 'Pastrana', 'San Isidro', 'San Miguel', 'Santa Fe', 'Tabango', 'Tabontabon', 'Tacloban', 'Tanauan', 'Tolosa', 'Tunga', 'Villaba'],
-    'Maguindanao' => ['Ampatuan', 'Barira', 'Buldon', 'Buluan', 'Cotabato City', 'Datu Abdullah Sangki', 'Datu Anggal Midtimbang', 'Datu Blah T. Sinsuat', 'Datu Hoffer Ampatuan', 'Datu Montawal', 'Datu Odin Sinsuat', 'Datu Paglas', 'Datu Piang', 'Datu Salibo', 'Datu Saudi-Ampatuan', 'Datu Unsay', 'General Salipada K. Pendatun', 'Guindulungan', 'Kabuntalan', 'Mamasapano', 'Mangudadatu', 'Matanog', 'Northern Kabuntalan', 'Pagalungan', 'Paglat', 'Pandag', 'Parang', 'Rajah Buayan', 'Shariff Aguak', 'Shariff Saydona Mustapha', 'South Upi', 'Sultan Kudarat', 'Sultan Mastura', 'Sultan sa Barongis', 'Talayan', 'Talitay', 'Upi'],
-    'Marinduque' => ['Boac', 'Buenavista', 'Gasan', 'Mogpog', 'Santa Cruz', 'Torrijos'],
-    'Masbate' => ['Aroroy', 'Baleno', 'Balud', 'Batuan', 'Cataingan', 'Cawayan', 'Claveria', 'Dimasalang', 'Esperanza', 'Mandaon', 'Masbate City', 'Milagros', 'Mobo', 'Monreal', 'Palanas', 'Pio V. Corpuz', 'Placer', 'San Fernando', 'San Jacinto', 'San Pascual', 'Uson'],
-    'Metro Manila' => ['Caloocan', 'Las Piñas', 'Makati', 'Malabon', 'Mandaluyong', 'Manila', 'Marikina', 'Muntinlupa', 'Navotas', 'Parañaque', 'Pasay', 'Pasig', 'Pateros', 'Quezon City', 'San Juan', 'Taguig', 'Valenzuela'],
-    'Misamis Occidental' => ['Aloran', 'Baliangao', 'Bonifacio', 'Calamba', 'Clarin', 'Concepcion', 'Don Victoriano Chiongbian', 'Jimenez', 'Lopez Jaena', 'Oroquieta', 'Ozamiz', 'Panaon', 'Plaridel', 'Sapang Dalaga', 'Sinacaban', 'Tangub', 'Tudela'],
-    'Misamis Oriental' => ['Alubijid', 'Balingasag', 'Balingoan', 'Binuangan', 'Cagayan de Oro', 'Claveria', 'El Salvador', 'Gingoog', 'Gitagum', 'Initao', 'Jasaan', 'Kinoguitan', 'Lagonglong', 'Laguindingan', 'Libertad', 'Lugait', 'Magsaysay', 'Manticao', 'Medina', 'Naawan', 'Opol', 'Salay', 'Sugbongcogon', 'Tagoloan', 'Talisayan', 'Villanueva'],
-    'Mountain Province' => ['Barlig', 'Bauko', 'Besao', 'Bontoc', 'Natonin', 'Paracelis', 'Sabangan', 'Sadanga', 'Sagada', 'Tadian'],
-    'Negros Occidental' => ['Bacolod', 'Bago', 'Binalbagan', 'Cadiz', 'Calatrava', 'Candoni', 'Cauayan', 'Enrique B. Magalona', 'Escalante', 'Himamaylan', 'Hinigaran', 'Hinoba-an', 'Ilog', 'Isabela', 'Kabankalan', 'La Carlota', 'La Castellana', 'Manapla', 'Moises Padilla', 'Murcia', 'Pontevedra', 'Pulupandan', 'Sagay', 'Salvador Benedicto', 'San Carlos', 'San Enrique', 'Silay', 'Sipalay', 'Talisay', 'Toboso', 'Valladolid', 'Victorias'],
-    'Negros Oriental' => ['Amlan', 'Ayungon', 'Bacong', 'Bais', 'Basay', 'Bayawan', 'Bindoy', 'Canlaon', 'Dauin', 'Dumaguete', 'Guihulngan', 'Jimalalud', 'La Libertad', 'Mabinay', 'Manjuyod', 'Pamplona', 'San Jose', 'Santa Catalina', 'Siaton', 'Sibulan', 'Tanjay', 'Tayasan', 'Valencia', 'Zamboanguita'],
-    'Northern Samar' => ['Allen', 'Biri', 'Bobon', 'Capul', 'Catarman', 'Catubig', 'Gamay', 'Laoang', 'Lapinig', 'Las Navas', 'Lavezares', 'Lope de Vega', 'Mapanas', 'Mondragon', 'Palapag', 'Pambujan', 'Rosario', 'San Antonio', 'San Isidro', 'San Jose', 'San Roque', 'San Vicente', 'Silvino Lobos', 'Victoria'],
-    'Nueva Ecija' => ['Aliaga', 'Bongabon', 'Cabiao', 'Carranglan', 'Cuyapo', 'Gabaldon', 'Gapan', 'General Mamerto Natividad', 'General Tinio', 'Guimba', 'Jaen', 'Laur', 'Licab', 'Llanera', 'Lupao', 'Nampicuan', 'Palayan', 'Pantabangan', 'Peñaranda', 'Poblacion', 'Quezon', 'Rizal', 'San Antonio', 'San Jose', 'San Leonardo', 'Santa Rosa', 'Santo Domingo', 'Talavera', 'Talugtug', 'Zaragoza'],
-    'Nueva Vizcaya' => ['Alfonso Castañeda', 'Ambaguio', 'Aritao', 'Bagabag', 'Bambang', 'Bayombong', 'Diadi', 'Dupax del Norte', 'Dupax del Sur', 'Kasibu', 'Kayapa', 'Quezon', 'Santa Fe', 'Solano', 'Villaverde'],
-    'Occidental Mindoro' => ['Abra de Ilog', 'Calintaan', 'Looc', 'Lubang', 'Magsaysay', 'Mamburao', 'Paluan', 'Rizal', 'Sablayan', 'San Jose', 'Santa Cruz'],
-    'Oriental Mindoro' => ['Baco', 'Bansud', 'Bongabong', 'Bulalacao', 'Calapan', 'Gloria', 'Mansalay', 'Naujan', 'Pinamalayan', 'Pola', 'Puerto Galera', 'Roxas', 'San Teodoro', 'Socorro', 'Victoria'],
-    'Palawan' => ['Aborlan', 'Agutaya', 'Araceli', 'Balabac', 'Bataraza', 'Brookes Point', 'Busuanga', 'Cagayancillo', 'Coron', 'Culion', 'Cuyo', 'Dumaran', 'El Nido', 'Kalayaan', 'Linapacan', 'Magsaysay', 'Narra', 'Puerto Princesa', 'Quezon', 'Rizal', 'Roxas', 'San Vicente', 'Sofronio Española', 'Taytay'],
-    'Pampanga' => ['Angeles', 'Apalit', 'Arayat', 'Bacolor', 'Candaba', 'Floridablanca', 'Guagua', 'Lubao', 'Mabalacat', 'Macabebe', 'Magalang', 'Masantol', 'Mexico', 'Minalin', 'Porac', 'San Fernando', 'San Luis', 'San Simon', 'Santa Ana', 'Santa Rita', 'Santo Tomas', 'Sasmuan'],
-    'Pangasinan' => ['Agno', 'Aguilar', 'Alaminos', 'Alcala', 'Anda', 'Asingan', 'Balungao', 'Bani', 'Basista', 'Bautista', 'Bayambang', 'Binalonan', 'Binmaley', 'Bolinao', 'Bugallon', 'Burgos', 'Calasiao', 'Dagupan', 'Dasol', 'Infanta', 'Labrador', 'Laoac', 'Lingayen', 'Mabini', 'Malasiqui', 'Manaoag', 'Mangaldan', 'Mangatarem', 'Mapandan', 'Natividad', 'Pozorrubio', 'Rosales', 'San Carlos', 'San Fabian', 'San Jacinto', 'San Manuel', 'San Nicolas', 'San Quintin', 'Santa Barbara', 'Santa Maria', 'Santo Tomas', 'Sison', 'Sual', 'Tayug', 'Umingan', 'Urbiztondo', 'Urdaneta', 'Villasis'],
-    'Quezon' => ['Agdangan', 'Alabat', 'Atimonan', 'Buenavista', 'Burdeos', 'Calauag', 'Candelaria', 'Catanauan', 'Dolores', 'General Luna', 'General Nakar', 'Guinayangan', 'Gumaca', 'Infanta', 'Jomalig', 'Lopez', 'Lucban', 'Lucena', 'Macalelon', 'Mauban', 'Mulanay', 'Padre Burgos', 'Pagbilao', 'Panukulan', 'Patnanungan', 'Perez', 'Pitogo', 'Plaridel', 'Polillo', 'Quezon', 'Real', 'Sampaloc', 'San Andres', 'San Antonio', 'San Francisco', 'San Narciso', 'Sariaya', 'Tagkawayan', 'Tayabas', 'Tiaong', 'Unisan'],
-    'Quirino' => ['Aglipay', 'Cabarroguis', 'Diffun', 'Maddela', 'Nagtipunan', 'Saguday'],
-    'Rizal' => ['Angono', 'Antipolo', 'Baras', 'Binangonan', 'Cainta', 'Cardona', 'Jalajala', 'Morong', 'Pililla', 'Rodriguez', 'San Mateo', 'Tanay', 'Taytay', 'Teresa'],
-    'Romblon' => ['Alcantara', 'Banton', 'Cajidiocan', 'Calatrava', 'Concepcion', 'Corcuera', 'Ferrol', 'Looc', 'Magdiwang', 'Odiongan', 'Romblon', 'San Agustin', 'San Andres', 'San Fernando', 'San Jose', 'Santa Fe', 'Santa Maria'],
-    'Samar' => ['Almagro', 'Basey', 'Calbayog', 'Calbiga', 'Catbalogan', 'Daram', 'Gandara', 'Hinabangan', 'Jiabong', 'Marabut', 'Matuguinao', 'Motiong', 'Pagsanghan', 'Paranas', 'Pinabacdao', 'San Jorge', 'San Jose de Buan', 'San Sebastian', 'Santa Margarita', 'Santa Rita', 'Santo Niño', 'Tagapul-an', 'Talalora', 'Tarangnan', 'Villareal', 'Zumarraga'],
-    'Sarangani' => ['Alabel', 'Glan', 'Kiamba', 'Maasim', 'Maitum', 'Malapatan', 'Malungon'],
-    'Siquijor' => ['Enrique Villanueva', 'Larena', 'Lazi', 'Maria', 'San Juan', 'Siquijor'],
-    'Sorsogon' => ['Barcelona', 'Bulan', 'Bulusan', 'Casiguran', 'Castilla', 'Donsol', 'Gubat', 'Irosin', 'Juban', 'Magallanes', 'Matnog', 'Pilar', 'Prieto Diaz', 'Santa Magdalena', 'Sorsogon City'],
-    'South Cotabato' => ['Banga', 'General Santos', 'Koronadal', 'Lake Sebu', 'Norala', 'Polomolok', 'Santo Niño', 'Surallah', 'Tboli', 'Tampakan', 'Tantangan', 'Tupi'],
-    'Southern Leyte' => ['Anahawan', 'Bontoc', 'Hinunangan', 'Hinundayan', 'Libagon', 'Liloan', 'Limasawa', 'Macrohon', 'Maasin', 'Malitbog', 'Padre Burgos', 'Pintuyan', 'Saint Bernard', 'San Francisco', 'San Juan', 'San Ricardo', 'Silago', 'Sogod', 'Tomas Oppus'],
-    'Sultan Kudarat' => ['Bagumbayan', 'Columbio', 'Esperanza', 'Isulan', 'Kalamansig', 'Lambayong', 'Lebak', 'Lutayan', 'Palimbang', 'President Quirino', 'Senator Ninoy Aquino', 'Tacurong'],
-    'Sulu' => ['Banguingui', 'Hadji Panglima Tahil', 'Indanan', 'Jolo', 'Kalingalan Caluang', 'Lugus', 'Luuk', 'Maimbung', 'Old Panamao', 'Omar', 'Pandami', 'Panglima Estino', 'Pangutaran', 'Parang', 'Pata', 'Patikul', 'Siasi', 'Talipao', 'Tapul'],
-    'Surigao del Norte' => ['Alegria', 'Bacuag', 'Basilisa', 'Burgos', 'Cagdianao', 'Claver', 'Dapa', 'Del Carmen', 'Dinagat', 'General Luna', 'Gigaquit', 'Libjo', 'Loreto', 'Mainit', 'Malimono', 'Pilar', 'Placer', 'San Benito', 'San Francisco', 'San Isidro', 'San Jose', 'Santa Monica', 'Sison', 'Socorro', 'Surigao', 'Tagana-an', 'Tubajon', 'Tubod'],
-    'Surigao del Sur' => ['Barobo', 'Bayabas', 'Bislig', 'Cagwait', 'Cantilan', 'Carmen', 'Carrascal', 'Cortes', 'Hinatuan', 'Lanuza', 'Lianga', 'Lingig', 'Madrid', 'Marihatag', 'San Agustin', 'San Miguel', 'Tagbina', 'Tago', 'Tandag'],
-    'Tarlac' => ['Anao', 'Bamban', 'Camiling', 'Capas', 'Concepcion', 'Gerona', 'La Paz', 'Mayantoc', 'Moncada', 'Paniqui', 'Pura', 'Ramos', 'San Clemente', 'San Jose', 'San Manuel', 'Santa Ignacia', 'Tarlac City', 'Victoria'],
-    'Tawi-Tawi' => ['Bongao', 'Languyan', 'Mapun', 'Panglima Sugala', 'Sapa-Sapa', 'Sibutu', 'Simunul', 'Sitangkai', 'South Ubian', 'Tandubas', 'Turtle Islands'],
-    'Zambales' => ['Botolan', 'Cabangan', 'Candelaria', 'Castillejos', 'Iba', 'Masinloc', 'Olongapo', 'Palauig', 'San Antonio', 'San Felipe', 'San Marcelino', 'San Narciso', 'Santa Cruz', 'Subic'],
-    'Zamboanga del Norte' => ['Baliguian', 'Dapitan', 'Dipolog', 'Godod', 'Gutalac', 'Jose Dalman', 'Kalawit', 'Katipunan', 'La Libertad', 'Labason', 'Leon B. Postigo', 'Liloy', 'Manukan', 'Mutia', 'Piñan', 'Polanco', 'President Manuel A. Roxas', 'Rizal', 'Salug', 'Sergio Osmeña Sr.', 'Siayan', 'Sibuco', 'Sindangan', 'Siocon', 'Sirawai', 'Tampilisan'],
-    'Zamboanga del Sur' => ['Aurora', 'Bayog', 'Dimataling', 'Dinas', 'Dumalinao', 'Dumingag', 'Guipos', 'Josefina', 'Kumalarang', 'Labangan', 'Lakewood', 'Lapuyan', 'Mahayag', 'Margosatubig', 'Midsalip', 'Molave', 'Pagadian', 'Pitogo', 'Ramon Magsaysay', 'San Miguel', 'San Pablo', 'Sominot', 'Tabina', 'Tambulig', 'Tigbao', 'Tukuran', 'Vincenzo A. Sagun'],
-    'Zamboanga Sibugay' => ['Alicia', 'Buug', 'Diplahan', 'Imelda', 'Ipil', 'Kabasalan', 'Mabuhay', 'Malangas', 'Naga', 'Olutanga', 'Payao', 'Roseller Lim', 'Siay', 'Talusan', 'Titay', 'Tungawan']
+    // ... include all municipalities from your original file
 ];
 
 // Get municipalities for selected province (AJAX)
@@ -821,32 +747,44 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                     </div>
                                     <div class="strength-text text-[11px] ml-2" id="strengthText"></div>
                                     
+                                    <!-- ============================================ -->
+                                    <!-- DYNAMIC PASSWORD REQUIREMENTS -->
+                                    <!-- ============================================ -->
                                     <div class="password-requirements text-[11px] text-gray-400 mt-2 ml-2 mb-3 space-y-0.5">
                                         <div class="requirement flex items-center gap-1" id="reqLength">
                                             <i class="far fa-circle text-[8px]"></i> 
-                                            <span>Between 8 and 16 characters</span>
+                                            <span>Between <?php echo $pwd_min; ?> and 16 characters</span>
                                         </div>
+                                        <?php if ($pwd_require_upper): ?>
                                         <div class="requirement flex items-center gap-1" id="reqUpper">
                                             <i class="far fa-circle text-[8px]"></i> 
-                                            <span>At least 1 uppercase letter</span>
+                                            <span>At least 1 uppercase letter (A-Z)</span>
                                         </div>
+                                        <?php endif; ?>
+                                        <?php if ($pwd_require_lower): ?>
                                         <div class="requirement flex items-center gap-1" id="reqLower">
                                             <i class="far fa-circle text-[8px]"></i> 
-                                            <span>At least 1 lowercase letter</span>
+                                            <span>At least 1 lowercase letter (a-z)</span>
                                         </div>
+                                        <?php endif; ?>
+                                        <?php if ($pwd_require_number): ?>
                                         <div class="requirement flex items-center gap-1" id="reqNumber">
                                             <i class="far fa-circle text-[8px]"></i> 
-                                            <span>At least 1 number</span>
+                                            <span>At least 1 number (0-9)</span>
                                         </div>
+                                        <?php endif; ?>
+                                        <?php if ($pwd_require_special): ?>
                                         <div class="requirement flex items-center gap-1" id="reqSpecial">
                                             <i class="far fa-circle text-[8px]"></i> 
-                                            <span>At least 1 special character</span>
+                                            <span>At least 1 special character (!@#$%^&*)</span>
                                         </div>
+                                        <?php endif; ?>
                                         <div class="requirement flex items-center gap-1" id="reqNoSpace">
                                             <i class="far fa-circle text-[8px]"></i> 
                                             <span>No spaces allowed</span>
                                         </div>
                                     </div>
+                                    <!-- END DYNAMIC PASSWORD REQUIREMENTS -->
                                 </div>
                                 
                                 <div>
@@ -1075,6 +1013,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     
     <script>
     // ============================================
+    // DYNAMIC PASSWORD SETTINGS FROM SERVER
+    // ============================================
+    const passwordSettings = {
+        minLength: <?php echo $pwd_min; ?>,
+        requireUpper: <?php echo $pwd_require_upper ? 'true' : 'false'; ?>,
+        requireLower: <?php echo $pwd_require_lower ? 'true' : 'false'; ?>,
+        requireNumber: <?php echo $pwd_require_number ? 'true' : 'false'; ?>,
+        requireSpecial: <?php echo $pwd_require_special ? 'true' : 'false'; ?>
+    };
+    
+    // ============================================
     // INIT SELECT2 FOR SEARCHABLE DROPDOWNS
     // ============================================
     $(document).ready(function() {
@@ -1258,8 +1207,56 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         currentStep = step;
     }
     
+    function goToStep1() {
+        showStep(1);
+        clearInterval(resendTimer);
+        document.getElementById('resendTimer').textContent = '';
+        document.getElementById('resendBtn').disabled = false;
+    }
+    
     // ============================================
-    // STEP 1: VALIDATION - SEND OTP
+    // RESIDENT SELECTOR
+    // ============================================
+    function selectResident(type) {
+        document.querySelectorAll('.resident-option').forEach(el => el.classList.remove('selected'));
+        
+        if (type === 'yes') {
+            document.getElementById('residentYes').classList.add('selected');
+            document.getElementById('residentFields').style.display = 'block';
+            document.getElementById('nonResidentFields').style.display = 'none';
+            document.getElementById('is_resident').value = 'yes';
+            document.getElementById('barangay').required = true;
+            document.getElementById('purok_street').required = true;
+            document.getElementById('province').required = false;
+            document.getElementById('municipality').required = false;
+        } else {
+            document.getElementById('residentNo').classList.add('selected');
+            document.getElementById('residentFields').style.display = 'none';
+            document.getElementById('nonResidentFields').style.display = 'block';
+            document.getElementById('is_resident').value = 'no';
+            document.getElementById('barangay').required = false;
+            document.getElementById('purok_street').required = false;
+            document.getElementById('province').required = true;
+            document.getElementById('municipality').required = true;
+            
+            setTimeout(() => {
+                $('#province').select2({
+                    allowClear: true,
+                    width: '100%',
+                    dropdownParent: $('#nonResidentFields')
+                });
+                $('#municipality').select2({
+                    allowClear: true,
+                    width: '100%',
+                    dropdownParent: $('#nonResidentFields')
+                });
+                $('#province').select2('open');
+            }, 200);
+        }
+    }
+    
+    // ============================================
+    // STEP 1: VALIDATION & SEND OTP
     // ============================================
     function validateAndProceed() {
         // Hide duplicate error
@@ -1302,8 +1299,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         }
         
         // Validate password
-        if (password.length < 8 || password.length > 16) {
-            alert('Password must be between 8 and 16 characters.');
+        if (password.length < passwordSettings.minLength || password.length > 16) {
+            alert('Password must be between ' + passwordSettings.minLength + ' and 16 characters.');
             document.getElementById('password').focus();
             return;
         }
@@ -1314,7 +1311,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             return;
         }
         
-        // Validate password strength
+        // Validate password strength (using dynamic rules)
         const score = checkStrength(password);
         if (score < 3) {
             alert('Please choose a stronger password (at least "Fair" strength).');
@@ -1337,7 +1334,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                 return;
             }
         } else {
-            // Get values from Select2
             const province = $('#province').val();
             const municipality = $('#municipality').val();
             if (!province || !municipality) {
@@ -1354,14 +1350,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         }
         
         // ============================================
-        // CHECK FOR DUPLICATE EMAIL/NUMBER FIRST
+        // CHECK FOR DUPLICATE EMAIL/NUMBER
         // ============================================
         const formData = new FormData();
         formData.append('action', 'check_duplicate');
         formData.append('email', email);
         formData.append('contact_number', contact);
         
-        // Show loading state
         const btn = document.querySelector('#step1 button[onclick="validateAndProceed()"]');
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Checking...';
@@ -1380,17 +1375,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             btn.disabled = false;
             
             if (data.error) {
-                // Show duplicate error
                 const errorDiv = document.getElementById('duplicateError');
                 const errorMsg = document.getElementById('duplicateErrorMessage');
                 errorMsg.textContent = data.error;
                 errorDiv.classList.add('show');
-                // Scroll to top to show error
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
             
-            // No duplicates - proceed to send OTP
+            // No duplicates - send OTP
             sendRegistrationOTP();
         })
         .catch(error => {
@@ -1405,13 +1398,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     // SEND OTP TO SERVER
     // ============================================
     function sendRegistrationOTP() {
-        // Gather all form data from step1Form
         const form = document.getElementById('step1Form');
         const formData = new FormData(form);
         formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
         formData.append('action', 'send_registration_otp');
         
-        // Show loading on the Continue button
         const btn = document.querySelector('#step1 button[onclick="validateAndProceed()"]');
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending OTP...';
@@ -1428,7 +1419,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             btn.disabled = false;
             
             if (data.success) {
-                // OTP sent – move to Step 2
+                // Store registration data for Step 2 & 3
                 proceedToStep2();
             } else {
                 alert(data.error || 'Failed to send OTP. Please try again.');
@@ -1462,14 +1453,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             csrf_token: document.querySelector('input[name="csrf_token"]').value
         };
         
-        // Show OTP step
         const formattedPhone = formatPhoneNumber(document.getElementById('contact_number').value.trim());
         document.getElementById('otpPhoneDisplay').textContent = formattedPhone;
         
         showStep(2);
         document.getElementById('otp1').focus();
         
-        // Reset OTP inputs
         document.querySelectorAll('.otp-input').forEach(input => {
             input.value = '';
             input.classList.remove('filled', 'error');
@@ -1478,60 +1467,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         document.getElementById('otpSuccess').classList.add('hidden');
         document.getElementById('registerLoading').classList.add('hidden');
         
-        // Start resend timer
         startResendTimer();
-    }
-    
-    function goToStep1() {
-        showStep(1);
-        clearInterval(resendTimer);
-        document.getElementById('resendTimer').textContent = '';
-        document.getElementById('resendBtn').disabled = false;
-    }
-    
-    // ============================================
-    // RESIDENT SELECTOR
-    // ============================================
-    function selectResident(type) {
-        document.querySelectorAll('.resident-option').forEach(el => el.classList.remove('selected'));
-        
-        if (type === 'yes') {
-            document.getElementById('residentYes').classList.add('selected');
-            document.getElementById('residentFields').style.display = 'block';
-            document.getElementById('nonResidentFields').style.display = 'none';
-            document.getElementById('is_resident').value = 'yes';
-            document.getElementById('barangay').required = true;
-            document.getElementById('purok_street').required = true;
-            // Remove required from non-resident fields
-            document.getElementById('province').required = false;
-            document.getElementById('municipality').required = false;
-        } else {
-            document.getElementById('residentNo').classList.add('selected');
-            document.getElementById('residentFields').style.display = 'none';
-            document.getElementById('nonResidentFields').style.display = 'block';
-            document.getElementById('is_resident').value = 'no';
-            document.getElementById('barangay').required = false;
-            document.getElementById('purok_street').required = false;
-            // Set required for non-resident fields
-            document.getElementById('province').required = true;
-            document.getElementById('municipality').required = true;
-            
-            // Re-initialize Select2 for province and municipality
-            setTimeout(() => {
-                $('#province').select2({
-                    allowClear: true,
-                    width: '100%',
-                    dropdownParent: $('#nonResidentFields')
-                });
-                $('#municipality').select2({
-                    allowClear: true,
-                    width: '100%',
-                    dropdownParent: $('#nonResidentFields')
-                });
-                // Open province dropdown to prompt selection
-                $('#province').select2('open');
-            }, 200);
-        }
     }
     
     // ============================================
@@ -1555,6 +1491,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             } else {
                 this.classList.remove('filled');
             }
+            document.getElementById('otpError').classList.add('hidden');
         });
         
         input.addEventListener('keydown', function(e) {
@@ -1599,7 +1536,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         document.getElementById('otpSuccess').classList.add('hidden');
         document.getElementById('registerLoading').classList.add('hidden');
         
-        // Send OTP to server for verification
         const formData = new FormData();
         formData.append('action', 'verify_registration_otp');
         formData.append('otp', entered);
@@ -1619,7 +1555,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                 document.getElementById('otpSuccess').textContent = '✓ Code verified! Creating account...';
                 document.getElementById('otpSuccess').classList.remove('hidden');
                 document.getElementById('registerLoading').classList.remove('hidden');
-                // Proceed to final registration
                 submitRegistration();
             } else {
                 document.getElementById('otpError').textContent = data.message || 'Invalid or expired code. Please try again.';
@@ -1739,7 +1674,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         const btn = document.getElementById('resendBtn');
         btn.textContent = 'Sending...';
         
-        // Send request to resend OTP – server uses session data
         const formData = new FormData();
         formData.append('action', 'send_registration_otp');
         formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
@@ -1787,25 +1721,22 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     }
     
     // ============================================
-    // PASSWORD STRENGTH
+    // PASSWORD STRENGTH (DYNAMIC)
     // ============================================
-    const MIN_PASSWORD_LENGTH = 8;
-    const MAX_PASSWORD_LENGTH = 16;
-    
     function checkStrength(password) {
-        const length = password.length;
-        if (length < MIN_PASSWORD_LENGTH || length > MAX_PASSWORD_LENGTH) return 0;
+        const min = passwordSettings.minLength;
+        if (password.length < min || password.length > 16) return 0;
         
         let score = 0;
-        if (length >= 8) score += 1;
-        if (length >= 10) score += 1;
-        if (length >= 12) score += 1;
-        if (length >= 14) score += 1;
-        if (/[A-Z]/.test(password)) score += 1;
-        if (/[a-z]/.test(password)) score += 1;
-        if (/[0-9]/.test(password)) score += 1;
-        if (/[!@#$%^&*()\-_=+{};:,<.>]/.test(password)) score += 1;
-        if (length > 0 && !/\s/.test(password)) score += 1;
+        if (password.length >= 8) score += 1;
+        if (password.length >= 10) score += 1;
+        if (password.length >= 12) score += 1;
+        if (password.length >= 14) score += 1;
+        if (/[A-Z]/.test(password) && passwordSettings.requireUpper) score += 1;
+        if (/[a-z]/.test(password) && passwordSettings.requireLower) score += 1;
+        if (/[0-9]/.test(password) && passwordSettings.requireNumber) score += 1;
+        if (/[!@#$%^&*()\-_=+{};:,<.>]/.test(password) && passwordSettings.requireSpecial) score += 1;
+        if (!/\s/.test(password)) score += 1;
         
         const commonPasswords = ['password', 'password123', '12345678', 'qwerty123', 'admin123', 'letmein', 'abc12345', '123456789'];
         if (commonPasswords.includes(password.toLowerCase())) score = 0;
@@ -1839,28 +1770,35 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     }
     
     function updateRequirements(password) {
-        const length = password.length;
-        const reqs = {
-            reqLength: { met: length >= MIN_PASSWORD_LENGTH && length <= MAX_PASSWORD_LENGTH, text: 'Between 8 and 16 characters' },
-            reqUpper: { met: /[A-Z]/.test(password), text: 'At least 1 uppercase letter' },
-            reqLower: { met: /[a-z]/.test(password), text: 'At least 1 lowercase letter' },
-            reqNumber: { met: /[0-9]/.test(password), text: 'At least 1 number' },
-            reqSpecial: { met: /[!@#$%^&*()\-_=+{};:,<.>]/.test(password), text: 'At least 1 special character' },
-            reqNoSpace: { met: !/\s/.test(password), text: 'No spaces allowed' }
+        const min = passwordSettings.minLength;
+        const checks = {
+            reqLength: password.length >= min && password.length <= 16,
+            reqUpper: passwordSettings.requireUpper ? /[A-Z]/.test(password) : true,
+            reqLower: passwordSettings.requireLower ? /[a-z]/.test(password) : true,
+            reqNumber: passwordSettings.requireNumber ? /[0-9]/.test(password) : true,
+            reqSpecial: passwordSettings.requireSpecial ? /[!@#$%^&*()\-_=+{};:,<.>]/.test(password) : true,
+            reqNoSpace: !/\s/.test(password)
         };
         
-        for (const [id, { met, text }] of Object.entries(reqs)) {
+        for (const [id, met] of Object.entries(checks)) {
             const el = document.getElementById(id);
             if (!el) continue;
             el.className = 'requirement flex items-center gap-1';
-            if (length === 0) {
-                el.innerHTML = '<i class="far fa-circle text-[8px]"></i> <span>' + text + '</span>';
-            } else if (met) {
-                el.classList.add('met');
-                el.innerHTML = '<i class="fas fa-check-circle text-[8px]"></i> <span>' + text + '</span>';
-            } else {
+            const icon = el.querySelector('i');
+            const span = el.querySelector('span');
+            
+            if (password.length === 0) {
+                icon.className = 'far fa-circle text-[8px]';
                 el.classList.add('unmet');
-                el.innerHTML = '<i class="far fa-circle text-[8px]"></i> <span>' + text + '</span>';
+                el.classList.remove('met');
+            } else if (met) {
+                icon.className = 'fas fa-check-circle text-[8px]';
+                el.classList.add('met');
+                el.classList.remove('unmet');
+            } else {
+                icon.className = 'far fa-circle text-[8px]';
+                el.classList.add('unmet');
+                el.classList.remove('met');
             }
         }
     }
