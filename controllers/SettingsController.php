@@ -1,7 +1,7 @@
 <?php
 // controllers/SettingsController.php - COMPLETE SETTINGS CONTROLLER
 // Features: General Settings, Security, Features, Tags, Algorithm, 
-// Notifications (iProg SMS), Map, Archiving, Barangays, Permissions
+// Notifications (iProg SMS), Map, Archiving, Barangays (Full CRUD), Permissions
 
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/helpers/SecurityHelper.php';
@@ -61,7 +61,7 @@ class SettingsController {
         $contact_email = InputSanitizer::sanitizeEmail($_POST['contact_email'] ?? '');
         $emergency_hotline = InputSanitizer::sanitizeString($_POST['emergency_hotline'] ?? '');
 
-        if (!filter_var($contact_email, FILTER_VALIDATE_EMAIL)) {
+        if (!empty($contact_email) && !filter_var($contact_email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['error'] = "Please enter a valid email address.";
             header("Location: " . BASE_URL . "index.php?page=settings&tab=general");
             exit();
@@ -309,24 +309,141 @@ class SettingsController {
     }
 
     // ================================================================
-    // 9. BARANGAY MANAGER
+    // 9. BARANGAY MANAGER - FULL CRUD
     // ================================================================
     private function updateBarangays() {
         $sub_action = $_POST['sub_action'] ?? '';
-        if ($sub_action === 'edit') {
-            $id = (int)($_POST['barangay_id'] ?? 0);
+        
+        if ($sub_action === 'add') {
+            // ============================================
+            // ADD BARANGAY
+            // ============================================
+            $name = InputSanitizer::sanitizeString($_POST['barangay_name'] ?? '');
             $captain_name = InputSanitizer::sanitizeName($_POST['captain_name'] ?? '');
             $captain_contact = InputSanitizer::sanitizeString($_POST['captain_contact'] ?? '');
-            if ($id > 0) {
-                $stmt = $this->db->prepare("UPDATE barangays SET captain_name = ?, captain_contact = ? WHERE id = ?");
-                $stmt->execute([$captain_name, $captain_contact, $id]);
+            
+            if (empty($name)) {
+                $_SESSION['error'] = "Barangay name cannot be empty.";
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=barangays");
+                exit();
+            }
+            
+            // Check if barangay already exists
+            $check = $this->db->prepare("SELECT id FROM barangays WHERE name = ?");
+            $check->execute([$name]);
+            if ($check->rowCount() > 0) {
+                $_SESSION['error'] = "A barangay with this name already exists.";
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=barangays");
+                exit();
+            }
+            
+            $stmt = $this->db->prepare("INSERT INTO barangays (name, captain_name, captain_contact) VALUES (?, ?, ?)");
+            if ($stmt->execute([$name, $captain_name, $captain_contact])) {
+                $_SESSION['success'] = "Barangay added successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to add barangay.";
+            }
+            
+        } elseif ($sub_action === 'edit') {
+            // ============================================
+            // EDIT BARANGAY
+            // ============================================
+            $id = (int)($_POST['barangay_id'] ?? 0);
+            $name = InputSanitizer::sanitizeString($_POST['barangay_name'] ?? '');
+            $captain_name = InputSanitizer::sanitizeName($_POST['captain_name'] ?? '');
+            $captain_contact = InputSanitizer::sanitizeString($_POST['captain_contact'] ?? '');
+            
+            if ($id <= 0) {
+                $_SESSION['error'] = "Invalid barangay ID.";
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=barangays");
+                exit();
+            }
+            
+            if (empty($name)) {
+                $_SESSION['error'] = "Barangay name cannot be empty.";
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=barangays");
+                exit();
+            }
+            
+            // Check if name conflicts with another barangay
+            $check = $this->db->prepare("SELECT id FROM barangays WHERE name = ? AND id != ?");
+            $check->execute([$name, $id]);
+            if ($check->rowCount() > 0) {
+                $_SESSION['error'] = "Another barangay with this name already exists.";
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=barangays");
+                exit();
+            }
+            
+            $stmt = $this->db->prepare("UPDATE barangays SET name = ?, captain_name = ?, captain_contact = ? WHERE id = ?");
+            if ($stmt->execute([$name, $captain_name, $captain_contact, $id])) {
                 $_SESSION['success'] = "Barangay updated successfully!";
             } else {
-                $_SESSION['error'] = "Invalid barangay ID.";
+                $_SESSION['error'] = "Failed to update barangay.";
             }
+            
+        } elseif ($sub_action === 'delete') {
+            // ============================================
+            // DELETE BARANGAY - With Foreign Key Checks
+            // ============================================
+            $id = (int)($_POST['barangay_id'] ?? 0);
+            
+            if ($id <= 0) {
+                $_SESSION['error'] = "Invalid barangay ID.";
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=barangays");
+                exit();
+            }
+            
+            // Check if barangay has associated users
+            $check = $this->db->prepare("SELECT COUNT(*) FROM users WHERE barangay_id = ?");
+            $check->execute([$id]);
+            $userCount = (int)$check->fetchColumn();
+            
+            // Check if barangay has associated reports
+            $check = $this->db->prepare("SELECT COUNT(*) FROM reports WHERE barangay_id = ?");
+            $check->execute([$id]);
+            $reportCount = (int)$check->fetchColumn();
+            
+            // Check if barangay has associated officials
+            $check = $this->db->prepare("SELECT COUNT(*) FROM barangay_officials WHERE barangay_id = ?");
+            $check->execute([$id]);
+            $officialCount = (int)$check->fetchColumn();
+            
+            // Check if barangay has associated announcements
+            $check = $this->db->prepare("SELECT COUNT(*) FROM announcements WHERE barangay_id = ?");
+            $check->execute([$id]);
+            $announcementCount = (int)$check->fetchColumn();
+            
+            if ($userCount > 0 || $reportCount > 0 || $officialCount > 0 || $announcementCount > 0) {
+                $errors = [];
+                if ($userCount > 0) $errors[] = "{$userCount} user(s)";
+                if ($reportCount > 0) $errors[] = "{$reportCount} report(s)";
+                if ($officialCount > 0) $errors[] = "{$officialCount} official(s)";
+                if ($announcementCount > 0) $errors[] = "{$announcementCount} announcement(s)";
+                
+                $_SESSION['error'] = "Cannot delete this barangay. It has " . implode(", ", $errors) . " associated with it.";
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=barangays");
+                exit();
+            }
+            
+            // Get barangay name for logging
+            $stmt = $this->db->prepare("SELECT name FROM barangays WHERE id = ?");
+            $stmt->execute([$id]);
+            $name = $stmt->fetchColumn();
+            
+            $stmt = $this->db->prepare("DELETE FROM barangays WHERE id = ?");
+            if ($stmt->execute([$id])) {
+                // Log the activity
+                $logStmt = $this->db->prepare("INSERT INTO activity_logs (user_id, action, description, created_at) VALUES (?, ?, ?, NOW())");
+                $logStmt->execute([$this->user_id, 'Delete Barangay', "Deleted barangay: {$name} (ID: {$id})"]);
+                $_SESSION['success'] = "Barangay deleted successfully!";
+            } else {
+                $_SESSION['error'] = "Failed to delete barangay.";
+            }
+            
         } else {
             $_SESSION['error'] = "Invalid action.";
         }
+        
         header("Location: " . BASE_URL . "index.php?page=settings&tab=barangays");
         exit();
     }
@@ -336,15 +453,35 @@ class SettingsController {
     // ================================================================
     private function updatePermissions() {
         $permissions_data = $_POST['permissions'] ?? [];
+        
+        if (empty($permissions_data)) {
+            $_SESSION['error'] = "No permission data received.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
+            exit();
+        }
+        
+        $updated = 0;
         foreach ($permissions_data as $user_id => $perms) {
             $user_id = (int)$user_id;
             if ($user_id > 0) {
+                // Ensure we have an array of permissions
+                if (!is_array($perms)) {
+                    $perms = [];
+                }
                 $json = json_encode($perms);
                 $stmt = $this->db->prepare("UPDATE users SET permissions = ? WHERE id = ?");
-                $stmt->execute([$json, $user_id]);
+                if ($stmt->execute([$json, $user_id])) {
+                    $updated++;
+                }
             }
         }
-        $_SESSION['success'] = "Permissions updated successfully!";
+        
+        if ($updated > 0) {
+            $_SESSION['success'] = "Permissions updated successfully for {$updated} user(s)!";
+        } else {
+            $_SESSION['error'] = "No permissions were updated.";
+        }
+        
         header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
         exit();
     }
@@ -355,6 +492,7 @@ class SettingsController {
     public function sendTestSMS() {
         // Ensure JSON response
         header('Content-Type: application/json; charset=utf-8');
+        
         // CSRF validation
         if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
             echo json_encode(['success' => false, 'message' => 'Invalid security token.']);
@@ -429,6 +567,19 @@ class SettingsController {
         }
         exit();
     }
+    
+    // ================================================================
+    // 12. GET BARANGAYS (AJAX endpoint)
+    // ================================================================
+    public function getBarangays() {
+        header('Content-Type: application/json; charset=utf-8');
+        
+        $stmt = $this->db->query("SELECT id, name, captain_name, captain_contact FROM barangays ORDER BY name ASC");
+        $barangays = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode(['success' => true, 'data' => $barangays]);
+        exit();
+    }
 }
 
 // ============================================================
@@ -439,6 +590,13 @@ class SettingsController {
 if (isset($_POST['action']) && $_POST['action'] === 'send_test_sms') {
     $controller = new SettingsController($db, $user_id);
     $controller->sendTestSMS();
+    exit();
+}
+
+// Get barangays via AJAX
+if (isset($_POST['action']) && $_POST['action'] === 'get_barangays') {
+    $controller = new SettingsController($db, $user_id);
+    $controller->getBarangays();
     exit();
 }
 
