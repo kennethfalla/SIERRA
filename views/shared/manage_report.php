@@ -192,6 +192,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             .print-dropdown,
             .action-panel,
             .no-print,
+            .toast-msg,
             .print-dropdown-menu,
             button,
             form,
@@ -372,6 +373,82 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             margin: 0 auto 1rem;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== FOCUS ACCESSIBILITY ===== */
+        a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+            outline: 2px solid #10A37F; outline-offset: 2px; border-radius: 4px;
+        }
+
+        /* ===== PAGE ENTRANCE ===== */
+        .fade-up { animation: fadeUp 0.45s ease both; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ===== TOAST / FLASH MESSAGES ===== */
+        .toast-msg { animation: toastIn 0.3s ease both; position: relative; }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .toast-close { position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.6; transition: all 0.15s ease; background: transparent; border: none; }
+        .toast-close:hover { opacity: 1; background: rgba(0,0,0,0.06); }
+        .toast-progress { position: absolute; bottom: 0; left: 0; height: 2px; background: currentColor; opacity: 0.35; animation: toastShrink 6s linear forwards; border-radius: 0 0 0.75rem 0.75rem; }
+        @keyframes toastShrink { from { width: 100%; } to { width: 0%; } }
+
+        /* ===== STEP BADGE ===== */
+        .step-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; background: linear-gradient(135deg, #10A37F, #0D8568); color: white; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; box-shadow: 0 2px 6px rgba(16,163,127,0.3); }
+
+        /* ===== SECTION EYEBROW ===== */
+        .section-eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; color: #6b7280; text-transform: uppercase; }
+
+        /* ===== EXPANDABLE ACTION FORM ===== */
+        .expand-section { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.3s ease, opacity 0.25s ease, margin 0.3s ease; margin-top: 0; }
+        .expand-section.open { grid-template-rows: 1fr; opacity: 1; margin-top: 0.5rem; }
+        .expand-section > div { overflow: hidden; min-height: 0; }
+        .expand-section-inner { padding: 1rem; }
+
+        /* ===== ACTION TRIGGER BUTTON ===== */
+        .action-trigger.is-active { box-shadow: 0 0 0 3px rgba(16,163,127,0.25) inset; }
+
+        /* ===== BUTTON LOADING STATE ===== */
+        button[type="submit"].is-loading { pointer-events: none; opacity: 0.75; position: relative; color: transparent !important; }
+        button[type="submit"].is-loading::after {
+            content: ''; position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px;
+            border: 2px solid rgba(255,255,255,0.5); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+        }
+        button[type="submit"].btn-secondary.is-loading::after { border: 2px solid rgba(16,163,127,0.3); border-top-color: #10A37F; }
+
+        /* ===== FILE UPLOAD (DRAG & DROP + PREVIEW) ===== */
+        .file-upload-area { position: relative; overflow: hidden; }
+        .file-upload-area.drag-over { border-color: #10A37F; background: #E8F5F0; }
+        .file-upload-area.has-file { border-style: solid; border-color: #10A37F; background: #F5FBF6; padding: 10px; }
+        .file-upload-preview { display: none; max-height: 110px; border-radius: 0.5rem; margin: 0 auto 8px; object-fit: cover; }
+        .file-upload-area.has-file .file-upload-preview { display: block; }
+        .file-upload-area.has-file .file-upload-placeholder { display: none; }
+
+        /* ===== LIGHTBOX ===== */
+        .lightbox-overlay { position: fixed; inset: 0; background: rgba(15,23,20,0.92); backdrop-filter: blur(6px); z-index: 10000; display: none; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+        .lightbox-overlay.open { display: flex; }
+        .lightbox-img { max-width: 88vw; max-height: 80vh; border-radius: 0.75rem; box-shadow: 0 20px 60px rgba(0,0,0,0.5); animation: fadeUp 0.25s ease; }
+        .lightbox-close, .lightbox-nav { position: absolute; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 9999px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
+        .lightbox-close:hover, .lightbox-nav:hover { background: #10A37F; border-color: #10A37F; }
+        .lightbox-close { top: 20px; right: 20px; width: 42px; height: 42px; font-size: 1.1rem; }
+        .lightbox-nav { top: 50%; transform: translateY(-50%); width: 46px; height: 46px; font-size: 1.2rem; }
+        .lightbox-prev { left: 16px; } .lightbox-next { right: 16px; }
+        .lightbox-counter { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.85); font-size: 0.8rem; font-weight: 600; background: rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 9999px; }
+
+        /* ===== CONFIRM MODAL ===== */
+        .confirm-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,20,0.55); backdrop-filter: blur(3px); z-index: 10000; display: none; align-items: center; justify-content: center; animation: fadeIn 0.15s ease; padding: 1rem; }
+        .confirm-modal-overlay.open { display: flex; }
+        .confirm-modal-card { background: white; border-radius: 1rem; padding: 1.5rem; max-width: 380px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: fadeUp 0.2s ease; }
+        .confirm-modal-icon { width: 44px; height: 44px; border-radius: 9999px; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 12px; }
+
+        /* ===== COPY BUTTON ===== */
+        .copy-btn { display: inline-flex; align-items: center; gap: 4px; color: #6b7280; cursor: pointer; transition: color 0.15s ease; border: none; background: none; font-size: inherit; padding: 0; }
+        .copy-btn:hover { color: #10A37F; }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; text-align: center; color: #9CA3AF; }
+        .empty-state i { font-size: 1.75rem; margin-bottom: 8px; opacity: 0.5; }
+
+        /* ===== NOTE AVATAR ===== */
+        .note-avatar { width: 26px; height: 26px; border-radius: 9999px; background: linear-gradient(135deg,#10A37F,#0D8568); color: white; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -383,16 +460,20 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         <!-- Flash Messages -->
         <?php if(isset($_SESSION['success'])): ?>
-            <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-xl text-green-700 text-sm flex items-center gap-2">
+            <div class="toast-msg mb-4 p-4 pr-9 bg-green-50 border-l-4 border-green-500 rounded-xl text-green-700 text-sm flex items-center gap-2">
                 <i class="fas fa-check-circle text-green-500"></i>
                 <span><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></span>
+                <button type="button" class="toast-close" onclick="this.closest('.toast-msg').remove()" aria-label="Dismiss message"><i class="fas fa-xmark text-xs text-green-600"></i></button>
+                <div class="toast-progress text-green-500"></div>
             </div>
         <?php endif; ?>
 
         <?php if(isset($_SESSION['error'])): ?>
-            <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl text-red-700 text-sm flex items-center gap-2">
+            <div class="toast-msg mb-4 p-4 pr-9 bg-red-50 border-l-4 border-red-500 rounded-xl text-red-700 text-sm flex items-center gap-2">
                 <i class="fas fa-exclamation-circle text-red-500"></i>
                 <span><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></span>
+                <button type="button" class="toast-close" onclick="this.closest('.toast-msg').remove()" aria-label="Dismiss message"><i class="fas fa-xmark text-xs text-red-600"></i></button>
+                <div class="toast-progress text-red-500"></div>
             </div>
         <?php endif; ?>
 
@@ -438,7 +519,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </div>
 
         <!-- ===== GRADIENT HEADER CARD ===== -->
-        <div class="bg-gradient-to-r from-[#10A37F] to-[#0D8568] rounded-2xl shadow-xl overflow-hidden mb-6 md:mb-8">
+        <div class="fade-up bg-gradient-to-r from-[#10A37F] to-[#0D8568] rounded-2xl shadow-xl overflow-hidden mb-6 md:mb-8 relative">
+            <div class="absolute inset-0 opacity-[0.06] pointer-events-none" style="background-image: radial-gradient(circle at 90% 10%, white 0%, transparent 45%);"></div>
             <div class="px-4 md:px-6 py-4 md:py-6">
                 <div class="flex flex-wrap justify-between items-start gap-4">
                     <div class="space-y-2">
@@ -467,7 +549,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </div>
 
         <!-- Two Columns: Reporter Details + Metadata -->
-        <div class="two-col">
+        <div class="two-col fade-up" style="animation-delay:0.05s">
             <div class="card">
                 <div class="card-header"><i class="fas fa-user"></i> Reporter Details</div>
                 <div class="space-y-2 text-sm">
@@ -505,26 +587,31 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </div>
 
         <!-- Description -->
-        <div class="card">
+        <div class="card fade-up" style="animation-delay:0.1s">
             <div class="card-header"><i class="fas fa-align-left"></i> Resident's Description</div>
             <div class="text-gray-700 leading-relaxed whitespace-pre-line"><?php echo nl2br(htmlspecialchars($report['description'])); ?></div>
         </div>
 
         <!-- Two Columns: Photo + Map -->
-        <div class="two-col">
+        <div class="two-col fade-up" style="animation-delay:0.15s">
             <div class="card">
                 <div class="card-header"><i class="fas fa-image"></i> Evidentiary Photo</div>
                 <?php if (!empty($images)): ?>
                     <div class="photo-grid">
-                        <?php foreach ($images as $img): ?>
-                            <img src="<?php echo BASE_URL . $img['image_path']; ?>" onclick="window.open('<?php echo BASE_URL . $img['image_path']; ?>','_blank')" alt="Report photo">
+                        <?php foreach ($images as $i => $img): ?>
+                            <img src="<?php echo BASE_URL . $img['image_path']; ?>" onclick="openLightbox(<?php echo (int)$i; ?>)" alt="Evidentiary photo <?php echo (int)$i + 1; ?> for this report" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo (int)$i; ?>)">
                         <?php endforeach; ?>
                     </div>
                     <?php if (count($images) > 1): ?>
-                        <p class="text-xs text-gray-400 mt-2">Click any photo to view full size.</p>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click any photo to view full size — <?php echo count($images); ?> photos total.</p>
+                    <?php else: ?>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click to view full size.</p>
                     <?php endif; ?>
                 <?php else: ?>
-                    <p class="text-gray-400 text-sm">No photos submitted.</p>
+                    <div class="empty-state">
+                        <i class="fas fa-image"></i>
+                        <p class="text-sm">No photos submitted with this report.</p>
+                    </div>
                 <?php endif; ?>
             </div>
 
@@ -532,61 +619,81 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <div class="card-header"><i class="fas fa-map-pin"></i> Geographic Location</div>
                 <?php if ($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
                     <div id="map"></div>
-                    <p class="text-xs text-gray-500 mt-2">
+                    <p class="text-xs text-gray-500 mt-2 flex flex-wrap items-center gap-x-1 gap-y-1">
                         <i class="fas fa-location-dot mr-1 text-emerald-600"></i>
-                        GPS: <?php echo number_format($report['latitude'], 6); ?>, <?php echo number_format($report['longitude'], 6); ?>
-                        &nbsp; <a href="https://www.google.com/maps?q=<?php echo $report['latitude']; ?>,<?php echo $report['longitude']; ?>" target="_blank" class="text-emerald-600 hover:underline">Open in Google Maps</a>
+                        <span id="gpsCoords">GPS: <?php echo number_format($report['latitude'], 6); ?>, <?php echo number_format($report['longitude'], 6); ?></span>
+                        <button type="button" class="copy-btn ml-1" onclick="copyGps(this)" aria-label="Copy coordinates">
+                            <i class="fas fa-copy"></i><span>Copy</span>
+                        </button>
+                        &nbsp; <a href="https://www.google.com/maps?q=<?php echo $report['latitude']; ?>,<?php echo $report['longitude']; ?>" target="_blank" class="text-emerald-600 hover:underline font-medium">Open in Google Maps <i class="fas fa-arrow-up-right-from-square text-[9px] ml-0.5"></i></a>
                     </p>
                     <?php if (!empty($report['location_address'])): ?>
                         <p class="text-sm text-gray-600 mt-1"><i class="fas fa-address-card mr-1 text-gray-400"></i> <?php echo htmlspecialchars($report['location_address']); ?></p>
                     <?php endif; ?>
                 <?php else: ?>
-                    <p class="text-gray-400 text-sm">No location data available.</p>
+                    <div class="empty-state">
+                        <i class="fas fa-map-location-dot"></i>
+                        <p class="text-sm">No location data available.</p>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
 
         <!-- Notes -->
         <?php if ($show_notes): ?>
-        <div class="card">
+        <div class="card fade-up" style="animation-delay:0.2s">
             <div class="card-header"><i class="fas fa-sticky-note"></i> Investigation Notes</div>
-            <div class="max-h-60 overflow-y-auto mb-4 space-y-2">
+            <div class="max-h-60 overflow-y-auto mb-4 space-y-2 pr-1">
                 <?php if (!empty($notes)): ?>
                     <?php foreach ($notes as $note): ?>
-                        <div class="note-item">
-                            <p class="text-sm"><?php echo htmlspecialchars($note['note']); ?></p>
-                            <p class="text-xs text-gray-400 mt-1"><?php echo htmlspecialchars($note['user_name']); ?> • <?php echo date('M d, h:i A', strtotime($note['created_at'])); ?></p>
+                        <div class="note-item flex gap-2.5">
+                            <div class="note-avatar" aria-hidden="true"><?php echo strtoupper(substr($note['user_name'], 0, 1)); ?></div>
+                            <div class="min-w-0">
+                                <p class="text-sm text-gray-700"><?php echo htmlspecialchars($note['note']); ?></p>
+                                <p class="text-xs text-gray-400 mt-1"><span class="font-medium text-gray-500"><?php echo htmlspecialchars($note['user_name']); ?></span> • <?php echo date('M d, h:i A', strtotime($note['created_at'])); ?></p>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <p class="text-gray-400 text-sm text-center py-2">No notes yet.</p>
+                    <div class="empty-state py-4">
+                        <i class="fas fa-comment-dots"></i>
+                        <p class="text-sm">No investigation notes yet.</p>
+                    </div>
                 <?php endif; ?>
             </div>
             <!-- Quick note form -->
             <?php if ($user_role == 'barangay_official' || $user_role == 'admin'): ?>
-            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="flex gap-2">
+            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="flex gap-2" onsubmit="setLoading(this)">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <input type="hidden" name="action" value="add_note">
                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                <input type="text" name="note" placeholder="Add investigation note..." class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none">
-                <button type="submit" class="btn-primary">Add Note</button>
+                <input type="text" name="note" placeholder="Add an investigation note..." maxlength="500" required class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors">
+                <button type="submit" class="btn-primary whitespace-nowrap"><i class="fas fa-plus mr-1.5"></i>Add Note</button>
             </form>
             <?php endif; ?>
         </div>
         <?php endif; ?>
 
         <!-- 🛠️ ACTION & MANAGEMENT PANEL -->
-        <div class="action-panel">
-            <div class="card-header"><i class="fas fa-tools"></i> ACTION & MANAGEMENT PANEL</div>
+        <div class="action-panel fade-up">
+            <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100">
+                <div class="w-9 h-9 rounded-xl bg-[#10A37F]/10 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-tools text-[#10A37F] text-sm"></i>
+                </div>
+                <div>
+                    <p class="font-bold text-gray-800 text-sm">Action &amp; Management Panel</p>
+                    <p class="text-xs text-gray-400">Choose what happens next with this report</p>
+                </div>
+            </div>
 
             <?php if ($user_role == 'barangay_official'): ?>
                 <!-- Step 1: Reclassify Risk Level & Take Action (only when in progress) -->
                 <?php if ($can_reclassify): ?>
                 <div class="mb-6">
-                    <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-200">
-                        <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded">1</span> Reclassify Risk Level (In Progress only):
+                    <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-200 flex items-center gap-2">
+                        <span class="step-badge">1</span> Reclassify risk level <span class="font-normal text-gray-400">(In Progress reports only)</span>
                     </h3>
-                    <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="space-y-3">
+                    <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="space-y-3" onsubmit="setLoading(this)">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                         <input type="hidden" name="action" value="reclassify_impact">
                         <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
@@ -613,14 +720,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
                 <!-- Step 2: PRIMARY RESOLUTION ACTIONS (only when under_review) -->
                 <div class="mb-4">
-                    <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-[#10A37F]">
-                        PRIMARY RESOLUTION ACTIONS:
+                    <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-[#10A37F] flex items-center gap-2">
+                        <span class="step-badge"><?php echo $can_reclassify ? '2' : '1'; ?></span> Primary resolution actions
                     </h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="direction: ltr;">
                         <?php if ($can_verify): ?>
                             <!-- Verify Report -->
-                            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php">
+                            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" onsubmit="setLoading(this)">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                 <input type="hidden" name="action" value="verify_report">
                                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
@@ -632,78 +739,81 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         
                         <?php if ($can_escalate): ?>
                             <!-- Escalate to MENRO -->
-                            <button onclick="document.getElementById('escalateFormSection').style.display='block';this.style.display='none'" class="w-full btn-warning py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl">
+                            <button type="button" data-target="escalateFormSection" onclick="toggleExpand(this)" class="action-trigger w-full btn-warning py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl">
                                 <i class="fas fa-share mr-2"></i> Escalate to MENRO
                             </button>
                             
-                            <div id="escalateFormSection" style="display:none;" class="col-span-full p-4 bg-amber-50 border-2 border-amber-200 rounded-xl mt-2">
-                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="space-y-3">
+                            <div id="escalateFormSection" class="expand-section col-span-full bg-amber-50 border-2 border-amber-200 rounded-xl"><div>
+                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" onsubmit="setLoading(this)">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                     <input type="hidden" name="action" value="escalate_report">
                                     <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                                     
-                                    <label class="block text-sm font-semibold text-gray-700">Justification for Escalation:</label>
+                                    <label class="block text-sm font-semibold text-gray-700"><i class="fas fa-share text-amber-600 mr-1"></i> Justification for escalation</label>
                                     <textarea name="escalation_reason" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Explain why this report needs to be escalated to MENRO..." required></textarea>
                                     
                                     <div class="flex gap-3">
                                         <button type="submit" class="btn-warning px-6 py-2">
                                             <i class="fas fa-paper-plane mr-2"></i> Confirm Escalation
                                         </button>
-                                        <button type="button" onclick="document.getElementById('escalateFormSection').style.display='none';document.querySelector('[onclick*=escalateFormSection]').style.display=''" class="btn-secondary px-6 py-2">Cancel</button>
+                                        <button type="button" data-target="escalateFormSection" onclick="toggleExpand(this)" class="btn-secondary px-6 py-2">Cancel</button>
                                     </div>
                                 </form>
-                            </div>
+                            </div></div>
                         <?php endif; ?>
 
                         <?php if ($can_reject): ?>
                             <!-- Reject Report -->
-                            <button onclick="document.getElementById('rejectFormSection').style.display='block';this.style.display='none'" class="w-full btn-danger py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl">
+                            <button type="button" data-target="rejectFormSection" onclick="toggleExpand(this)" class="action-trigger w-full btn-danger py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl">
                                 <i class="fas fa-times-circle mr-2"></i> Reject Report
                             </button>
                             
-                            <div id="rejectFormSection" style="display:none;" class="col-span-full p-4 bg-red-50 border-2 border-red-200 rounded-xl mt-2">
-                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="space-y-3" onsubmit="return confirm('Are you sure you want to reject this report?')">
+                            <div id="rejectFormSection" class="expand-section col-span-full bg-red-50 border-2 border-red-200 rounded-xl"><div>
+                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" data-confirm="Are you sure you want to reject this report? This action will notify the resident." onsubmit="return handleReportFormSubmit(event, this)">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                     <input type="hidden" name="action" value="reject_report">
                                     <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                                     
-                                    <label class="block text-sm font-semibold text-gray-700">Reason for Rejection:</label>
+                                    <label class="block text-sm font-semibold text-gray-700"><i class="fas fa-ban text-red-600 mr-1"></i> Reason for rejection</label>
                                     <textarea name="rejection_reason" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" placeholder="Provide a clear reason for rejecting this report..." required></textarea>
                                     
                                     <div class="flex gap-3">
                                         <button type="submit" class="btn-danger px-6 py-2">
                                             <i class="fas fa-ban mr-2"></i> Confirm Rejection
                                         </button>
-                                        <button type="button" onclick="document.getElementById('rejectFormSection').style.display='none';document.querySelector('[onclick*=rejectFormSection]').style.display=''" class="btn-secondary px-6 py-2">Cancel</button>
+                                        <button type="button" data-target="rejectFormSection" onclick="toggleExpand(this)" class="btn-secondary px-6 py-2">Cancel</button>
                                     </div>
                                 </form>
-                            </div>
+                            </div></div>
                         <?php endif; ?>
 
                         <?php if ($can_resolve): ?>
                             <!-- Mark as Resolved (moved to right) -->
-                            <button onclick="document.getElementById('resolveFormSection').style.display='block';this.style.display='none'" class="w-full btn-success py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl md:col-start-3">
+                            <button type="button" data-target="resolveFormSection" onclick="toggleExpand(this)" class="action-trigger w-full btn-success py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl md:col-start-3">
                                 <i class="fas fa-check-double mr-2"></i> Mark as Resolved
                             </button>
                             
-                            <div id="resolveFormSection" style="display:none;" class="col-span-full p-4 bg-green-50 border-2 border-green-200 rounded-xl mt-2">
-                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" enctype="multipart/form-data" class="space-y-3">
+                            <div id="resolveFormSection" class="expand-section col-span-full bg-green-50 border-2 border-green-200 rounded-xl"><div>
+                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" enctype="multipart/form-data" class="expand-section-inner space-y-3" onsubmit="setLoading(this)">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                     <input type="hidden" name="action" value="resolve_report">
                                     <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                                     
                                     <div class="grid md:grid-cols-2 gap-3">
                                         <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Resolution Photo (Required):</label>
-                                            <div class="file-upload-area" onclick="document.getElementById('resImage').click()">
-                                                <i class="fas fa-camera text-3xl text-gray-400 mb-2 block"></i>
-                                                <span class="text-sm text-gray-600 font-medium">Click to upload photo proof</span>
-                                                <input type="file" name="resolution_image" id="resImage" accept="image/*" style="display:none;" required onchange="document.getElementById('resPreview').textContent=this.files[0]?this.files[0].name:'No file selected'">
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Resolution photo <span class="text-red-500">(required)</span></label>
+                                            <div class="file-upload-area" id="resImageArea" onclick="document.getElementById('resImage').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImage')">
+                                                <img class="file-upload-preview" id="resImagePreviewImg" alt="">
+                                                <div class="file-upload-placeholder">
+                                                    <i class="fas fa-camera text-3xl text-gray-400 mb-2 block"></i>
+                                                    <span class="text-sm text-gray-600 font-medium">Click or drag a photo here</span>
+                                                </div>
+                                                <input type="file" name="resolution_image" id="resImage" accept="image/*" style="display:none;" required onchange="handleFilePreview(this,'resImageArea','resImagePreviewImg','resPreview')">
                                                 <span id="resPreview" class="text-xs text-gray-500 block mt-2">JPG, PNG, GIF (Max 5MB)</span>
                                             </div>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Resolution Notes (Optional):</label>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Resolution notes <span class="text-gray-400 font-normal">(optional)</span></label>
                                             <textarea name="resolution_note" rows="5" class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe the actions taken to resolve this issue..."></textarea>
                                         </div>
                                     </div>
@@ -712,10 +822,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                         <button type="submit" class="btn-success px-6 py-2">
                                             <i class="fas fa-check mr-2"></i> Confirm Resolution
                                         </button>
-                                        <button type="button" onclick="document.getElementById('resolveFormSection').style.display='none';document.querySelector('[onclick*=resolveFormSection]').style.display=''" class="btn-secondary px-6 py-2">Cancel</button>
+                                        <button type="button" data-target="resolveFormSection" onclick="toggleExpand(this)" class="btn-secondary px-6 py-2">Cancel</button>
                                     </div>
                                 </form>
-                            </div>
+                            </div></div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -723,62 +833,89 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <?php elseif ($user_role == 'admin'): ?>
                 <!-- Admin Actions -->
                 <?php if ($can_approve_escalation): ?>
-                    <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="inline">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                        <input type="hidden" name="action" value="approve_escalation">
-                        <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                        <button type="submit" class="btn-success mr-2">✅ Approve Escalation</button>
-                    </form>
-                    <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="inline" onsubmit="return confirm('Reject this escalation? Provide a reason below.')">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                        <input type="hidden" name="action" value="reject_escalation">
-                        <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                        <div class="flex items-center gap-2 mt-2">
-                            <input type="text" name="rejection_reason" placeholder="Reason for rejection..." class="border border-gray-300 rounded-lg px-4 py-2 text-sm flex-1" required>
-                            <button type="submit" class="btn-danger">❌ Reject Escalation</button>
+                    <div class="mb-5">
+                        <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-200 flex items-center gap-2">
+                            <span class="step-badge"><i class="fas fa-arrow-up-right-dots text-[10px]"></i></span> Escalation review
+                        </h3>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" onsubmit="setLoading(this)">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                                <input type="hidden" name="action" value="approve_escalation">
+                                <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                                <button type="submit" class="btn-success"><i class="fas fa-check mr-2"></i>Approve Escalation</button>
+                            </form>
+                            <button type="button" data-target="rejectEscalationSection" onclick="toggleExpand(this)" class="action-trigger btn-danger"><i class="fas fa-xmark mr-2"></i>Reject Escalation</button>
                         </div>
-                    </form>
+                        <div id="rejectEscalationSection" class="expand-section bg-red-50 border-2 border-red-200 rounded-xl"><div>
+                            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" data-confirm="Reject this escalation and send it back?" onsubmit="return handleReportFormSubmit(event, this)">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                                <input type="hidden" name="action" value="reject_escalation">
+                                <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                                <label class="block text-sm font-semibold text-gray-700">Reason for rejection</label>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <input type="text" name="rejection_reason" placeholder="Reason for rejection..." class="border border-gray-300 rounded-lg px-4 py-2 text-sm flex-1 min-w-[220px] focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" required>
+                                    <button type="submit" class="btn-danger">Confirm Rejection</button>
+                                    <button type="button" data-target="rejectEscalationSection" onclick="toggleExpand(this)" class="btn-secondary">Cancel</button>
+                                </div>
+                            </form>
+                        </div></div>
+                    </div>
                 <?php endif; ?>
 
                 <?php if ($can_resolve): ?>
-                    <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" enctype="multipart/form-data" class="mt-2">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                        <input type="hidden" name="action" value="resolve_report">
-                        <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                        <div class="flex flex-wrap items-end gap-2">
-                            <div class="flex-1">
-                                <div class="file-upload-area" onclick="document.getElementById('resImageAdmin').click()">
-                                    <i class="fas fa-camera text-2xl text-gray-400 mb-1 block"></i>
-                                    <span class="text-sm text-gray-500">Upload resolution photo</span>
-                                    <input type="file" name="resolution_image" id="resImageAdmin" accept="image/*" style="display:none;" onchange="document.getElementById('resPreviewAdmin').textContent=this.files[0]?this.files[0].name:'No file selected'">
-                                    <span id="resPreviewAdmin" class="text-xs text-gray-400 block">JPG, PNG, GIF (Max 5MB)</span>
+                    <div class="mb-5">
+                        <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-200 flex items-center gap-2">
+                            <span class="step-badge"><i class="fas fa-check-double text-[10px]"></i></span> Mark as resolved
+                        </h3>
+                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" enctype="multipart/form-data" onsubmit="setLoading(this)">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                            <input type="hidden" name="action" value="resolve_report">
+                            <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                            <div class="flex flex-wrap items-start gap-3">
+                                <div class="flex-1 min-w-[220px]">
+                                    <div class="file-upload-area" id="resImageAdminArea" onclick="document.getElementById('resImageAdmin').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImageAdmin')">
+                                        <img class="file-upload-preview" id="resImageAdminPreviewImg" alt="">
+                                        <div class="file-upload-placeholder">
+                                            <i class="fas fa-camera text-2xl text-gray-400 mb-1 block"></i>
+                                            <span class="text-sm text-gray-500">Upload resolution photo</span>
+                                        </div>
+                                        <input type="file" name="resolution_image" id="resImageAdmin" accept="image/*" style="display:none;" onchange="handleFilePreview(this,'resImageAdminArea','resImageAdminPreviewImg','resPreviewAdmin')">
+                                        <span id="resPreviewAdmin" class="text-xs text-gray-400 block">JPG, PNG, GIF (Max 5MB)</span>
+                                    </div>
                                 </div>
+                                <div class="flex-1 min-w-[220px]">
+                                    <input type="text" name="resolution_note" placeholder="Optional note..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none">
+                                </div>
+                                <button type="submit" class="btn-success"><i class="fas fa-check mr-2"></i>Mark Resolved</button>
                             </div>
-                            <div class="flex-1">
-                                <input type="text" name="resolution_note" placeholder="Optional note..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm">
-                            </div>
-                            <button type="submit" class="btn-success">✅ Mark Resolved</button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 <?php endif; ?>
 
                 <?php if ($can_reclassify): ?>
-                    <div class="mt-2">
-                        <button onclick="document.getElementById('reclassifyAdminForm').style.display='block'" class="btn-indigo">🔄 Reclassify Impact (Admin Override)</button>
-                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" id="reclassifyAdminForm" style="display:none;" class="mt-2 p-4 border rounded-lg bg-gray-50">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                            <input type="hidden" name="action" value="reclassify_impact">
-                            <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                            <p class="text-sm text-gray-600 mb-2">Select new impact level:</p>
-                            <div class="flex gap-4 mb-2">
-                                <label><input type="radio" name="new_impact" value="0" checked> Localized (+0)</label>
-                                <label><input type="radio" name="new_impact" value="2"> Moderate (+2)</label>
-                                <label><input type="radio" name="new_impact" value="4"> Severe (+4)</label>
-                            </div>
-                            <input type="text" name="reclassify_reason" placeholder="Reason for reclassification..." class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full mb-2" required>
-                            <button type="submit" class="btn-indigo">Confirm Reclassification</button>
-                            <button type="button" onclick="this.parentElement.style.display='none'" class="btn-secondary ml-2">Cancel</button>
-                        </form>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-200 flex items-center gap-2">
+                            <span class="step-badge"><i class="fas fa-rotate text-[10px]"></i></span> Reclassify impact <span class="font-normal text-gray-400">(admin override)</span>
+                        </h3>
+                        <button type="button" data-target="reclassifyAdminForm" onclick="toggleExpand(this)" class="action-trigger btn-indigo"><i class="fas fa-rotate mr-2"></i>Reclassify Impact</button>
+                        <div id="reclassifyAdminForm" class="expand-section bg-gray-50 border border-gray-200 rounded-xl"><div>
+                            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                                <input type="hidden" name="action" value="reclassify_impact">
+                                <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                                <p class="text-sm text-gray-600 mb-2">Select new impact level:</p>
+                                <div class="flex flex-wrap gap-4 mb-3">
+                                    <label class="flex items-center gap-1.5 text-sm text-gray-700"><input type="radio" name="new_impact" value="0" checked> 🟢 Localized (+0)</label>
+                                    <label class="flex items-center gap-1.5 text-sm text-gray-700"><input type="radio" name="new_impact" value="2"> 🟡 Moderate (+2)</label>
+                                    <label class="flex items-center gap-1.5 text-sm text-gray-700"><input type="radio" name="new_impact" value="4"> 🔴 Severe (+4)</label>
+                                </div>
+                                <input type="text" name="reclassify_reason" placeholder="Reason for reclassification..." class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full mb-3 focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" required>
+                                <div class="flex gap-2">
+                                    <button type="submit" class="btn-indigo">Confirm Reclassification</button>
+                                    <button type="button" data-target="reclassifyAdminForm" onclick="toggleExpand(this)" class="btn-secondary">Cancel</button>
+                                </div>
+                            </form>
+                        </div></div>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
@@ -822,6 +959,30 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </div>
 </div>
 
+<!-- Photo Lightbox -->
+<?php if (!empty($images)): ?>
+<div class="lightbox-overlay no-print" id="lightboxOverlay" onclick="if(event.target===this)closeLightbox()">
+    <button type="button" class="lightbox-close" onclick="closeLightbox()" aria-label="Close photo viewer"><i class="fas fa-xmark"></i></button>
+    <button type="button" class="lightbox-nav lightbox-prev" onclick="navLightbox(-1)" aria-label="Previous photo"><i class="fas fa-chevron-left"></i></button>
+    <img class="lightbox-img" id="lightboxImg" src="" alt="Evidentiary photo, enlarged view">
+    <button type="button" class="lightbox-nav lightbox-next" onclick="navLightbox(1)" aria-label="Next photo"><i class="fas fa-chevron-right"></i></button>
+    <span class="lightbox-counter" id="lightboxCounter"></span>
+</div>
+<?php endif; ?>
+
+<!-- Branded Confirm Modal (destructive actions) -->
+<div class="confirm-modal-overlay no-print" id="confirmModalOverlay" onclick="if(event.target===this)closeConfirmModal()">
+    <div class="confirm-modal-card">
+        <div class="confirm-modal-icon"><i class="fas fa-triangle-exclamation"></i></div>
+        <p class="font-bold text-gray-800 text-base mb-1">Please confirm</p>
+        <p class="text-sm text-gray-500 mb-5" id="confirmModalMessage"></p>
+        <div class="flex gap-3">
+            <button type="button" class="btn-danger flex-1" onclick="proceedConfirmModal()">Yes, continue</button>
+            <button type="button" class="btn-secondary flex-1" onclick="closeConfirmModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <!-- html2canvas + jsPDF for PDF download -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -843,13 +1004,143 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     }).addTo(map);
 <?php endif; ?>
 
-// Helper to display selected file name
-document.querySelectorAll('.file-upload-area input[type="file"]').forEach(input => {
-    input.addEventListener('change', function() {
-        const preview = this.parentElement.querySelector('span:last-child');
-        if (preview) preview.textContent = this.files[0] ? this.files[0].name : 'No file selected';
-    });
+// ===== AUTO-DISMISS TOAST FLASH MESSAGES =====
+document.querySelectorAll('.toast-msg').forEach(toast => {
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-6px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 6000);
 });
+
+// ===== EXPANDABLE ACTION SECTIONS (escalate / reject / resolve / reclassify) =====
+function toggleExpand(triggerEl) {
+    const targetId = triggerEl.getAttribute('data-target');
+    const section = document.getElementById(targetId);
+    if (!section) return;
+    const isOpen = section.classList.contains('open');
+    section.classList.toggle('open', !isOpen);
+
+    // If this element is the original opening trigger (not a Cancel button), toggle its active state
+    if (triggerEl.classList.contains('action-trigger')) {
+        triggerEl.classList.toggle('is-active', !isOpen);
+    } else {
+        // Cancel button inside the section — also reset the opening trigger's active state
+        const opener = document.querySelector(`.action-trigger[data-target="${targetId}"]`);
+        if (opener) opener.classList.remove('is-active');
+    }
+
+    if (!isOpen) {
+        const firstField = section.querySelector('textarea, input[type="text"]');
+        if (firstField) setTimeout(() => firstField.focus(), 300);
+    }
+}
+
+// ===== SUBMIT BUTTON LOADING STATE =====
+function setLoading(form) {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn && !btn.classList.contains('is-loading')) {
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+    }
+    return true;
+}
+
+// ===== BRANDED CONFIRM MODAL (replaces native confirm()) =====
+let pendingConfirmForm = null;
+function handleReportFormSubmit(evt, form) {
+    const message = form.getAttribute('data-confirm');
+    if (!message) { setLoading(form); return true; }
+    if (form.dataset.confirmed === 'true') { setLoading(form); return true; }
+    evt.preventDefault();
+    pendingConfirmForm = form;
+    document.getElementById('confirmModalMessage').textContent = message;
+    document.getElementById('confirmModalOverlay').classList.add('open');
+    return false;
+}
+function closeConfirmModal() {
+    document.getElementById('confirmModalOverlay').classList.remove('open');
+    pendingConfirmForm = null;
+}
+function proceedConfirmModal() {
+    if (pendingConfirmForm) {
+        pendingConfirmForm.dataset.confirmed = 'true';
+        closeConfirmModal();
+        setLoading(pendingConfirmForm);
+        pendingConfirmForm.requestSubmit ? pendingConfirmForm.requestSubmit() : pendingConfirmForm.submit();
+    }
+}
+
+// ===== FILE UPLOAD: DRAG & DROP + IMAGE PREVIEW =====
+function handleFilePreview(input, areaId, imgId, labelId) {
+    const area = document.getElementById(areaId);
+    const img = document.getElementById(imgId);
+    const label = document.getElementById(labelId);
+    const file = input.files[0];
+    if (file) {
+        area.classList.add('has-file');
+        img.src = URL.createObjectURL(file);
+        if (label) label.textContent = file.name + ' · ' + (file.size / 1024 / 1024).toFixed(2) + ' MB';
+    } else {
+        area.classList.remove('has-file');
+        if (label) label.textContent = 'No file selected';
+    }
+}
+function handleFileDrop(evt, inputId) {
+    evt.preventDefault();
+    const input = document.getElementById(inputId);
+    const area = input.closest('.file-upload-area');
+    area.classList.remove('drag-over');
+    if (evt.dataTransfer.files && evt.dataTransfer.files.length) {
+        input.files = evt.dataTransfer.files;
+        input.dispatchEvent(new Event('change'));
+    }
+}
+
+// ===== COPY GPS COORDINATES =====
+function copyGps(btn) {
+    const text = document.getElementById('gpsCoords').textContent.replace('GPS: ', '');
+    navigator.clipboard.writeText(text).then(() => {
+        const span = btn.querySelector('span');
+        const original = span.textContent;
+        span.textContent = 'Copied!';
+        setTimeout(() => { span.textContent = original; }, 1500);
+    });
+}
+
+// ===== PHOTO LIGHTBOX =====
+<?php if (!empty($images)): ?>
+const lightboxImages = <?php echo json_encode(array_map(function($img) { return BASE_URL . $img['image_path']; }, $images)); ?>;
+let lightboxIndex = 0;
+function openLightbox(index) {
+    lightboxIndex = index;
+    renderLightbox();
+    document.getElementById('lightboxOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+    document.getElementById('lightboxOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+}
+function navLightbox(delta) {
+    lightboxIndex = (lightboxIndex + delta + lightboxImages.length) % lightboxImages.length;
+    renderLightbox();
+}
+function renderLightbox() {
+    document.getElementById('lightboxImg').src = lightboxImages[lightboxIndex];
+    document.getElementById('lightboxCounter').textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+    document.querySelectorAll('.lightbox-nav').forEach(el => el.style.display = lightboxImages.length > 1 ? 'flex' : 'none');
+}
+document.addEventListener('keydown', function(e) {
+    const overlay = document.getElementById('lightboxOverlay');
+    if (overlay && overlay.classList.contains('open')) {
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowRight') navLightbox(1);
+        if (e.key === 'ArrowLeft') navLightbox(-1);
+    }
+});
+<?php endif; ?>
 
 // ===== PRINT DROPDOWN =====
 function togglePrintMenu() {
@@ -899,7 +1190,7 @@ function handleDownloadPDF() {
     // 3. Remove non-printable elements from clone
     const removeSelectors = [
         '.print-dropdown', '.action-panel', 'form', 'button',
-        '[onclick]', '.flash-message', '.file-upload-area',
+        '[onclick]', '.flash-message', '.toast-msg', '.file-upload-area',
         'a.bg-gray-100', 'select', 'input', 'textarea'
     ];
     removeSelectors.forEach(sel => {

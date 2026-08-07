@@ -92,6 +92,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet Map (required by the Map settings tab preview) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; }
@@ -431,6 +434,39 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border-left: 4px solid #ef4444;
             color: #991b1b;
         }
+
+        /* ===== MAP CONTAINER (matches header.php) ===== */
+        .map-container {
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid rgba(16, 163, 127, 0.2);
+        }
+
+        /* ===== FADE-IN ANIMATION ===== */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+
+        /* ===== TOAST NOTIFICATION ===== */
+        .settings-toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: white;
+            z-index: 9999;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            animation: fadeIn 0.25s ease-out;
+            max-width: 320px;
+        }
+        .settings-toast.info    { background: #10A37F; }
+        .settings-toast.success { background: #059669; }
+        .settings-toast.error   { background: #ef4444; }
     </style>
 </head>
 <body>
@@ -518,6 +554,21 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
 <!-- ===== SCRIPTS ===== -->
 <script>
+// ===== TOAST NOTIFICATION HELPER =====
+// Used by partials (e.g. map.php) that call showNotification(msg, type)
+function showNotification(message, type) {
+    type = type || 'info';
+    const toast = document.createElement('div');
+    toast.className = 'settings-toast ' + type;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(function() {
+        toast.style.transition = 'opacity 0.3s';
+        toast.style.opacity = '0';
+        setTimeout(function() { toast.remove(); }, 320);
+    }, 3500);
+}
+
 // Upload area drag & drop
 document.querySelectorAll('.upload-area').forEach(area => {
     const input = area.querySelector('input[type="file"]');

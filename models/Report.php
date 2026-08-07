@@ -174,6 +174,7 @@ class Report {
         $query = "SELECT r.*, c.name as category_name, c.icon_class, c.description as category_description,
                          b.name as barangay_name, b.zone as barangay_zone,
                          u.id as user_id, u.first_name, u.last_name, u.email, u.contact_number,
+                         u.is_resident, u.purok_street, u.non_resident_address, u.province as user_province, u.municipality as user_municipality,
                          CONCAT(u.first_name, ' ', u.last_name) as user_name,
                          (SELECT COUNT(*) FROM report_images WHERE report_id = r.id) as image_count,
                          (SELECT image_path FROM report_images WHERE report_id = r.id AND is_primary = 1 LIMIT 1) as primary_image

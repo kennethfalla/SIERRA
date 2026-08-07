@@ -18,6 +18,7 @@ if (!isLoggedIn()) {
 }
 
 $csrf_token = InputSanitizer::generateCsrfToken();
+$mapDefaults = SettingsHelper::getMapSettings();
 
 $database = new Database();
 $db = $database->getConnection();
@@ -1174,6 +1175,11 @@ if (file_exists($geojson_file)) {
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
+    // Default map center/zoom, from Settings > Map (falls back to San Isidro center)
+    const MAP_DEFAULT_LAT = <?php echo (float)$mapDefaults['default_lat']; ?>;
+    const MAP_DEFAULT_LNG = <?php echo (float)$mapDefaults['default_lng']; ?>;
+    const MAP_DEFAULT_ZOOM = <?php echo (int)$mapDefaults['default_zoom']; ?>;
+
     // ============================================================
     // CSRF TOKEN HELPER
     // ============================================================
@@ -2010,7 +2016,7 @@ if (file_exists($geojson_file)) {
         document.querySelectorAll('.error-message').forEach(function(el) { el.classList.remove('visible'); });
         document.querySelectorAll('.form-input').forEach(function(el) { el.classList.remove('error'); });
         updateCharCount('description', 'description-count', 5000);
-        if (map) map.setView([15.3092, 120.9033], 13);
+        if (map) map.setView([MAP_DEFAULT_LAT, MAP_DEFAULT_LNG], MAP_DEFAULT_ZOOM);
         selectImpact(0);
         isDuplicateCheckDone = false;
         closeDuplicateModal();
@@ -2384,7 +2390,7 @@ if (file_exists($geojson_file)) {
     }
 
     function initMap() {
-        map = L.map('map').setView([15.3092, 120.9033], 14);
+        map = L.map('map').setView([MAP_DEFAULT_LAT, MAP_DEFAULT_LNG], MAP_DEFAULT_ZOOM);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; CartoDB',
             subdomains: 'abcd', maxZoom: 20

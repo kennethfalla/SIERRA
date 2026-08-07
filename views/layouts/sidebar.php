@@ -294,7 +294,7 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Home</span>
+                <span class="ml-3 text-sm font-medium">Dashboard</span>
                 <?php if($current_page == 'dashboard'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -336,7 +336,7 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Home</span>
+                <span class="ml-3 text-sm font-medium">Dashboard</span>
                 <?php if($current_page == 'dashboard'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>

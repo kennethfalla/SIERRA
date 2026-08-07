@@ -288,8 +288,30 @@ class SettingsController {
     // 7. MAP SETTINGS (Clustering Radius)
     // ================================================================
     private function updateMap() {
+        // Clustering radius (10-200m)
         $radius = (int)($_POST['clustering_radius_meters'] ?? 50);
         SettingsHelper::set('clustering_radius_meters', max(10, min(200, $radius)));
+
+        // Default map center (San Isidro) - validate as real coordinates,
+        // falling back to the current saved value if the input is malformed.
+        $current = SettingsHelper::getMapSettings();
+
+        $lat = filter_var($_POST['map_default_lat'] ?? '', FILTER_VALIDATE_FLOAT);
+        if ($lat === false || $lat < -90 || $lat > 90) {
+            $lat = $current['default_lat'];
+        }
+        SettingsHelper::set('map_default_lat', $lat);
+
+        $lng = filter_var($_POST['map_default_lng'] ?? '', FILTER_VALIDATE_FLOAT);
+        if ($lng === false || $lng < -180 || $lng > 180) {
+            $lng = $current['default_lng'];
+        }
+        SettingsHelper::set('map_default_lng', $lng);
+
+        // Default zoom level (1-19)
+        $zoom = (int)($_POST['map_default_zoom'] ?? 14);
+        SettingsHelper::set('map_default_zoom', max(1, min(19, $zoom)));
+
         SettingsHelper::clearCache();
         $_SESSION['success'] = "Map settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=map");
@@ -449,39 +471,30 @@ class SettingsController {
     }
 
     // ================================================================
-    // 10. PERMISSIONS (RBAC) – Simple JSON storage
+    // 10. PERMISSIONS (RBAC) — Role-level toggles, stored as one JSON
+    //     blob under the 'permissions' system_setting (see
+    //     SettingsHelper::getManageableRoles() / getPermissionKeys()).
     // ================================================================
     private function updatePermissions() {
-        $permissions_data = $_POST['permissions'] ?? [];
-        
-        if (empty($permissions_data)) {
-            $_SESSION['error'] = "No permission data received.";
-            header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
-            exit();
-        }
-        
-        $updated = 0;
-        foreach ($permissions_data as $user_id => $perms) {
-            $user_id = (int)$user_id;
-            if ($user_id > 0) {
-                // Ensure we have an array of permissions
-                if (!is_array($perms)) {
-                    $perms = [];
-                }
-                $json = json_encode($perms);
-                $stmt = $this->db->prepare("UPDATE users SET permissions = ? WHERE id = ?");
-                if ($stmt->execute([$json, $user_id])) {
-                    $updated++;
-                }
+        $submitted = $_POST['permissions'] ?? [];
+
+        // Whitelist against the known roles/permission keys so a crafted
+        // request can't inject arbitrary keys into the stored JSON.
+        $allowedRoles = array_keys(SettingsHelper::getManageableRoles());
+        $allowedPermissionKeys = array_keys(SettingsHelper::getPermissionKeys());
+
+        $data = [];
+        foreach ($allowedRoles as $role) {
+            $data[$role] = [];
+            foreach ($allowedPermissionKeys as $key) {
+                $data[$role][$key] = isset($submitted[$role][$key]) ? true : false;
             }
         }
-        
-        if ($updated > 0) {
-            $_SESSION['success'] = "Permissions updated successfully for {$updated} user(s)!";
-        } else {
-            $_SESSION['error'] = "No permissions were updated.";
-        }
-        
+
+        SettingsHelper::set('permissions', $data);
+        SettingsHelper::clearCache();
+
+        $_SESSION['success'] = "Permissions updated successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
         exit();
     }

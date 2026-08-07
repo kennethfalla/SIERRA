@@ -169,6 +169,13 @@ class SettingsHelper {
             'clustering_radius_meters' => 50,
 
             // ========================================
+            // MAP SETTINGS
+            // ========================================
+            'map_default_lat' => 15.3092,
+            'map_default_lng' => 120.9033,
+            'map_default_zoom' => 14,
+
+            // ========================================
             // NOTIFICATION TEMPLATES
             // ========================================
             'template_submitted' => 'Thank you for submitting your environmental report. Your report #{report_id} has been received and is being reviewed by your barangay officials.',
@@ -268,6 +275,23 @@ class SettingsHelper {
             'iprog_api_key' => self::$settings['iprog_api_key'] ?? '',
             'iprog_sender_id' => self::$settings['iprog_sender_id'] ?? '',
             'iprog_base_url' => self::$settings['iprog_base_url'] ?? 'https://sms.iprogtech.com/api/v1/sms_messages',
+        ];
+    }
+
+    /**
+     * Get all Map settings (clustering radius, default center, default zoom)
+     * @return array Map settings
+     */
+    public static function getMapSettings() {
+        if (self::$settings === null) {
+            self::loadAll();
+        }
+
+        return [
+            'clustering_radius_meters' => (int)(self::$settings['clustering_radius_meters'] ?? 50),
+            'default_lat' => (float)(self::$settings['map_default_lat'] ?? 15.3092),
+            'default_lng' => (float)(self::$settings['map_default_lng'] ?? 120.9033),
+            'default_zoom' => (int)(self::$settings['map_default_zoom'] ?? 14),
         ];
     }
 
@@ -678,6 +702,124 @@ class SettingsHelper {
             'enabled' => (self::$settings['enable_sms_notifications'] ?? 0) == 1,
             'configured' => !empty(self::$settings['iprog_api_key']),
         ];
+    }
+
+    // ========================================================
+    // PERMISSIONS (RBAC)
+    // ========================================================
+
+    /**
+     * The roles that can be granted/restricted via the Permissions tab.
+     * Keys match the `users.role` column; labels are shown on the
+     * Permissions tab (align with the badges in manage_users.php).
+     * 'citizen' has no admin access and the primary 'admin' super-account
+     * is intentionally not lockable via this table.
+     * @return array<string,string> role_key => label
+     */
+    public static function getManageableRoles() {
+        return [
+            'barangay_official' => 'Barangay Admin',
+            'admin'              => 'MENRO Staff',
+        ];
+    }
+
+    /**
+     * The permission toggles available on the Permissions tab.
+     * @return array<string,string> permission_key => label
+     */
+    public static function getPermissionKeys() {
+        return [
+            'can_delete_users'            => 'Can Delete Users',
+            'can_edit_settings'           => 'Can Edit System Settings',
+            'can_export_reports'          => 'Can Export PDF Reports',
+            'can_broadcast_announcements' => 'Can Broadcast Municipality-Wide Announcements',
+        ];
+    }
+
+    /**
+     * Sensible defaults if no permissions have been saved yet.
+     * MENRO Staff default to full access; Barangay Admins default to a
+     * reduced set until an admin explicitly grants more.
+     * @return array<string,array<string,bool>>
+     */
+    private static function getDefaultRolePermissions() {
+        return [
+            'admin' => [
+                'can_delete_users'            => true,
+                'can_edit_settings'           => true,
+                'can_export_reports'          => true,
+                'can_broadcast_announcements' => true,
+            ],
+            'barangay_official' => [
+                'can_delete_users'            => false,
+                'can_edit_settings'           => false,
+                'can_export_reports'          => true,
+                'can_broadcast_announcements' => false,
+            ],
+        ];
+    }
+
+    /**
+     * Get the full role => permissions matrix, merged with defaults so
+     * every manageable role and every permission key is always present
+     * (protects against a partially-saved JSON blob).
+     * @return array<string,array<string,bool>>
+     */
+    public static function getAllRolePermissions() {
+        $stored = self::get('permissions', []);
+        if (is_string($stored)) {
+            $decoded = json_decode($stored, true);
+            $stored = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($stored)) {
+            $stored = [];
+        }
+
+        $defaults = self::getDefaultRolePermissions();
+        $permissionKeys = array_keys(self::getPermissionKeys());
+        $result = [];
+
+        foreach (array_keys(self::getManageableRoles()) as $role) {
+            $result[$role] = [];
+            foreach ($permissionKeys as $key) {
+                if (isset($stored[$role][$key])) {
+                    $result[$role][$key] = (bool)$stored[$role][$key];
+                } else {
+                    $result[$role][$key] = (bool)($defaults[$role][$key] ?? false);
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get the permissions for a single role.
+     * @param string $role
+     * @return array<string,bool>
+     */
+    public static function getRolePermissions($role) {
+        $all = self::getAllRolePermissions();
+        return $all[$role] ?? array_fill_keys(array_keys(self::getPermissionKeys()), false);
+    }
+
+    /**
+     * Check whether a given role has a given permission.
+     * Note: the primary 'admin' super-account (the one enforced by
+     * requireRole('admin') across the controllers) should still be able
+     * to reach Settings even if the "MENRO Staff" row is edited down —
+     * callers that gate the Settings pages themselves should keep using
+     * requireRole('admin') for that hard boundary. This function is for
+     * gating the *extra*, finer-grained actions listed in the table
+     * (deleting users, exporting PDFs, broadcasting announcements) for
+     * staff accounts and barangay officials.
+     * @param string $role
+     * @param string $permissionKey e.g. 'can_delete_users'
+     * @return bool
+     */
+    public static function hasPermission($role, $permissionKey) {
+        $perms = self::getRolePermissions($role);
+        return !empty($perms[$permissionKey]);
     }
 }
 
