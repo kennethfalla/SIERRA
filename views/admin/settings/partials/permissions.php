@@ -39,28 +39,37 @@ $defaultRoleColor = ['bg' => '#F5F3FF', 'border' => '#C4B5FD', 'icon' => '#7C3AE
 $defaultRoleIcon  = 'fa-user-shield';
 
 $permissionIcons = [
-    'can_manage_reports'          => 'fa-clipboard-list',
-    'can_edit_settings'           => 'fa-sliders-h',
-    'can_manage_categories'       => 'fa-tags',
-    'can_delete_users'            => 'fa-user-minus',
-    'can_broadcast_announcements' => 'fa-bullhorn',
-    'can_export_reports'          => 'fa-file-export',
+    'can_view_reports'    => 'fa-eye',
+    'can_manage_reports'  => 'fa-clipboard-list',
+    'can_view_map'        => 'fa-map-marked-alt',
+    'can_view_analytics'  => 'fa-chart-line',
+    'can_manage_evidence' => 'fa-images',
+    'can_manage_users'    => 'fa-user-cog',
+    'can_manage_staff'    => 'fa-user-tie',
+    'can_export_reports'  => 'fa-file-export',
+    'can_manage_system'   => 'fa-sliders-h',
 ];
 $permissionDescriptions = [
-    'can_manage_reports'          => 'Verify, escalate, resolve, or reject environmental reports.',
-    'can_edit_settings'           => 'Modify system-wide configuration and settings panels.',
-    'can_manage_categories'       => 'Create, edit, or deactivate report categories.',
-    'can_delete_users'            => 'Permanently remove user accounts from the system.',
-    'can_broadcast_announcements' => 'Send announcements visible across all barangays.',
-    'can_export_reports'          => 'Download reports as PDF documents.',
+    'can_view_reports'    => 'View environmental reports and their full details.',
+    'can_manage_reports'  => 'Verify, escalate, resolve, reject, and update reports.',
+    'can_view_map'        => 'View report locations and geotagged environmental incidents on the map.',
+    'can_view_analytics'  => 'View statistics, trends, and decision-support dashboards.',
+    'can_manage_evidence' => 'View, upload, and manage report photos and resolution evidence.',
+    'can_manage_users'    => 'Manage citizen accounts, profiles, and their activity.',
+    'can_manage_staff'    => 'Manage barangay personnel and MENRO staff accounts.',
+    'can_export_reports'  => 'Download and export reports as PDF documents.',
+    'can_manage_system'   => 'Manage system settings, categories, announcements, and configuration.',
 ];
 $permissionRisk = [
-    'can_manage_reports'          => 'medium',
-    'can_edit_settings'           => 'high',
-    'can_manage_categories'       => 'medium',
-    'can_delete_users'            => 'high',
-    'can_broadcast_announcements' => 'medium',
-    'can_export_reports'          => 'low',
+    'can_view_reports'    => 'low',
+    'can_manage_reports'  => 'medium',
+    'can_view_map'        => 'low',
+    'can_view_analytics'  => 'low',
+    'can_manage_evidence' => 'medium',
+    'can_manage_users'    => 'high',
+    'can_manage_staff'    => 'high',
+    'can_export_reports'  => 'low',
+    'can_manage_system'   => 'high',
 ];
 ?>
 
@@ -844,6 +853,7 @@ $permissionRisk = [
                                        name="permissions[<?php echo htmlspecialchars($roleKey); ?>][<?php echo htmlspecialchars($permKey); ?>]"
                                        value="1"
                                        data-role="<?php echo htmlspecialchars($roleKey); ?>"
+                                       data-perm="<?php echo htmlspecialchars($permKey); ?>"
                                        data-original="<?php echo $isGranted ? '1' : '0'; ?>"
                                        class="perm-checkbox"
                                        <?php echo $isGranted ? 'checked' : ''; ?>>
@@ -883,8 +893,12 @@ $permissionRisk = [
             <p>
                 <strong>How permissions work:</strong>
                 Disabled toggles are <strong>denied</strong> by default.
+                Granting <strong>Manage Reports</strong> always includes
+                <strong>View Reports</strong>.
                 Citizens are never granted admin permissions.
                 The primary super-admin account bypasses all restrictions.
+                <strong>Audit Logs</strong> are read-only and reserved for the
+                System Administrator — they are not a configurable permission.
                 Changes apply to every account with the matching role.
             </p>
         </div>
@@ -926,6 +940,29 @@ $permissionRisk = [
         if (grantedEl) grantedEl.textContent = checked;
     }
 
+    function updateToggleLabel(cb) {
+        var labelEl = document.getElementById('label-' + cb.id);
+        if (labelEl) labelEl.textContent = cb.checked ? 'On' : 'Off';
+    }
+
+    // "Manage Reports" always implies "View Reports": turning Manage ON
+    // forces View ON; turning View OFF forces Manage OFF.
+    function enforceManageViewDependency(root) {
+        if (!root) return;
+        var viewCb   = root.querySelector('[data-perm="can_view_reports"]');
+        var manageCb = root.querySelector('[data-perm="can_manage_reports"]');
+        if (!viewCb || !manageCb) return;
+
+        if (manageCb.checked && !viewCb.checked) {
+            viewCb.checked = true;
+            updateToggleLabel(viewCb);
+        }
+        if (!viewCb.checked && manageCb.checked) {
+            manageCb.checked = false;
+            updateToggleLabel(manageCb);
+        }
+    }
+
     // ============================================================
     // ACCORDION — clicking a role shows only that role's permissions
     // ============================================================
@@ -955,14 +992,24 @@ $permissionRisk = [
     // ============================================================
     document.querySelectorAll('.perm-checkbox').forEach(function (cb) {
         cb.addEventListener('change', function () {
-            var labelEl = document.getElementById('label-' + cb.id);
-            if (labelEl) labelEl.textContent = cb.checked ? 'On' : 'Off';
+            var roleScope = cb.closest('.role-item');
+            enforceManageViewDependency(roleScope);
+            if (roleScope) {
+                roleScope.querySelectorAll('.perm-checkbox').forEach(updateToggleLabel);
+            }
 
             updateGrantedCounter(cb.dataset.role);
 
             var changes = countChanges();
             if (countEl) countEl.textContent = changes;
             if (indicator) indicator.style.display = changes > 0 ? 'flex' : 'none';
+        });
+    });
+
+    // Enforce the same dependency in the Create/Edit Role permission picker.
+    document.querySelectorAll('.role-form-perm-checkbox').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            enforceManageViewDependency(cb.closest('.perm-option-grid'));
         });
     });
 
@@ -1016,6 +1063,7 @@ $permissionRisk = [
         checkboxes.forEach(function (cb) {
             cb.checked = !!(role.permissions && role.permissions[cb.dataset.perm]);
         });
+        enforceManageViewDependency(document.querySelector('.perm-option-grid'));
 
         cancelBtn.classList.remove('d-none');
         card.classList.add('editing');

@@ -17,6 +17,7 @@ $database = new Database();
 $db = $database->getConnection();
 $userModel = new User($db);
 $barangayModel = new Barangay($db);
+$activityLog = new ActivityLog($db);
 
 // ============================================================
 // HANDLE POST ACTIONS
@@ -40,6 +41,11 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = ($action === 'activate') ? 1 : 0;
         $stmt = $db->prepare("UPDATE users SET is_active = ? WHERE id = ?");
         if($stmt->execute([$status, $user_id])) {
+            $status_text = $status ? 'Activated' : 'Deactivated';
+            $name_stmt = $db->prepare("SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = ?");
+            $name_stmt->execute([$user_id]);
+            $target_name = $name_stmt->fetchColumn() ?: '#' . $user_id;
+            $activityLog->log($_SESSION['user_id'], $status ? 'Activate User' : 'Deactivate User', "$status_text account of $target_name", null, 'Users');
             $_SESSION['success'] = "User account has been " . ($status ? 'activated' : 'deactivated') . ".";
         } else {
             $_SESSION['error'] = "Failed to update user status.";
@@ -50,7 +56,14 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Delete user (only for non-admin users)
     if($action === 'delete') {
-        if (!PermissionHelper::userHasPermission('can_delete_users')) {
+        $check = $db->prepare("SELECT role, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE id = ?");
+        $check->execute([$user_id]);
+        $user = $check->fetch(PDO::FETCH_ASSOC);
+
+        // Delete permission depends on the target account type:
+        // citizens are managed under User Management, staff under Staff Management.
+        $required_key = ($user && $user['role'] === 'citizen') ? 'can_manage_users' : 'can_manage_staff';
+        if (!PermissionHelper::userHasPermission($required_key)) {
             $_SESSION['error'] = "You are not permitted to delete users.";
             header("Location: " . $redirect_url);
             exit();
@@ -63,12 +76,11 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
 
-        $check = $db->prepare("SELECT role FROM users WHERE id = ?");
-        $check->execute([$user_id]);
-        $user = $check->fetch(PDO::FETCH_ASSOC);
         if($user && $user['role'] !== 'admin') {
             $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
             if($stmt->execute([$user_id])) {
+                $target_name = $user['full_name'] ?: '#' . $user_id;
+                $activityLog->log($_SESSION['user_id'], 'Delete User', "Permanently deleted account of $target_name", null, 'Users');
                 $_SESSION['success'] = "User account has been permanently deleted.";
             } else {
                 $_SESSION['error'] = "Failed to delete user.";
@@ -395,9 +407,7 @@ function getRoleBadge($role, $job_title = '') {
 
     <!-- ===== TOOLBAR ===== -->
     <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
-        <p class="text-sm text-gray-500">
-            Manage citizens, barangay personnel, and MENRO staff accounts.
-        </p>
+        
         <?php if($show_create_btn): ?>
         <button onclick="openCreateModal('<?php echo $create_role; ?>')"
                 class="btn-primary px-5 py-2.5 text-white font-semibold flex items-center gap-2 shadow-sm text-sm">

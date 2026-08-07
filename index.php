@@ -124,8 +124,8 @@ if($page === 'settings') {
     require_once BASE_PATH . 'helpers/SettingsHelper.php';
     require_once BASE_PATH . 'helpers/PermissionHelper.php';
 
-    // "Can Edit System Settings" permission gates this page (super-admin bypasses).
-    if (!PermissionHelper::userHasPermission('can_edit_settings')) {
+    // "System Management" permission gates this page (super-admin bypasses).
+    if (!PermissionHelper::userHasPermission('can_manage_system')) {
         $_SESSION['error'] = "You are not permitted to edit system settings.";
         header("Location: " . BASE_URL . "index.php?page=dashboard");
         exit();

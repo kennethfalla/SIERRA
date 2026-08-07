@@ -580,6 +580,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $caption = trim($_POST['resolution_note'] ?? '');
         $stmt = $db->prepare("INSERT INTO resolution_evidence (report_id, image_path, uploaded_by, caption) VALUES (?, ?, ?, ?)");
         $stmt->execute([$report_id, $image_path, $user_id, $caption]);
+        $activityLog->log($user_id, 'Evidence Upload', "Uploaded resolution evidence for report #$report_id", null, 'Reports');
 
         // FIXED: All named parameters
         $stmt = $db->prepare("UPDATE reports SET status = :status, resolved_at = NOW() WHERE id = :id");

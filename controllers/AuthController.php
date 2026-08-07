@@ -587,10 +587,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // LOG SUCCESSFUL LOGIN
                 // ========================================
                 $role_display = 'Citizen';
-                if ($row['role'] === 'barangay_official') {
+                if (($row['user_type'] ?? null) === 'admin') {
+                    $role_display = 'Admin';
+                } elseif (($row['user_type'] ?? null) === 'menro_staff') {
+                    $role_display = 'MENRO Staff';
+                } elseif (($row['user_type'] ?? null) === 'barangay_personnel') {
+                    $role_display = 'Barangay Official';
+                } elseif ($row['role'] === 'barangay_official') {
                     $role_display = 'Barangay Official';
                 } elseif ($row['role'] === 'admin') {
-                    $role_display = 'MENRO Administrator';
+                    $role_display = 'Admin';
                 }
 
                 if ($activityLog) {

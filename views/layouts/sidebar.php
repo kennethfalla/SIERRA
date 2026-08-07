@@ -79,6 +79,10 @@ if ($user_id) {
             $user_email_address = $user_data['email'] ?? '';
             $user_contact_number = $user_data['contact_number'] ?? '';
             $user_role = $user_data['role'] ?? 'citizen';
+            $user_type = $user_data['user_type'] ?? null;
+            if ($user_type === null) {
+                $user_type = ['admin' => 'admin', 'barangay_official' => 'barangay_personnel'][$user_role] ?? null;
+            }
             $barangay_id = $user_data['barangay_id'] ?? null;
             $user_is_active = $user_data['is_active'] ?? 1;
             $user_created_at = $user_data['created_at'] ?? date('Y-m-d H:i:s');
@@ -147,13 +151,18 @@ if (count($name_parts) >= 2) {
 $role_display_name = '';
 $role_badge_color = '';
 $role_icon = '';
-switch($user_role) {
+switch($user_type) {
     case 'admin':
-        $role_display_name = 'MENRO Administrator';
+        $role_display_name = 'Admin';
         $role_badge_color = 'bg-purple-100 text-purple-700';
         $role_icon = 'fa-building';
         break;
-    case 'barangay_official':
+    case 'menro_staff':
+        $role_display_name = 'MENRO Staff';
+        $role_badge_color = 'bg-purple-100 text-purple-700';
+        $role_icon = 'fa-building';
+        break;
+    case 'barangay_personnel':
         $role_display_name = 'Barangay Official';
         $role_badge_color = 'bg-emerald-100 text-emerald-700';
         $role_icon = 'fa-map-marker-alt';
@@ -371,6 +380,7 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 <?php endif; ?>
             </a>
             
+            <?php if (($_SESSION['user_type'] ?? null) === 'admin'): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'audit-logs' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'audit-logs' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
@@ -382,6 +392,7 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
             </a>
+            <?php endif; ?>
 
             <!-- UPDATED: System Settings (tabbed interface) -->
             <div class="mt-4 pt-2 border-t border-emerald-50">

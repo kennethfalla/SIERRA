@@ -14,6 +14,7 @@ $database = new Database();
 $db = $database->getConnection();
 $userModel = new User($db);
 $barangayModel = new Barangay($db);
+$activityLog = new ActivityLog($db);
 
 // ============================================================
 // HANDLE POST ACTIONS
@@ -27,6 +28,11 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = ($action === 'activate') ? 1 : 0;
         $stmt = $db->prepare("UPDATE users SET is_active = ? WHERE id = ?");
         if($stmt->execute([$status, $user_id])) {
+            $status_text = $status ? 'Activated' : 'Deactivated';
+            $name_stmt = $db->prepare("SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = ?");
+            $name_stmt->execute([$user_id]);
+            $target_name = $name_stmt->fetchColumn() ?: '#' . $user_id;
+            $activityLog->log($_SESSION['user_id'], $status ? 'Activate User' : 'Deactivate User', "$status_text account of $target_name", null, 'Users');
             $_SESSION['success'] = "User account has been " . ($status ? 'activated' : 'deactivated') . ".";
         } else {
             $_SESSION['error'] = "Failed to update user status.";
@@ -37,7 +43,14 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Delete user (only for non-admin users)
     if($action === 'delete') {
-        if (!PermissionHelper::userHasPermission('can_delete_users')) {
+        $check = $db->prepare("SELECT role, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE id = ?");
+        $check->execute([$user_id]);
+        $user = $check->fetch(PDO::FETCH_ASSOC);
+
+        // Delete permission depends on the target account type:
+        // citizens are managed under User Management, staff under Staff Management.
+        $required_key = ($user && $user['role'] === 'citizen') ? 'can_manage_users' : 'can_manage_staff';
+        if (!PermissionHelper::userHasPermission($required_key)) {
             $_SESSION['error'] = "You are not permitted to delete users.";
             header("Location: " . BASE_URL . "index.php?page=manage-users&tab=" . ($_GET['tab'] ?? 'citizens'));
             exit();
@@ -50,12 +63,11 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
         
-        $check = $db->prepare("SELECT role FROM users WHERE id = ?");
-        $check->execute([$user_id]);
-        $user = $check->fetch(PDO::FETCH_ASSOC);
         if($user && $user['role'] !== 'admin') {
             $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
             if($stmt->execute([$user_id])) {
+                $target_name = $user['full_name'] ?: '#' . $user_id;
+                $activityLog->log($_SESSION['user_id'], 'Delete User', "Permanently deleted account of $target_name", null, 'Users');
                 $_SESSION['success'] = "User account has been permanently deleted.";
             } else {
                 $_SESSION['error'] = "Failed to delete user.";
@@ -80,7 +92,7 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 // FETCH USERS FROM DATABASE
 // ============================================================
 $all_users_data = [];
-$query = "SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.barangay_id, 
+$query = "SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.user_type, u.barangay_id, 
                  u.contact_number, u.is_active, u.created_at, u.job_title,
                  u.is_resident, u.non_resident_address, u.profile_picture,
                  b.name as barangay_name 
@@ -224,11 +236,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 // ============================================================
 // HELPER FUNCTIONS
 // ============================================================
-function getRoleBadge($role, $job_title = '') {
-    if ($role === 'admin') {
+function getRoleBadge($user_type, $job_title = '') {
+    if ($user_type === 'admin') {
+        return '<span class="role-badge role-admin"><i class="fas fa-crown mr-1.5"></i>Admin' . ($job_title ? ' · ' . htmlspecialchars($job_title) : '') . '</span>';
+    } elseif ($user_type === 'menro_staff') {
         return '<span class="role-badge role-admin"><i class="fas fa-crown mr-1.5"></i>MENRO Staff' . ($job_title ? ' · ' . htmlspecialchars($job_title) : '') . '</span>';
-    } elseif ($role === 'barangay_official') {
-        return '<span class="role-badge role-barangay"><i class="fas fa-landmark mr-1.5"></i>Barangay Official</span>';
+    } elseif ($user_type === 'barangay_personnel') {
+        return '<span class="role-badge role-barangay"><i class="fas fa-landmark mr-1.5"></i>Barangay Personnel</span>';
     } else {
         return '<span class="role-badge role-citizen"><i class="fas fa-user mr-1.5"></i>Citizen</span>';
     }
@@ -903,7 +917,7 @@ function getRoleBadge($role, $job_title = '') {
                                             <?php if(!empty($user['profile_picture'])): ?>
                                                 <img src="<?php echo BASE_URL . $user['profile_picture']; ?>" alt="Profile" class="w-full h-full object-cover">
                                             <?php else: ?>
-                                                <i class="fas <?php echo $user['role'] == 'admin' ? 'fa-crown' : ($user['role'] == 'barangay_official' ? 'fa-landmark' : 'fa-user'); ?> text-[#10A37F] text-sm"></i>
+                                                <i class="fas <?php echo in_array($user['user_type'] ?? '', ['admin', 'menro_staff']) ? 'fa-crown' : (($user['user_type'] ?? '') == 'barangay_personnel' ? 'fa-landmark' : 'fa-user'); ?> text-[#10A37F] text-sm"></i>
                                             <?php endif; ?>
                                         </div>
                                         <div>
@@ -929,7 +943,7 @@ function getRoleBadge($role, $job_title = '') {
                                 </td>
                                 <?php endif; ?>
                                 <td>
-                                    <?php echo getRoleBadge($user['role'], $user['job_title'] ?? ''); ?>
+                                    <?php echo getRoleBadge($user['user_type'] ?? null, $user['job_title'] ?? ''); ?>
                                 </td>
                                 <td>
                                     <?php echo getStatusBadge($user['is_active']); ?>
@@ -1223,10 +1237,12 @@ function viewProfile(userId) {
                 '<span class="status-badge status-active"><i class="fas fa-circle text-[6px] mr-1.5"></i>Active</span>' :
                 '<span class="status-badge status-inactive"><i class="fas fa-circle text-[6px] mr-1.5"></i>Suspended</span>';
             
-            const roleBadge = data.role === 'admin' ? 
+            const roleBadge = data.user_type === 'admin' ? 
+                '<span class="role-badge role-admin"><i class="fas fa-crown mr-1.5"></i>Admin</span>' :
+                data.user_type === 'menro_staff' ?
                 '<span class="role-badge role-admin"><i class="fas fa-crown mr-1.5"></i>MENRO Staff</span>' :
-                data.role === 'barangay_official' ?
-                '<span class="role-badge role-barangay"><i class="fas fa-landmark mr-1.5"></i>Barangay Official</span>' :
+                data.user_type === 'barangay_personnel' ?
+                '<span class="role-badge role-barangay"><i class="fas fa-landmark mr-1.5"></i>Barangay Personnel</span>' :
                 '<span class="role-badge role-citizen"><i class="fas fa-user mr-1.5"></i>Citizen</span>';
             
             const residencyBadge = data.is_resident == 0 ?

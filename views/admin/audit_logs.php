@@ -1,20 +1,18 @@
 <?php
-// views/admin/audit_logs.php - SIERRA AUDIT LOGS PAGE
+// views/admin/audit_logs.php - SIERRA AUDIT LOGS PAGE (READ-ONLY)
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-requireRole('admin');
+requireLogin();
+
+// Audit Logs are read-only and reserved for the System Administrator.
+// MENRO Staff, Barangay Officials, and citizens are never allowed to view them.
+if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
+    $_SESSION['error'] = "You are not permitted to view audit logs.";
+    header("Location: " . BASE_URL . "index.php?page=dashboard");
+    exit();
+}
 
 $database = new Database();
 $db = $database->getConnection();
-
-// Handle clear logs action
-if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_logs'])) {
-    if(isset($_POST['confirm_clear']) && $_POST['confirm_clear'] === 'YES') {
-        $db->exec("TRUNCATE TABLE activity_logs");
-        $_SESSION['success'] = "All audit logs have been cleared.";
-    }
-    header("Location: " . BASE_URL . "index.php?page=audit-logs");
-    exit();
-}
 
 // Get filter parameters
 $action_filter = $_GET['action'] ?? 'all';
@@ -250,8 +248,8 @@ $top_actions = $db->query("
                     </div>
                     <p class="text-gray-500 text-sm ml-14 font-medium">Track all system activities and user actions</p>
                 </div>
-                <button onclick="openClearModal()" class="px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-semibold text-sm hover:bg-red-100 transition flex items-center gap-2">
-                    <i class="fas fa-trash-alt"></i> Clear All Logs
+                <button type="button" disabled class="px-5 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl font-semibold text-sm flex items-center gap-2 cursor-default">
+                    <i class="fas fa-lock"></i> Read-only · System Admin
                 </button>
             </div>
         </div>
@@ -409,7 +407,8 @@ $top_actions = $db->query("
                             <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">User</th>
                             <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Role</th>
                             <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Action</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Description</th>
+                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Module</th>
+                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Details</th>
                             <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">IP Address</th>
                         </tr>
                     </thead>
@@ -421,9 +420,42 @@ $top_actions = $db->query("
                                     $action_class = 'action-default';
                                 }
                                 
+                                // Fall back to the snapshot columns if the user
+                                // account has since been deleted.
+                                $log_user_name  = $log['user_name']  ?: ($log['actor_name'] ?? null);
+                                $log_user_email = $log['user_email'] ?: '';
+                                $log_user_role  = $log['user_role'] ?: ($log['actor_role'] ?? null);
+                                
+                                // Affected module: prefer the stored value, then
+                                // derive a sensible module from the action name.
+                                $actionModuleMap = [
+                                    'Login' => 'Auth', 'Logout' => 'Auth', 'User Registration' => 'Auth',
+                                    'Password Reset' => 'Auth',
+                                    'Create Report' => 'Reports', 'Update Report' => 'Reports',
+                                    'Delete Report' => 'Reports', 'Cancel Report' => 'Reports',
+                                    'Support Report' => 'Reports', 'Verify Report' => 'Reports',
+                                    'Reject Report' => 'Reports', 'Resolve Report' => 'Reports',
+                                    'Escalate Report' => 'Reports', 'Approve Escalation' => 'Reports',
+                                    'Reject Escalation' => 'Reports', 'Status Change' => 'Reports',
+                                    'Update Status' => 'Reports', 'Add Note' => 'Reports',
+                                    'Evidence Upload' => 'Reports', 'Reclassify Impact' => 'Reports',
+                                    'Create Staff Account' => 'Staff', 'Toggle User Status' => 'Users',
+                                    'Update User Role' => 'Users', 'Delete User' => 'Users',
+                                    'Create Category' => 'Categories', 'Update Category' => 'Categories',
+                                    'Delete Category' => 'Categories', 'Toggle Category Status' => 'Categories',
+                                    'Create Announcement' => 'Announcements',
+                                    'Create Role' => 'Permissions', 'Update Role' => 'Permissions',
+                                    'Delete Role' => 'Permissions', 'Update Permissions' => 'Permissions',
+                                    'Update System Settings' => 'Settings',
+                                    'Create Barangay' => 'Barangays', 'Update Barangay' => 'Barangays',
+                                    'Delete Barangay' => 'Barangays',
+                                    'Create Tag' => 'Tags', 'Update Tag' => 'Tags', 'Delete Tag' => 'Tags',
+                                ];
+                                $module = $log['target_module'] ?? ($actionModuleMap[$log['action']] ?? 'General');
+                                
                                 $role_class = '';
-                                if($log['user_role'] == 'admin') $role_class = 'role-badge-admin';
-                                elseif($log['user_role'] == 'barangay_official') $role_class = 'role-badge-barangay';
+                                if($log_user_role == 'admin') $role_class = 'role-badge-admin';
+                                elseif($log_user_role == 'barangay_official') $role_class = 'role-badge-barangay';
                                 else $role_class = 'role-badge-citizen';
                             ?>
                             <tr class="border-b border-emerald-50 hover:bg-emerald-50/30 transition">
@@ -431,17 +463,17 @@ $top_actions = $db->query("
                                     <?php echo date('M d, Y H:i:s', strtotime($log['created_at'])); ?>
                                 </td>
                                 <td class="px-5 py-3">
-                                    <?php if($log['user_name']): ?>
-                                    <p class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($log['user_name']); ?></p>
-                                    <p class="text-xs text-gray-400"><?php echo htmlspecialchars($log['user_email']); ?></p>
+                                    <?php if($log_user_name): ?>
+                                    <p class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($log_user_name); ?></p>
+                                    <?php if($log_user_email): ?><p class="text-xs text-gray-400"><?php echo htmlspecialchars($log_user_email); ?></p><?php endif; ?>
                                     <?php else: ?>
                                     <span class="text-gray-400 text-sm">System</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-5 py-3">
-                                    <?php if($log['user_role']): ?>
+                                    <?php if($log_user_role): ?>
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold text-white <?php echo $role_class; ?>">
-                                        <?php echo ucfirst(str_replace('_', ' ', $log['user_role'])); ?>
+                                        <?php echo ucfirst(str_replace('_', ' ', $log_user_role)); ?>
                                     </span>
                                     <?php else: ?>
                                     <span class="text-gray-400 text-xs">—</span>
@@ -450,6 +482,11 @@ $top_actions = $db->query("
                                 <td class="px-5 py-3">
                                     <span class="action-badge <?php echo $action_class; ?>">
                                         <?php echo htmlspecialchars($log['action']); ?>
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wide">
+                                        <?php echo htmlspecialchars($module); ?>
                                     </span>
                                 </td>
                                 <td class="px-5 py-3 text-sm text-gray-600 max-w-xs">
@@ -462,7 +499,7 @@ $top_actions = $db->query("
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="px-6 py-16 text-center">
+                                <td colspan="7" class="px-6 py-16 text-center">
                                     <i class="fas fa-history text-5xl text-gray-300 mb-3 block"></i>
                                     <p class="text-gray-500 text-lg font-semibold">No audit logs found</p>
                                     <p class="text-gray-400 text-sm mt-1 font-medium">Try adjusting your filters</p>
@@ -494,49 +531,5 @@ $top_actions = $db->query("
     </div>
 </div>
 
-<!-- Clear Logs Confirmation Modal -->
-<div id="clearModal" class="modal" onclick="if(event.target===this) closeClearModal()">
-    <div class="modal-content p-6" onclick="event.stopPropagation()">
-        <div class="text-center">
-            <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-extrabold text-gray-800 mb-2">Clear All Audit Logs?</h3>
-            <p class="text-gray-500 text-sm mb-6">This action cannot be undone. All activity logs will be permanently deleted.</p>
-            
-            <form method="POST" class="space-y-3">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Type "YES" to confirm</label>
-                    <input type="text" name="confirm_clear" id="confirmClear" placeholder="YES" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-100 outline-none text-center uppercase" required>
-                </div>
-                
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeClearModal()" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition">Cancel</button>
-                    <button type="submit" name="clear_logs" class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition">Clear Logs</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<script>
-function openClearModal() {
-    document.getElementById('clearModal').classList.add('active');
-    document.body.style.overflow = 'hidden';
-    document.getElementById('confirmClear').focus();
-}
-
-function closeClearModal() {
-    document.getElementById('clearModal').classList.remove('active');
-    document.body.style.overflow = '';
-    document.getElementById('confirmClear').value = '';
-}
-
-document.addEventListener('keydown', function(e) {
-    if(e.key === 'Escape') {
-        closeClearModal();
-    }
-});
-</script>
 </body>
 </html>

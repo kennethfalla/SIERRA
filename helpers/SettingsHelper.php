@@ -711,7 +711,7 @@ class SettingsHelper {
     // of being hardcoded to the users.role enum. `users.role` is still
     // used for the hard citizen/barangay_official/admin boundary
     // (requireRole()); `users.role_id` points at the custom role that
-    // drives these 6 finer-grained permission toggles; `users.user_type`
+    // drives these 9 feature-level permission toggles; `users.user_type`
     // (barangay_personnel/menro_staff/admin) drives the report-scoping
     // runtime logic in PermissionHelper::canManageReport().
     // ========================================================
@@ -726,18 +726,110 @@ class SettingsHelper {
 
     /**
      * The permission toggles available on the Permissions tab / Create
-     * Role modal.
+     * Role modal. Nine feature-level permissions. Each maps onto the
+     * finer-grained capabilities that previously lived in the six legacy
+     * keys (see migratePermissionKeys() for the old -> new mapping).
      * @return array<string,string> permission_key => label
      */
     public static function getPermissionKeys() {
         return [
-            'can_manage_reports'          => 'Can Manage Reports',
-            'can_edit_settings'           => 'Can Edit System Settings',
-            'can_manage_categories'       => 'Can Manage Categories',
-            'can_delete_users'            => 'Can Delete Users',
-            'can_broadcast_announcements' => 'Can Post Public Announcements',
-            'can_export_reports'          => 'Can Export PDF',
+            'can_view_reports'    => 'View Reports',
+            'can_manage_reports'  => 'Manage Reports',
+            'can_view_map'        => 'Map & Geotagging',
+            'can_view_analytics'  => 'Analytics & Dashboard',
+            'can_manage_evidence' => 'Evidence Management',
+            'can_manage_users'    => 'User Management',
+            'can_manage_staff'    => 'Staff Management',
+            'can_export_reports'  => 'Reports & Export',
+            'can_manage_system'   => 'System Management',
         ];
+    }
+
+    /**
+     * Legacy permission-key aliases. The six original keys were folded
+     * into the nine feature-level keys, so any code that still checks an
+     * old key resolves it to its new equivalent. This keeps every existing
+     * gate working without removing any functionality.
+     * @return array<string,string> legacy_key => new_key
+     */
+    public static function getPermissionAliases() {
+        return [
+            'can_edit_settings'           => 'can_manage_system',
+            'can_manage_categories'       => 'can_manage_system',
+            'can_broadcast_announcements' => 'can_manage_system',
+            'can_delete_users'            => 'can_manage_users',
+        ];
+    }
+
+    /**
+     * Resolve a (possibly legacy) permission key to its canonical key.
+     * @param string $key
+     * @return string
+     */
+    public static function resolvePermissionKey($key) {
+        $aliases = self::getPermissionAliases();
+        return $aliases[$key] ?? $key;
+    }
+
+    /**
+     * One-time migration from the six legacy permission keys to the nine
+     * feature-level keys. Existing grants are preserved as closely as
+     * possible:
+     *   - can_manage_reports  -> can_manage_reports (unchanged)
+     *   - can_export_reports  -> can_export_reports (unchanged)
+     *   - can_edit_settings | can_manage_categories | can_broadcast_announcements
+     *                         -> can_manage_system
+     *   - can_delete_users    -> can_manage_users + can_manage_staff
+     * New read-only keys (can_view_map / can_view_analytics) inherit the
+     * View Reports grant; can_manage_evidence inherits Manage Reports.
+     * "Manage Reports" always implies "View Reports".
+     * @return bool
+     */
+    public static function migratePermissionKeys() {
+        $db = self::getDb();
+        try {
+            $roles = self::getAllRoles();
+            if (empty($roles)) {
+                return true;
+            }
+
+            $stmt = $db->query("SELECT role_id, permission_key, is_granted FROM role_permissions");
+            $stored = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $stored[$row['role_id']][$row['permission_key']] = (bool)$row['is_granted'];
+            }
+
+            foreach ($roles as $role) {
+                $roleId   = (int)$role['id'];
+                $old      = $stored[$roleId] ?? [];
+
+                $manage   = !empty($old['can_manage_reports']);
+                $view     = !empty($old['can_view_reports']) || $manage;
+
+                $new = [
+                    'can_view_reports'    => $view,
+                    'can_manage_reports'  => $manage,
+                    'can_view_map'        => !empty($old['can_view_map']) ? true : $view,
+                    'can_view_analytics'  => !empty($old['can_view_analytics']) ? true : $view,
+                    'can_manage_evidence' => !empty($old['can_manage_evidence']) ? true : $manage,
+                    'can_manage_users'    => !empty($old['can_manage_users']) ? true : !empty($old['can_delete_users']),
+                    'can_manage_staff'    => !empty($old['can_manage_staff']) ? true : !empty($old['can_delete_users']),
+                    'can_export_reports'  => !empty($old['can_export_reports']),
+                    'can_manage_system'   => !empty($old['can_manage_system'])
+                        ? true
+                        : (!empty($old['can_edit_settings']) || !empty($old['can_manage_categories']) || !empty($old['can_broadcast_announcements'])),
+                ];
+
+                // Always persist the full nine-key set so the page renders
+                // every toggle (delete + re-insert keeps it idempotent).
+                self::savePermissionsForRole($roleId, $new);
+            }
+
+            return true;
+        } catch (Exception $e) {
+            error_log("migratePermissionKeys failed: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -858,10 +950,17 @@ class SettingsHelper {
     /**
      * Whitelist-save a role's permission rows (delete + re-insert keeps
      * this simple and avoids partial/mismatched rows).
+     * Enforces the dependency rule: granting "Manage Reports" always
+     * implies "View Reports", and revoking "View Reports" always revokes
+     * "Manage Reports".
      */
     private static function savePermissionsForRole($roleId, array $permissions) {
         $db = self::getDb();
         $allowedKeys = array_keys(self::getPermissionKeys());
+
+        // Manage Reports => View Reports dependency.
+        $manage = !empty($permissions['can_manage_reports']);
+        $permissions['can_view_reports'] = $manage;
 
         $del = $db->prepare("DELETE FROM role_permissions WHERE role_id = ?");
         $del->execute([$roleId]);
@@ -914,12 +1013,12 @@ class SettingsHelper {
      * user-level check that applies that bypass. This function checks
      * the role's stored permission only.
      * @param int $roleId
-     * @param string $permissionKey e.g. 'can_delete_users'
+     * @param string $permissionKey e.g. 'can_manage_system'
      * @return bool
      */
     public static function hasPermission($roleId, $permissionKey) {
         $perms = self::getRolePermissions($roleId);
-        return !empty($perms[$permissionKey]);
+        return !empty($perms[self::resolvePermissionKey($permissionKey)]);
     }
 }
 
@@ -930,5 +1029,18 @@ class SettingsHelper {
 // but only if the settings haven't been initialized yet
 if (SettingsHelper::get('system_name') === null) {
     SettingsHelper::initializeDefaults();
+}
+
+// ============================================================
+// ONE-TIME PERMISSION KEY MIGRATION (6 legacy -> 9 features)
+// ============================================================
+// Runs once, gated by a system_settings flag. Converts existing
+// role_permissions rows from the old keys to the new nine so that
+// every role keeps the grants it had before the redesign.
+if (SettingsHelper::get('permissions_v9_migrated') !== '1') {
+    if (SettingsHelper::migratePermissionKeys()) {
+        SettingsHelper::set('permissions_v9_migrated', '1');
+    }
+    SettingsHelper::clearCache();
 }
 ?>

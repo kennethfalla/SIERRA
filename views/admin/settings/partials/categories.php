@@ -11,7 +11,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/S
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
 
 // Permission gate (super-admin bypasses via PermissionHelper).
-if (!PermissionHelper::userHasPermission('can_manage_categories')) {
+if (!PermissionHelper::userHasPermission('can_manage_system')) {
     $_SESSION['error'] = "You are not permitted to manage categories.";
     header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
     exit();
@@ -47,7 +47,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($name)) {
             $_SESSION['error'] = "Category name is required.";
         } elseif ($categoryModel->create($name, $description, $icon_class, $base_weight)) {
-            $activityLog->log($_SESSION['user_id'], 'Create Category', "Created category: $name");
+            $activityLog->log($_SESSION['user_id'], 'Create Category', "Created category: $name", null, 'Categories');
             $_SESSION['success'] = "Category created!";
         } else {
             $_SESSION['error'] = "Failed to create category.";
@@ -68,7 +68,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id <= 0 || empty($name)) {
             $_SESSION['error'] = "Invalid category data.";
         } elseif ($categoryModel->update($id, $name, $description, $icon_class, $is_active, $base_weight)) {
-            $activityLog->log($_SESSION['user_id'], 'Update Category', "Updated category: $name");
+            $activityLog->log($_SESSION['user_id'], 'Update Category', "Updated category: $name", null, 'Categories');
             $_SESSION['success'] = "Category updated!";
         } else {
             $_SESSION['error'] = "Failed to update category.";
@@ -84,7 +84,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($categoryModel->isUsed($id)) {
             $_SESSION['error'] = "Cannot delete category that is already used in reports. Deactivate it instead.";
         } elseif ($categoryModel->delete($id)) {
-            $activityLog->log($_SESSION['user_id'], 'Delete Category', "Deleted category #$id");
+            $activityLog->log($_SESSION['user_id'], 'Delete Category', "Deleted category #$id", null, 'Categories');
             $_SESSION['success'] = "Category deleted!";
         } else {
             $_SESSION['error'] = "Failed to delete category.";
@@ -98,7 +98,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id <= 0) {
             $_SESSION['error'] = "Invalid category ID.";
         } elseif ($categoryModel->toggleStatus($id)) {
-            $activityLog->log($_SESSION['user_id'], 'Toggle Category Status', "Toggled category #$id status");
+            $activityLog->log($_SESSION['user_id'], 'Toggle Category Status', "Toggled category #$id status", null, 'Categories');
             $_SESSION['success'] = "Category status updated!";
         } else {
             $_SESSION['error'] = "Failed to update category status.";

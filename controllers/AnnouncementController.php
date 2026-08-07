@@ -79,9 +79,9 @@ if ($action === 'create') {
         $target_barangay_id = $barangay_id;
     }
 
-    // "Can Post Public Announcements" permission gates municipality-wide posts
+    // "System Management" permission gates municipality-wide posts
     // (super-admin bypasses; barangay-scoped posts are unaffected).
-    if ($is_public && !PermissionHelper::userHasPermission('can_broadcast_announcements')) {
+    if ($is_public && !PermissionHelper::userHasPermission('can_manage_system')) {
         $_SESSION['error'] = "You are not permitted to post public announcements.";
         header("Location: " . BASE_URL . "index.php?page=announcements");
         exit();

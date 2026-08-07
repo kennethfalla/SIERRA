@@ -184,11 +184,19 @@ function buildQueryString($params) {
 /**
  * Get role display name
  */
-function getRoleDisplayName($role) {
+function getRoleDisplayName($role, $user_type = null) {
+    $types = [
+        'admin' => 'Admin',
+        'menro_staff' => 'MENRO Staff',
+        'barangay_personnel' => 'Barangay Official'
+    ];
+    if (!empty($user_type)) {
+        return $types[$user_type] ?? 'Citizen';
+    }
     $roles = [
         'citizen' => 'Citizen',
         'barangay_official' => 'Barangay Official',
-        'admin' => 'MENRO Administrator'
+        'admin' => 'Admin'
     ];
     return $roles[$role] ?? ucfirst($role);
 }
@@ -196,7 +204,15 @@ function getRoleDisplayName($role) {
 /**
  * Get role badge color
  */
-function getRoleBadgeColor($role) {
+function getRoleBadgeColor($role, $user_type = null) {
+    if (!empty($user_type)) {
+        $colors = [
+            'admin' => 'bg-purple-100 text-purple-700',
+            'menro_staff' => 'bg-purple-100 text-purple-700',
+            'barangay_personnel' => 'bg-emerald-100 text-emerald-700'
+        ];
+        return $colors[$user_type] ?? 'bg-blue-100 text-blue-700';
+    }
     $colors = [
         'citizen' => 'bg-blue-100 text-blue-700',
         'barangay_official' => 'bg-emerald-100 text-emerald-700',

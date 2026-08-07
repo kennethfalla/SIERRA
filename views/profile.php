@@ -128,14 +128,13 @@ if (count($name_parts) >= 2) {
     $initials = strtoupper(substr($user['first_name'], 0, 2));
 }
 
-$role_names = [
-    'citizen' => 'Citizen',
-    'barangay_official' => 'Barangay Official',
-    'admin' => 'MENRO Administrator'
-];
-$role_display = $role_names[$user['role']] ?? 'Citizen';
-$role_badge_color = ($user['role'] == 'admin') ? 'bg-purple-100 text-purple-700' : 
-                    (($user['role'] == 'barangay_official') ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700');
+$user_type = $user['user_type'] ?? null;
+if ($user_type === null) {
+    $user_type = ['admin' => 'admin', 'barangay_official' => 'barangay_personnel'][$user['role']] ?? null;
+}
+$role_display = ['admin' => 'Admin', 'menro_staff' => 'MENRO Staff', 'barangay_personnel' => 'Barangay Official'][$user_type] ?? 'Citizen';
+$role_badge_color = in_array($user_type, ['admin', 'menro_staff']) ? 'bg-purple-100 text-purple-700' :
+                    ($user_type === 'barangay_personnel' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700');
 $join_date = date('F Y', strtotime($user['created_at']));
 $edit_mode = isset($_GET['edit']) && $_GET['edit'] == 'true';
 $barangay_name = $user['barangay_name'] ?? '';

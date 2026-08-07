@@ -5,7 +5,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/S
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
 requireRole('admin');
 
-if (!PermissionHelper::userHasPermission('can_manage_categories')) {
+if (!PermissionHelper::userHasPermission('can_manage_system')) {
     $_SESSION['error'] = "You are not permitted to manage categories.";
     header("Location: " . BASE_URL . "index.php");
     exit();

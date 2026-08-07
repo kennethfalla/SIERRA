@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sms_sent = sendWelcomeSMS($contact_number, $first_name, $last_name, $email, $temp_password, $role_display);
 
             // Log the action
-            $activityLog->log($_SESSION['user_id'], 'Create Staff Account', "Created $role_display account ($role_title) for $first_name $last_name");
+            $activityLog->log($_SESSION['user_id'], 'Create Staff Account', "Created $role_display account ($role_title) for $first_name $last_name", null, 'Staff');
             $_SESSION['success'] = $sms_sent
                 ? "$role_display account created successfully! An SMS with the temporary password has been sent."
                 : "$role_display account created successfully! However, the SMS with the temporary password could not be sent - please check the SMS gateway settings or share the credentials manually.";
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($user_id > 0 && !empty($role)) {
             if ($user->updateRole($user_id, $role)) {
-                $activityLog->log($_SESSION['user_id'], 'Update User Role', "Updated user #$user_id role to $role");
+                $activityLog->log($_SESSION['user_id'], 'Update User Role', "Updated user #$user_id role to $role", null, 'Users');
                 $_SESSION['success'] = "User role updated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update user role";
@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user->updateStatus($user_id, $is_active)) {
                 $status_text = $is_active ? 'activated' : 'deactivated';
-                $activityLog->log($_SESSION['user_id'], 'Toggle User Status', "$status_text user #$user_id");
+                $activityLog->log($_SESSION['user_id'], 'Toggle User Status', "$status_text user #$user_id", null, 'Users');
                 $_SESSION['success'] = "User $status_text successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update user status";
@@ -208,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 1d. DELETE USER
     // --------------------------------------------
     if ($action === 'delete_user') {
-        if (!PermissionHelper::userHasPermission('can_delete_users')) {
+        if (!PermissionHelper::userHasPermission('can_manage_users') && !PermissionHelper::userHasPermission('can_manage_staff')) {
             $_SESSION['error'] = "You are not permitted to delete users.";
             header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
             exit();
@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($user->deleteUser($user_id)) {
-                $activityLog->log($_SESSION['user_id'], 'Delete User', "Deleted user #$user_id");
+                $activityLog->log($_SESSION['user_id'], 'Delete User', "Deleted user #$user_id", null, 'Users');
                 $_SESSION['success'] = "User deleted successfully!";
             } else {
                 $_SESSION['error'] = "Failed to delete user";

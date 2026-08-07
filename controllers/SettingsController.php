@@ -10,9 +10,9 @@ require_once dirname(__DIR__) . '/helpers/PermissionHelper.php';
 
 // ============================================
 // ENSURE USER IS LOGGED IN AND IS ADMIN
-// ("Can Edit System Settings" permission; super-admin bypasses)
+// ("System Management" permission; super-admin bypasses)
 // ============================================
-if (!isLoggedIn() || $_SESSION['user_role'] !== 'admin' || !PermissionHelper::userHasPermission('can_edit_settings')) {
+if (!isLoggedIn() || $_SESSION['user_role'] !== 'admin' || !PermissionHelper::userHasPermission('can_manage_system')) {
     http_response_code(403);
     die("Access Denied");
 }
@@ -27,10 +27,12 @@ $db = $database->getConnection();
 class SettingsController {
     private $db;
     private $user_id;
+    private $activityLog;
 
     public function __construct($db, $user_id) {
         $this->db = $db;
         $this->user_id = $user_id;
+        $this->activityLog = new ActivityLog($db);
     }
 
     /**
@@ -102,6 +104,7 @@ class SettingsController {
         }
 
         SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated general settings (system name, contact email, hotline" . (isset($_FILES['lgu_logo']) && $_FILES['lgu_logo']['error'] === UPLOAD_ERR_OK ? ", logo" : "") . ")", null, 'Settings');
         $_SESSION['success'] = "General settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=general");
         exit();
@@ -132,6 +135,7 @@ class SettingsController {
         }
 
         SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated security settings (password policy and login lockout)", null, 'Settings');
         $_SESSION['success'] = "Security settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=security");
         exit();
@@ -154,6 +158,7 @@ class SettingsController {
             SettingsHelper::set($feature, $value);
         }
         SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated feature toggles", null, 'Settings');
         $_SESSION['success'] = "Feature toggles saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=features");
         exit();
@@ -174,12 +179,14 @@ class SettingsController {
             }
             $stmt = $this->db->prepare("INSERT INTO custom_tags (name, color) VALUES (?, ?)");
             $stmt->execute([$name, $color]);
+            $this->activityLog->log($this->user_id, 'Create Tag', "Created tag: $name", null, 'Settings');
             $_SESSION['success'] = "Tag added successfully!";
         } elseif ($sub_action === 'delete') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
                 $stmt = $this->db->prepare("DELETE FROM custom_tags WHERE id = ?");
                 $stmt->execute([$id]);
+                $this->activityLog->log($this->user_id, 'Delete Tag', "Deleted tag #$id", null, 'Settings');
                 $_SESSION['success'] = "Tag deleted successfully!";
             } else {
                 $_SESSION['error'] = "Invalid tag ID.";
@@ -191,6 +198,7 @@ class SettingsController {
             if ($id > 0 && !empty($name)) {
                 $stmt = $this->db->prepare("UPDATE custom_tags SET name = ?, color = ? WHERE id = ?");
                 $stmt->execute([$name, $color, $id]);
+                $this->activityLog->log($this->user_id, 'Update Tag', "Updated tag #$id: $name", null, 'Settings');
                 $_SESSION['success'] = "Tag updated successfully!";
             } else {
                 $_SESSION['error'] = "Invalid tag data.";
@@ -239,6 +247,7 @@ class SettingsController {
         SettingsHelper::set('verification_max_points', max(0, min(20, $max_verification_points)));
 
         SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated severity algorithm tuner", null, 'Settings');
         $_SESSION['success'] = "Algorithm settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=algorithm");
         exit();
@@ -281,6 +290,7 @@ class SettingsController {
 
         SettingsHelper::clearCache();
 
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated notification templates and SMS gateway settings", null, 'Settings');
         $_SESSION['success'] = "Notification templates and SMS settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=notifications");
         exit();
@@ -315,6 +325,7 @@ class SettingsController {
         SettingsHelper::set('map_default_zoom', max(1, min(19, $zoom)));
 
         SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated map settings (clustering radius, default center, zoom)", null, 'Settings');
         $_SESSION['success'] = "Map settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=map");
         exit();
@@ -327,6 +338,7 @@ class SettingsController {
         $days = (int)($_POST['archive_after_days'] ?? 30);
         SettingsHelper::set('archive_after_days', max(0, min(365, $days)));
         SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated auto-archiving rules (after $days days)", null, 'Settings');
         $_SESSION['success'] = "Archiving rules saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=archiving");
         exit();
@@ -363,6 +375,7 @@ class SettingsController {
             
             $stmt = $this->db->prepare("INSERT INTO barangays (name, captain_name, captain_contact) VALUES (?, ?, ?)");
             if ($stmt->execute([$name, $captain_name, $captain_contact])) {
+                $this->activityLog->log($this->user_id, 'Create Barangay', "Created barangay: $name", null, 'Settings');
                 $_SESSION['success'] = "Barangay added successfully!";
             } else {
                 $_SESSION['error'] = "Failed to add barangay.";
@@ -400,6 +413,7 @@ class SettingsController {
             
             $stmt = $this->db->prepare("UPDATE barangays SET name = ?, captain_name = ?, captain_contact = ? WHERE id = ?");
             if ($stmt->execute([$name, $captain_name, $captain_contact, $id])) {
+                $this->activityLog->log($this->user_id, 'Update Barangay', "Updated barangay: $name (ID: $id)", null, 'Settings');
                 $_SESSION['success'] = "Barangay updated successfully!";
             } else {
                 $_SESSION['error'] = "Failed to update barangay.";
@@ -457,8 +471,7 @@ class SettingsController {
             $stmt = $this->db->prepare("DELETE FROM barangays WHERE id = ?");
             if ($stmt->execute([$id])) {
                 // Log the activity
-                $logStmt = $this->db->prepare("INSERT INTO activity_logs (user_id, action, description, created_at) VALUES (?, ?, ?, NOW())");
-                $logStmt->execute([$this->user_id, 'Delete Barangay', "Deleted barangay: {$name} (ID: {$id})"]);
+                $this->activityLog->log($this->user_id, 'Delete Barangay', "Deleted barangay: {$name} (ID: {$id})", null, 'Settings');
                 $_SESSION['success'] = "Barangay deleted successfully!";
             } else {
                 $_SESSION['error'] = "Failed to delete barangay.";
@@ -516,8 +529,7 @@ class SettingsController {
         $roleId = SettingsHelper::createRole($title, $description, $permissions, $this->user_id);
 
         if ($roleId) {
-            $logStmt = $this->db->prepare("INSERT INTO activity_logs (user_id, action, description, created_at) VALUES (?, ?, ?, NOW())");
-            $logStmt->execute([$this->user_id, 'Create Role', "Created role: {$title}"]);
+            $this->activityLog->log($this->user_id, 'Create Role', "Created role: {$title}", null, 'Permissions');
             $_SESSION['success'] = "Role \"{$title}\" created successfully! It's now available in the Role dropdown.";
         } else {
             $_SESSION['error'] = "Failed to create role. A role with that title may already exist.";
@@ -543,8 +555,7 @@ class SettingsController {
         }
 
         if (SettingsHelper::updateRole($roleId, $title, $description, $permissions)) {
-            $logStmt = $this->db->prepare("INSERT INTO activity_logs (user_id, action, description, created_at) VALUES (?, ?, ?, NOW())");
-            $logStmt->execute([$this->user_id, 'Update Role', "Updated role #{$roleId}: {$title}"]);
+            $this->activityLog->log($this->user_id, 'Update Role', "Updated role #{$roleId}: {$title}", null, 'Permissions');
             $_SESSION['success'] = "Role updated successfully!";
         } else {
             $_SESSION['error'] = "Failed to update role.";
@@ -569,8 +580,7 @@ class SettingsController {
 
         $result = SettingsHelper::deleteRole($roleId);
         if ($result === true) {
-            $logStmt = $this->db->prepare("INSERT INTO activity_logs (user_id, action, description, created_at) VALUES (?, ?, ?, NOW())");
-            $logStmt->execute([$this->user_id, 'Delete Role', "Deleted role #{$roleId}"]);
+            $this->activityLog->log($this->user_id, 'Delete Role', "Deleted role #{$roleId}", null, 'Permissions');
             $_SESSION['success'] = "Role deleted successfully!";
         } else {
             $_SESSION['error'] = $result; // human-readable reason from SettingsHelper::deleteRole()
@@ -599,9 +609,14 @@ class SettingsController {
             foreach ($allowedPermissionKeys as $key) {
                 $permissions[$key] = isset($submitted[$roleId][$key]);
             }
+            // Manage Reports implies View Reports (enforced in the helper too).
+            if (!empty($permissions['can_manage_reports'])) {
+                $permissions['can_view_reports'] = true;
+            }
             SettingsHelper::updateRole($roleId, $role['title'], $role['description'] ?? '', $permissions);
         }
 
+        $this->activityLog->log($this->user_id, 'Update Permissions', "Updated permissions for " . count($allowedRoleIds) . " role(s)", null, 'Permissions');
         $_SESSION['success'] = "Permissions updated successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
         exit();
@@ -616,6 +631,10 @@ class SettingsController {
         $result = [];
         foreach ($allowedKeys as $key) {
             $result[$key] = isset($submitted[$key]);
+        }
+        // Manage Reports implies View Reports.
+        if (!empty($result['can_manage_reports'])) {
+            $result['can_view_reports'] = true;
         }
         return $result;
     }

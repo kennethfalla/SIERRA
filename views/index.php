@@ -30,8 +30,11 @@ $san_isidro_stats = [
 
 // Get logged in user's info for filtering
 $user_role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : null;
+$user_type = isset($_SESSION['user_type']) ? $_SESSION['user_type'] : null;
 $isLoggedIn = isLoggedIn();
 $user_name = $isLoggedIn ? $_SESSION['user_name'] : '';
+$is_staff = in_array($user_type, ['admin', 'menro_staff'], true) || $user_role === 'admin';
+$staff_label = $user_type === 'admin' ? 'Admin' : 'MENRO Staff';
 
 // Get recent reports for the map (only show reports with location data)
 $reports_for_map = $db->query("
@@ -270,7 +273,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                 
                 <p class="text-lg text-gray-600 mb-8 leading-relaxed animate-fade-up delay-2">
                     <?php if($isLoggedIn && ($user_role === 'barangay_official' || $user_role === 'admin')): ?>
-                        As a <?php echo $user_role === 'barangay_official' ? 'Barangay Official' : 'MENRO Administrator'; ?>, you can review, verify, and manage environmental reports from your community. 
+                        As a <?php echo ($user_type === 'barangay_personnel' || $user_role === 'barangay_official') ? 'Barangay Official' : $staff_label; ?>, you can review, verify, and manage environmental reports from your community. 
                         Take action on pending reports and help resolve issues faster.
                     <?php elseif($isLoggedIn): ?>
                         Your voice matters. Report environmental issues like illegal dumping, flooding, or pollution — 
@@ -325,7 +328,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                                 <i class="fas fa-user-check text-emerald-600 text-3xl"></i>
                             </div>
                             <h3 class="text-xl font-bold text-gray-800 mb-2">Welcome Back!</h3>
-                            <p class="text-gray-500 text-sm mb-6">You're logged in as <?php echo htmlspecialchars($user_role); ?></p>
+                            <p class="text-gray-500 text-sm mb-6">You're logged in as <?php echo htmlspecialchars($is_staff ? $staff_label : ($user_type === 'barangay_personnel' || $user_role === 'barangay_official' ? 'Barangay Official' : 'Citizen')); ?></p>
                             <div class="space-y-3">
                                 <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary w-full py-3 text-white rounded-xl font-medium block text-center">
                                     <i class="fas fa-tachometer-alt mr-2"></i>Go to Dashboard

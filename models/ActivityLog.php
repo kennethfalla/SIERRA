@@ -8,7 +8,7 @@ class ActivityLog {
         $this->conn = $db;
     }
 
-    public function log($user_id, $action, $description, $ip_address = null) {
+    public function log($user_id, $action, $description, $ip_address = null, $target_module = null) {
         if(!$ip_address) {
             $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         }
@@ -23,10 +23,22 @@ class ActivityLog {
             }
         }
         
-        $query = "INSERT INTO " . $this->table . " (user_id, action, description, ip_address) 
-                  VALUES (:user_id, :action, :description, :ip_address)";
+        // Capture the actor details from the session so the log stays
+        // self-contained even if the user's account is later deleted.
+        $actor_name = $_SESSION['user_name'] ?? null;
+        $actor_role = $_SESSION['user_role'] ?? null;
+        if(empty($actor_role)) {
+            $actor_role = $_SESSION['user_type'] ?? null;
+        }
+        
+        $query = "INSERT INTO " . $this->table . "
+                  (user_id, actor_name, actor_role, target_module, action, description, ip_address) 
+                  VALUES (:user_id, :actor_name, :actor_role, :target_module, :action, :description, :ip_address)";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":user_id", $user_id);
+        $stmt->bindParam(":actor_name", $actor_name);
+        $stmt->bindParam(":actor_role", $actor_role);
+        $stmt->bindParam(":target_module", $target_module);
         $stmt->bindParam(":action", $action);
         $stmt->bindParam(":description", $description);
         $stmt->bindParam(":ip_address", $ip_address);

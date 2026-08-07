@@ -163,10 +163,10 @@ class PermissionHelper {
 //            header("Location: ..."); exit();
 //        }
 //
-// 3) manage_categories.php — gate the page/actions with:
-//        if (!PermissionHelper::userHasPermission('can_manage_categories')) { ... deny ... }
-//
-// 4) Settings pages / announcements / user deletion / PDF export — same
-//    pattern with 'can_edit_settings', 'can_broadcast_announcements',
-//    'can_delete_users', 'can_export_reports'.
+// 3) Settings pages / categories / announcements / user deletion / PDF
+//    export use the feature-level keys: 'can_manage_system',
+//    'can_manage_users', 'can_manage_staff', 'can_export_reports'.
+//    Legacy keys ('can_edit_settings', 'can_manage_categories',
+//    'can_broadcast_announcements', 'can_delete_users') are resolved to
+//    their new equivalents by SettingsHelper::resolvePermissionKey().
 ?>
