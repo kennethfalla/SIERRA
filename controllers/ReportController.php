@@ -4,6 +4,8 @@
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -104,29 +106,38 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
         elseif ($esc_status['status'] == 'rejected') $was_escalation_rejected = true;
     }
 
+    // RBAC-aware action flags: allowedReportActions() already applies the
+    // can_manage_reports permission, the user_type scoping (barangay_personnel
+    // manages own barangay's non-escalated reports; menro_staff/admin manage
+    // escalated reports), and the super-admin bypass. We AND that with the
+    // status/ownership checks below.
+    $can_manage = PermissionHelper::canManageReport($report_data);
+    $allowedActions = PermissionHelper::allowedReportActions($report_data);
+
     $can_verify = (
-        $user_role == 'barangay_official' && 
+        in_array('verify', $allowedActions) &&
         $report_data['status'] == Report::STATUS_UNDER_REVIEW
     );
     $can_reject = (
-        $user_role == 'barangay_official' && 
+        in_array('reject', $allowedActions) &&
         $report_data['status'] == Report::STATUS_UNDER_REVIEW
     );
     $can_escalate = (
-        $user_role == 'barangay_official' && 
-        $report_data['status'] == Report::STATUS_UNDER_REVIEW && 
-        !$has_pending_escalation && 
-        !$has_approved_escalation && 
+        in_array('escalate', $allowedActions) &&
+        $report_data['status'] == Report::STATUS_UNDER_REVIEW &&
+        !$has_pending_escalation &&
+        !$has_approved_escalation &&
         !$was_escalation_rejected
     );
     $can_resolve = (
-        ($user_role == 'barangay_official' && $report_data['status'] == Report::STATUS_IN_PROGRESS) || 
-        ($user_role == 'admin' && $report_data['status'] == Report::STATUS_ESCALATED)
+        in_array('mark_resolved', $allowedActions) &&
+        (($user_role == 'barangay_official' && $report_data['status'] == Report::STATUS_IN_PROGRESS) ||
+         ($user_role == 'admin' && $report_data['status'] == Report::STATUS_ESCALATED))
     );
-    $can_approve_escalation = ($user_role == 'admin' && $report_data['status'] == Report::STATUS_ESCALATED_PENDING);
-    $can_reject_escalation = ($user_role == 'admin' && $report_data['status'] == Report::STATUS_ESCALATED_PENDING);
-    $can_reclassify = (
-        ($user_role == 'barangay_official' && $report_data['status'] == Report::STATUS_IN_PROGRESS) || 
+    $can_approve_escalation = ($user_role == 'admin' && $report_data['status'] == Report::STATUS_ESCALATED_PENDING) && $can_manage;
+    $can_reject_escalation = in_array('reject_escalation', $allowedActions) && $report_data['status'] == Report::STATUS_ESCALATED_PENDING;
+    $can_reclassify = $can_manage && (
+        ($user_role == 'barangay_official' && $report_data['status'] == Report::STATUS_IN_PROGRESS) ||
         ($user_role == 'admin' && in_array($report_data['status'], [Report::STATUS_ESCALATED_PENDING, Report::STATUS_ESCALATED]))
     );
     $show_notes = in_array($report_data['status'], [Report::STATUS_IN_PROGRESS, Report::STATUS_ESCALATED_PENDING, Report::STATUS_ESCALATED]);
@@ -383,6 +394,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
+        if (!PermissionHelper::canManageReport($report_data)) {
+            $_SESSION['error'] = "You are not permitted to manage this report.";
+            header("Location: " . BASE_URL . "index.php?page=verify-reports");
+            exit();
+        }
         if ($report_data['barangay_id'] != $_SESSION['barangay_id']) {
             $_SESSION['error'] = "You don't have permission to verify this report.";
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
@@ -445,6 +461,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
+        if (!PermissionHelper::canManageReport($report_data)) {
+            $_SESSION['error'] = "You are not permitted to manage this report.";
+            header("Location: " . BASE_URL . "index.php?page=verify-reports");
+            exit();
+        }
         if ($report_data['barangay_id'] != $_SESSION['barangay_id']) {
             $_SESSION['error'] = "You don't have permission to reject this report.";
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
@@ -494,6 +515,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$report_data) {
             $_SESSION['error'] = "Report not found.";
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
+            exit();
+        }
+        if (!PermissionHelper::canManageReport($report_data)) {
+            $_SESSION['error'] = "You are not permitted to manage this report.";
+            header("Location: " . BASE_URL . "index.php?page=" . (($user_role == 'admin') ? 'all-reports' : 'verify-reports'));
             exit();
         }
         if ($report_data['status'] == Report::STATUS_CANCELLED) {
@@ -601,6 +627,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
+        if (!PermissionHelper::canManageReport($report_data)) {
+            $_SESSION['error'] = "You are not permitted to manage this report.";
+            header("Location: " . BASE_URL . "index.php?page=verify-reports");
+            exit();
+        }
         if ($report_data['status'] == Report::STATUS_CANCELLED) {
             $_SESSION['error'] = "Cannot escalate a cancelled report.";
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
@@ -664,11 +695,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=all-reports");
             exit();
         }
-        $check_stmt = $db->prepare("SELECT id, status, latitude, longitude FROM reports WHERE id = ?");
+        $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
         $check_stmt->execute([$report_id]);
         $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report_data) {
             $_SESSION['error'] = "Report not found.";
+            header("Location: " . BASE_URL . "index.php?page=all-reports");
+            exit();
+        }
+        if (!PermissionHelper::canManageReport($report_data)) {
+            $_SESSION['error'] = "You are not permitted to manage this report.";
             header("Location: " . BASE_URL . "index.php?page=all-reports");
             exit();
         }
@@ -722,11 +758,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=all-reports");
             exit();
         }
-        $check_stmt = $db->prepare("SELECT id, status, latitude, longitude FROM reports WHERE id = ?");
+        $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
         $check_stmt->execute([$report_id]);
         $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report_data) {
             $_SESSION['error'] = "Report not found.";
+            header("Location: " . BASE_URL . "index.php?page=all-reports");
+            exit();
+        }
+        if (!PermissionHelper::canManageReport($report_data)) {
+            $_SESSION['error'] = "You are not permitted to manage this report.";
             header("Location: " . BASE_URL . "index.php?page=all-reports");
             exit();
         }
@@ -794,6 +835,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: " . BASE_URL . "index.php?page=verify-reports");
                 exit();
             }
+            if (!PermissionHelper::canManageReport($report_data)) {
+                if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'You are not permitted to manage this report.']); exit(); }
+                $_SESSION['error'] = "You are not permitted to manage this report.";
+                header("Location: " . BASE_URL . "index.php?page=verify-reports");
+                exit();
+            }
             if ($report_data['status'] == Report::STATUS_CANCELLED) {
                 if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'Cannot reclassify a cancelled report.']); exit(); }
                 $_SESSION['error'] = "Cannot reclassify a cancelled report.";
@@ -813,12 +860,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
         } elseif ($user_role == 'admin') {
-            $check_stmt = $db->prepare("SELECT id, status, latitude, longitude FROM reports WHERE id = ?");
+            $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
             $check_stmt->execute([$report_id]);
             $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
             if (!$report_data) {
                 if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'Report not found.']); exit(); }
                 $_SESSION['error'] = "Report not found.";
+                header("Location: " . BASE_URL . "index.php?page=all-reports");
+                exit();
+            }
+            if (!PermissionHelper::canManageReport($report_data)) {
+                if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'You are not permitted to manage this report.']); exit(); }
+                $_SESSION['error'] = "You are not permitted to manage this report.";
                 header("Location: " . BASE_URL . "index.php?page=all-reports");
                 exit();
             }
@@ -891,6 +944,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$report_data) {
             if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'Report not found.']); exit(); }
             $_SESSION['error'] = "Report not found.";
+            header("Location: " . BASE_URL . "index.php?page=verify-reports");
+            exit();
+        }
+        if (!PermissionHelper::canManageReport($report_data)) {
+            if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'You are not permitted to manage this report.']); exit(); }
+            $_SESSION['error'] = "You are not permitted to manage this report.";
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }

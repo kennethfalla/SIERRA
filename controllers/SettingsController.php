@@ -6,11 +6,13 @@
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/helpers/SecurityHelper.php';
 require_once dirname(__DIR__) . '/helpers/SettingsHelper.php';
+require_once dirname(__DIR__) . '/helpers/PermissionHelper.php';
 
 // ============================================
 // ENSURE USER IS LOGGED IN AND IS ADMIN
+// ("Can Edit System Settings" permission; super-admin bypasses)
 // ============================================
-if (!isLoggedIn() || $_SESSION['user_role'] !== 'admin') {
+if (!isLoggedIn() || $_SESSION['user_role'] !== 'admin' || !PermissionHelper::userHasPermission('can_edit_settings')) {
     http_response_code(403);
     die("Access Denied");
 }

@@ -7,6 +7,7 @@
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/helpers/SecurityHelper.php';
 require_once dirname(__DIR__) . '/helpers/SettingsHelper.php';
+require_once dirname(__DIR__) . '/helpers/PermissionHelper.php';
 
 // ============================================
 // INITIALIZE DATABASE AND MODELS
@@ -39,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // CSRF Protection
         if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
             $_SESSION['error'] = "Invalid security token. Please refresh and try again.";
-            header("Location: " . BASE_URL . "index.php?page=manage-users");
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
             exit();
         }
 
@@ -96,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($errors)) {
             $_SESSION['errors'] = $errors;
             $redirect_tab = ($user_type === 'barangay_personnel') ? 'barangay' : 'menro';
-            header("Location: " . BASE_URL . "index.php?page=manage-users&tab=" . $redirect_tab);
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=users&subtab=" . $redirect_tab);
             exit();
         }
 
@@ -147,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $redirect_tab = ($user_type === 'barangay_personnel') ? 'barangay' : 'menro';
-        header("Location: " . BASE_URL . "index.php?page=manage-users&tab=" . $redirect_tab);
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=users&subtab=" . $redirect_tab);
         exit();
     }
 
@@ -169,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Invalid user or role";
         }
 
-        header("Location: " . BASE_URL . "index.php?page=manage-users");
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
         exit();
     }
 
@@ -184,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Prevent deactivating own account
             if ($user_id == $_SESSION['user_id']) {
                 $_SESSION['error'] = "You cannot deactivate your own account.";
-                header("Location: " . BASE_URL . "index.php?page=manage-users");
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
                 exit();
             }
 
@@ -199,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Invalid user ID";
         }
 
-        header("Location: " . BASE_URL . "index.php?page=manage-users");
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
         exit();
     }
 
@@ -207,13 +208,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 1d. DELETE USER
     // --------------------------------------------
     if ($action === 'delete_user') {
+        if (!PermissionHelper::userHasPermission('can_delete_users')) {
+            $_SESSION['error'] = "You are not permitted to delete users.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+            exit();
+        }
+
         $user_id = (int)($_POST['user_id'] ?? 0);
 
         if ($user_id > 0) {
             // Prevent deleting own account
             if ($user_id == $_SESSION['user_id']) {
                 $_SESSION['error'] = "You cannot delete your own account.";
-                header("Location: " . BASE_URL . "index.php?page=manage-users");
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
                 exit();
             }
 
@@ -227,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Invalid user ID";
         }
 
-        header("Location: " . BASE_URL . "index.php?page=manage-users");
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
         exit();
     }
 
@@ -246,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($name)) {
             $_SESSION['error'] = "Category name is required.";
-            header("Location: " . BASE_URL . "index.php?page=manage-categories");
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
             exit();
         }
 
@@ -261,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Failed to create category";
         }
 
-        header("Location: " . BASE_URL . "index.php?page=manage-categories");
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
         exit();
     }
 
@@ -278,7 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($id <= 0 || empty($name)) {
             $_SESSION['error'] = "Invalid category data.";
-            header("Location: " . BASE_URL . "index.php?page=manage-categories");
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
             exit();
         }
 
@@ -293,7 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Failed to update category";
         }
 
-        header("Location: " . BASE_URL . "index.php?page=manage-categories");
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
         exit();
     }
 
@@ -305,7 +312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($id <= 0) {
             $_SESSION['error'] = "Invalid category ID.";
-            header("Location: " . BASE_URL . "index.php?page=manage-categories");
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
             exit();
         }
 
@@ -321,7 +328,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        header("Location: " . BASE_URL . "index.php?page=manage-categories");
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
         exit();
     }
 
@@ -342,7 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        header("Location: " . BASE_URL . "index.php?page=manage-categories");
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
         exit();
     }
 
@@ -457,6 +464,6 @@ function getUserName($user_id) {
 // IF NO VALID ACTION MATCHED
 // ============================================================
 $_SESSION['error'] = "Invalid action.";
-header("Location: " . BASE_URL . "index.php?page=manage-users");
+header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
 exit();
 ?>

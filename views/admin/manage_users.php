@@ -6,6 +6,8 @@
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
 requireRole('admin');
 
 $database = new Database();
@@ -35,6 +37,12 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Delete user (only for non-admin users)
     if($action === 'delete') {
+        if (!PermissionHelper::userHasPermission('can_delete_users')) {
+            $_SESSION['error'] = "You are not permitted to delete users.";
+            header("Location: " . BASE_URL . "index.php?page=manage-users&tab=" . ($_GET['tab'] ?? 'citizens'));
+            exit();
+        }
+
         // Prevent deleting own account
         if($user_id == $_SESSION['user_id']) {
             $_SESSION['error'] = "You cannot delete your own account.";

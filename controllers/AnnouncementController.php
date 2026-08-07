@@ -2,6 +2,8 @@
 // controllers/AnnouncementController.php
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/helpers/SecurityHelper.php';
+require_once dirname(__DIR__) . '/helpers/SettingsHelper.php';
+require_once dirname(__DIR__) . '/helpers/PermissionHelper.php';
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -75,6 +77,14 @@ if ($action === 'create') {
         // Barangay official always posts to own barangay
         $is_public = 0;
         $target_barangay_id = $barangay_id;
+    }
+
+    // "Can Post Public Announcements" permission gates municipality-wide posts
+    // (super-admin bypasses; barangay-scoped posts are unaffected).
+    if ($is_public && !PermissionHelper::userHasPermission('can_broadcast_announcements')) {
+        $_SESSION['error'] = "You are not permitted to post public announcements.";
+        header("Location: " . BASE_URL . "index.php?page=announcements");
+        exit();
     }
 
     $created_by_role = ($user_role === 'admin') ? 'menro' : 'barangay';

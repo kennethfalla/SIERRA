@@ -120,9 +120,26 @@ if($page === 'announcements') {
 if($page === 'settings') {
     requireLogin();
     requireRole('admin');
-    
+
+    require_once BASE_PATH . 'helpers/SettingsHelper.php';
+    require_once BASE_PATH . 'helpers/PermissionHelper.php';
+
+    // "Can Edit System Settings" permission gates this page (super-admin bypasses).
+    if (!PermissionHelper::userHasPermission('can_edit_settings')) {
+        $_SESSION['error'] = "You are not permitted to edit system settings.";
+        header("Location: " . BASE_URL . "index.php?page=dashboard");
+        exit();
+    }
+
     // Handle POST requests for settings updates
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $settings_tab = $_GET['tab'] ?? 'general';
+        if ($settings_tab === 'users' || $settings_tab === 'categories') {
+            // User & category management POSTs are handled by their own
+            // partials (they validate CSRF, process the action, and redirect).
+            require_once 'views/admin/settings/partials/' . ($settings_tab === 'users' ? 'users.php' : 'categories.php');
+            exit();
+        }
         require_once 'controllers/SettingsController.php';
         // The controller handles the request and redirects
         exit();
@@ -201,11 +218,11 @@ elseif($role === 'admin') {
             require_once 'views/admin/all_reports.php';
             break;
         case 'manage-users':
-            require_once 'views/admin/manage_users.php';
-            break;
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+            exit();
         case 'manage-categories':
-            require_once 'views/admin/manage_categories.php';
-            break;
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
+            exit();
         case 'audit-logs':
             require_once 'views/admin/audit_logs.php';
             break;

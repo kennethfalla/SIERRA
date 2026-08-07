@@ -489,6 +489,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($user->needsPasswordReset($row['id'])) {
                     $_SESSION['user_id'] = $row['id'];
                     $_SESSION['user_role'] = $row['role'];
+                    $_SESSION['role_id'] = $row['role_id'];
+                    $_SESSION['user_type'] = $row['user_type'];
+                    $_SESSION['barangay_id'] = $row['barangay_id'];
                     $_SESSION['user_name'] = $row['first_name'] . ' ' . $row['last_name'];
                     $_SESSION['user_email'] = $row['email'];
                     $_SESSION['user_contact'] = $row['contact_number'];
@@ -529,6 +532,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['last_name'] = $row['last_name'];
                 $_SESSION['user_name'] = $row['first_name'] . ' ' . $row['last_name'];
                 $_SESSION['user_role'] = $row['role'];
+                $_SESSION['role_id'] = $row['role_id'];
+                $_SESSION['user_type'] = $row['user_type'];
                 $_SESSION['barangay_id'] = $row['barangay_id'];
                 $_SESSION['user_email'] = $row['email'];
                 $_SESSION['user_contact'] = $row['contact_number'];
@@ -669,6 +674,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['last_name'] = $freshUser['last_name'];
                 $_SESSION['user_name'] = $freshUser['first_name'] . ' ' . $freshUser['last_name'];
                 $_SESSION['user_role'] = $freshUser['role'];
+                $_SESSION['role_id'] = $freshUser['role_id'];
+                $_SESSION['user_type'] = $freshUser['user_type'];
                 $_SESSION['barangay_id'] = $freshUser['barangay_id'];
                 $_SESSION['user_email'] = $freshUser['email'];
                 $_SESSION['user_contact'] = $freshUser['contact_number'];

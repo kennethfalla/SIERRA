@@ -120,6 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (
             $_SESSION['last_name'] = $fresh_user['last_name'];
             $_SESSION['user_name'] = $fresh_user['first_name'] . ' ' . $fresh_user['last_name'];
             $_SESSION['user_role'] = $fresh_user['role'];
+            $_SESSION['role_id'] = $fresh_user['role_id'];
+            $_SESSION['user_type'] = $fresh_user['user_type'];
             $_SESSION['barangay_id'] = $fresh_user['barangay_id'];
             $_SESSION['user_email'] = $fresh_user['email'];
             $_SESSION['user_contact'] = $fresh_user['contact_number'];

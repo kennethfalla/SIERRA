@@ -67,6 +67,18 @@ $tabs = [
         'description' => 'Manage barangay information',
         'file' => 'barangays.php'
     ],
+    'users' => [
+        'label' => 'Users',
+        'icon' => 'fa-users',
+        'description' => 'Manage citizens, barangay personnel, and MENRO staff accounts',
+        'file' => 'users.php'
+    ],
+    'categories' => [
+        'label' => 'Categories',
+        'icon' => 'fa-tags',
+        'description' => 'Manage report categories and severity weights',
+        'file' => 'categories.php'
+    ],
     'permissions' => [
         'label' => 'Permissions',
         'icon' => 'fa-user-lock',

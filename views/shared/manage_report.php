@@ -503,10 +503,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                 <span>Print Report</span>
                             </button>
                             <div class="print-dropdown-divider"></div>
+                            <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
                             <button class="print-dropdown-item" onclick="handleDownloadPDF()">
                                 <i class="fas fa-file-pdf"></i>
                                 <span>Download PDF</span>
                             </button>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <a href="<?php echo ($user_role == 'admin') ? BASE_URL . 'index.php?page=all-reports' : BASE_URL . 'index.php?page=verify-reports'; ?>"
@@ -662,7 +664,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php endif; ?>
             </div>
             <!-- Quick note form -->
-            <?php if ($user_role == 'barangay_official' || $user_role == 'admin'): ?>
+            <?php if ($can_manage && ($user_role == 'barangay_official' || $user_role == 'admin')): ?>
             <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="flex gap-2" onsubmit="setLoading(this)">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <input type="hidden" name="action" value="add_note">
