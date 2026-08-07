@@ -482,7 +482,7 @@ try {
                 <?php endif; ?>
                 
                 <!-- Reset Password Form -->
-                <form method="POST" action="<?php echo BASE_URL; ?>index.php?page=reset-password" id="resetPasswordForm" novalidate>
+                <form method="POST" action="index.php?page=reset-password" id="resetPasswordForm" novalidate>
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <input type="hidden" name="action" value="reset_password">
                     
@@ -793,29 +793,49 @@ try {
             const isAjax = window.fetch && window.FormData;
             if (isAjax) {
                 e.preventDefault();
-                
+
+                // Always use a relative URL so the request goes to the same
+                // origin the page was served from. Using BASE_URL (hardcoded
+                // to http://localhost/…) breaks when the admin opens the app
+                // via a LAN IP, 127.0.0.1, or any other hostname.
+                const postUrl = 'index.php?page=reset-password';
+
                 const formData = new FormData(form);
-                fetch(form.action, {
+                fetch(postUrl, {
                     method: 'POST',
                     body: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 })
-                .then(response => response.json())
-                .then(data => {
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Server returned HTTP ' + response.status);
+                    }
+                    return response.text();
+                })
+                .then(function(text) {
+                    var data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (parseErr) {
+                        // Server returned HTML (PHP error page) — fall back
+                        console.error('Non-JSON response:', text.substring(0, 500));
+                        throw new Error('Server returned an unexpected response. Check PHP error logs.');
+                    }
                     if (data.success) {
-                        window.location.href = data.redirect || '<?php echo BASE_URL; ?>index.php?page=dashboard';
+                        // Use relative redirect so it works on any hostname
+                        window.location.href = 'index.php?page=dashboard';
                     } else {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Set Password &amp; Continue';
                         alert(data.error || 'Failed to update password. Please try again.');
                     }
                 })
-                .catch(error => {
+                .catch(function(err) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Set Password &amp; Continue';
-                    alert('Network error. Please try again.');
+                    alert('Error: ' + err.message + '\n\nIf this keeps happening, try refreshing the page.');
                 });
             }
             // If not AJAX, the form will submit normally (fallback)

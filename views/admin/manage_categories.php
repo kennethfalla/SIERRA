@@ -1,7 +1,15 @@
 <?php
 // views/admin/manage_categories.php - WITH CONSISTENT DESIGN & RADIUS SCALE SYSTEM
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
 requireRole('admin');
+
+if (!PermissionHelper::userHasPermission('can_manage_categories')) {
+    $_SESSION['error'] = "You are not permitted to manage categories.";
+    header("Location: " . BASE_URL . "index.php");
+    exit();
+}
 
 $database = new Database();
 $db = $database->getConnection();

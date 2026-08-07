@@ -6,6 +6,8 @@
 // UPDATED: Added stats summary cards
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
 requireRole('admin');
 
 $database = new Database();
@@ -972,9 +974,21 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
                                     <td class="px-4 py-3">
+                                        <?php if (PermissionHelper::canManageReport($row)): ?>
                                         <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo $row['id']; ?>" class="btn-primary px-4 py-1.5 text-white text-sm rounded-lg inline-block">
                                             <i class="fas fa-edit mr-1"></i> Manage
                                         </a>
+                                        <?php else: ?>
+                                        <span class="px-4 py-1.5 text-gray-400 text-sm inline-block" title="You are not permitted to manage this report">
+                                            <i class="fas fa-lock mr-1"></i> Manage
+                                        </span>
+                                        <?php endif; ?>
+                                        <?php /* NOTE: This link-level gate is a UI convenience only. The actual
+                                                 status-change logic lives in the manage-report page/controller,
+                                                 which was not provided. That endpoint MUST also call
+                                                 PermissionHelper::canManageReport($report) server-side before
+                                                 applying any status change — see PermissionHelper.php integration
+                                                 notes. */ ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

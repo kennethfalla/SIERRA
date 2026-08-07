@@ -705,120 +705,220 @@ class SettingsHelper {
     }
 
     // ========================================================
-    // PERMISSIONS (RBAC)
+    // PERMISSIONS (RBAC) — dynamic, admin-created roles
+    // ========================================================
+    // Roles now live in the `roles` table (Create Role feature) instead
+    // of being hardcoded to the users.role enum. `users.role` is still
+    // used for the hard citizen/barangay_official/admin boundary
+    // (requireRole()); `users.role_id` points at the custom role that
+    // drives these 6 finer-grained permission toggles; `users.user_type`
+    // (barangay_personnel/menro_staff/admin) drives the report-scoping
+    // runtime logic in PermissionHelper::canManageReport().
     // ========================================================
 
-    /**
-     * The roles that can be granted/restricted via the Permissions tab.
-     * Keys match the `users.role` column; labels are shown on the
-     * Permissions tab (align with the badges in manage_users.php).
-     * 'citizen' has no admin access and the primary 'admin' super-account
-     * is intentionally not lockable via this table.
-     * @return array<string,string> role_key => label
-     */
-    public static function getManageableRoles() {
-        return [
-            'barangay_official' => 'Barangay Admin',
-            'admin'              => 'MENRO Staff',
-        ];
+    private static function getDb() {
+        if (self::$db === null) {
+            $database = new Database();
+            self::$db = $database->getConnection();
+        }
+        return self::$db;
     }
 
     /**
-     * The permission toggles available on the Permissions tab.
+     * The permission toggles available on the Permissions tab / Create
+     * Role modal.
      * @return array<string,string> permission_key => label
      */
     public static function getPermissionKeys() {
         return [
-            'can_delete_users'            => 'Can Delete Users',
+            'can_manage_reports'          => 'Can Manage Reports',
             'can_edit_settings'           => 'Can Edit System Settings',
-            'can_export_reports'          => 'Can Export PDF Reports',
-            'can_broadcast_announcements' => 'Can Broadcast Municipality-Wide Announcements',
+            'can_manage_categories'       => 'Can Manage Categories',
+            'can_delete_users'            => 'Can Delete Users',
+            'can_broadcast_announcements' => 'Can Post Public Announcements',
+            'can_export_reports'          => 'Can Export PDF',
         ];
     }
 
     /**
-     * Sensible defaults if no permissions have been saved yet.
-     * MENRO Staff default to full access; Barangay Admins default to a
-     * reduced set until an admin explicitly grants more.
-     * @return array<string,array<string,bool>>
+     * All roles (built-in + admin-created), id => title, in creation order.
+     * @return array<int,string>
      */
-    private static function getDefaultRolePermissions() {
-        return [
-            'admin' => [
-                'can_delete_users'            => true,
-                'can_edit_settings'           => true,
-                'can_export_reports'          => true,
-                'can_broadcast_announcements' => true,
-            ],
-            'barangay_official' => [
-                'can_delete_users'            => false,
-                'can_edit_settings'           => false,
-                'can_export_reports'          => true,
-                'can_broadcast_announcements' => false,
-            ],
-        ];
+    public static function getManageableRoles() {
+        $roles = [];
+        foreach (self::getAllRoles() as $role) {
+            $roles[$role['id']] = $role['title'];
+        }
+        return $roles;
     }
 
     /**
-     * Get the full role => permissions matrix, merged with defaults so
-     * every manageable role and every permission key is always present
-     * (protects against a partially-saved JSON blob).
-     * @return array<string,array<string,bool>>
+     * Full role rows (id, title, description, is_system, ...).
+     * @return array<int,array>
+     */
+    public static function getAllRoles() {
+        $stmt = self::getDb()->query("SELECT * FROM roles ORDER BY is_system DESC, id ASC");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function getRoleById($roleId) {
+        $stmt = self::getDb()->prepare("SELECT * FROM roles WHERE id = ?");
+        $stmt->execute([$roleId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Create a new custom role with its permission set.
+     * @param string $title
+     * @param string $description
+     * @param array<string,bool> $permissions keyed by permission_key
+     * @param int|null $createdBy
+     * @return int|false new role id, or false on failure
+     */
+    public static function createRole($title, $description, array $permissions, $createdBy = null) {
+        $title = trim($title);
+        if ($title === '') {
+            return false;
+        }
+
+        $db = self::getDb();
+        try {
+            $db->beginTransaction();
+
+            $stmt = $db->prepare("INSERT INTO roles (title, description, is_system, created_by) VALUES (?, ?, 0, ?)");
+            $stmt->execute([$title, $description !== '' ? $description : null, $createdBy]);
+            $roleId = (int)$db->lastInsertId();
+
+            self::savePermissionsForRole($roleId, $permissions);
+
+            $db->commit();
+            return $roleId;
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log("createRole failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Update an existing role's title/description/permissions.
+     * @return bool
+     */
+    public static function updateRole($roleId, $title, $description, array $permissions) {
+        $title = trim($title);
+        if ($title === '' || $roleId <= 0) {
+            return false;
+        }
+
+        $db = self::getDb();
+        try {
+            $db->beginTransaction();
+
+            $stmt = $db->prepare("UPDATE roles SET title = ?, description = ? WHERE id = ?");
+            $stmt->execute([$title, $description !== '' ? $description : null, $roleId]);
+
+            self::savePermissionsForRole($roleId, $permissions);
+
+            $db->commit();
+            return true;
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log("updateRole failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Delete a custom role. Built-in (is_system) roles and roles still
+     * assigned to at least one user cannot be deleted.
+     * @return true|string true on success, or an error message string
+     */
+    public static function deleteRole($roleId) {
+        $db = self::getDb();
+
+        $role = self::getRoleById($roleId);
+        if (!$role) {
+            return "Role not found.";
+        }
+        if ((int)$role['is_system'] === 1) {
+            return "Built-in roles cannot be deleted.";
+        }
+
+        $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE role_id = ?");
+        $stmt->execute([$roleId]);
+        if ((int)$stmt->fetchColumn() > 0) {
+            return "Cannot delete a role that is still assigned to one or more users. Reassign those users first.";
+        }
+
+        $stmt = $db->prepare("DELETE FROM roles WHERE id = ?");
+        return $stmt->execute([$roleId]) ? true : "Failed to delete role.";
+    }
+
+    /**
+     * Whitelist-save a role's permission rows (delete + re-insert keeps
+     * this simple and avoids partial/mismatched rows).
+     */
+    private static function savePermissionsForRole($roleId, array $permissions) {
+        $db = self::getDb();
+        $allowedKeys = array_keys(self::getPermissionKeys());
+
+        $del = $db->prepare("DELETE FROM role_permissions WHERE role_id = ?");
+        $del->execute([$roleId]);
+
+        $ins = $db->prepare("INSERT INTO role_permissions (role_id, permission_key, is_granted) VALUES (?, ?, ?)");
+        foreach ($allowedKeys as $key) {
+            $ins->execute([$roleId, $key, !empty($permissions[$key]) ? 1 : 0]);
+        }
+    }
+
+    /**
+     * Get the full role_id => permissions matrix, merged with false-
+     * defaults so every role and every permission key is always present.
+     * @return array<int,array<string,bool>>
      */
     public static function getAllRolePermissions() {
-        $stored = self::get('permissions', []);
-        if (is_string($stored)) {
-            $decoded = json_decode($stored, true);
-            $stored = is_array($decoded) ? $decoded : [];
-        }
-        if (!is_array($stored)) {
-            $stored = [];
-        }
-
-        $defaults = self::getDefaultRolePermissions();
         $permissionKeys = array_keys(self::getPermissionKeys());
-        $result = [];
+        $roles = self::getAllRoles();
 
-        foreach (array_keys(self::getManageableRoles()) as $role) {
-            $result[$role] = [];
+        $stmt = self::getDb()->query("SELECT role_id, permission_key, is_granted FROM role_permissions");
+        $stored = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $stored[$row['role_id']][$row['permission_key']] = (bool)$row['is_granted'];
+        }
+
+        $result = [];
+        foreach ($roles as $role) {
+            $roleId = $role['id'];
+            $result[$roleId] = [];
             foreach ($permissionKeys as $key) {
-                if (isset($stored[$role][$key])) {
-                    $result[$role][$key] = (bool)$stored[$role][$key];
-                } else {
-                    $result[$role][$key] = (bool)($defaults[$role][$key] ?? false);
-                }
+                $result[$roleId][$key] = $stored[$roleId][$key] ?? false;
             }
         }
-
         return $result;
     }
 
     /**
-     * Get the permissions for a single role.
-     * @param string $role
+     * Get the permissions for a single role id.
      * @return array<string,bool>
      */
-    public static function getRolePermissions($role) {
+    public static function getRolePermissions($roleId) {
         $all = self::getAllRolePermissions();
-        return $all[$role] ?? array_fill_keys(array_keys(self::getPermissionKeys()), false);
+        return $all[$roleId] ?? array_fill_keys(array_keys(self::getPermissionKeys()), false);
     }
 
     /**
-     * Check whether a given role has a given permission.
-     * Note: the primary 'admin' super-account (the one enforced by
-     * requireRole('admin') across the controllers) should still be able
-     * to reach Settings even if the "MENRO Staff" row is edited down —
-     * callers that gate the Settings pages themselves should keep using
-     * requireRole('admin') for that hard boundary. This function is for
-     * gating the *extra*, finer-grained actions listed in the table
-     * (deleting users, exporting PDFs, broadcasting announcements) for
-     * staff accounts and barangay officials.
-     * @param string $role
+     * Check whether a given role id has a given permission.
+     * Note: the primary super-admin (users.user_type = 'admin') bypasses
+     * all of these — see PermissionHelper::userHasPermission() for the
+     * user-level check that applies that bypass. This function checks
+     * the role's stored permission only.
+     * @param int $roleId
      * @param string $permissionKey e.g. 'can_delete_users'
      * @return bool
      */
-    public static function hasPermission($role, $permissionKey) {
-        $perms = self::getRolePermissions($role);
+    public static function hasPermission($roleId, $permissionKey) {
+        $perms = self::getRolePermissions($roleId);
         return !empty($perms[$permissionKey]);
     }
 }

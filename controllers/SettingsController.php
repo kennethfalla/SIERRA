@@ -471,32 +471,151 @@ class SettingsController {
     }
 
     // ================================================================
-    // 10. PERMISSIONS (RBAC) — Role-level toggles, stored as one JSON
-    //     blob under the 'permissions' system_setting (see
-    //     SettingsHelper::getManageableRoles() / getPermissionKeys()).
+    // 10. PERMISSIONS (RBAC) — dynamic roles, each with its own
+    //     permission set stored in roles / role_permissions.
+    //     sub_action distinguishes the Create Role modal, Edit Role
+    //     modal, Delete Role button, and the per-role toggle grid from
+    //     each other (they all post to the same 'permissions' tab).
     // ================================================================
     private function updatePermissions() {
-        $submitted = $_POST['permissions'] ?? [];
+        $subAction = $_POST['sub_action'] ?? 'save_toggles';
 
-        // Whitelist against the known roles/permission keys so a crafted
-        // request can't inject arbitrary keys into the stored JSON.
-        $allowedRoles = array_keys(SettingsHelper::getManageableRoles());
-        $allowedPermissionKeys = array_keys(SettingsHelper::getPermissionKeys());
+        switch ($subAction) {
+            case 'create_role':
+                $this->createRole();
+                return;
+            case 'update_role':
+                $this->updateRoleDetails();
+                return;
+            case 'delete_role':
+                $this->deleteRoleAction();
+                return;
+            default:
+                $this->savePermissionToggles();
+                return;
+        }
+    }
 
-        $data = [];
-        foreach ($allowedRoles as $role) {
-            $data[$role] = [];
-            foreach ($allowedPermissionKeys as $key) {
-                $data[$role][$key] = isset($submitted[$role][$key]) ? true : false;
-            }
+    /**
+     * Create Role modal: Role Title, Description, and the 6 permission
+     * checkboxes.
+     */
+    private function createRole() {
+        $title = InputSanitizer::sanitizeString($_POST['title'] ?? '');
+        $description = InputSanitizer::sanitizeString($_POST['description'] ?? '');
+        $permissions = $this->sanitizePermissionSelections($_POST['permissions'] ?? []);
+
+        if (empty($title)) {
+            $_SESSION['error'] = "Role title is required.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
+            exit();
         }
 
-        SettingsHelper::set('permissions', $data);
-        SettingsHelper::clearCache();
+        $roleId = SettingsHelper::createRole($title, $description, $permissions, $this->user_id);
+
+        if ($roleId) {
+            $logStmt = $this->db->prepare("INSERT INTO activity_logs (user_id, action, description, created_at) VALUES (?, ?, ?, NOW())");
+            $logStmt->execute([$this->user_id, 'Create Role', "Created role: {$title}"]);
+            $_SESSION['success'] = "Role \"{$title}\" created successfully! It's now available in the Role dropdown.";
+        } else {
+            $_SESSION['error'] = "Failed to create role. A role with that title may already exist.";
+        }
+
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
+        exit();
+    }
+
+    /**
+     * Edit Role modal: same fields as create, plus role_id.
+     */
+    private function updateRoleDetails() {
+        $roleId = (int)($_POST['role_id'] ?? 0);
+        $title = InputSanitizer::sanitizeString($_POST['title'] ?? '');
+        $description = InputSanitizer::sanitizeString($_POST['description'] ?? '');
+        $permissions = $this->sanitizePermissionSelections($_POST['permissions'] ?? []);
+
+        if ($roleId <= 0 || empty($title)) {
+            $_SESSION['error'] = "Invalid role data.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
+            exit();
+        }
+
+        if (SettingsHelper::updateRole($roleId, $title, $description, $permissions)) {
+            $logStmt = $this->db->prepare("INSERT INTO activity_logs (user_id, action, description, created_at) VALUES (?, ?, ?, NOW())");
+            $logStmt->execute([$this->user_id, 'Update Role', "Updated role #{$roleId}: {$title}"]);
+            $_SESSION['success'] = "Role updated successfully!";
+        } else {
+            $_SESSION['error'] = "Failed to update role.";
+        }
+
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
+        exit();
+    }
+
+    /**
+     * Delete Role button. Built-in roles and roles still assigned to a
+     * user are protected (see SettingsHelper::deleteRole()).
+     */
+    private function deleteRoleAction() {
+        $roleId = (int)($_POST['role_id'] ?? 0);
+
+        if ($roleId <= 0) {
+            $_SESSION['error'] = "Invalid role.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
+            exit();
+        }
+
+        $result = SettingsHelper::deleteRole($roleId);
+        if ($result === true) {
+            $logStmt = $this->db->prepare("INSERT INTO activity_logs (user_id, action, description, created_at) VALUES (?, ?, ?, NOW())");
+            $logStmt->execute([$this->user_id, 'Delete Role', "Deleted role #{$roleId}"]);
+            $_SESSION['success'] = "Role deleted successfully!";
+        } else {
+            $_SESSION['error'] = $result; // human-readable reason from SettingsHelper::deleteRole()
+        }
+
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
+        exit();
+    }
+
+    /**
+     * The original per-role permission-grid save (toggles for every
+     * existing role at once, as rendered by permissions.php's main form).
+     */
+    private function savePermissionToggles() {
+        $submitted = $_POST['permissions'] ?? [];
+
+        $allowedRoleIds = array_keys(SettingsHelper::getManageableRoles());
+        $allowedPermissionKeys = array_keys(SettingsHelper::getPermissionKeys());
+
+        foreach ($allowedRoleIds as $roleId) {
+            $role = SettingsHelper::getRoleById($roleId);
+            if (!$role) {
+                continue;
+            }
+            $permissions = [];
+            foreach ($allowedPermissionKeys as $key) {
+                $permissions[$key] = isset($submitted[$roleId][$key]);
+            }
+            SettingsHelper::updateRole($roleId, $role['title'], $role['description'] ?? '', $permissions);
+        }
 
         $_SESSION['success'] = "Permissions updated successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=permissions");
         exit();
+    }
+
+    /**
+     * Whitelist a submitted permissions[] array against the known keys.
+     * @return array<string,bool>
+     */
+    private function sanitizePermissionSelections($submitted) {
+        $allowedKeys = array_keys(SettingsHelper::getPermissionKeys());
+        $result = [];
+        foreach ($allowedKeys as $key) {
+            $result[$key] = isset($submitted[$key]);
+        }
+        return $result;
     }
 
     // ================================================================

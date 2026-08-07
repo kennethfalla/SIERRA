@@ -10,8 +10,24 @@ if (session_status() === PHP_SESSION_NONE) {
 // ============================================
 // BASE URL & PATH DEFINITIONS
 // ============================================
-define('BASE_URL', 'http://localhost/environmental-reporting-app/');
+// Build BASE_URL dynamically so the app works regardless of hostname
+// (localhost, 127.0.0.1, LAN IP, or a real domain).
+if (!defined('BASE_URL')) {
+    if (isset($_SERVER['HTTP_HOST'])) {
+        $scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host     = $_SERVER['HTTP_HOST']; // includes port when non-standard
+        // Derive the app's sub-path from __DIR__ vs DOCUMENT_ROOT
+        $docRoot  = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']), '/');
+        $appDir   = rtrim(str_replace('\\', '/', dirname(__DIR__)), '/');
+        $subPath  = str_replace($docRoot, '', $appDir);
+        define('BASE_URL', $scheme . '://' . $host . $subPath . '/');
+    } else {
+        // CLI or missing server vars — fall back to original hardcoded value
+        define('BASE_URL', 'http://localhost/environmental-reporting-app/');
+    }
+}
 define('BASE_PATH', dirname(__DIR__) . '/');
+
 
 // ============================================
 // UPLOAD DIRECTORIES

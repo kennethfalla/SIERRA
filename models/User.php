@@ -213,6 +213,8 @@ class User {
             contact_number, 
             password_hash, 
             role, 
+            role_id,
+            user_type,
             barangay_id, 
             is_resident, 
             is_verified, 
@@ -227,6 +229,8 @@ class User {
             :contact_number, 
             :password_hash, 
             :role, 
+            :role_id,
+            :user_type,
             :barangay_id, 
             1, 
             1, 
@@ -243,6 +247,8 @@ class User {
         $stmt->bindValue(":contact_number", $data['contact_number']);
         $stmt->bindValue(":password_hash", $hashed_password);
         $stmt->bindValue(":role", $data['role']);
+        $stmt->bindValue(":role_id", $data['role_id'] ?? null);
+        $stmt->bindValue(":user_type", $data['user_type'] ?? null);
         $stmt->bindValue(":barangay_id", $data['barangay_id']);
         $stmt->bindValue(":job_title", $data['job_title'] ?? null);
         

@@ -5,6 +5,8 @@
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
 requireRole('barangay_official');
 
 $database = new Database();
@@ -1173,9 +1175,18 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                                 </div>
                             </div>
                             <div class="flex-shrink-0 flex flex-col gap-2">
+                                <?php if (PermissionHelper::canManageReport($r)): ?>
                                 <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo $r['id']; ?>" class="btn-manage">
                                     <i class="fas fa-edit"></i> Manage
                                 </a>
+                                <?php else: ?>
+                                <span class="btn-manage opacity-50 cursor-not-allowed" title="You are not permitted to manage this report">
+                                    <i class="fas fa-lock"></i> Manage
+                                </span>
+                                <?php endif; ?>
+                                <?php /* NOTE: UI-level gate only. The manage-report page/controller (not
+                                         provided) must also call PermissionHelper::canManageReport($report)
+                                         server-side before applying any status change. */ ?>
                                 <?php if ($r['status'] == 'pending' || $r['status'] == 'under_review'): ?>
                                 <span class="text-[10px] text-amber-600 text-center font-medium">Needs your attention</span>
                                 <?php endif; ?>

@@ -48,9 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $last_name = InputSanitizer::sanitizeName($_POST['last_name'] ?? '');
         $email = InputSanitizer::sanitizeEmail($_POST['email'] ?? '');
         $contact_number = InputSanitizer::sanitizePhone($_POST['contact_number'] ?? '');
-        $role = in_array($_POST['role'] ?? '', ['citizen', 'barangay_official', 'admin']) ? $_POST['role'] : 'citizen';
+
+        // User Type (new, independent of the legacy `role` enum) and the
+        // custom Role (from Settings -> Permissions -> Create Role).
+        $user_type = in_array($_POST['user_type'] ?? '', ['barangay_personnel', 'menro_staff', 'admin'], true)
+            ? $_POST['user_type'] : '';
+        $role_id = !empty($_POST['role_id']) ? (int)$_POST['role_id'] : null;
         $barangay_id = !empty($_POST['barangay_id']) ? (int)$_POST['barangay_id'] : null;
         $job_title = InputSanitizer::sanitizeString($_POST['job_title'] ?? '');
+
+        // Legacy `role` enum still gates requireRole('admin') etc. across
+        // the app, so keep it in sync with the new user_type:
+        //   barangay_personnel -> barangay_official
+        //   menro_staff/admin  -> admin
+        $role = $user_type === 'barangay_personnel' ? 'barangay_official' : 'admin';
 
         // Validation
         $errors = [];
@@ -58,8 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($last_name)) $errors[] = "Last name is required";
         if (!$email) $errors[] = "Valid email is required";
         if (!$contact_number) $errors[] = "Valid contact number is required";
-        if ($role === 'barangay_official' && !$barangay_id) {
-            $errors[] = "Please select a barangay for the official";
+        if (empty($user_type)) $errors[] = "Please select a User Type";
+        if (empty($role_id)) {
+            $errors[] = "Please select a Role";
+        } elseif (!SettingsHelper::getRoleById($role_id)) {
+            $errors[] = "Selected role no longer exists";
+        }
+        if ($user_type === 'barangay_personnel' && !$barangay_id) {
+            $errors[] = "Please select an assigned barangay for this Barangay Personnel account";
         }
 
         // Check if email already exists
@@ -78,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!empty($errors)) {
             $_SESSION['errors'] = $errors;
-            $redirect_tab = ($role === 'barangay_official') ? 'barangay' : 'menro';
+            $redirect_tab = ($user_type === 'barangay_personnel') ? 'barangay' : 'menro';
             header("Location: " . BASE_URL . "index.php?page=manage-users&tab=" . $redirect_tab);
             exit();
         }
@@ -93,7 +110,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'last_name' => $last_name,
             'email' => $email,
             'contact_number' => $contact_number,
-            'role' => $role,
+            'role' => $role,           // legacy enum, kept in sync for requireRole() checks
+            'role_id' => $role_id,     // custom role from Create Role
+            'user_type' => $user_type, // barangay_personnel | menro_staff | admin
             'barangay_id' => $barangay_id,
             'job_title' => $job_title
         ];
@@ -101,7 +120,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_user_id = $user->createStaffAccount($user_data, $temp_password);
 
         if ($new_user_id) {
-            $role_display = ($role === 'barangay_official') ? 'Barangay Official' : 'MENRO Staff';
+            $role_display = [
+                'barangay_personnel' => 'Barangay Personnel',
+                'menro_staff'        => 'MENRO Staff',
+                'admin'              => 'Admin',
+            ][$user_type] ?? 'Staff';
+
+            $role_row = SettingsHelper::getRoleById($role_id);
+            $role_title = $role_row['title'] ?? 'Unassigned';
 
             // ============================================
             // SEND SMS WITH TEMPORARY PASSWORD (via SettingsHelper / iProg)
@@ -111,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sms_sent = sendWelcomeSMS($contact_number, $first_name, $last_name, $email, $temp_password, $role_display);
 
             // Log the action
-            $activityLog->log($_SESSION['user_id'], 'Create Staff Account', "Created $role account for $first_name $last_name");
+            $activityLog->log($_SESSION['user_id'], 'Create Staff Account', "Created $role_display account ($role_title) for $first_name $last_name");
             $_SESSION['success'] = $sms_sent
                 ? "$role_display account created successfully! An SMS with the temporary password has been sent."
                 : "$role_display account created successfully! However, the SMS with the temporary password could not be sent - please check the SMS gateway settings or share the credentials manually.";
@@ -120,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Failed to create account. Please try again.";
         }
 
-        $redirect_tab = ($role === 'barangay_official') ? 'barangay' : 'menro';
+        $redirect_tab = ($user_type === 'barangay_personnel') ? 'barangay' : 'menro';
         header("Location: " . BASE_URL . "index.php?page=manage-users&tab=" . $redirect_tab);
         exit();
     }

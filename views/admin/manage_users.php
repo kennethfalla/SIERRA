@@ -179,8 +179,8 @@ if ($active_tab === 'citizens') {
     $show_barangay_filter = true;
     $show_status_filter = true;
     $show_create_btn = true;
-    $create_role = 'barangay_official';
-    $create_label = 'New Barangay Official';
+    $create_role = 'barangay_personnel'; // default User Type when opening the modal from this tab
+    $create_label = 'New Barangay Personnel';
 } elseif ($active_tab === 'menro') {
     $display_users = $filtered_menro;
     $display_total = $total_menro;
@@ -189,7 +189,7 @@ if ($active_tab === 'citizens') {
     $show_barangay_filter = false;
     $show_status_filter = true;
     $show_create_btn = true;
-    $create_role = 'admin';
+    $create_role = 'menro_staff'; // default User Type when opening the modal from this tab
     $create_label = 'New MENRO Staff';
 }
 
@@ -201,6 +201,12 @@ $barangay_list = [];
 while($brgy = $barangays->fetch(PDO::FETCH_ASSOC)) {
     $barangay_list[] = $brgy;
 }
+
+// ============================================================
+// GET ROLES FOR THE "Role" DROPDOWN (Create Role feature)
+// ============================================================
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+$role_list = SettingsHelper::getAllRoles(); // [{id, title, description, is_system}, ...]
 
 // ============================================================
 // GENERATE CSRF TOKEN
@@ -1005,8 +1011,7 @@ function getRoleBadge($role, $job_title = '') {
         <form method="POST" action="<?php echo BASE_URL; ?>controllers/AdminController.php" class="p-6" id="createStaffForm">
             <input type="hidden" name="action" value="create_user">
             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-            <input type="hidden" name="role" id="createRole" value="">
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">First Name <span class="text-red-500">*</span></label>
@@ -1034,8 +1039,35 @@ function getRoleBadge($role, $job_title = '') {
                            placeholder="09123456789" pattern="09[0-9]{9}">
                     <p class="text-xs text-gray-400 mt-1 font-medium">11-digit number starting with 09</p>
                 </div>
-                
-                <!-- Job Title (for MENRO Staff) -->
+
+                <!-- User Type -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">User Type <span class="text-red-500">*</span></label>
+                    <select name="user_type" id="createUserType" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm"
+                            onchange="onUserTypeChange()">
+                        <option value="barangay_personnel">Barangay Personnel</option>
+                        <option value="menro_staff">MENRO Staff</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+
+                <!-- Role (dynamic, from Permission Settings -> Create Role) -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Role <span class="text-red-500">*</span></label>
+                    <select name="role_id" id="createRoleId" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm">
+                        <option value="">Select Role</option>
+                        <?php foreach($role_list as $r): ?>
+                        <option value="<?php echo $r['id']; ?>"><?php echo htmlspecialchars($r['title']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1 font-medium">
+                        Controls what this account can do. Manage roles in Settings &rarr; Permissions.
+                    </p>
+                </div>
+
+                <!-- Job Title (for MENRO Staff / Admin) -->
                 <div id="jobTitleField" class="md:col-span-2" style="display: none;">
                     <label class="block text-sm font-bold text-gray-700 mb-2">Job Title</label>
                     <input type="text" name="job_title" 
@@ -1043,10 +1075,10 @@ function getRoleBadge($role, $job_title = '') {
                            placeholder="e.g., Environmental Officer">
                 </div>
                 
-                <!-- Barangay selection (only for barangay_official) -->
+                <!-- Barangay selection (only for User Type = Barangay Personnel) -->
                 <div id="barangayField" class="md:col-span-2" style="display: none;">
                     <label class="block text-sm font-bold text-gray-700 mb-2">Assigned Barangay <span class="text-red-500">*</span></label>
-                    <select name="barangay_id" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm">
+                    <select name="barangay_id" id="createBarangayId" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm">
                         <option value="">Select Barangay</option>
                         <?php foreach($barangay_list as $brgy): ?>
                         <option value="<?php echo $brgy['id']; ?>"><?php echo htmlspecialchars($brgy['name']); ?></option>
@@ -1108,32 +1140,46 @@ function getRoleBadge($role, $job_title = '') {
 // ============================================================
 // CREATE MODAL
 // ============================================================
-function openCreateModal(role) {
-    document.getElementById('createRole').value = role;
+function openCreateModal(defaultUserType) {
     const modal = document.getElementById('createModal');
+
+    // Reset form, then apply the default User Type for the active tab
+    document.getElementById('createStaffForm').reset();
+    document.getElementById('createUserType').value = defaultUserType || 'barangay_personnel';
+
+    onUserTypeChange();
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function onUserTypeChange() {
+    const userType = document.getElementById('createUserType').value;
     const title = document.getElementById('createModalTitle');
     const barangayField = document.getElementById('barangayField');
     const jobTitleField = document.getElementById('jobTitleField');
-    
-    // Reset form
-    document.getElementById('createStaffForm').reset();
-    
-    if (role === 'barangay_official') {
-        title.textContent = 'Create Barangay Official Account';
+    const barangaySelect = document.getElementById('createBarangayId');
+    const jobTitleInput = document.querySelector('input[name="job_title"]');
+
+    if (userType === 'barangay_personnel') {
+        title.textContent = 'Create Barangay Personnel Account';
         barangayField.style.display = 'block';
         jobTitleField.style.display = 'none';
-        document.querySelector('#barangayField select').required = true;
-        document.querySelector('input[name="job_title"]').required = false;
-    } else if (role === 'admin') {
+        barangaySelect.required = true;
+        jobTitleInput.required = false;
+    } else if (userType === 'menro_staff') {
         title.textContent = 'Create MENRO Staff Account';
         barangayField.style.display = 'none';
         jobTitleField.style.display = 'block';
-        document.querySelector('#barangayField select').required = false;
-        document.querySelector('input[name="job_title"]').required = false;
+        barangaySelect.required = false;
+        jobTitleInput.required = false;
+    } else if (userType === 'admin') {
+        title.textContent = 'Create Admin Account';
+        barangayField.style.display = 'none';
+        jobTitleField.style.display = 'block';
+        barangaySelect.required = false;
+        jobTitleInput.required = false;
     }
-    
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
 }
 
 function closeCreateModal() {
@@ -1286,16 +1332,21 @@ document.addEventListener('keydown', function(event) {
 // FORM VALIDATION FOR CREATE STAFF
 // ============================================================
 document.getElementById('createStaffForm').addEventListener('submit', function(e) {
-    const role = document.getElementById('createRole').value;
-    const barangaySelect = document.querySelector('#barangayField select');
-    
-    if (role === 'barangay_official') {
-        if (!barangaySelect.value) {
-            e.preventDefault();
-            alert('Please select a barangay for the official.');
-            barangaySelect.focus();
-            return false;
-        }
+    const userType = document.getElementById('createUserType').value;
+    const barangaySelect = document.getElementById('createBarangayId');
+    const roleSelect = document.getElementById('createRoleId');
+
+    if (userType === 'barangay_personnel' && !barangaySelect.value) {
+        e.preventDefault();
+        alert('Please select an assigned barangay for this Barangay Personnel account.');
+        barangaySelect.focus();
+        return false;
+    }
+    if (!roleSelect.value) {
+        e.preventDefault();
+        alert('Please select a Role for this account.');
+        roleSelect.focus();
+        return false;
     }
     return true;
 });
