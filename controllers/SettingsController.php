@@ -254,6 +254,47 @@ class SettingsController {
     }
 
     // ================================================================
+    // 5b. KPI & INSIGHTS CONFIGURATION (Insight Engine targets)
+    // ================================================================
+    private function updateKpi() {
+        // Resolution Rate Target (%)
+        $resolution_rate_target = (float)($_POST['kpi_resolution_rate_target'] ?? 60);
+        SettingsHelper::set('kpi_resolution_rate_target', max(0, min(100, $resolution_rate_target)));
+
+        // Municipal SLA - target max response time (hours)
+        $sla_response_hours = (float)($_POST['kpi_sla_response_hours'] ?? 48);
+        SettingsHelper::set('kpi_sla_response_hours', max(1, min(720, $sla_response_hours)));
+
+        // Surge Alert Threshold - category spike warning (%)
+        $surge_alert_threshold = (float)($_POST['kpi_surge_alert_threshold'] ?? 25);
+        SettingsHelper::set('kpi_surge_alert_threshold', max(0, min(100, $surge_alert_threshold)));
+
+        // Hotspot Definition Radius - repeat offender grouping (meters)
+        $hotspot_radius_meters = (float)($_POST['kpi_hotspot_radius_meters'] ?? 10);
+        SettingsHelper::set('kpi_hotspot_radius_meters', max(1, min(500, $hotspot_radius_meters)));
+
+        // Critical Reports Alert Threshold - max acceptable critical share (%)
+        $critical_reports_pct = (float)($_POST['kpi_critical_reports_pct'] ?? 30);
+        SettingsHelper::set('kpi_critical_reports_pct', max(0, min(100, $critical_reports_pct)));
+
+        // Demographic Engagement Threshold - min major-group share (%)
+        $demographic_threshold = (float)($_POST['kpi_demographic_threshold'] ?? 10);
+        SettingsHelper::set('kpi_demographic_threshold', max(1, min(100, $demographic_threshold)));
+
+        // Repeat Offender Definition - min distinct reports + rolling window (days)
+        $repeat_min_reports = (float)($_POST['kpi_repeat_min_reports'] ?? 3);
+        SettingsHelper::set('kpi_repeat_min_reports', max(2, min(50, $repeat_min_reports)));
+        $repeat_window_days = (float)($_POST['kpi_repeat_window_days'] ?? 30);
+        SettingsHelper::set('kpi_repeat_window_days', max(7, min(365, $repeat_window_days)));
+
+        SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated KPI & Insights configuration (resolution rate, SLA, surge alert, hotspot radius, critical share, demographic engagement, repeat offender definition)", null, 'Settings');
+        $_SESSION['success'] = "KPI &amp; Insights settings saved successfully!";
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=kpi");
+        exit();
+    }
+
+    // ================================================================
     // 6. NOTIFICATION TEMPLATES + SMS GATEWAY SETTINGS (iProg Only)
     // ================================================================
     private function updateNotifications() {
@@ -300,6 +341,11 @@ class SettingsController {
     // 7. MAP SETTINGS (Clustering Radius)
     // ================================================================
     private function updateMap() {
+        // Barangay boundary GeoJSON management uses its own sub-action form.
+        if (isset($_POST['sub_action']) && $_POST['sub_action'] === 'save_barangay_boundaries') {
+            $this->updateBarangayBoundaries();
+        }
+
         // Clustering radius (10-200m)
         $radius = (int)($_POST['clustering_radius_meters'] ?? 50);
         SettingsHelper::set('clustering_radius_meters', max(10, min(200, $radius)));
@@ -327,6 +373,136 @@ class SettingsController {
         SettingsHelper::clearCache();
         $this->activityLog->log($this->user_id, 'Update System Settings', "Updated map settings (clustering radius, default center, zoom)", null, 'Settings');
         $_SESSION['success'] = "Map settings saved successfully!";
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=map");
+        exit();
+    }
+
+    // ================================================================
+    // 7b. BARANGAY BOUNDARY GeoJSON MANAGEMENT
+    // ================================================================
+    private function updateBarangayBoundaries() {
+        $barangay_dir = BASE_PATH . 'geojson/barangay/';
+        if (!is_dir($barangay_dir)) {
+            mkdir($barangay_dir, 0755, true);
+        }
+
+        $barangay_ids = $_POST['barangay_id'] ?? [];
+        if (!is_array($barangay_ids) || count($barangay_ids) === 0) {
+            $_SESSION['error'] = "No barangay boundaries were selected.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=map");
+            exit();
+        }
+
+        $errors = [];
+        $saved = [];
+
+        // Index existing boundary files by declared barangay name so overwrites
+        // target the correct file (e.g. "Santo Cristo" -> sto-cristo.geojson).
+        $boundary_files_by_name = [];
+        foreach (glob($barangay_dir . '*.geojson') as $candidate) {
+            $base = basename($candidate);
+            if ($base === 'san-isidro.barangay.geojson') continue;
+            $decoded = json_decode(file_get_contents($candidate), true);
+            if (!is_array($decoded)) continue;
+            foreach (($decoded['features'] ?? []) as $feat) {
+                $declared = $feat['properties']['barangay_name'] ?? $feat['properties']['name'] ?? '';
+                if ($declared !== '') {
+                    $key = strtolower(preg_replace('/[^a-z0-9]+/', '', $declared));
+                    $boundary_files_by_name[$key] = $candidate;
+                }
+            }
+        }
+
+        foreach ($barangay_ids as $index => $barangay_id) {
+            $barangay_id = (int)$barangay_id;
+            if ($barangay_id <= 0) continue;
+
+            $stmt = $this->db->prepare("SELECT name FROM barangays WHERE id = ?");
+            $stmt->execute([$barangay_id]);
+            $barangay = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$barangay) continue;
+            $barangay_name = $barangay['name'];
+
+            // Use the matching existing file when present, otherwise the slug.
+            $name_key = strtolower(preg_replace('/[^a-z0-9]+/', '', trim($barangay_name)));
+            $existing_path = $boundary_files_by_name[$name_key] ?? null;
+            $slug = strtolower(trim($barangay_name));
+            $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+            $slug = trim($slug, '-');
+            $file_name = $existing_path ? basename($existing_path) : $slug . '.geojson';
+
+            $raw_content = null;
+
+            // 1) Uploaded GeoJSON file takes precedence.
+            if (isset($_FILES['barangay_geojson_file']['name'][$index]) && $_FILES['barangay_geojson_file']['error'][$index] === UPLOAD_ERR_OK && !empty($_FILES['barangay_geojson_file']['name'][$index])) {
+                $raw_content = file_get_contents($_FILES['barangay_geojson_file']['tmp_name'][$index]);
+            }
+            // 2) Otherwise use the inline textarea content if it changed.
+            elseif (isset($_POST['barangay_geojson'][$index]) && trim($_POST['barangay_geojson'][$index]) !== '') {
+                $raw_content = $_POST['barangay_geojson'][$index];
+            }
+
+            if ($raw_content === null) {
+                continue; // untouched row
+            }
+
+            // Validate it is a real GeoJSON FeatureCollection with polygon geometry.
+            $decoded = json_decode($raw_content, true);
+            $valid = false;
+            if (is_array($decoded) && ($decoded['type'] ?? '') === 'FeatureCollection' && isset($decoded['features']) && is_array($decoded['features'])) {
+                foreach ($decoded['features'] as $feature) {
+                    $geom_type = $feature['geometry']['type'] ?? '';
+                    if ($geom_type === 'Polygon' || $geom_type === 'MultiPolygon') {
+                        $valid = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$valid) {
+                $errors[] = "Invalid GeoJSON for $barangay_name. Must be a FeatureCollection containing Polygon or MultiPolygon geometry.";
+                continue;
+            }
+
+            // Normalize the barangay name inside properties so app detection still works.
+            foreach ($decoded['features'] as &$feature) {
+                if (!isset($feature['properties']) || !is_array($feature['properties'])) {
+                    $feature['properties'] = [];
+                }
+                $feature['properties']['name'] = $barangay_name;
+                $feature['properties']['barangay_name'] = $barangay_name;
+            }
+            unset($feature);
+
+            $json_out = json_encode($decoded);
+            if ($json_out === false) {
+                $errors[] = "Could not encode GeoJSON for $barangay_name.";
+                continue;
+            }
+
+            if (file_put_contents($barangay_dir . $file_name, $json_out) !== false) {
+                $saved[] = $barangay_name;
+            } else {
+                $errors[] = "Could not write boundary file for $barangay_name.";
+            }
+        }
+
+        if (count($saved) > 0) {
+            $this->activityLog->log($this->user_id, 'Update System Settings', "Updated barangay boundary GeoJSON: " . implode(', ', $saved), null, 'Settings');
+            $_SESSION['success'] = "Barangay boundaries saved successfully: " . implode(', ', $saved) . ".";
+        } elseif (count($errors) > 0) {
+            $_SESSION['error'] = "Barangay boundaries were not updated.";
+        } else {
+            $_SESSION['success'] = "No changes were made to barangay boundaries.";
+        }
+        if (count($errors) > 0) {
+            $message = "Failed: " . implode(' ', array_slice($errors, 0, 3));
+            if (isset($_SESSION['success'])) {
+                $_SESSION['success'] .= ' ' . $message;
+            } else {
+                $_SESSION['error'] = $message;
+            }
+        }
         header("Location: " . BASE_URL . "index.php?page=settings&tab=map");
         exit();
     }
@@ -441,10 +617,17 @@ class SettingsController {
             $check->execute([$id]);
             $reportCount = (int)$check->fetchColumn();
             
-            // Check if barangay has associated officials
-            $check = $this->db->prepare("SELECT COUNT(*) FROM barangay_officials WHERE barangay_id = ?");
-            $check->execute([$id]);
-            $officialCount = (int)$check->fetchColumn();
+            // Check if barangay has associated officials (guarded: the
+            // barangay_officials table may not exist in older schemas — in
+            // this app officials are users with role 'barangay_official',
+            // which the users check above already covers).
+            $officialCount = 0;
+            $tableCheck = $this->db->query("SHOW TABLES LIKE 'barangay_officials'");
+            if ($tableCheck->rowCount() > 0) {
+                $check = $this->db->prepare("SELECT COUNT(*) FROM barangay_officials WHERE barangay_id = ?");
+                $check->execute([$id]);
+                $officialCount = (int)$check->fetchColumn();
+            }
             
             // Check if barangay has associated announcements
             $check = $this->db->prepare("SELECT COUNT(*) FROM announcements WHERE barangay_id = ?");

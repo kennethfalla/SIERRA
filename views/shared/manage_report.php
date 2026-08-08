@@ -127,8 +127,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .risk-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
         .risk-low { background: #D1FAE5; color: #065F46; }
         .risk-medium { background: #FEF3C7; color: #92400E; }
-        .risk-high { background: #FEE2E2; color: #991B1B; }
-        .risk-critical { background: #EDE9FE; color: #6B21A8; }
+        .risk-high { background: #FFEDD5; color: #9A3412; }
+        .risk-critical { background: #FEE2E2; color: #991B1B; }
 
         /* ===== PRINT DROPDOWN ===== */
         .print-dropdown { position: relative; display: inline-block; }
@@ -622,7 +622,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         else echo '<span class="text-emerald-600 font-bold">Localized (+0)</span>';
                         ?>
                     </span></div>
-                    <div class="info-row"><span class="info-label">Severity Score</span><span class="info-value font-bold <?php echo ($report['severity_score'] ?? 0) >= 16 ? 'text-red-600' : (($report['severity_score'] ?? 0) >= 11 ? 'text-orange-600' : (($report['severity_score'] ?? 0) >= 6 ? 'text-amber-600' : 'text-emerald-600')); ?>"><?php echo $report['severity_score'] ?? 0; ?></span></div>
+                    <?php
+                    $mgr_score = (int)($report['severity_score'] ?? 0);
+                    $mgr_level = getRiskLevelFromScore($mgr_score);
+                    $mgr_color = ($mgr_level == 'critical') ? 'text-red-600' : (($mgr_level == 'high') ? 'text-orange-600' : (($mgr_level == 'medium') ? 'text-amber-600' : 'text-emerald-600'));
+                    ?>
+                    <div class="info-row"><span class="info-label">Severity Score</span><span class="info-value font-bold <?php echo $mgr_color; ?>"><?php echo $mgr_score; ?></span></div>
                     <div class="info-row"><span class="info-label">Classification</span><span class="info-value"><?php echo $report['decision_classification'] ?? 'Pending'; ?></span></div>
                 </div>
             </div>
@@ -690,6 +695,37 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         </div>
 
+        <!-- Resolution Evidence -->
+        <div class="card fade-up" style="animation-delay:0.18s">
+            <div class="card-header"><i class="fas fa-check-circle" style="color:#10A37F"></i> Resolution Evidence</div>
+            <?php if (!empty($resolution_evidence)): ?>
+                <div class="photo-grid">
+                    <?php foreach ($resolution_evidence as $ev): ?>
+                        <?php if (!empty($ev['is_video'])): ?>
+                            <div class="photo-card relative" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)">
+                                <video src="<?php echo BASE_URL . $ev['image_path']; ?>" muted playsinline preload="metadata"></video>
+                                <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <i class="fas fa-video"></i>Video
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <img src="<?php echo BASE_URL . $ev['image_path']; ?>" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" alt="Resolution evidence photo" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)">
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+                <?php if ($report['status'] == 'resolved'): ?>
+                    <p class="text-xs text-gray-400 mt-2"><i class="fas fa-check-circle mr-1 text-emerald-500"></i>This report has been resolved — evidence uploaded by <?php echo htmlspecialchars($resolution_evidence[0]['uploaded_by_name'] ?? 'MENRO'); ?>.</p>
+                <?php else: ?>
+                    <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i>Evidence of the actions taken to resolve this report.</p>
+                <?php endif; ?>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <p class="text-sm">No resolution evidence uploaded yet.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+
         <!-- Notes -->
         <?php if ($show_notes): ?>
         <div class="card fade-up" style="animation-delay:0.2s">
@@ -738,15 +774,26 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
 
             <?php
+            // Only show the Escalation / With MENRO steps in the lifecycle when the
+            // report has actually been escalated. Otherwise the stepper is a clean
+            // Submitted -> Under Review -> In Progress -> Resolved flow.
+            $report_escalated = in_array($report['status'], ['escalated_pending', 'escalated']);
             $flow_steps = [
                 ['key' => 'pending',          'label' => 'Submitted',    'icon' => 'fa-paper-plane'],
                 ['key' => 'under_review',     'label' => 'Under Review', 'icon' => 'fa-eye'],
                 ['key' => 'in_progress',      'label' => 'In Progress',  'icon' => 'fa-wrench'],
-                ['key' => 'escalated_pending','label' => 'Escalation',   'icon' => 'fa-hourglass-half'],
-                ['key' => 'escalated',        'label' => 'With MENRO',   'icon' => 'fa-building-shield'],
-                ['key' => 'resolved',         'label' => 'Resolved',     'icon' => 'fa-check-double'],
             ];
-            $status_order = ['pending' => 0, 'under_review' => 1, 'verified' => 1, 'in_progress' => 2, 'escalated_pending' => 3, 'escalated' => 4, 'resolved' => 5];
+            if ($report_escalated) {
+                $flow_steps[] = ['key' => 'escalated_pending', 'label' => 'Escalation',   'icon' => 'fa-hourglass-half'];
+                $flow_steps[] = ['key' => 'escalated',         'label' => 'With MENRO',   'icon' => 'fa-building-shield'];
+            }
+            $flow_steps[] = ['key' => 'resolved',              'label' => 'Resolved',     'icon' => 'fa-check-double'];
+
+            $status_order = [];
+            foreach ($flow_steps as $step_index => $step) {
+                $status_order[$step['key']] = $step_index;
+            }
+            $status_order['verified'] = $status_order['under_review'] ?? 1;
             $current_step = $status_order[$report['status']] ?? 0;
             $is_terminal = in_array($report['status'], ['rejected', 'cancelled']);
             ?>
@@ -1235,10 +1282,15 @@ function copyGps(btn) {
 }
 
 // ===== PHOTO LIGHTBOX =====
-<?php if (!empty($images)): ?>
-const lightboxImages = <?php echo json_encode(array_map(function($img) {
+<?php
+$lightbox_media = array_map(function($img) {
     return ['path' => BASE_URL . $img['image_path'], 'is_video' => !empty($img['is_video'])];
-}, $images)); ?>;
+}, $images);
+$lightbox_media = array_merge($lightbox_media, array_map(function($ev) {
+    return ['path' => BASE_URL . $ev['image_path'], 'is_video' => !empty($ev['is_video'])];
+}, $resolution_evidence));
+?>
+const lightboxImages = <?php echo json_encode($lightbox_media); ?>;
 let lightboxIndex = 0;
 function openLightbox(index) {
     lightboxIndex = index;
@@ -1283,7 +1335,6 @@ document.addEventListener('keydown', function(e) {
         if (e.key === 'ArrowLeft') navLightbox(-1);
     }
 });
-<?php endif; ?>
 
 // ===== PRINT DROPDOWN =====
 function togglePrintMenu() {

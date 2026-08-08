@@ -241,13 +241,14 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_count / $total_reports)
 //    (reuses $pending_count calculated above)
 
 // 2. Critical Local Hotspots = unique ~50m-grid clusters hitting the
-//    algorithm's "High" tier (severity_score >= 16 on the 20-point scale)
+//    algorithm's "Critical" tier (severity_score >= critical threshold)
 //    among this barangay's active (non-resolved/rejected/cancelled) reports.
+$criticalBands = getSeverityBands();
 $criticalHotspotsCount = $db->prepare("
     SELECT COUNT(DISTINCT CONCAT(FLOOR(latitude / 0.00045), ',', FLOOR(longitude / 0.00045))) AS count
     FROM reports
     WHERE barangay_id = ?
-      AND severity_score >= 16
+      AND risk_level = 'critical'
       AND status NOT IN ('resolved', 'rejected', 'cancelled')
       AND latitude IS NOT NULL AND longitude IS NOT NULL
       AND latitude != 0 AND longitude != 0
@@ -464,14 +465,10 @@ $peakDayShare = $dayGrandTotal > 0 ? round(($peakDayTotal / $dayGrandTotal) * 10
 
 // ========== SEVERITY HELPER FUNCTIONS (same 20-point algorithm as MENRO) ==========
 function getSeverityColorPHP($score) {
-    if ($score <= 8) return '#10B981';
-    if ($score <= 15) return '#F59E0B';
-    return '#EF4444';
+    return getRiskColor(getRiskLevelFromScore($score));
 }
 function getSeverityTierPHP($score) {
-    if ($score <= 8) return 'Low';
-    if ($score <= 15) return 'Medium';
-    return 'High';
+    return getRiskLevelLabel(getRiskLevelFromScore($score));
 }
 
 // ========== GET RECENT REPORTS (kept - powers the Recent Reports table) ==========
@@ -882,6 +879,7 @@ $recent_reports->execute();
         }
         .rec-low { background: #D1FAE5; color: #065F46; border-left: 4px solid #10B981; }
         .rec-medium { background: #FEF3C7; color: #92400E; border-left: 4px solid #F59E0B; }
+        .rec-high { background: #FFEDD5; color: #9A3412; border-left: 4px solid #F97316; }
         .rec-critical { background: #FEE2E2; color: #991B1B; border-left: 4px solid #EF4444; }
 
         .chart-card {
@@ -1088,9 +1086,10 @@ $recent_reports->execute();
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-3 text-xs">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-8)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (9-15)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (16-20)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $criticalBands['yellow'] - 1; ?>)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (<?php echo $criticalBands['yellow']; ?>-<?php echo $criticalBands['orange'] - 1; ?>)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $criticalBands['orange']; ?>-<?php echo $criticalBands['critical'] - 1; ?>)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $criticalBands['critical']; ?>-20)</span>
                 </div>
             </div>
 
@@ -1199,8 +1198,8 @@ $recent_reports->execute();
                     <div class="grid grid-cols-2 gap-2 mt-4">
                         <?php 
                         $risk_colors = [
-                            'critical' => '#7C3AED',
-                            'high' => '#EF4444',
+                            'critical' => '#EF4444',
+                            'high' => '#F97316',
                             'medium' => '#F59E0B',
                             'low' => '#059669'
                         ];
@@ -1316,8 +1315,8 @@ $recent_reports->execute();
                             $risk_badge = '';
                             if($risk_level == 'low') $risk_badge = 'bg-green-100 text-green-700';
                             elseif($risk_level == 'medium') $risk_badge = 'bg-yellow-100 text-yellow-700';
-                            elseif($risk_level == 'high') $risk_badge = 'bg-red-100 text-red-700';
-                            else $risk_badge = 'bg-purple-100 text-purple-700';
+                            elseif($risk_level == 'high') $risk_badge = 'bg-orange-100 text-orange-700';
+                            else $risk_badge = 'bg-red-100 text-red-700';
                             
                             $display_status = $row['status'];
                             if($display_status == 'escalated_pending' || $display_status == 'escalated') {
@@ -1445,15 +1444,36 @@ let selectedCategories = new Set(allCategories.map(c => String(c.id)));
 let currentMode = 'active';
 
 // ========== SEVERITY COLOR HELPERS (same 20-point algorithm as MENRO) ==========
+// Single source of truth for risk bands, mirroring PHP getSeverityBands()
+const SEVERITY_BANDS = { yellow: <?php echo $criticalBands['yellow']; ?>, orange: <?php echo $criticalBands['orange']; ?>, critical: <?php echo $criticalBands['critical']; ?> };
+function getRiskLevelFromScore(score) {
+    if (score < SEVERITY_BANDS.yellow) return 'low';
+    if (score < SEVERITY_BANDS.orange) return 'medium';
+    if (score < SEVERITY_BANDS.critical) return 'high';
+    return 'critical';
+}
+function getRiskColorFromScore(score) {
+    const colors = { low: '#10B981', medium: '#F59E0B', high: '#F97316', critical: '#EF4444' };
+    return colors[getRiskLevelFromScore(score)] || '#10B981';
+}
+function getRiskLevelLabelFromScore(score) {
+    const labels = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
+    return labels[getRiskLevelFromScore(score)] || 'Low';
+}
+function getRiskRecommendation(score) {
+    const recs = {
+        low: 'Standard Barangay-level maintenance. No MENRO intervention required.',
+        medium: 'Flagged for priority Barangay resolution. MENRO monitoring advised.',
+        high: 'Escalate to MENRO. Dispatch hazard clearing team to prevent secondary damage or flooding.',
+        critical: 'CRITICAL. Deploy MENRO heavy equipment and initiate municipal response protocols immediately.'
+    };
+    return recs[getRiskLevelFromScore(score)] || recs.low;
+}
 function getSeverityColor(score) {
-    if (score <= 8) return '#10B981';
-    if (score <= 15) return '#F59E0B';
-    return '#EF4444';
+    return getRiskColorFromScore(score);
 }
 function getSeverityTier(score) {
-    if (score <= 8) return 'Low';
-    if (score <= 15) return 'Medium';
-    return 'High';
+    return getRiskLevelLabelFromScore(score);
 }
 function escapeHtml(text) {
     if (!text) return '';
@@ -1685,10 +1705,9 @@ function openDrillPanel(reportId) {
 function renderDrillPanel(report) {
     const score = parseInt(report.severity_score) || 0;
     const tier = getSeverityTier(score);
-    const recClass = (score <= 8) ? 'rec-low' : (score <= 15 ? 'rec-medium' : 'rec-critical');
-    const recText = (score <= 8) ? 'Standard Barangay-level maintenance. No MENRO intervention required.' :
-                    (score <= 15) ? 'Flagged for priority Barangay resolution. MENRO monitoring advised.' :
-                    'CRITICAL. Escalate to MENRO and initiate municipal response protocols immediately.';
+    const riskLevel = getRiskLevelFromScore(score);
+    const recClass = 'rec-' + riskLevel;
+    const recText = getRiskRecommendation(score);
 
     const baseWeight = report.base_weight || 5;
     const impactModifier = report.impact_modifier || 0;
@@ -1701,7 +1720,7 @@ function renderDrillPanel(report) {
         </div>
 
         <div class="mb-4">
-            <div class="flex items-center justify-between p-3 rounded-xl ${tier === 'Low' ? 'bg-green-50 text-green-800' : tier === 'Medium' ? 'bg-yellow-50 text-yellow-800' : 'bg-red-50 text-red-800'}">
+            <div class="flex items-center justify-between p-3 rounded-xl ${riskLevel === 'low' ? 'bg-green-50 text-green-800' : riskLevel === 'medium' ? 'bg-yellow-50 text-yellow-800' : riskLevel === 'high' ? 'bg-orange-50 text-orange-800' : 'bg-red-50 text-red-800'}">
                 <span class="font-bold">Severity Score</span>
                 <span class="text-2xl font-extrabold">${score} / 20</span>
             </div>
@@ -1753,7 +1772,7 @@ new Chart(riskCtx, {
         labels: [<?php foreach($risk_data as $r) echo "'" . ucfirst($r['risk_level']) . "',"; ?>],
         datasets: [{
             data: [<?php foreach($risk_data as $r) echo $r['count'] . ","; ?>],
-            backgroundColor: ['#7C3AED', '#EF4444', '#F59E0B', '#059669'],
+            backgroundColor: ['#EF4444', '#F97316', '#F59E0B', '#059669'],
             borderWidth: 0
         }]
     },

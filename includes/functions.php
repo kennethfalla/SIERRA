@@ -57,6 +57,66 @@ function getSeverityBadge($classification, $score) {
     return '<span class="severity-badge severity-' . $color . '"><i class="fas fa-chart-line"></i> ' . $classification . ' <span class="text-[9px] font-mono opacity-75">(' . $score . ')</span></span>';
 }
 
+// ============================================
+// SEVERITY / RISK BAND HELPERS (single source of truth)
+// ============================================
+// These mirror the exact band math used in models/Report.php
+// (getDecisionFromScore) so that every view — dashboards, drill-downs,
+// charts, report cards — labels a severity score with the SAME risk level.
+
+/**
+ * Compute the severity-score band boundaries from the admin-configured
+ * Critical Threshold. Returns start values for each band.
+ * @return array{yellow:int, orange:int, critical:int}
+ */
+function getSeverityBands() {
+    $criticalThreshold = (int)SettingsHelper::get('critical_threshold_score', 15);
+    $criticalThreshold = max(4, $criticalThreshold);
+    $bandWidth = max(1, (int)floor(($criticalThreshold - 1) / 3));
+    return [
+        'yellow'   => $bandWidth + 1,
+        'orange'   => $bandWidth * 2 + 1,
+        'critical' => $criticalThreshold,
+    ];
+}
+
+/**
+ * Map a severity score to a risk level string.
+ * @param int|float $score
+ * @return string 'low'|'medium'|'high'|'critical'
+ */
+function getRiskLevelFromScore($score) {
+    $score = (int)$score;
+    $bands = getSeverityBands();
+    if ($score < $bands['yellow'])   return 'low';
+    if ($score < $bands['orange'])   return 'medium';
+    if ($score < $bands['critical']) return 'high';
+    return 'critical';
+}
+
+/**
+ * Hex color for a risk level (used by map markers / cluster styling).
+ * @param string $level low|medium|high|critical
+ */
+function getRiskColor($level) {
+    $colors = [
+        'low'      => '#10B981',
+        'medium'   => '#F59E0B',
+        'high'     => '#F97316',
+        'critical' => '#EF4444',
+    ];
+    return $colors[$level] ?? '#10B981';
+}
+
+/**
+ * Human-readable risk level label.
+ * @param string $level
+ */
+function getRiskLevelLabel($level) {
+    $labels = ['low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+    return $labels[$level] ?? 'Low';
+}
+
 /**
  * Get HTML for impact badge
  */

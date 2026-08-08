@@ -180,7 +180,7 @@ $risk_levels = [
     'low' => ['label' => 'Low', 'color' => 'green', 'bg' => 'bg-green-50', 'text' => 'text-green-800', 'icon' => 'fa-seedling', 'desc' => 'Minor issue, routine monitoring'],
     'medium' => ['label' => 'Medium', 'color' => 'yellow', 'bg' => 'bg-yellow-50', 'text' => 'text-yellow-800', 'icon' => 'fa-exclamation-triangle', 'desc' => 'Moderate concern, requires attention'],
     'high' => ['label' => 'High', 'color' => 'red', 'bg' => 'bg-red-50', 'text' => 'text-red-800', 'icon' => 'fa-fire', 'desc' => 'Urgent, requires immediate action'],
-    'critical' => ['label' => 'Critical', 'color' => 'purple', 'bg' => 'bg-purple-50', 'text' => 'text-purple-800', 'icon' => 'fa-skull-crossbones', 'desc' => 'Emergency, immediate intervention needed']
+    'critical' => ['label' => 'Critical', 'color' => 'red', 'bg' => 'bg-red-50', 'text' => 'text-red-800', 'icon' => 'fa-skull-crossbones', 'desc' => 'Emergency, immediate intervention needed']
 ];
 $current_risk = isset($report['risk_level']) ? $report['risk_level'] : 'low';
 $risk_info = $risk_levels[$current_risk];
@@ -465,10 +465,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .status-rejected { background: #FEE2E2; color: #DC2626; }
         .status-cancelled { background: #F3F4F6; color: #6B7280; }
         
-        .risk-low { background: #D1FAE5; color: #10A37F; }
-        .risk-medium { background: #FEF3C7; color: #D97706; }
-        .risk-high { background: #FEE2E2; color: #DC2626; }
-        .risk-critical { background: #EDE9FE; color: #7C3AED; }
+        .risk-low { background: #D1FAE5; color: #065F46; }
+        .risk-medium { background: #FEF3C7; color: #92400E; }
+        .risk-high { background: #FFEDD5; color: #9A3412; }
+        .risk-critical { background: #FEE2E2; color: #991B1B; }
         
         .severity-badge {
             display: inline-flex;
@@ -717,9 +717,49 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 font-size: 0.875rem;
             }
         }
+        .resolution-confirm-float {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 5000;
+            padding: 0.75rem 1rem 0.75rem calc(1rem + 18rem);
+            background: linear-gradient(to top, rgba(245, 251, 246, 1) 0%, rgba(245, 251, 246, 0.9) 80%, rgba(245, 251, 246, 0) 100%);
+            pointer-events: none;
+        }
+        .resolution-confirm-bar {
+            pointer-events: auto;
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: linear-gradient(to right, #F0FDF4, #ECFDF5);
+            border: 2px solid #A7F3D0;
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 10px 30px rgba(16, 163, 127, 0.15);
+            backdrop-filter: blur(8px);
+        }
+        @media (max-width: 767px) {
+            .resolution-confirm-float {
+                padding: 0.75rem 0.75rem 0.75rem 0.75rem;
+            }
+        }
+        @media (min-width: 768px) {
+            body.resolution-active .main-container {
+                padding-bottom: 7.5rem;
+            }
+        }
+        @media (min-width: 768px) {
+            .resolution-confirm-bar {
+                padding: 1rem 1.25rem;
+            }
+        }
     </style>
 </head>
-<body class="bg-[#F5FBF6]">
+<body class="bg-[#F5FBF6] <?php echo $can_confirm_resolution ? 'resolution-active' : ''; ?>">
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
@@ -1053,15 +1093,15 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         
         <!-- Resolution Confirmation -->
         <?php if($can_confirm_resolution): ?>
-        <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 p-4 md:p-6 mb-6 md:mb-8">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+        <div class="resolution-confirm-float">
+            <div class="resolution-confirm-bar">
+                <div class="flex items-center gap-3 md:gap-4 min-w-0">
+                    <div class="w-11 h-11 md:w-14 md:h-14 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-gray-800 text-lg">Resolution Confirmation Required</h3>
-                        <p class="text-gray-600 text-sm">
+                    <div class="min-w-0">
+                        <h3 class="font-bold text-gray-800 text-sm md:text-base">Resolution Confirmation Required</h3>
+                        <p class="text-gray-600 text-xs md:text-sm truncate">
                             <?php if($menro_accepted): ?>
                                 MENRO has marked this report as resolved. Please confirm if you agree with the resolution.
                             <?php else: ?>
@@ -1070,11 +1110,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         </p>
                     </div>
                 </div>
-                <form method="POST" action="" onsubmit="return confirmResolution()">
+                <form method="POST" action="" onsubmit="return confirmResolution()" class="flex-shrink-0">
                     <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                    <button type="submit" name="confirm_resolution" class="btn-primary px-6 py-3 text-white rounded-xl font-semibold flex items-center gap-2">
+                    <button type="submit" name="confirm_resolution" class="btn-primary px-5 md:px-6 py-2.5 md:py-3 text-white rounded-xl font-semibold flex items-center gap-2">
                         <i class="fas fa-thumbs-up"></i>
-                        Confirm Resolution
+                        <span>Confirm Resolution</span>
                     </button>
                 </form>
             </div>

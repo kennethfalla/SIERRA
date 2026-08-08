@@ -295,8 +295,8 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         }
         .risk-low { background: #D1FAE5; color: #065F46; }
         .risk-medium { background: #FEF3C7; color: #92400E; }
-        .risk-high { background: #FEE2E2; color: #991B1B; }
-        .risk-critical { background: #EDE9FE; color: #5B21B6; }
+        .risk-high { background: #FFEDD5; color: #9A3412; }
+        .risk-critical { background: #FEE2E2; color: #991B1B; }
         
         /* Severity Badges */
         .severity-badge {

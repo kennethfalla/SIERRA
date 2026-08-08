@@ -510,7 +510,8 @@ $permissionRisk = [
     letter-spacing: 0.04em;
     margin-left: 0.4rem;
 }
-.risk-high   { background: #FEF2F2; color: #991B1B; }
+.risk-high   { background: #FFEDD5; color: #9A3412; }
+.risk-critical { background: #FEE2E2; color: #991B1B; }
 .risk-medium { background: #FFFBEB; color: #92400E; }
 .risk-low    { background: #F0FDF4; color: #14532D; }
 

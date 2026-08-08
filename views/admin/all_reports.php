@@ -178,10 +178,10 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             font-size: 0.6rem;
             font-weight: 600;
         }
-        .risk-low { background: #D1FAE5; color: #10A37F; }
-        .risk-medium { background: #FEF3C7; color: #D97706; }
-        .risk-high { background: #FEE2E2; color: #DC2626; }
-        .risk-critical { background: #EDE9FE; color: #7C3AED; }
+        .risk-low { background: #D1FAE5; color: #065F46; }
+        .risk-medium { background: #FEF3C7; color: #92400E; }
+        .risk-high { background: #FFEDD5; color: #9A3412; }
+        .risk-critical { background: #FEE2E2; color: #991B1B; }
         
         /* ===== TOOLBAR & FILTER STYLES (adapted from my_reports.php) ===== */
         :root {

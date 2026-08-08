@@ -145,6 +145,42 @@ class Database {
                 error_log("[Database] Added 'job_title' column to users table.");
             }
 
+            // ============================================
+            // 5. CHECK: Primary keys are auto-increment
+            // ============================================
+            // Barangays: a non-AUTO_INCREMENT PK lets INSERT statements that omit
+            // `id` silently store 0, breaking edit/delete lookups by ID.
+            $check = $this->conn->query("
+                SELECT EXTRA AS extra FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'barangays'
+                  AND COLUMN_NAME = 'id'
+                  AND COLUMN_KEY = 'PRI'
+            ");
+            $row = $check->fetch(PDO::FETCH_ASSOC);
+            if ($row && stripos((string)($row['extra'] ?? ''), 'auto_increment') === false) {
+                // Remove any garbage rows that were stored with id = 0 before the fix
+                // (they are unreachable by ID-based edit/delete and are not referenced).
+                $this->conn->exec("DELETE FROM barangays WHERE id = 0");
+                $this->conn->exec("ALTER TABLE barangays MODIFY id int(11) NOT NULL AUTO_INCREMENT");
+                error_log("[Database] Fixed barangays.id to be AUTO_INCREMENT.");
+            }
+
+            // Categories: same latent bug, fixed for consistency.
+            $check = $this->conn->query("
+                SELECT EXTRA AS extra FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'categories'
+                  AND COLUMN_NAME = 'id'
+                  AND COLUMN_KEY = 'PRI'
+            ");
+            $row = $check->fetch(PDO::FETCH_ASSOC);
+            if ($row && stripos((string)($row['extra'] ?? ''), 'auto_increment') === false) {
+                $this->conn->exec("DELETE FROM categories WHERE id = 0");
+                $this->conn->exec("ALTER TABLE categories MODIFY id int(11) NOT NULL AUTO_INCREMENT");
+                error_log("[Database] Fixed categories.id to be AUTO_INCREMENT.");
+            }
+
             return true;
 
         } catch (PDOException $e) {

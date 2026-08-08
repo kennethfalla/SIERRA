@@ -90,6 +90,10 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
     unset($img);
     $notes = $report->getNotes($report_id);
     $resolution_evidence = $report->getResolutionEvidence($report_id);
+    foreach ($resolution_evidence as &$ev) {
+        $ev['is_video'] = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $ev['image_path']) ? 1 : 0;
+    }
+    unset($ev);
 
     $esc_stmt = $db->prepare("SELECT e.*, CONCAT(u.first_name, ' ', u.last_name) as escalated_by_name 
                               FROM escalations e 
@@ -185,7 +189,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
             SELECT r.*, c.name as category_name, 
                    CONCAT(u.first_name, ' ', u.last_name) as user_name, 
                    u.email as user_email,
-                   b.name as barangay_name
+                   b.name as barangay_name,
+                   (SELECT GROUP_CONCAT(image_path) FROM report_images WHERE report_id = r.id) as image_paths,
+                   (SELECT GROUP_CONCAT(image_path) FROM resolution_evidence WHERE report_id = r.id) as resolution_evidence_paths
             FROM reports r
             JOIN categories c ON r.category_id = c.id
             JOIN users u ON r.user_id = u.id

@@ -31,17 +31,17 @@ $tabs = [
         'description' => 'Enable or disable system features',
         'file' => 'features.php'
     ],
-    'tags' => [
-        'label' => 'Tags',
-        'icon' => 'fa-tags',
-        'description' => 'Custom workflow tags for reports',
-        'file' => 'tags.php'
-    ],
     'algorithm' => [
         'label' => 'Algorithm',
         'icon' => 'fa-calculator',
         'description' => 'Severity scoring configuration',
         'file' => 'algorithm.php'
+    ],
+    'kpi' => [
+        'label' => 'KPI & Insights',
+        'icon' => 'fa-chart-pie',
+        'description' => 'Key performance indicator targets for the Insight Engine',
+        'file' => 'kpi.php'
     ],
     'notifications' => [
         'label' => 'Notifications',

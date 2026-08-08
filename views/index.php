@@ -475,7 +475,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-500"></span> Low Risk</span>
                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-500"></span> Medium Risk</span>
                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span> High Risk</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-500"></span> Critical Risk</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-600"></span> Critical Risk</span>
                 <span class="flex items-center gap-1.5 ml-auto text-emerald-600 font-medium">
                     <i class="fas fa-map-pin"></i> <?php echo count($reports_for_map); ?> reports shown
                 </span>
@@ -832,8 +832,8 @@ function initMap() {
     const riskColors = {
         'low': '#10B981',
         'medium': '#F59E0B',
-        'high': '#EF4444',
-        'critical': '#7C3AED'
+        'high': '#F97316',
+        'critical': '#EF4444'
     };
     
     const riskIcons = {

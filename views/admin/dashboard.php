@@ -10,6 +10,20 @@ $database = new Database();
 $db = $database->getConnection();
 
 // ------------------------------------------------------------
+// 0. KPI & INSIGHTS TARGETS (configurable in System Settings → KPI & Insights)
+// ------------------------------------------------------------
+// These feed the Insight Engine so the textual recommendations track the
+// targets the MENRO Chief defines in System Settings.
+$kpi_resolution_rate_target = (float)SettingsHelper::get('kpi_resolution_rate_target', 60);
+$kpi_sla_response_hours     = (float)SettingsHelper::get('kpi_sla_response_hours', 48);
+$kpi_surge_alert_threshold  = (float)SettingsHelper::get('kpi_surge_alert_threshold', 25);
+$kpi_hotspot_radius_meters  = (float)SettingsHelper::get('kpi_hotspot_radius_meters', 10);
+$kpi_critical_reports_pct   = (float)SettingsHelper::get('kpi_critical_reports_pct', 30);
+$kpi_demographic_threshold  = (float)SettingsHelper::get('kpi_demographic_threshold', 10);
+$kpi_repeat_min_reports     = (float)SettingsHelper::get('kpi_repeat_min_reports', 3);
+$kpi_repeat_window_days     = (float)SettingsHelper::get('kpi_repeat_window_days', 30);
+
+// ------------------------------------------------------------
 // 1. ALGORITHMIC KPI CALCULATIONS (back-end)
 // ------------------------------------------------------------
 
@@ -36,10 +50,10 @@ $avgRisk = $db->query("
 ")->fetchColumn() ?: 0;
 $avgRisk = round($avgRisk, 1);
 
-// Critical Escalations = reports with severity_score >= 16 and active
+// Critical Escalations = active reports in the Critical risk band (>= configured threshold)
 $criticalCount = $db->query("
     SELECT COUNT(*) FROM reports
-    WHERE severity_score >= 16
+    WHERE risk_level = 'critical'
       AND status NOT IN ('resolved', 'rejected', 'cancelled')
 ")->fetchColumn();
 
@@ -126,11 +140,13 @@ try {
 // 3. CHART DATA
 // ------------------------------------------------------------
 
-// Severity Distribution (tiers)
+// Severity Distribution (tiers) - uses the same configurable bands as the model
+$severityBands = getSeverityBands();
 $severityTiers = [
-    'Low (1-8)' => 0,
-    'Medium (9-15)' => 0,
-    'High (16-20)' => 0
+    'low'      => ['label' => 'Low (' . 1 . '-' . ($severityBands['yellow'] - 1) . ')', 'count' => 0],
+    'medium'   => ['label' => 'Medium (' . $severityBands['yellow'] . '-' . ($severityBands['orange'] - 1) . ')', 'count' => 0],
+    'high'     => ['label' => 'High (' . $severityBands['orange'] . '-' . ($severityBands['critical'] - 1) . ')', 'count' => 0],
+    'critical' => ['label' => 'Critical (' . $severityBands['critical'] . '-20)', 'count' => 0],
 ];
 $tierQuery = $db->query("
     SELECT severity_score FROM reports
@@ -138,11 +154,12 @@ $tierQuery = $db->query("
       AND severity_score IS NOT NULL
 ");
 while ($row = $tierQuery->fetch(PDO::FETCH_ASSOC)) {
-    $score = $row['severity_score'];
-    if ($score <= 8) $severityTiers['Low (1-8)']++;
-    elseif ($score <= 15) $severityTiers['Medium (9-15)']++;
-    else $severityTiers['High (16-20)']++;
+    $level = getRiskLevelFromScore($row['severity_score']);
+    $severityTiers[$level]['count']++;
 }
+$severityTotal = array_sum(array_column($severityTiers, 'count'));
+$criticalSharePct = $severityTotal > 0 ? round(($severityTiers['critical']['count'] / $severityTotal) * 100, 1) : 0;
+$criticalAlert = $severityTotal > 0 && $criticalSharePct > (float)$kpi_critical_reports_pct;
 
 // Seasonal Hazard Analytics (monthly count of high-severity hotspots over last 12 months)
 $seasonalData = [];
@@ -152,11 +169,48 @@ for ($i = 11; $i >= 0; $i--) {
     $months[] = date('M', strtotime("-$i months"));
     $count = $db->query("
         SELECT COUNT(*) FROM reports
-        WHERE severity_score >= 9
+        WHERE severity_score >= {$severityBands['orange']}
           AND status NOT IN ('resolved', 'rejected', 'cancelled')
           AND DATE_FORMAT(created_at, '%Y-%m') = '$month'
     ")->fetchColumn();
     $seasonalData[] = (int)$count;
+}
+
+// Surge Alert: compare the most recent month vs. the previous month per category.
+// If any category grew by at least the configured surge threshold (%), flag a
+// recommendation to reallocate budget toward that hazard type.
+$surgeAlert = null;
+$currentMonth = date('Y-m');
+$prevMonth = date('Y-m', strtotime('last month'));
+try {
+    $surgeStmt = $db->query("
+        SELECT c.name AS category_name,
+               SUM(CASE WHEN DATE_FORMAT(r.created_at, '%Y-%m') = '$currentMonth' THEN 1 ELSE 0 END) AS current_count,
+               SUM(CASE WHEN DATE_FORMAT(r.created_at, '%Y-%m') = '$prevMonth' THEN 1 ELSE 0 END) AS previous_count
+        FROM reports r
+        JOIN categories c ON r.category_id = c.id
+        WHERE r.severity_score >= {$severityBands['orange']}
+          AND r.status NOT IN ('resolved', 'rejected', 'cancelled')
+        GROUP BY c.id, c.name
+    ");
+    foreach ($surgeStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $current_count = (int)$row['current_count'];
+        $previous_count = (int)$row['previous_count'];
+        if ($previous_count > 0 && $current_count >= $previous_count) {
+            $pct = (($current_count - $previous_count) / $previous_count) * 100;
+            if ($pct >= $kpi_surge_alert_threshold) {
+                $surgeAlert = [
+                    'category' => $row['category_name'],
+                    'pct' => round($pct, 1),
+                    'current' => $current_count,
+                    'previous' => $previous_count
+                ];
+                break;
+            }
+        }
+    }
+} catch (Exception $e) {
+    $surgeAlert = null;
 }
 
 // ------------------------------------------------------------
@@ -207,6 +261,50 @@ usort($barangayLeaderboard, function($a, $b) {
     }
     return $b['resolution_rate'] <=> $a['resolution_rate'];
 });
+
+// Slowest barangay = highest average resolution time, used by the SLA
+// recommendation to point the MENRO Chief at where the delay is concentrated.
+$slowestBarangay = null;
+try {
+    $slowStmt = $db->query("
+        SELECT b.name AS barangay_name,
+               AVG(TIMESTAMPDIFF(HOUR, r.created_at, r.resolved_at)) AS avg_hours
+        FROM reports r
+        JOIN barangays b ON b.id = r.barangay_id
+        WHERE r.status = 'resolved' AND r.resolved_at IS NOT NULL AND r.created_at IS NOT NULL
+        GROUP BY b.id, b.name
+        HAVING avg_hours IS NOT NULL
+        ORDER BY avg_hours DESC
+        LIMIT 1
+    ");
+    $slowRow = $slowStmt->fetch(PDO::FETCH_ASSOC);
+    if ($slowRow) {
+        $slowestBarangay = $slowRow;
+    }
+} catch (Exception $e) {
+    try {
+        $slowStmt = $db->query("
+            SELECT barangay AS barangay_name,
+                   AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) AS avg_hours
+            FROM reports
+            WHERE status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL
+              AND barangay IS NOT NULL AND barangay != ''
+            GROUP BY barangay
+            HAVING avg_hours IS NOT NULL
+            ORDER BY avg_hours DESC
+            LIMIT 1
+        ");
+        $slowRow = $slowStmt->fetch(PDO::FETCH_ASSOC);
+        if ($slowRow) {
+            $slowestBarangay = $slowRow;
+        }
+    } catch (Exception $e2) {
+        $slowestBarangay = null;
+    }
+}
+if ($slowestBarangay) {
+    $slowestBarangay['avg_hours'] = round((float)$slowestBarangay['avg_hours'], 1);
+}
 
 // ------------------------------------------------------------
 // 6. AVERAGE RESOLUTION TIME (Speed Tracking)
@@ -325,17 +423,23 @@ $peakDayShare = $dayGrandTotal > 0 ? round(($peakDayTotal / $dayGrandTotal) * 10
 // 9. TOP 5 "REPEAT OFFENDER" LOCATIONS
 // ------------------------------------------------------------
 // Behavioral hazards (illegal dumping, vandalism, littering, etc.) grouped
-// into ~50m grid cells (0.00045 deg ≈ 50m) to find chronic enforcement hotspots.
+// into grid cells sized by the configured Hotspot Definition Radius
+// (System Settings → KPI & Insights) to find chronic enforcement hotspots.
+// ~0.0009 deg ≈ 100m latitude; scale linearly with the configured radius.
 $repeatOffenders = [];
+$hotspot_grid_deg = max(0.000001, ((float)$kpi_hotspot_radius_meters / 100.0) * 0.0009);
+$repeat_window_sql = max(1, (int)$kpi_repeat_window_days);
+$repeat_min_sql = max(1, (int)$kpi_repeat_min_reports);
 try {
     $stmt = $db->query("
         SELECT 
-            FLOOR(r.latitude / 0.00045) AS grid_lat_key,
-            FLOOR(r.longitude / 0.00045) AS grid_lng_key,
+            FLOOR(r.latitude / {$hotspot_grid_deg}) AS grid_lat_key,
+            FLOOR(r.longitude / {$hotspot_grid_deg}) AS grid_lng_key,
             COUNT(*) AS incident_count,
             AVG(r.latitude) AS avg_lat,
             AVG(r.longitude) AS avg_lng,
             MAX(r.title) AS sample_title,
+            MAX(r.barangay) AS barangay_name,
             GROUP_CONCAT(DISTINCT c.name SEPARATOR ', ') AS category_names
         FROM reports r
         JOIN categories c ON c.id = r.category_id
@@ -343,14 +447,44 @@ try {
           AND (c.name LIKE '%Dump%' OR c.name LIKE '%Vandal%' OR c.name LIKE '%Litter%' OR c.name LIKE '%Illegal%')
           AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
           AND r.latitude != 0 AND r.longitude != 0
+          AND r.created_at >= DATE_SUB(NOW(), INTERVAL {$repeat_window_sql} DAY)
         GROUP BY grid_lat_key, grid_lng_key
-        HAVING incident_count > 1
+        HAVING incident_count > {$repeat_min_sql}
         ORDER BY incident_count DESC
         LIMIT 5
     ");
     $repeatOffenders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $repeatOffenders = [];
+    try {
+        // Fallback for schemas without a text `barangay` column: derive the
+        // barangay name via the barangays lookup table on barangay_id.
+        $stmt = $db->query("
+            SELECT 
+                FLOOR(r.latitude / {$hotspot_grid_deg}) AS grid_lat_key,
+                FLOOR(r.longitude / {$hotspot_grid_deg}) AS grid_lng_key,
+                COUNT(*) AS incident_count,
+                AVG(r.latitude) AS avg_lat,
+                AVG(r.longitude) AS avg_lng,
+                MAX(r.title) AS sample_title,
+                MAX(b.name) AS barangay_name,
+                GROUP_CONCAT(DISTINCT c.name SEPARATOR ', ') AS category_names
+            FROM reports r
+            JOIN categories c ON c.id = r.category_id
+            LEFT JOIN barangays b ON b.id = r.barangay_id
+            WHERE r.status = 'resolved'
+              AND (c.name LIKE '%Dump%' OR c.name LIKE '%Vandal%' OR c.name LIKE '%Litter%' OR c.name LIKE '%Illegal%')
+              AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
+              AND r.latitude != 0 AND r.longitude != 0
+              AND r.created_at >= DATE_SUB(NOW(), INTERVAL {$repeat_window_sql} DAY)
+            GROUP BY grid_lat_key, grid_lng_key
+            HAVING incident_count > {$repeat_min_sql}
+            ORDER BY incident_count DESC
+            LIMIT 5
+        ");
+        $repeatOffenders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e2) {
+        $repeatOffenders = [];
+    }
 }
 
 // ------------------------------------------------------------
@@ -358,25 +492,22 @@ try {
 // ------------------------------------------------------------
 
 function getSeverityColor($score) {
-    if ($score <= 8) return '#10B981'; // green
-    if ($score <= 15) return '#F59E0B'; // orange
-    return '#EF4444'; // red
+    return getRiskColor(getRiskLevelFromScore($score));
 }
 
 function getSeverityTier($score) {
-    if ($score <= 8) return 'Low';
-    if ($score <= 15) return 'Medium';
-    return 'High';
+    return getRiskLevelLabel(getRiskLevelFromScore($score));
 }
 
 function getRecommendation($score) {
-    if ($score <= 8) {
-        return 'System Recommendation: Standard Barangay-level maintenance. No MENRO intervention required.';
-    } elseif ($score <= 15) {
-        return 'System Recommendation: Flagged for priority Barangay resolution. MENRO monitoring advised.';
-    } else {
-        return 'System Recommendation: CRITICAL. Deploy MENRO heavy equipment and initiate municipal response protocols immediately.';
-    }
+    $level = getRiskLevelFromScore($score);
+    $recs = [
+        'low'      => 'Standard Barangay-level maintenance. No MENRO intervention required.',
+        'medium'   => 'Flagged for priority Barangay resolution. MENRO monitoring advised.',
+        'high'     => 'Escalate to MENRO. Dispatch hazard clearing team to prevent secondary damage or flooding.',
+        'critical' => 'CRITICAL. Deploy MENRO heavy equipment and initiate municipal response protocols immediately.',
+    ];
+    return 'System Recommendation: ' . $recs[$level];
 }
 
 // Load San Isidro boundary GeoJSON for map
@@ -607,7 +738,18 @@ function getDecisionBadge($classification) {
             border: 1px solid #e5e7eb;
             transition: transform 0.2s;
         }
-        .drill-photo-grid img:hover { transform: scale(1.02); }
+        .drill-photo-grid video {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            transition: transform 0.2s;
+            background: #111827;
+        }
+        .drill-photo-grid img:hover,
+        .drill-photo-grid video:hover { transform: scale(1.02); }
         .drill-photo-grid .no-photo {
             grid-column: 1 / -1;
             text-align: center;
@@ -637,6 +779,7 @@ function getDecisionBadge($classification) {
         }
         .drill-rec-low { background: #D1FAE5; color: #065F46; border-left: 4px solid #10B981; }
         .drill-rec-medium { background: #FEF3C7; color: #92400E; border-left: 4px solid #F59E0B; }
+        .drill-rec-high { background: #FFEDD5; color: #9A3412; border-left: 4px solid #F97316; }
         .drill-rec-critical { background: #FEE2E2; color: #991B1B; border-left: 4px solid #EF4444; }
 
         .drill-open-btn {
@@ -810,8 +953,14 @@ function getDecisionBadge($classification) {
             .kpi-card .kpi-value { font-size: 1.5rem; }
             .map-toggle button { padding: 0.3rem 0.8rem; font-size: 0.7rem; }
             .drill-photo-grid { grid-template-columns: repeat(2, 1fr); }
-            .drill-photo-grid img { height: 80px; }
+            .drill-photo-grid img,
+            .drill-photo-grid video { height: 80px; }
         }
+        .risk-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+        .risk-low { background: #D1FAE5; color: #065F46; }
+        .risk-medium { background: #FEF3C7; color: #92400E; }
+        .risk-high { background: #FFEDD5; color: #9A3412; }
+        .risk-critical { background: #FEE2E2; color: #991B1B; }
     </style>
 </head>
 <body>
@@ -884,7 +1033,7 @@ function getDecisionBadge($classification) {
                 <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
                 <div class="kpi-label">Critical Escalations</div>
                 <div class="kpi-value text-red-600"><?php echo $criticalCount; ?></div>
-                <div class="kpi-sub">Score 16-20 · require immediate action</div>
+                <div class="kpi-sub">Score <?php echo $severityBands['critical']; ?>-20 · require immediate action</div>
             </div>
             <div class="kpi-card kpi-resolved">
                 <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
@@ -910,9 +1059,10 @@ function getDecisionBadge($classification) {
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-3 text-xs">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-8)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (9-15)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (16-20)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $severityBands['yellow'] - 1; ?>)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (<?php echo $severityBands['yellow']; ?>-<?php echo $severityBands['orange'] - 1; ?>)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $severityBands['orange']; ?>-<?php echo $severityBands['critical'] - 1; ?>)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $severityBands['critical']; ?>-20)</span>
                 </div>
             </div>
 
@@ -982,6 +1132,12 @@ function getDecisionBadge($classification) {
                 <div class="chart-container">
                     <canvas id="severityChart"></canvas>
                 </div>
+                <?php if ($criticalAlert): ?>
+                <div class="rec-box rec-critical mt-4">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    <strong>System Recommendation:</strong> Critical-severity reports make up <?php echo $criticalSharePct; ?>% of all active reports — exceeding the <?php echo (float)$kpi_critical_reports_pct; ?>% threshold. High-severity alerts suggest a concentrated hazard situation. Recommend immediate MENRO intervention and municipal response protocols.
+                </div>
+                <?php endif; ?>
             </div>
             <!-- Seasonal Hazard Analytics -->
             <div class="chart-card">
@@ -989,6 +1145,12 @@ function getDecisionBadge($classification) {
                 <div class="chart-container">
                     <canvas id="seasonalChart"></canvas>
                 </div>
+                <?php if ($surgeAlert): ?>
+                <div class="rec-box rec-critical mt-4">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    <strong>System Recommendation:</strong> <?php echo htmlspecialchars($surgeAlert['category']); ?> incidents have surged by <?php echo $surgeAlert['pct']; ?>% compared to the previous month (<?php echo $surgeAlert['previous']; ?> → <?php echo $surgeAlert['current']; ?> this month), exceeding the <?php echo $kpi_surge_alert_threshold; ?>% surge threshold. Recommend budget reallocation to increase response capability for <?php echo htmlspecialchars($surgeAlert['category']); ?> reports.
+                </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -1048,10 +1210,10 @@ function getDecisionBadge($classification) {
                 $worst = end($barangayLeaderboard);
                 reset($barangayLeaderboard);
             ?>
-            <?php if ($worst && $worst['resolution_rate'] < 50): ?>
+            <?php if ($worst && $worst['resolution_rate'] < $kpi_resolution_rate_target): ?>
             <div class="rec-box rec-critical mt-4">
                 <i class="fas fa-lightbulb mr-2"></i>
-                <strong>System Recommendation:</strong> Barangay <?php echo htmlspecialchars($worst['barangay_name']); ?> has the lowest resolution rate (<?php echo $worst['resolution_rate']; ?>%). Schedule a follow-up meeting with the barangay captain to address the backlog.
+                <strong>System Recommendation:</strong> Brgy. <?php echo htmlspecialchars($worst['barangay_name']); ?> is experiencing a backlog with only a <?php echo $worst['resolution_rate']; ?>% clearance rate (below the <?php echo $kpi_resolution_rate_target; ?>% target). Dispatch MENRO auxiliary staff and prioritize resolution.
             </div>
             <?php endif; ?>
             <?php endif; ?>
@@ -1078,7 +1240,18 @@ function getDecisionBadge($classification) {
                     <?php endif; ?>
                 </div>
                 <div class="text-xs text-gray-400 mb-3">This month: <?php echo $avgResolutionDaysThisMonth; ?> days &nbsp;·&nbsp; Last month: <?php echo $avgResolutionDaysLastMonth; ?> days</div>
-                <?php if ($resolutionTrend === 'worse'): ?>
+                <?php
+                    // Municipal SLA check: warn when the average response time
+                    // exceeds the target configured in System Settings → KPI & Insights.
+                    $sla_hours = (float)$kpi_sla_response_hours;
+                    $sla_breached = $avgResolutionHoursThisMonth > $sla_hours;
+                ?>
+                <?php if ($sla_breached): ?>
+                <div class="rec-box rec-critical">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    <strong>System Recommendation:</strong> The current average response time is <?php echo round($avgResolutionHoursThisMonth, 1); ?> hours, which exceeds the municipal KPI of <?php echo $sla_hours; ?> hours<?php if ($slowestBarangay): ?> — the delay is heavily concentrated in Brgy. <?php echo htmlspecialchars($slowestBarangay['barangay_name']); ?> (avg. <?php echo $slowestBarangay['avg_hours']; ?> hours)<?php endif; ?>. Recommend adding a maintenance crew and equipment to ease the dispatch bottleneck.
+                </div>
+                <?php elseif ($resolutionTrend === 'worse'): ?>
                 <div class="rec-box rec-critical">
                     <i class="fas fa-lightbulb mr-2"></i>
                     <strong>System Recommendation:</strong> Response time is trending up. This may indicate the municipality is understaffed or under-equipped — consider justifying additional maintenance workers or equipment.
@@ -1107,6 +1280,20 @@ function getDecisionBadge($classification) {
                 <p class="text-xs text-gray-400 mt-3 text-center">
                     <?php echo $visitorPct; ?>% of reports come from visitors or commuters — a sign the app is catching hazards municipality-wide, not just within local subdivisions.
                 </p>
+                <?php
+                    $lowGroup = null;
+                    $lowGroupPct = null;
+                    if ($demographicsTotal > 0) {
+                        if ($residentPct < (float)$kpi_demographic_threshold) { $lowGroup = 'Verified Residents'; $lowGroupPct = $residentPct; }
+                        if ($visitorPct < (float)$kpi_demographic_threshold && $visitorPct <= $residentPct) { $lowGroup = 'Visitors/Commuters'; $lowGroupPct = $visitorPct; }
+                    }
+                ?>
+                <?php if ($lowGroup): ?>
+                <div class="rec-box rec-medium mt-4">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    <strong>System Recommendation:</strong> Only <?php echo $lowGroupPct; ?>% of reports come from <?php echo $lowGroup; ?> — below the <?php echo (float)$kpi_demographic_threshold; ?>% engagement target. Launch an IEC (Information, Education &amp; Communication) campaign targeted at <?php echo $lowGroup; ?> to improve participation.
+                </div>
+                <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -1125,7 +1312,7 @@ function getDecisionBadge($classification) {
                     <i class="fas fa-lightbulb mr-2"></i>
                     <strong>System Recommendation:</strong>
                     <?php if ($peakDayTotal > 0): ?>
-                        <?php echo $peakDayShare; ?>% of all reports arrive on <strong><?php echo $peakDayLabel; ?></strong> during the <strong><?php echo $peakTimeLabel; ?></strong> window. Schedule maximum dispatchers and admin staff during this period.
+                        Historical data indicates peak hazard reporting consistently occurs on <strong><?php echo $peakDayLabel; ?></strong>s between <strong><?php echo $peakTimeLabel; ?></strong>. Schedule maximum dispatchers and admin staff during this window to keep response times inside the municipal KPI.
                     <?php else: ?>
                         Not enough report data yet to identify a peak reporting window.
                     <?php endif; ?>
@@ -1135,7 +1322,7 @@ function getDecisionBadge($classification) {
             <!-- Top 5 Repeat Offender Locations -->
             <div class="chart-card">
                 <div class="chart-title"><i class="fas fa-map-marker-alt text-[#10A37F] mr-2"></i>Top 5 "Repeat Offender" Locations</div>
-                <p class="text-xs text-gray-400 mb-3">Behavioral hazards (illegal dumping, vandalism, littering) clustered within a ~50m radius, ranked by resolved incident count.</p>
+                <p class="text-xs text-gray-400 mb-3">Behavioral hazards (illegal dumping, vandalism, littering) clustered within a <?php echo (float)$kpi_hotspot_radius_meters; ?>m radius, ranked by resolved incident count.</p>
                 <?php if (empty($repeatOffenders)): ?>
                     <p class="text-sm text-gray-400 py-6 text-center">No repeat-offender locations identified yet.</p>
                 <?php else: ?>
@@ -1162,7 +1349,14 @@ function getDecisionBadge($classification) {
                 </div>
                 <div class="rec-box rec-critical mt-4">
                     <i class="fas fa-lightbulb mr-2"></i>
-                    <strong>System Recommendation:</strong> This is a chronic enforcement problem, not a cleanup problem. Consider CCTV installation and fines for the #1 location above.
+                    <strong>System Recommendation:</strong>
+                    <?php
+                        $topSpot = $repeatOffenders[0];
+                        $spotCount = (int)$topSpot['incident_count'];
+                        $spotBarangay = !empty($topSpot['barangay_name']) ? 'Brgy. ' . $topSpot['barangay_name'] : 'The #1 location';
+                        $spotCategory = $topSpot['category_names'] ?? 'the same hazard type';
+                    ?>
+                    <?php echo $spotBarangay; ?> has logged <?php echo $spotCount; ?> reports within the last <?php echo (int)$kpi_repeat_window_days; ?> days (exceeding the <?php echo (int)$kpi_repeat_min_reports; ?>-report repeat threshold), the majority being <?php echo htmlspecialchars($spotCategory); ?>. This is a chronic enforcement problem, not a cleanup problem. Recommend installing CCTVs and consider permanent infrastructural changes.
                 </div>
                 <?php endif; ?>
             </div>
@@ -1199,7 +1393,8 @@ const activeReports = <?php echo json_encode($activeReports); ?>;
 const historicalReports = <?php echo json_encode($historicalReports); ?>;
 const boundaryData = <?php echo json_encode($boundary_data); ?>;
 const barangayData = <?php echo json_encode($barangay_data); ?>;
-const severityData = <?php echo json_encode(array_values($severityTiers)); ?>;
+const severityData = <?php echo json_encode(array_values(array_column($severityTiers, 'count'))); ?>;
+const severityLabels = <?php echo json_encode(array_values(array_column($severityTiers, 'label'))); ?>;
 const seasonalData = <?php echo json_encode($seasonalData); ?>;
 const months = <?php echo json_encode($months); ?>;
 const allCategories = <?php echo json_encode($categories); ?>;
@@ -1583,15 +1778,37 @@ document.getElementById('timeframeToggle').addEventListener('click', function(e)
 // SEVERITY COLOR HELPERS
 // ------------------------------------------------------------
 function getSeverityColor(score) {
-    if (score <= 8) return '#10B981';
-    if (score <= 15) return '#F59E0B';
-    return '#EF4444';
+    return getRiskColorFromScore(score);
 }
 
 function getSeverityTier(score) {
-    if (score <= 8) return 'Low';
-    if (score <= 15) return 'Medium';
-    return 'High';
+    return getRiskLevelLabelFromScore(score);
+}
+
+// Single source of truth for risk bands, mirroring PHP getSeverityBands()
+const SEVERITY_BANDS = { yellow: <?php echo $severityBands['yellow']; ?>, orange: <?php echo $severityBands['orange']; ?>, critical: <?php echo $severityBands['critical']; ?> };
+function getRiskLevelFromScore(score) {
+    if (score < SEVERITY_BANDS.yellow) return 'low';
+    if (score < SEVERITY_BANDS.orange) return 'medium';
+    if (score < SEVERITY_BANDS.critical) return 'high';
+    return 'critical';
+}
+function getRiskColorFromScore(score) {
+    const colors = { low: '#10B981', medium: '#F59E0B', high: '#F97316', critical: '#EF4444' };
+    return colors[getRiskLevelFromScore(score)] || '#10B981';
+}
+function getRiskLevelLabelFromScore(score) {
+    const labels = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
+    return labels[getRiskLevelFromScore(score)] || 'Low';
+}
+function getRiskRecommendation(score) {
+    const recs = {
+        low: 'Standard Barangay-level maintenance. No MENRO intervention required.',
+        medium: 'Flagged for priority Barangay resolution. MENRO monitoring advised.',
+        high: 'Escalate to MENRO. Dispatch hazard clearing team to prevent secondary damage or flooding.',
+        critical: 'CRITICAL. Deploy MENRO heavy equipment and initiate municipal response protocols immediately.'
+    };
+    return recs[getRiskLevelFromScore(score)] || recs.low;
 }
 
 function escapeHtml(text) {
@@ -1631,25 +1848,29 @@ function openDrillPanel(reportId) {
 function renderDrillPanel(report) {
     const score = parseInt(report.severity_score) || 0;
     const tier = getSeverityTier(score);
-    const recClass = (score <= 8) ? 'drill-rec-low' : (score <= 15 ? 'drill-rec-medium' : 'drill-rec-critical');
-    const recText = (score <= 8) ? 'Standard Barangay-level maintenance. No MENRO intervention required.' :
-                    (score <= 15) ? 'Flagged for priority Barangay resolution. MENRO monitoring advised.' :
-                    'CRITICAL. Deploy MENRO heavy equipment and initiate municipal response protocols immediately.';
+    const riskLevel = getRiskLevelFromScore(score);
+    const recClass = 'drill-rec-' + riskLevel;
+    const recText = getRiskRecommendation(score);
 
     // Get category name
     const categoryName = report.category_name || 'Uncategorized';
 
     // Build photo gallery HTML
+    const baseUrl = '<?php echo BASE_URL; ?>';
+    const isVideoFile = p => /\.(mp4|webm|mov|m4v|avi)$/i.test(p);
+    const buildMediaHtml = p => {
+        const mediaUrl = baseUrl + p.trim();
+        if (isVideoFile(mediaUrl)) {
+            return `<video src="${mediaUrl}" muted playsinline preload="metadata" onclick="window.open('${mediaUrl}','_blank')"></video>`;
+        }
+        return `<img src="${mediaUrl}" onclick="window.open('${mediaUrl}','_blank')" alt="Evidence photo" loading="lazy" onerror="this.style.display='none'">`;
+    };
     let photoHtml = '';
     if (report.image_paths) {
-        const paths = report.image_paths.split(',');
-        const baseUrl = '<?php echo BASE_URL; ?>';
+        const paths = report.image_paths.split(',').filter(p => p && p.trim());
         const maxPhotos = 3;
         const displayPhotos = paths.slice(0, maxPhotos);
-        photoHtml = displayPhotos.map(path => {
-            const imgPath = baseUrl + path.trim();
-            return `<img src="${imgPath}" onclick="window.open('${imgPath}','_blank')" alt="Evidence photo" loading="lazy" onerror="this.style.display='none'">`;
-        }).join('');
+        photoHtml = displayPhotos.map(buildMediaHtml).join('');
         if (displayPhotos.length === 0) {
             photoHtml = '<div class="no-photo"><i class="fas fa-image text-2xl block mb-1"></i>No photos available</div>';
         } else if (displayPhotos.length < paths.length) {
@@ -1658,6 +1879,18 @@ function renderDrillPanel(report) {
         }
     } else {
         photoHtml = '<div class="no-photo"><i class="fas fa-image text-2xl block mb-1"></i>No photos available</div>';
+    }
+
+    // Build resolution evidence gallery HTML
+    let resolutionHtml = '';
+    if (report.resolution_evidence_paths) {
+        const resPaths = report.resolution_evidence_paths.split(',').filter(p => p && p.trim());
+        resolutionHtml = resPaths.map(buildMediaHtml).join('');
+        if (resPaths.length === 0) {
+            resolutionHtml = '<div class="no-photo"><i class="fas fa-check-circle text-2xl block mb-1"></i>No resolution evidence</div>';
+        }
+    } else {
+        resolutionHtml = '<div class="no-photo"><i class="fas fa-check-circle text-2xl block mb-1"></i>No resolution evidence</div>';
     }
 
     // Build location text
@@ -1706,12 +1939,22 @@ function renderDrillPanel(report) {
             </div>
         </div>
 
+        <!-- Resolution Evidence -->
+        <div class="mb-4">
+            <p class="text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-check-circle text-emerald-500 mr-1"></i>Resolution Evidence
+            </p>
+            <div class="drill-photo-grid">
+                ${resolutionHtml}
+            </div>
+        </div>
+
         <!-- Severity Score (optional) -->
         <div class="bg-gray-50 rounded-xl p-4 mb-4">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-semibold text-gray-700">Severity Score</p>
-                    <p class="text-2xl font-extrabold ${score <= 8 ? 'text-emerald-600' : (score <= 15 ? 'text-amber-600' : 'text-red-600')}">${score} / 20</p>
+                    <p class="text-2xl font-extrabold ${riskLevel === 'critical' ? 'text-red-600' : (riskLevel === 'high' ? 'text-orange-600' : (riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600'))}">${score} / 20</p>
                 </div>
                 <div class="text-right">
                     <p class="text-xs text-gray-400">Classification</p>
@@ -1721,7 +1964,7 @@ function renderDrillPanel(report) {
             <div class="mt-2 flex gap-1">
                 ${Array.from({length: 20}, (_, i) => {
                     const filled = i < score;
-                    return `<div class="h-2 flex-1 rounded-full ${filled ? (score <= 8 ? 'bg-emerald-500' : (score <= 15 ? 'bg-amber-500' : 'bg-red-500')) : 'bg-gray-200'}"></div>`;
+                    return `<div class="h-2 flex-1 rounded-full ${filled ? (riskLevel === 'critical' ? 'bg-red-500' : (riskLevel === 'high' ? 'bg-orange-500' : (riskLevel === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'))) : 'bg-gray-200'}"></div>`;
                 }).join('')}
             </div>
         </div>
@@ -1804,10 +2047,10 @@ function initCharts() {
     new Chart(ctx1, {
         type: 'doughnut',
         data: {
-            labels: ['Low (1-8)', 'Medium (9-15)', 'High (16-20)'],
+            labels: severityLabels,
             datasets: [{
                 data: severityData,
-                backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+                backgroundColor: ['#10B981', '#F59E0B', '#F97316', '#EF4444'],
                 borderWidth: 0
             }]
         },

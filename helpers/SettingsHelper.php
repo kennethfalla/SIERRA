@@ -169,6 +169,18 @@ class SettingsHelper {
             'clustering_radius_meters' => 50,
 
             // ========================================
+            // KPI & INSIGHTS (Insight Engine targets)
+            // ========================================
+            'kpi_resolution_rate_target' => 60,
+            'kpi_sla_response_hours' => 48,
+            'kpi_surge_alert_threshold' => 25,
+            'kpi_hotspot_radius_meters' => 10,
+            'kpi_critical_reports_pct' => 30,
+            'kpi_demographic_threshold' => 10,
+            'kpi_repeat_min_reports' => 3,
+            'kpi_repeat_window_days' => 30,
+
+            // ========================================
             // MAP SETTINGS
             // ========================================
             'map_default_lat' => 15.3092,
