@@ -100,6 +100,7 @@ $img_stmt->execute();
 $images = $img_stmt->fetchAll(PDO::FETCH_ASSOC);
 foreach ($images as &$img) {
     $img['image_path'] = BASE_URL . $img['image_path'];
+    $img['is_video'] = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $img['image_path']) ? 1 : 0;
 }
 
 // Get resolution evidence
@@ -129,6 +130,50 @@ $boundary_data = null;
 if (file_exists($geojson_file)) {
     $geojson_content = file_get_contents($geojson_file);
     $boundary_data = json_decode($geojson_content, true);
+}
+
+// Load every barangay boundary with its database ID so the map can highlight
+// the exact barangay polygon the report falls into (authoritative point-in-
+// polygon, independent of what OSM reverse geocoding might guess).
+$barangay_ids = [];
+foreach ($db->query("SELECT id, name FROM barangays") as $barangay_row) {
+    $barangay_ids[strtolower(preg_replace('/[^a-z0-9]+/', '', $barangay_row['name']))] = (int)$barangay_row['id'];
+}
+
+$barangays_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/barangay';
+$barangay_data = null;
+if (is_dir($barangays_dir)) {
+    $barangay_features = [];
+    foreach (glob($barangays_dir . '/*.geojson') as $barangay_file) {
+        $barangay_base = basename($barangay_file);
+        if ($barangay_base === 'san-isidro.barangay.geojson' || strpos($barangay_base, '_with_reports') !== false) {
+            continue;
+        }
+        $barangay_decoded = json_decode(file_get_contents($barangay_file), true);
+        if (!is_array($barangay_decoded) || ($barangay_decoded['type'] ?? '') !== 'FeatureCollection') {
+            continue;
+        }
+        foreach (($barangay_decoded['features'] ?? []) as $barangay_feature) {
+            if (!is_array($barangay_feature) || !isset($barangay_feature['geometry'])) {
+                continue;
+            }
+            $barangay_gtype = $barangay_feature['geometry']['type'] ?? '';
+            if ($barangay_gtype !== 'Polygon' && $barangay_gtype !== 'MultiPolygon') {
+                continue;
+            }
+            $barangay_name = $barangay_feature['properties']['barangay_name'] ?? $barangay_feature['properties']['name'] ?? '';
+            if ($barangay_name === '') {
+                $barangay_name = ucwords(str_replace('-', ' ', pathinfo($barangay_base, PATHINFO_FILENAME)));
+            }
+            $barangay_name_key = strtolower(preg_replace('/[^a-z0-9]+/', '', $barangay_name));
+            $barangay_feature['properties']['name'] = $barangay_name;
+            $barangay_feature['properties']['barangay_id'] = $barangay_ids[$barangay_name_key] ?? null;
+            $barangay_features[] = $barangay_feature;
+        }
+    }
+    if (count($barangay_features) > 0) {
+        $barangay_data = ['type' => 'FeatureCollection', 'features' => $barangay_features];
+    }
 }
 
 $risk_levels = [
@@ -1086,6 +1131,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <i class="fas fa-map-pin mr-1 text-[#10A37F]"></i>
                 <?php echo number_format($report['latitude'], 6); ?>, <?php echo number_format($report['longitude'], 6); ?>
             </p>
+            <p class="text-xs text-gray-400 mt-1 text-center">
+                <i class="fas fa-map-marked-alt mr-1 text-[#10A37F]"></i>
+                Pin falls within: <strong class="text-gray-600" id="detectedBarangayLabel">Checking barangay boundary...</strong>
+            </p>
             <div class="text-center mt-1">
                 <a href="https://www.openstreetmap.org/?mlat=<?php echo $report['latitude']; ?>&amp;mlon=<?php echo $report['longitude']; ?>#map=17/<?php echo $report['latitude']; ?>/<?php echo $report['longitude']; ?>" 
                    target="_blank" 
@@ -1106,16 +1155,28 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <?php if(!empty($images)): ?>
         <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8">
             <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 md:mb-4">
-                <i class="fas fa-image mr-1"></i> Evidence Photos (<?php echo count($images); ?>)
+                <i class="fas fa-image mr-1"></i> Evidence (<?php echo count($images); ?>)
             </h3>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <?php foreach($images as $index => $image): ?>
                 <div class="photo-card group" onclick="openLightbox(<?php echo $index; ?>)">
+                    <?php if(!empty($image['is_video'])): ?>
+                    <video src="<?php echo $image['image_path']; ?>" class="w-full h-32 md:h-48 object-cover" muted playsinline preload="metadata"></video>
+                    <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg flex items-center gap-1">
+                        <i class="fas fa-video"></i>Video
+                    </div>
+                    <?php if($image['is_primary']): ?>
+                    <div class="absolute top-2 right-2 bg-[#10A37F] text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg">
+                        <i class="fas fa-star mr-1"></i>Primary
+                    </div>
+                    <?php endif; ?>
+                    <?php else: ?>
                     <img src="<?php echo $image['image_path']; ?>" class="w-full h-32 md:h-48 object-cover" alt="Evidence photo" onerror="this.src='https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found'">
                     <?php if($image['is_primary']): ?>
                     <div class="absolute top-2 right-2 bg-[#10A37F] text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg">
                         <i class="fas fa-star mr-1"></i>Primary
                     </div>
+                    <?php endif; ?>
                     <?php endif; ?>
                     <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <i class="fas fa-search-plus text-white text-2xl md:text-3xl"></i>
@@ -1186,9 +1247,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </button>
     <div class="max-w-5xl max-h-[85vh] w-full h-full flex items-center justify-center" onclick="event.stopPropagation()">
         <img id="lightboxImage" src="" alt="Full size image" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl">
+        <video id="lightboxVideo" src="" controls autoplay playsinline preload="metadata" disablepictureinpicture class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" style="display:none;"></video>
     </div>
     <div class="absolute bottom-6 left-0 right-0 text-center text-white/70 text-sm" id="lightboxCounter">
-        Image 1 of <?php echo count($images); ?>
+        Media 1 of <?php echo count($images); ?>
     </div>
 </div>
 
@@ -1277,8 +1339,91 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
 <script>
 const sanIsidroBoundary = <?php echo json_encode($boundary_data); ?>;
+const barangayData = <?php echo json_encode($barangay_data); ?>;
 const reportImages = <?php echo json_encode($images); ?>;
 let currentImageIndex = 0;
+
+// ===== Accurate point-in-polygon helpers (official barangay boundaries) =====
+// GeoJSON coordinates are [lng, lat]; every polygon is a list of rings,
+// where the first ring is the outer boundary and any later rings are holes.
+function collectPolygons(geom, out) {
+    if (!geom) return;
+    if (geom.type === 'Polygon') out.push(geom.coordinates);
+    else if (geom.type === 'MultiPolygon') geom.coordinates.forEach(function(p){ out.push(p); });
+    else if (geom.type === 'GeometryCollection') (geom.geometries || []).forEach(function(g){ collectPolygons(g, out); });
+}
+
+function pointOnSegment(x, y, a, b) {
+    const x1 = a[0], y1 = a[1], x2 = b[0], y2 = b[1];
+    const cross = (y - y1) * (x2 - x1) - (x - x1) * (y2 - y1);
+    if (Math.abs(cross) > 1e-9) return false;
+    return Math.min(x1, x2) - 1e-9 <= x && x <= Math.max(x1, x2) + 1e-9
+        && Math.min(y1, y2) - 1e-9 <= y && y <= Math.max(y1, y2) + 1e-9;
+}
+
+function pointInRing(x, y, ring) {
+    if (!ring || ring.length < 3) return false;
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const a = ring[j], b = ring[i];
+        if (pointOnSegment(x, y, a, b)) return true;
+        const ay = a[1], by = b[1];
+        if ((ay > y) !== (by > y)) {
+            const xi = a[0] + (y - ay) * (b[0] - a[0]) / (by - ay);
+            if (x < xi) inside = !inside;
+        }
+    }
+    return inside;
+}
+
+function pointInPolygon(x, y, polygon) {
+    if (!polygon.length || polygon[0].length < 3) return false;
+    if (!pointInRing(x, y, polygon[0])) return false;
+    for (let i = 1; i < polygon.length; i++) {
+        if (pointInRing(x, y, polygon[i])) return false; // inside a hole -> outside
+    }
+    return true;
+}
+
+function isPointInSanIsidro(lat, lng) {
+    if (!sanIsidroBoundary || !sanIsidroBoundary.features) return true;
+    for (const feature of sanIsidroBoundary.features) {
+        const polys = [];
+        collectPolygons(feature.geometry, polys);
+        for (const poly of polys) {
+            if (pointInPolygon(lng, lat, poly)) return true;
+        }
+    }
+    return false;
+}
+
+// Pre-build the barangay polygon index so detection is instant.
+const barangayPolygons = [];
+if (barangayData && barangayData.features) {
+    barangayData.features.forEach(function(feat) {
+        if (!feat.geometry) return;
+        const polys = [];
+        collectPolygons(feat.geometry, polys);
+        if (polys.length > 0) {
+            barangayPolygons.push({
+                name: (feat.properties && feat.properties.name) || '',
+                id: (feat.properties && feat.properties.barangay_id) || null,
+                polygons: polys
+            });
+        }
+    });
+}
+
+// Authoritative barangay lookup: point-in-polygon against the official
+// barangay boundary files.
+function detectBarangay(lat, lng) {
+    for (const brgy of barangayPolygons) {
+        for (const poly of brgy.polygons) {
+            if (pointInPolygon(lng, lat, poly)) return brgy;
+        }
+    }
+    return null;
+}
 
 function extractPolygonCoordinates(geojson) {
     if (!geojson || !geojson.features) return null;
@@ -1353,11 +1498,10 @@ document.getElementById('cancelForm').addEventListener('submit', function(e) {
 function openLightbox(index) {
     currentImageIndex = index;
     const lightbox = document.getElementById('lightboxModal');
-    const lightboxImg = document.getElementById('lightboxImage');
     const counter = document.getElementById('lightboxCounter');
     if (reportImages[currentImageIndex]) {
-        lightboxImg.src = reportImages[currentImageIndex].image_path;
-        counter.textContent = `Image ${currentImageIndex + 1} of ${reportImages.length}`;
+        renderLightboxMedia();
+        counter.textContent = `Media ${currentImageIndex + 1} of ${reportImages.length}`;
     }
     lightbox.classList.remove('hidden');
     lightbox.classList.add('flex');
@@ -1366,8 +1510,10 @@ function openLightbox(index) {
 
 function closeLightbox() {
     const lightbox = document.getElementById('lightboxModal');
+    const lightboxVideo = document.getElementById('lightboxVideo');
     lightbox.classList.add('hidden');
     lightbox.classList.remove('flex');
+    if (lightboxVideo) { lightboxVideo.pause(); lightboxVideo.removeAttribute('src'); lightboxVideo.load(); }
     document.body.style.overflow = '';
 }
 
@@ -1383,12 +1529,30 @@ function prevImage() {
     updateLightboxImage();
 }
 
-function updateLightboxImage() {
+function renderLightboxMedia() {
     const lightboxImg = document.getElementById('lightboxImage');
+    const lightboxVideo = document.getElementById('lightboxVideo');
+    const item = reportImages[currentImageIndex];
+    if (item.is_video) {
+        lightboxImg.style.display = 'none';
+        lightboxVideo.style.display = '';
+        lightboxVideo.src = item.image_path;
+        lightboxVideo.play().catch(function() {});
+    } else {
+        lightboxVideo.pause();
+        lightboxVideo.removeAttribute('src');
+        lightboxVideo.load();
+        lightboxVideo.style.display = 'none';
+        lightboxImg.src = item.image_path;
+        lightboxImg.style.display = '';
+    }
+}
+
+function updateLightboxImage() {
     const counter = document.getElementById('lightboxCounter');
     if (reportImages[currentImageIndex]) {
-        lightboxImg.src = reportImages[currentImageIndex].image_path;
-        counter.textContent = `Image ${currentImageIndex + 1} of ${reportImages.length}`;
+        renderLightboxMedia();
+        counter.textContent = `Media ${currentImageIndex + 1} of ${reportImages.length}`;
     }
 }
 
@@ -1514,12 +1678,40 @@ document.addEventListener('DOMContentLoaded', function() {
         if (polygonCoords) {
             L.polygon(polygonCoords, {
                 color: "#10A37F",
-                weight: 3,
+                weight: 2,
                 fillColor: "#10A37F",
-                fillOpacity: 0.12,
-                smoothFactor: 1
+                fillOpacity: 0.05,
+                smoothFactor: 1,
+                dashArray: "6 4"
             }).addTo(map);
         }
+    }
+
+    // Official barangay boundaries (subtle backdrop), then highlight the
+    // barangay polygon the report pin actually falls into.
+    const detectedBrgy = detectBarangay(<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>);
+    const detectedLabel = document.getElementById('detectedBarangayLabel');
+    if (detectedBrgy && detectedBrgy.name) {
+        detectedLabel.textContent = detectedBrgy.name + ' (official boundary)';
+    } else if (!isPointInSanIsidro(<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>)) {
+        detectedLabel.textContent = 'Outside San Isidro boundary';
+    } else {
+        detectedLabel.textContent = 'Not within any barangay polygon';
+    }
+    if (barangayData && barangayData.features) {
+        barangayData.features.forEach(function(feature) {
+            const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
+            const isDetected = detectedBrgy && (feature.properties.barangay_id === detectedBrgy.id);
+            L.geoJSON(feature, {
+                style: {
+                    color: isDetected ? "#0D8568" : "#9CA3AF",
+                    weight: isDetected ? 2.5 : 1,
+                    fillColor: isDetected ? "#10A37F" : "#10A37F",
+                    fillOpacity: isDetected ? 0.18 : 0.05,
+                    smoothFactor: 1
+                }
+            }).addTo(map).bindTooltip(name, { sticky: true });
+        });
     }
 
     var customIcon = L.divIcon({

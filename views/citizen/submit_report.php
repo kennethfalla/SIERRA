@@ -32,6 +32,50 @@ if (file_exists($geojson_file)) {
     $geojson_content = file_get_contents($geojson_file);
     $boundary_data = json_decode($geojson_content, true);
 }
+
+// Load every barangay boundary with its database ID so the map can run an
+// accurate point-in-polygon check (authoritative, unlike OSM reverse
+// geocoding which is often missing or wrong for barangay-level names).
+$barangay_ids = [];
+foreach ($db->query("SELECT id, name FROM barangays") as $barangay_row) {
+    $barangay_ids[strtolower(preg_replace('/[^a-z0-9]+/', '', $barangay_row['name']))] = (int)$barangay_row['id'];
+}
+
+$barangays_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/barangay';
+$barangay_data = null;
+if (is_dir($barangays_dir)) {
+    $barangay_features = [];
+    foreach (glob($barangays_dir . '/*.geojson') as $barangay_file) {
+        $barangay_base = basename($barangay_file);
+        if ($barangay_base === 'san-isidro.barangay.geojson' || strpos($barangay_base, '_with_reports') !== false) {
+            continue;
+        }
+        $barangay_decoded = json_decode(file_get_contents($barangay_file), true);
+        if (!is_array($barangay_decoded) || ($barangay_decoded['type'] ?? '') !== 'FeatureCollection') {
+            continue;
+        }
+        foreach (($barangay_decoded['features'] ?? []) as $barangay_feature) {
+            if (!is_array($barangay_feature) || !isset($barangay_feature['geometry'])) {
+                continue;
+            }
+            $barangay_gtype = $barangay_feature['geometry']['type'] ?? '';
+            if ($barangay_gtype !== 'Polygon' && $barangay_gtype !== 'MultiPolygon') {
+                continue;
+            }
+            $barangay_name = $barangay_feature['properties']['barangay_name'] ?? $barangay_feature['properties']['name'] ?? '';
+            if ($barangay_name === '') {
+                $barangay_name = ucwords(str_replace('-', ' ', pathinfo($barangay_base, PATHINFO_FILENAME)));
+            }
+            $barangay_name_key = strtolower(preg_replace('/[^a-z0-9]+/', '', $barangay_name));
+            $barangay_feature['properties']['name'] = $barangay_name;
+            $barangay_feature['properties']['barangay_id'] = $barangay_ids[$barangay_name_key] ?? null;
+            $barangay_features[] = $barangay_feature;
+        }
+    }
+    if (count($barangay_features) > 0) {
+        $barangay_data = ['type' => 'FeatureCollection', 'features' => $barangay_features];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -469,6 +513,14 @@ if (file_exists($geojson_file)) {
         .details-photos img:hover {
             transform: scale(1.05);
         }
+        .details-photos video {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            background: #000;
+        }
 
         /* ===== CAMERA MODAL ===== */
         .camera-modal {
@@ -636,6 +688,100 @@ if (file_exists($geojson_file)) {
             .camera-controls {
                 gap: 14px;
             }
+        }
+
+        /* ===== CAMERA MODE TOGGLE ===== */
+        .camera-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 9999px;
+            padding: 4px;
+            margin-bottom: 18px;
+        }
+        .camera-mode-toggle .mode-btn {
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 8px 18px;
+            border-radius: 9999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+        .camera-mode-toggle .mode-btn:hover {
+            color: white;
+        }
+        .camera-mode-toggle .mode-btn.mode-active {
+            background: white;
+            color: #10A37F;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        @media (max-width: 480px) {
+            .camera-mode-toggle .mode-btn {
+                padding: 7px 14px;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* ===== RECORDING INDICATOR ===== */
+        .recording-indicator {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .recording-indicator .rec-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #EF4444;
+            animation: recBlink 1s infinite;
+            flex-shrink: 0;
+        }
+        @keyframes recBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .recording-indicator .rec-max {
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.6);
+            font-weight: 500;
+        }
+
+        /* Recording stop button style */
+        .camera-controls .ctrl-btn.capture.recording {
+            background: #EF4444;
+            color: white;
+            box-shadow: 0 0 0 6px rgba(239,68,68,0.3);
+            animation: recBtnPulse 1.2s infinite;
+        }
+        @keyframes recBtnPulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(239,68,68,0.3); }
+            50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
         }
 
         .camera-tips-overlay {
@@ -883,7 +1029,7 @@ if (file_exists($geojson_file)) {
                                     <div class="icon"><i class="fas fa-fire text-red-500"></i></div>
                                     <div class="title">Severe</div>
                                     <div class="desc">Blocking roads, entering homes, active safety hazard.</div>
-                                    <span class="badge-severe">Auto-escalates</span>
+                                   
                                 </div>
                             </div>
                         </div>
@@ -933,7 +1079,7 @@ if (file_exists($geojson_file)) {
                                 </button>
                             </div>
 
-                            <div class="absolute top-4 left-4 z-[10] bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm">
+                            <div class="absolute top-4 right-4 z-[10] bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm">
                                 <div class="flex items-center space-x-2 text-xs text-gray-600">
                                     <i class="fas fa-hand-pointer text-[#10A37F]"></i>
                                     <span>Click on map to pin location</span>
@@ -953,14 +1099,14 @@ if (file_exists($geojson_file)) {
                     <!-- ===== PHOTO EVIDENCE ===== -->
                     <div class="mb-5">
                         <label class="form-label">
-                            Photo Evidence (Max 3) <span class="text-red-500">*</span>
-                            <span class="text-xs font-normal text-gray-400 ml-1">(Take photo or upload)</span>
+                            Photo/Video Evidence (Max 3) <span class="text-red-500">*</span>
+                            <span class="text-xs font-normal text-gray-400 ml-1">(Take photo, record video, or upload)</span>
                         </label>
                         <div class="upload-area" id="uploadArea">
                             <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
                             <p class="text-sm text-gray-500">Click or drag & drop to upload photos</p>
-                            <p class="text-xs text-gray-400 mt-1">Up to 3 photos (JPG, PNG, GIF, WebP - Max 5MB each)</p>
-                            <input type="file" id="photoInput" name="report_images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple style="display: none;" data-max-files="3" data-max-size="5242880">
+                            <p class="text-xs text-gray-400 mt-1">Up to 3 files (JPG, PNG, GIF, WebP up to 5MB each; MP4, WEBM, MOV videos up to 25MB each)</p>
+                            <input type="file" id="photoInput" name="report_images[]" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/m4v" multiple style="display: none;" data-max-files="3" data-max-size="26214400">
                         </div>
 
                         <div class="mt-3 flex flex-col sm:flex-row gap-3">
@@ -975,7 +1121,7 @@ if (file_exists($geojson_file)) {
                         </div>
 
                         <div id="photoPreviews" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4"></div>
-                        <p id="photoCount" class="text-xs text-gray-400 mt-2">0 / 3 photos selected</p>
+                        <p id="photoCount" class="text-xs text-gray-400 mt-2">0 / 3 files selected</p>
                         <p id="file-error" class="error-message"></p>
                     </div>
 
@@ -1075,8 +1221,18 @@ if (file_exists($geojson_file)) {
 
 <!-- ===== ENHANCED CAMERA MODAL ===== -->
 <div id="cameraModal" class="camera-modal">
+    <!-- Photo / Video mode toggle -->
+    <div class="camera-mode-toggle">
+        <button type="button" id="photoModeBtn" class="mode-btn mode-active" data-mode="photo">
+            <i class="fas fa-camera"></i> Photo
+        </button>
+        <button type="button" id="videoModeBtn" class="mode-btn" data-mode="video">
+            <i class="fas fa-video"></i> Video
+        </button>
+    </div>
+
     <div class="camera-wrapper">
-        <video id="video" autoplay playsinline></video>
+        <video id="video" autoplay playsinline muted></video>
         <canvas id="canvas" style="display: none;"></canvas>
         
         <!-- Viewfinder overlay -->
@@ -1087,7 +1243,14 @@ if (file_exists($geojson_file)) {
             <div class="corner br"></div>
             <div class="crosshair"></div>
         </div>
-        
+
+        <!-- Recording indicator (video mode) -->
+        <div id="recordingIndicator" class="recording-indicator" style="display:none;">
+            <span class="rec-dot"></span>
+            <span id="recTimer">00:00</span>
+            <span class="rec-max">max 30s</span>
+        </div>
+
         <!-- Camera Tips -->
         <div id="cameraTips" class="camera-tips-overlay">
             <div class="tip-dismiss" onclick="dismissCameraTips()">✕</div>
@@ -1143,6 +1306,10 @@ if (file_exists($geojson_file)) {
     const clearLocationBtn = document.getElementById('clearLocationBtn');
     const switchCameraBtn = document.getElementById('switchCameraBtn');
     const flashToggleBtn = document.getElementById('flashToggleBtn');
+    const photoModeBtn = document.getElementById('photoModeBtn');
+    const videoModeBtn = document.getElementById('videoModeBtn');
+    const recordingIndicator = document.getElementById('recordingIndicator');
+    const recTimer = document.getElementById('recTimer');
 
     // Duplicate Modal DOM
     const duplicateModal = document.getElementById('duplicateModal');
@@ -1167,13 +1334,32 @@ if (file_exists($geojson_file)) {
     let cameraTipTimer = null;
     let facingMode = 'environment';
     let flashMode = false;
+    let cameraMode = 'photo';
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+    let recTimerInterval = null;
+    let recStartTime = 0;
     let duplicateReportId = null;
     let isDuplicateCheckDone = false;
     let viewingReportId = null;
 
     const MAX_PHOTOS = 3;
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
-    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const MAX_VIDEO_SIZE = 25 * 1024 * 1024;
+    const MAX_VIDEO_DURATION = 30000; // 30 seconds
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/m4v', 'video/3gpp', 'video/x-matroska'];
+    const EXT_TO_TYPE = {
+        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp',
+        mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', m4v: 'video/m4v', avi: 'video/x-msvideo', '3gp': 'video/3gpp', mkv: 'video/x-matroska'
+    };
+
+    function resolveFileType(file) {
+        const mime = normalizeMimeType(file.type);
+        if (ALLOWED_TYPES.includes(mime)) return mime;
+        const ext = String(file.name || '').split('.').pop().toLowerCase();
+        return EXT_TO_TYPE[ext] || mime || '';
+    }
 
     // Default map center/zoom, from Settings > Map (falls back to San Isidro center)
     const MAP_DEFAULT_LAT = <?php echo (float)$mapDefaults['default_lat']; ?>;
@@ -1488,7 +1674,7 @@ if (file_exists($geojson_file)) {
     function validateFiles() {
         const previewImages = photoPreviews.querySelectorAll('.photo-preview');
         if (previewImages.length === 0) {
-            showFieldError('file', 'Please upload at least one photo as evidence');
+            showFieldError('file', 'Please upload at least one photo or video as evidence');
             return false;
         }
         hideFieldError('file');
@@ -1509,16 +1695,31 @@ if (file_exists($geojson_file)) {
     }
 
     // ============================================================
-    // PHOTO MANAGEMENT
+    // PHOTO / VIDEO MANAGEMENT
     // ============================================================
+    function isVideoFile(file) {
+        return String(resolveFileType(file)).startsWith('video/');
+    }
+
+    function normalizeMimeType(mime) {
+        return String(mime || '').split(';')[0].trim();
+    }
+
     function validateFile(file) {
-        if (!ALLOWED_TYPES.includes(file.type)) {
-            showToast('Invalid file type: ' + file.name + '. Allowed: JPG, PNG, GIF, WebP', 'error');
+        const fileType = resolveFileType(file);
+        if (!ALLOWED_TYPES.includes(fileType)) {
+            showToast('Invalid file type: ' + file.name + '. Allowed: JPG, PNG, GIF, WebP, MP4, WEBM, MOV', 'error');
             return false;
         }
-        if (file.size > MAX_FILE_SIZE) {
+        const isVideo = isVideoFile(file);
+        const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_FILE_SIZE;
+        if (file.size > maxSize) {
             const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showToast('File too large: ' + file.name + ' (' + sizeMB + 'MB). Max 5MB', 'error');
+            showToast('File too large: ' + file.name + ' (' + sizeMB + 'MB). Max ' + (isVideo ? '25MB' : '5MB'), 'error');
+            return false;
+        }
+        if (isVideo && file.size === 0) {
+            showToast('Video file is empty: ' + file.name, 'error');
             return false;
         }
         return true;
@@ -1529,10 +1730,28 @@ if (file_exists($geojson_file)) {
         selectedPhotos.forEach(function(photo, index) {
             const div = document.createElement('div');
             div.className = 'photo-preview relative';
-            div.innerHTML = `
-                <img src="${photo.data}" class="w-full h-20 md:h-24 object-cover rounded-lg border border-gray-200" alt="Photo ${index + 1}">
-                <div class="remove-photo" data-index="${index}" title="Remove photo"><i class="fas fa-times"></i></div>
-            `;
+            const isVideo = photo.isVideo;
+            if (isVideo) {
+                div.innerHTML = `
+                    <div class="relative w-full h-20 md:h-24 rounded-lg border border-gray-200 overflow-hidden bg-black">
+                        <video src="${photo.data}" class="w-full h-full object-cover" muted playsinline preload="metadata" disablepictureinpicture disableremoteplayback></video>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center border-2 border-white">
+                                <i class="fas fa-play text-white text-xs ml-0.5"></i>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <i class="fas fa-video"></i>${photo.duration || ''}
+                        </div>
+                    </div>
+                    <div class="remove-photo" data-index="${index}" title="Remove video"><i class="fas fa-times"></i></div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <img src="${photo.data}" class="w-full h-20 md:h-24 object-cover rounded-lg border border-gray-200" alt="Photo ${index + 1}">
+                    <div class="remove-photo" data-index="${index}" title="Remove photo"><i class="fas fa-times"></i></div>
+                `;
+            }
             photoPreviews.appendChild(div);
         });
         photoPreviews.querySelectorAll('.remove-photo').forEach(function(btn) {
@@ -1541,7 +1760,9 @@ if (file_exists($geojson_file)) {
                 removePhoto(idx);
             });
         });
-        photoCount.textContent = selectedPhotos.length + ' / ' + MAX_PHOTOS + ' photos selected';
+        const videoCount = selectedPhotos.filter(function(p) { return p.isVideo; }).length;
+        const photoLabel = (videoCount > 0) ? selectedPhotos.length + ' / ' + MAX_PHOTOS + ' files selected (' + videoCount + ' video)' : selectedPhotos.length + ' / ' + MAX_PHOTOS + ' photos selected';
+        photoCount.textContent = photoLabel;
         validateFiles();
     }
 
@@ -1554,6 +1775,10 @@ if (file_exists($geojson_file)) {
     }
 
     function removePhoto(index) {
+        const photo = selectedPhotos[index];
+        if (photo && photo.isVideo && photo.data) {
+            URL.revokeObjectURL(photo.data);
+        }
         selectedPhotos.splice(index, 1);
         selectedFiles.splice(index, 1);
         updatePhotoPreviews();
@@ -1563,12 +1788,21 @@ if (file_exists($geojson_file)) {
     function addPhotoFromFile(file) {
         if (!validateFile(file)) return false;
         if (selectedPhotos.length >= MAX_PHOTOS) {
-            showToast('Maximum ' + MAX_PHOTOS + ' photos allowed', 'warning');
+            showToast('Maximum ' + MAX_PHOTOS + ' files allowed', 'warning');
             return false;
+        }
+        const isVideo = isVideoFile(file);
+        if (isVideo) {
+            const objectUrl = URL.createObjectURL(file);
+            selectedPhotos.push({ data: objectUrl, file: file, isVideo: true });
+            selectedFiles.push(file);
+            updatePhotoPreviews();
+            updateFileInput();
+            return true;
         }
         const reader = new FileReader();
         reader.onload = function(e) {
-            selectedPhotos.push({ data: e.target.result, file: file });
+            selectedPhotos.push({ data: e.target.result, file: file, isVideo: false });
             selectedFiles.push(file);
             updatePhotoPreviews();
             updateFileInput();
@@ -1580,7 +1814,7 @@ if (file_exists($geojson_file)) {
     function addPhotos(files) {
         for (let i = 0; i < files.length; i++) {
             if (selectedPhotos.length >= MAX_PHOTOS) {
-                showToast('Maximum ' + MAX_PHOTOS + ' photos reached', 'warning');
+                showToast('Maximum ' + MAX_PHOTOS + ' files reached', 'warning');
                 break;
             }
             addPhotoFromFile(files[i]);
@@ -1588,21 +1822,39 @@ if (file_exists($geojson_file)) {
     }
 
     // ============================================================
-    // ENHANCED CAMERA FUNCTIONS
+    // ENHANCED CAMERA FUNCTIONS (PHOTO + VIDEO)
     // ============================================================
+    function setCameraMode(mode) {
+        cameraMode = mode;
+        photoModeBtn.classList.toggle('mode-active', mode === 'photo');
+        videoModeBtn.classList.toggle('mode-active', mode === 'video');
+        captureBtn.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
+        if (mode === 'video') {
+            captureBtn.title = 'Start Recording';
+            captureBtn.innerHTML = '<i class="fas fa-video"></i>';
+        } else {
+            flashToggleBtn.style.display = '';
+            captureBtn.title = 'Capture Photo';
+            captureBtn.innerHTML = '<i class="fas fa-camera"></i>';
+        }
+    }
+
     async function openCamera() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             showToast('Camera not supported on this device/browser', 'error');
             return;
         }
         try {
+            const isVideoMode = cameraMode === 'video';
             const constraints = {
-                video: { 
+                video: {
                     facingMode: facingMode,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    width: { ideal: isVideoMode ? 1280 : 1920 },
+                    height: { ideal: isVideoMode ? 720 : 1080 },
+                    frameRate: { ideal: 30, max: 30 }
                 },
-                audio: false
+                audio: isVideoMode
             };
             mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = mediaStream;
@@ -1619,6 +1871,8 @@ if (file_exists($geojson_file)) {
             flashMode = false;
             flashToggleBtn.classList.remove('active');
             
+            setCameraMode(cameraMode);
+            
         } catch (error) {
             console.error('Camera error:', error);
             showToast('Unable to access camera. Please grant camera permission.', 'error');
@@ -1626,6 +1880,7 @@ if (file_exists($geojson_file)) {
     }
 
     function closeCamera() {
+        if (isRecording) stopRecording(false);
         if (mediaStream) {
             mediaStream.getTracks().forEach(function(track) { track.stop(); });
             mediaStream = null;
@@ -1634,6 +1889,8 @@ if (file_exists($geojson_file)) {
         cameraModal.classList.remove('active');
         document.body.style.overflow = '';
         stopCameraTips();
+        captureBtn.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
     }
 
     function capturePhoto() {
@@ -1652,7 +1909,135 @@ if (file_exists($geojson_file)) {
         }, 'image/jpeg', 0.92);
     }
 
+    function formatRecTime(ms) {
+        const totalSec = Math.floor(ms / 1000);
+        const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+        const ss = String(totalSec % 60).padStart(2, '0');
+        return mm + ':' + ss;
+    }
+
+    function startRecording() {
+        if (!mediaStream || isRecording) return;
+        if (mediaStream.getVideoTracks().length === 0) {
+            showToast('No video track available', 'error');
+            return;
+        }
+        recordedChunks = [];
+        let mimeType = 'video/webm';
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+            mimeType = 'video/webm;codecs=vp9';
+        } else if (window.MediaRecorder && MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+            mimeType = 'video/webm;codecs=vp8';
+        } else if (window.MediaRecorder && MediaRecorder.isTypeSupported('video/mp4')) {
+            mimeType = 'video/mp4';
+        }
+        try {
+            mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mimeType, videoBitsPerSecond: 1200000, audioBitsPerSecond: 128000 });
+        } catch (e) {
+            try {
+                mediaRecorder = new MediaRecorder(mediaStream, { videoBitsPerSecond: 1200000 });
+            } catch (e2) {
+                try {
+                    mediaRecorder = new MediaRecorder(mediaStream);
+                } catch (e3) {
+                    showToast('Video recording not supported on this browser', 'error');
+                    return;
+                }
+            }
+        }
+        mediaRecorder.ondataavailable = function(e) {
+            if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+        };
+        mediaRecorder.onstop = onRecordingStopped;
+        mediaRecorder.start(1000);
+        isRecording = true;
+        recStartTime = Date.now();
+        captureBtn.classList.add('recording');
+        captureBtn.title = 'Stop Recording';
+        captureBtn.innerHTML = '<i class="fas fa-stop"></i>';
+        recordingIndicator.style.display = 'flex';
+        recTimer.textContent = '00:00';
+        stopCameraTips();
+        clearInterval(recTimerInterval);
+        recTimerInterval = setInterval(function() {
+            const elapsed = Date.now() - recStartTime;
+            recTimer.textContent = formatRecTime(elapsed);
+            if (elapsed >= MAX_VIDEO_DURATION) {
+                showToast('Maximum recording time reached (30s)', 'info');
+                stopRecording(true);
+            }
+        }, 250);
+    }
+
+    function stopRecording(save) {
+        if (!isRecording) return;
+        clearInterval(recTimerInterval);
+        isRecording = false;
+        try {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            } else {
+                onRecordingStopped();
+            }
+        } catch (e) {
+            onRecordingStopped();
+        }
+    }
+
+    function onRecordingStopped() {
+        captureBtn.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
+        const rawType = recordedChunks.length > 0 && recordedChunks[0].type ? recordedChunks[0].type : 'video/webm';
+        const blobType = rawType.split(';')[0].trim() || 'video/webm';
+        const blob = new Blob(recordedChunks, { type: blobType });
+        const ext = (blobType.indexOf('mp4') !== -1) ? 'mp4' : 'webm';
+        const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+        if (blob.size < 1024) {
+            showToast('Recording was too short. Please try again.', 'warning');
+            startCameraTips();
+            return;
+        }
+        if (blob.size > MAX_VIDEO_SIZE) {
+            showToast('Video too large (' + sizeMB + 'MB). Max 25MB. Try a shorter clip.', 'error');
+            startCameraTips();
+            return;
+        }
+        const file = new File([blob], 'camera_' + Date.now() + '.' + ext, { type: blobType });
+        if (addPhotoFromFile(file)) {
+            const lastPhoto = selectedPhotos[selectedPhotos.length - 1];
+            if (lastPhoto && lastPhoto.isVideo && lastPhoto.data) {
+                readVideoDuration(lastPhoto.data).then(function(ms) {
+                    lastPhoto.duration = formatRecTime(ms || (Date.now() - recStartTime));
+                    updatePhotoPreviews();
+                });
+            }
+            showToast('Video recorded (' + sizeMB + 'MB)', 'success');
+        }
+        startCameraTips();
+    }
+
+    // Load a video blob once to read its real duration (MediaRecorder webm
+    // files have cues at the end, so this must actually play the file once).
+    function readVideoDuration(objectUrl) {
+        return new Promise(function(resolve) {
+            const probe = document.createElement('video');
+            probe.muted = true;
+            probe.preload = 'auto';
+            probe.src = objectUrl;
+            probe.onloadedmetadata = function() {
+                resolve(Number.isFinite(probe.duration) ? probe.duration * 1000 : 0);
+                probe.src = '';
+            };
+            probe.onerror = function() { resolve(0); };
+            probe.load();
+        });
+    }
+
     async function switchCamera() {
+        if (isRecording) {
+            showToast('Stop recording before switching camera', 'warning');
+            return;
+        }
         facingMode = (facingMode === 'environment') ? 'user' : 'environment';
         if (mediaStream) {
             closeCamera();
@@ -1662,6 +2047,7 @@ if (file_exists($geojson_file)) {
     }
 
     function toggleFlash() {
+        if (cameraMode === 'video') return;
         flashMode = !flashMode;
         flashToggleBtn.classList.toggle('active', flashMode);
         if (mediaStream) {
@@ -1676,6 +2062,24 @@ if (file_exists($geojson_file)) {
                     flashMode = false;
                 }
             }
+        }
+    }
+
+    async function changeCameraMode(mode) {
+        if (mode === cameraMode) return;
+        if (isRecording) {
+            showToast('Stop recording before switching mode', 'warning');
+            return;
+        }
+        setCameraMode(mode);
+        if (cameraMode === 'video') {
+            flashMode = false;
+            flashToggleBtn.classList.remove('active');
+        }
+        if (mediaStream) {
+            closeCamera();
+            await new Promise(resolve => setTimeout(resolve, 300));
+            await openCamera();
         }
     }
 
@@ -1873,15 +2277,19 @@ if (file_exists($geojson_file)) {
             </div>
         `;
         
-        // Photos
+        // Photos / Videos
         if (images && images.length > 0) {
             html += `
                 <div class="detail-row flex-col">
-                    <span class="label">Photos</span>
+                    <span class="label">Photos / Videos</span>
                     <div class="details-photos">
             `;
             images.forEach(function(img) {
-                html += `<img src="${img.image_path}" alt="Report photo" onclick="window.open('${img.image_path}', '_blank')">`;
+                if (img.is_video) {
+                    html += `<video src="${img.image_path}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video>`;
+                } else {
+                    html += `<img src="${img.image_path}" alt="Report photo" onclick="window.open('${img.image_path}', '_blank')">`;
+                }
             });
             html += `
                     </div>
@@ -2000,6 +2408,9 @@ if (file_exists($geojson_file)) {
             if (!confirm('Are you sure? All entered data will be cleared.')) return;
         }
         reportForm.reset();
+        selectedPhotos.forEach(function(photo) {
+            if (photo.isVideo && photo.data) URL.revokeObjectURL(photo.data);
+        });
         selectedPhotos = [];
         selectedFiles = [];
         updatePhotoPreviews();
@@ -2012,7 +2423,7 @@ if (file_exists($geojson_file)) {
         document.getElementById('location_address').value = '';
         document.getElementById('coordDisplay').innerHTML = '<i class="fas fa-map-marker-alt mr-1"></i>No location selected';
         document.getElementById('locationStatus').innerHTML = '';
-        photoCount.textContent = '0 / ' + MAX_PHOTOS + ' photos selected';
+        photoCount.textContent = '0 / ' + MAX_PHOTOS + ' files selected';
         document.querySelectorAll('.error-message').forEach(function(el) { el.classList.remove('visible'); });
         document.querySelectorAll('.form-input').forEach(function(el) { el.classList.remove('error'); });
         updateCharCount('description', 'description-count', 5000);
@@ -2090,10 +2501,19 @@ if (file_exists($geojson_file)) {
     galleryBtn.addEventListener('click', function() { photoInput.click(); });
     uploadArea.addEventListener('click', function() { photoInput.click(); });
     closeCameraBtn.addEventListener('click', closeCamera);
-    captureBtn.addEventListener('click', capturePhoto);
+    captureBtn.addEventListener('click', function() {
+        if (cameraMode === 'video') {
+            if (isRecording) stopRecording(true);
+            else startRecording();
+        } else {
+            capturePhoto();
+        }
+    });
     resetBtn.addEventListener('click', resetForm);
     switchCameraBtn.addEventListener('click', switchCamera);
     flashToggleBtn.addEventListener('click', toggleFlash);
+    photoModeBtn.addEventListener('click', function() { changeCameraMode('photo'); });
+    videoModeBtn.addEventListener('click', function() { changeCameraMode('video'); });
     
     // Map button event listeners
     getLocationBtn.addEventListener('click', getCurrentLocation);
@@ -2178,18 +2598,88 @@ if (file_exists($geojson_file)) {
     };
 
     const sanIsidroBoundary = <?php echo json_encode($boundary_data); ?>;
+    const barangayData = <?php echo json_encode($barangay_data); ?>;
 
-    function isPointInSanIsidro(lat, lng) {
-        if (!sanIsidroPolygon) return true;
+    // ===== Accurate point-in-polygon helpers (official barangay boundaries) =====
+    // GeoJSON coordinates are [lng, lat]; every polygon is a list of rings,
+    // where the first ring is the outer boundary and any later rings are holes.
+    function collectPolygons(geom, out) {
+        if (!geom) return;
+        if (geom.type === 'Polygon') out.push(geom.coordinates);
+        else if (geom.type === 'MultiPolygon') geom.coordinates.forEach(function(p){ out.push(p); });
+        else if (geom.type === 'GeometryCollection') (geom.geometries || []).forEach(function(g){ collectPolygons(g, out); });
+    }
+
+    function pointOnSegment(x, y, a, b) {
+        const x1 = a[0], y1 = a[1], x2 = b[0], y2 = b[1];
+        const cross = (y - y1) * (x2 - x1) - (x - x1) * (y2 - y1);
+        if (Math.abs(cross) > 1e-9) return false;
+        return Math.min(x1, x2) - 1e-9 <= x && x <= Math.max(x1, x2) + 1e-9
+            && Math.min(y1, y2) - 1e-9 <= y && y <= Math.max(y1, y2) + 1e-9;
+    }
+
+    function pointInRing(x, y, ring) {
+        if (!ring || ring.length < 3) return false;
         let inside = false;
-        const x = lng, y = lat;
-        for (let i = 0, j = sanIsidroPolygon.length - 1; i < sanIsidroPolygon.length; j = i++) {
-            const xi = sanIsidroPolygon[i][0], yi = sanIsidroPolygon[i][1];
-            const xj = sanIsidroPolygon[j][0], yj = sanIsidroPolygon[j][1];
-            const intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-            if (intersect) inside = !inside;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const a = ring[j], b = ring[i];
+            if (pointOnSegment(x, y, a, b)) return true;
+            const ay = a[1], by = b[1];
+            if ((ay > y) !== (by > y)) {
+                const xi = a[0] + (y - ay) * (b[0] - a[0]) / (by - ay);
+                if (x < xi) inside = !inside;
+            }
         }
         return inside;
+    }
+
+    function pointInPolygon(x, y, polygon) {
+        if (!polygon.length || polygon[0].length < 3) return false;
+        if (!pointInRing(x, y, polygon[0])) return false;
+        for (let i = 1; i < polygon.length; i++) {
+            if (pointInRing(x, y, polygon[i])) return false; // inside a hole -> outside
+        }
+        return true;
+    }
+
+    function isPointInSanIsidro(lat, lng) {
+        if (!sanIsidroBoundary || !sanIsidroBoundary.features) return true;
+        for (const feature of sanIsidroBoundary.features) {
+            const polys = [];
+            collectPolygons(feature.geometry, polys);
+            for (const poly of polys) {
+                if (pointInPolygon(lng, lat, poly)) return true;
+            }
+        }
+        return false;
+    }
+
+    // Pre-build the barangay polygon index so detection is instant.
+    const barangayPolygons = [];
+    if (barangayData && barangayData.features) {
+        barangayData.features.forEach(function(feat) {
+            if (!feat.geometry) return;
+            const polys = [];
+            collectPolygons(feat.geometry, polys);
+            if (polys.length > 0) {
+                barangayPolygons.push({
+                    name: (feat.properties && feat.properties.name) || '',
+                    id: (feat.properties && feat.properties.barangay_id) || null,
+                    polygons: polys
+                });
+            }
+        });
+    }
+
+    // Authoritative barangay lookup: point-in-polygon against the official
+    // barangay boundary files (far more reliable than reverse geocoding).
+    function detectBarangay(lat, lng) {
+        for (const brgy of barangayPolygons) {
+            for (const poly of brgy.polygons) {
+                if (pointInPolygon(lng, lat, poly)) return brgy;
+            }
+        }
+        return null;
     }
 
     const customIcon = L.divIcon({
@@ -2209,14 +2699,33 @@ if (file_exists($geojson_file)) {
     }
 
     function addBoundaryToMap() {
+        // Municipality outline (subtle dashed) so the user knows the allowed area
         if (sanIsidroBoundary && sanIsidroBoundary.features) {
             const polygonCoords = extractPolygonCoordinates(sanIsidroBoundary);
             if (polygonCoords) {
                 sanIsidroPolygon = polygonCoords.map(function(coord) { return [coord[1], coord[0]]; });
                 boundaryLayer = L.polygon(polygonCoords, {
-                    color: "#10A37F", weight: 3, fillColor: "#10A37F", fillOpacity: 0.15, smoothFactor: 1
+                    color: "#10A37F", weight: 2, fillColor: "#10A37F", fillOpacity: 0.05, smoothFactor: 1, dashArray: "6 4"
                 }).addTo(map);
                 map.fitBounds(boundaryLayer.getBounds());
+            }
+        }
+
+        // Official barangay boundaries — the map shows exactly which barangay
+        // a tapped point falls into (used by detectBarangay() for accuracy).
+        if (barangayData && barangayData.features) {
+            const brgyLayer = L.geoJSON(barangayData, {
+                style: {
+                    color: "#0D8568", weight: 1.5, fillColor: "#10A37F", fillOpacity: 0.10, smoothFactor: 1
+                },
+                onEachFeature: function(feature, layer) {
+                    const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
+                    layer.bindTooltip(name, { sticky: true });
+                }
+            }).addTo(map);
+            // Frame on the barangays when there is no municipality boundary to fit to
+            if (!boundaryLayer) {
+                try { map.fitBounds(brgyLayer.getBounds()); } catch(err) {}
             }
         }
     }
@@ -2334,6 +2843,20 @@ if (file_exists($geojson_file)) {
         currentMarker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
         map.setView([lat, lng], 18);
         const addressComponents = await getDetailedAddress(lat, lng);
+        // Authoritative barangay detection from the official boundary polygons —
+        // overrides whatever the reverse geocoder guessed (OSM data is often
+        // missing/inaccurate for barangay-level names).
+        const detected = detectBarangay(lat, lng);
+        if (detected) {
+            const rebuiltParts = [];
+            if (addressComponents.street) rebuiltParts.push(addressComponents.street);
+            rebuiltParts.push(detected.name);
+            rebuiltParts.push('San Isidro', 'Nueva Ecija');
+            addressComponents.barangay = detected.name;
+            addressComponents.barangay_id = detected.id;
+            addressComponents.fullAddress = rebuiltParts.filter(Boolean).join(', ');
+            addressComponents.barangayVerified = true;
+        }
         const isValid = displayLocationDetails(addressComponents, lat, lng);
         hideFieldError('map');
         if (showPopup && currentMarker && isValid) {

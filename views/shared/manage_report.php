@@ -86,6 +86,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
         .photo-grid img { width: 100%; height: 120px; object-fit: cover; border-radius: 0.75rem; cursor: pointer; border: 1px solid rgba(16,163,127,0.08); transition: transform 0.2s; }
         .photo-grid img:hover { transform: scale(1.02); }
+        .photo-grid video { width: 100%; height: 120px; object-fit: cover; border-radius: 0.75rem; cursor: pointer; border: 1px solid rgba(16,163,127,0.08); background: #000; }
+        .photo-grid video:hover { transform: scale(1.02); }
+        .photo-card { position: relative; }
 
         /* ===== MAP ===== */
         #map { height: 250px; border-radius: 0.75rem; border: 1px solid rgba(16,163,127,0.08); }
@@ -288,7 +291,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important;
                 gap: 4px !important;
             }
-            .photo-grid img {
+            .photo-grid img,
+            .photo-grid video {
                 height: 60px !important;
                 border-radius: 4px !important;
             }
@@ -637,11 +641,20 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php if (!empty($images)): ?>
                     <div class="photo-grid">
                         <?php foreach ($images as $i => $img): ?>
-                            <img src="<?php echo BASE_URL . $img['image_path']; ?>" onclick="openLightbox(<?php echo (int)$i; ?>)" alt="Evidentiary photo <?php echo (int)$i + 1; ?> for this report" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo (int)$i; ?>)">
+                            <?php if (!empty($img['is_video'])): ?>
+                                <div class="photo-card relative" onclick="openLightbox(<?php echo (int)$i; ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo (int)$i; ?>)">
+                                    <video src="<?php echo BASE_URL . $img['image_path']; ?>" muted playsinline preload="metadata"></video>
+                                    <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                                        <i class="fas fa-video"></i>Video
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <img src="<?php echo BASE_URL . $img['image_path']; ?>" onclick="openLightbox(<?php echo (int)$i; ?>)" alt="Evidentiary photo <?php echo (int)$i + 1; ?> for this report" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo (int)$i; ?>)">
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </div>
                     <?php if (count($images) > 1): ?>
-                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click any photo to view full size — <?php echo count($images); ?> photos total.</p>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click any photo/video to view full size — <?php echo count($images); ?> media total.</p>
                     <?php else: ?>
                         <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click to view full size.</p>
                     <?php endif; ?>
@@ -1076,6 +1089,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <button type="button" class="lightbox-close" onclick="closeLightbox()" aria-label="Close photo viewer"><i class="fas fa-xmark"></i></button>
     <button type="button" class="lightbox-nav lightbox-prev" onclick="navLightbox(-1)" aria-label="Previous photo"><i class="fas fa-chevron-left"></i></button>
     <img class="lightbox-img" id="lightboxImg" src="" alt="Evidentiary photo, enlarged view">
+    <video class="lightbox-video" id="lightboxVideo" src="" controls playsinline preload="metadata" disablepictureinpicture style="display:none;max-width:90%;max-height:85vh;border-radius:0.75rem;"></video>
     <button type="button" class="lightbox-nav lightbox-next" onclick="navLightbox(1)" aria-label="Next photo"><i class="fas fa-chevron-right"></i></button>
     <span class="lightbox-counter" id="lightboxCounter"></span>
 </div>
@@ -1222,7 +1236,9 @@ function copyGps(btn) {
 
 // ===== PHOTO LIGHTBOX =====
 <?php if (!empty($images)): ?>
-const lightboxImages = <?php echo json_encode(array_map(function($img) { return BASE_URL . $img['image_path']; }, $images)); ?>;
+const lightboxImages = <?php echo json_encode(array_map(function($img) {
+    return ['path' => BASE_URL . $img['image_path'], 'is_video' => !empty($img['is_video'])];
+}, $images)); ?>;
 let lightboxIndex = 0;
 function openLightbox(index) {
     lightboxIndex = index;
@@ -1231,6 +1247,8 @@ function openLightbox(index) {
     document.body.style.overflow = 'hidden';
 }
 function closeLightbox() {
+    const vid = document.getElementById('lightboxVideo');
+    if (vid) { vid.pause(); vid.removeAttribute('src'); vid.load(); }
     document.getElementById('lightboxOverlay').classList.remove('open');
     document.body.style.overflow = '';
 }
@@ -1239,8 +1257,22 @@ function navLightbox(delta) {
     renderLightbox();
 }
 function renderLightbox() {
-    document.getElementById('lightboxImg').src = lightboxImages[lightboxIndex];
-    document.getElementById('lightboxCounter').textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+    const item = lightboxImages[lightboxIndex];
+    const img = document.getElementById('lightboxImg');
+    const vid = document.getElementById('lightboxVideo');
+    const counter = document.getElementById('lightboxCounter');
+    if (item.is_video) {
+        img.style.display = 'none';
+        vid.style.display = '';
+        vid.src = item.path;
+        vid.play().catch(function() {});
+    } else {
+        if (vid) { vid.pause(); vid.removeAttribute('src'); vid.load(); }
+        vid.style.display = 'none';
+        img.style.display = '';
+        img.src = item.path;
+    }
+    counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
     document.querySelectorAll('.lightbox-nav').forEach(el => el.style.display = lightboxImages.length > 1 ? 'flex' : 'none');
 }
 document.addEventListener('keydown', function(e) {
@@ -1341,6 +1373,11 @@ function handleDownloadPDF() {
     });
     clone.querySelectorAll('.photo-grid img').forEach(img => {
         img.style.cssText = 'width:100%; height:50px; object-fit:cover; border-radius:3px; border:1px solid #e5e7eb;';
+    });
+    clone.querySelectorAll('.photo-grid video').forEach(vid => {
+        vid.removeAttribute('controls');
+        vid.muted = true;
+        vid.style.cssText = 'width:100%; height:50px; object-fit:cover; border-radius:3px; border:1px solid #e5e7eb;';
     });
     // Map - replace with static text
     const mapEl = clone.querySelector('#map');

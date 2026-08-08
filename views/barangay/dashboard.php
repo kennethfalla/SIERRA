@@ -31,6 +31,45 @@ $barangay_id = $_SESSION['barangay_id'];
 $barangay_info = $barangayModel->getById($barangay_id);
 $user_name = $_SESSION['user_name'] ?? 'Barangay Official';
 
+// Load THIS barangay's own boundary from the GeoJSON folder so the map shows
+// exactly their jurisdiction, with the citizen reports pinned on top of it.
+// The boundary file is matched against the barangay name stored in the
+// session (case-insensitive, ignoring hyphens/spaces, e.g. "San Roque").
+$barangay_boundary = null;
+$barangay_name_key = strtolower(preg_replace('/[^a-z0-9]+/', '', $barangay_info['name'] ?? ''));
+if ($barangay_name_key !== '') {
+    $barangays_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/barangay';
+    if (is_dir($barangays_dir)) {
+        foreach (glob($barangays_dir . '/*.geojson') as $barangay_file) {
+            $barangay_base = basename($barangay_file);
+            if ($barangay_base === 'san-isidro.barangay.geojson' || strpos($barangay_base, '_with_reports') !== false) {
+                continue;
+            }
+            $barangay_decoded = json_decode(file_get_contents($barangay_file), true);
+            if (!is_array($barangay_decoded) || ($barangay_decoded['type'] ?? '') !== 'FeatureCollection') {
+                continue;
+            }
+            foreach (($barangay_decoded['features'] ?? []) as $barangay_feature) {
+                if (!is_array($barangay_feature) || !isset($barangay_feature['geometry'])) {
+                    continue;
+                }
+                $barangay_gtype = $barangay_feature['geometry']['type'] ?? '';
+                if ($barangay_gtype !== 'Polygon' && $barangay_gtype !== 'MultiPolygon') {
+                    continue;
+                }
+                $prop_name = $barangay_feature['properties']['barangay_name'] ?? $barangay_feature['properties']['name'] ?? '';
+                $prop_key = strtolower(preg_replace('/[^a-z0-9]+/', '', $prop_name));
+                $file_key = strtolower(preg_replace('/[^a-z0-9]+/', '', pathinfo($barangay_base, PATHINFO_FILENAME)));
+                if ($prop_key === $barangay_name_key || $file_key === $barangay_name_key) {
+                    $barangay_feature['properties']['name'] = $barangay_info['name'];
+                    $barangay_boundary = ['type' => 'FeatureCollection', 'features' => [$barangay_feature]];
+                    break 2;
+                }
+            }
+        }
+    }
+}
+
 // Get current time for real-time greeting
 date_default_timezone_set('Asia/Manila');
 $current_hour = date('H');
@@ -1399,6 +1438,7 @@ const barangayCenter = [
     <?php echo $barangay_info['latitude'] ?? 15.3092; ?>,
     <?php echo $barangay_info['longitude'] ?? 120.9033; ?>
 ];
+const barangayBoundary = <?php echo json_encode($barangay_boundary); ?>;
 
 // ========== FILTER STATE (Category Filter + Active/Historical toggle) ==========
 let selectedCategories = new Set(allCategories.map(c => String(c.id)));
@@ -1442,6 +1482,27 @@ function initMap() {
         maxZoom: 20
     }).addTo(map);
 
+    // Draw THIS barangay's own boundary (its GeoJSON) so the map shows only
+    // their jurisdiction, with the citizen report pins sitting on top of it.
+    if (barangayBoundary && barangayBoundary.features) {
+        const brgyLayer = L.geoJSON(barangayBoundary, {
+            style: {
+                color: "#059669",
+                weight: 2.5,
+                fillColor: "#059669",
+                fillOpacity: 0.07,
+                smoothFactor: 1
+            },
+            onEachFeature: function(feature, layer) {
+                const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
+                layer.bindTooltip(name, { sticky: true });
+            }
+        }).addTo(map);
+
+        // Frame the map on the barangay polygon so the whole jurisdiction is visible.
+        try { map.fitBounds(brgyLayer.getBounds(), { padding: [30, 30], maxZoom: 16 }); } catch(e) {}
+    }
+
     loadMapData('active');
 }
 
@@ -1472,7 +1533,11 @@ function loadMapData(mode) {
 
     if (!data || data.length === 0) {
         currentLayer = L.layerGroup().addTo(map);
-        map.setView(barangayCenter, 15);
+        // Keep the barangay boundary in view; only recenter to the saved map
+        // center when no boundary polygon was drawn.
+        if (!barangayBoundary || !barangayBoundary.features) {
+            map.setView(barangayCenter, 15);
+        }
         return;
     }
 

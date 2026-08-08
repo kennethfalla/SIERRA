@@ -84,6 +84,10 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
     }
 
     $images = $report->getImagesByReport($report_id);
+    foreach ($images as &$img) {
+        $img['is_video'] = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $img['image_path']) ? 1 : 0;
+    }
+    unset($img);
     $notes = $report->getNotes($report_id);
     $resolution_evidence = $report->getResolutionEvidence($report_id);
 
@@ -214,6 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($result as &$img) {
             $img['image_path'] = BASE_URL . $img['image_path'];
+            $img['is_video'] = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $img['image_path']) ? 1 : 0;
         }
         echo json_encode($result);
         exit();
@@ -1116,28 +1121,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/uploads/reports/';
         if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
-        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'm4v', 'avi', '3gp', 'mkv'];
         $allowed_mimes = [
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/gif' => 'gif',
-            'image/webp' => 'webp'
+            'image/webp' => 'webp',
+            'video/mp4' => 'mp4',
+            'video/webm' => 'webm',
+            'video/x-matroska' => 'webm',
+            'video/quicktime' => 'mov',
+            'video/x-m4v' => 'm4v',
+            'video/m4v' => 'm4v',
+            'video/x-msvideo' => 'avi',
+            'video/3gpp' => '3gp',
+            'video/3gpp2' => '3g2'
         ];
-        $max_file_size = 5242880;
+        $max_photo_size = 5242880;
+        $max_video_size = 26214400;
         $max_files = 3;
 
-        $processFileField = function($files) use ($upload_dir, $allowed_extensions, $allowed_mimes, $max_file_size, $max_files) {
+        $processFileField = function($files) use ($upload_dir, $allowed_extensions, $allowed_mimes, $max_photo_size, $max_video_size, $max_files) {
             $paths = [];
             $total_files = min(count($files['name']), $max_files);
             for ($i = 0; $i < $total_files; $i++) {
                 if ($files['error'][$i] !== UPLOAD_ERR_OK) continue;
                 $file_ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
-                if (!in_array($file_ext, $allowed_extensions) || $files['size'][$i] > $max_file_size) continue;
+                if (!in_array($file_ext, $allowed_extensions)) continue;
                 $finfo = finfo_open(FILEINFO_MIME_TYPE);
                 $mime_type = finfo_file($finfo, $files['tmp_name'][$i]);
                 finfo_close($finfo);
-                if (!array_key_exists($mime_type, $allowed_mimes)) continue;
-                if ($allowed_mimes[$mime_type] !== $file_ext) continue;
+                if (!is_string($mime_type) || $mime_type === '' || $mime_type === false) $mime_type = '';
+                $is_video = (strpos($mime_type, 'video/') === 0);
+                if (!$is_video && $file_ext === 'webm' && $mime_type === 'video/x-matroska') {
+                    $is_video = true;
+                }
+                if (!$is_video && !array_key_exists($mime_type, $allowed_mimes)) continue;
+                if (!$is_video && $allowed_mimes[$mime_type] !== $file_ext) continue;
+                $limit = $is_video ? $max_video_size : $max_photo_size;
+                if ($files['size'][$i] > $limit) continue;
                 $new_filename = bin2hex(random_bytes(16)) . '.' . $file_ext;
                 if (move_uploaded_file($files['tmp_name'][$i], $upload_dir . $new_filename)) {
                     $paths[] = 'uploads/reports/' . $new_filename;
@@ -1161,7 +1183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $image_data = substr($camera_image, strpos($camera_image, ',') + 1);
                 $image_data = base64_decode($image_data);
-                if ($image_data !== false && strlen($image_data) <= $max_file_size) {
+                if ($image_data !== false && strlen($image_data) <= $max_photo_size) {
                     $temp_file = tempnam(sys_get_temp_dir(), 'cam_');
                     file_put_contents($temp_file, $image_data);
                     $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -1180,7 +1202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($image_paths)) {
-            $_SESSION['error'] = "Please upload at least one photo as evidence.";
+            $_SESSION['error'] = "Please upload at least one photo or video as evidence.";
             header("Location: " . BASE_URL . "index.php?page=submit-report");
             exit();
         }
@@ -1217,7 +1239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 recalcNearbyReports($db, $newReport['latitude'], $newReport['longitude'], $report_id);
             }
             $activityLog->log($user_id, 'Create Report', "Created report #$report_id");
-            $_SESSION['success'] = "Report submitted successfully with " . count($image_paths) . " photo(s)!";
+            $_SESSION['success'] = "Report submitted successfully with " . count($image_paths) . " photo(s)/video(s)!";
             header("Location: " . BASE_URL . "index.php?page=track-status&id=" . $report_id);
             exit();
         } else {
@@ -1276,12 +1298,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
 
         if (isset($_FILES['new_images']) && !empty($_FILES['new_images']['name'][0])) {
-            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-            $max_size = 5242880;
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'm4v', 'avi', '3gp', 'mkv'];
+            $max_photo_size = 5242880;
+            $max_video_size = 26214400;
             for ($i = 0; $i < count($_FILES['new_images']['name']); $i++) {
                 if ($_FILES['new_images']['error'][$i] === UPLOAD_ERR_OK) {
                     $ext = strtolower(pathinfo($_FILES['new_images']['name'][$i], PATHINFO_EXTENSION));
-                    if (in_array($ext, $allowed) && $_FILES['new_images']['size'][$i] <= $max_size) {
+                    $is_video = in_array($ext, ['mp4', 'webm', 'mov', 'm4v', 'avi', '3gp', 'mkv']);
+                    $limit = $is_video ? $max_video_size : $max_photo_size;
+                    if (in_array($ext, $allowed) && $_FILES['new_images']['size'][$i] <= $limit) {
                         $filename = uniqid() . '_' . time() . '.' . $ext;
                         $target_path = $upload_dir . $filename;
                         if (move_uploaded_file($_FILES['new_images']['tmp_name'][$i], $target_path)) {

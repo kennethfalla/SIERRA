@@ -386,6 +386,44 @@ if (file_exists($geojson_file)) {
     $boundary_data = json_decode(file_get_contents($geojson_file), true);
 }
 
+// Load every barangay boundary GeoJSON and merge them into a single
+// FeatureCollection so the map can draw one polygon per barangay.
+$barangays_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/barangay';
+$barangay_data = null;
+if (is_dir($barangays_dir)) {
+    $barangay_features = [];
+    foreach (glob($barangays_dir . '/*.geojson') as $barangay_file) {
+        $barangay_base = basename($barangay_file);
+        // Skip the combined "all barangays" file and any *_with_reports outputs
+        if ($barangay_base === 'san-isidro.barangay.geojson' || strpos($barangay_base, '_with_reports') !== false) {
+            continue;
+        }
+        $barangay_decoded = json_decode(file_get_contents($barangay_file), true);
+        if (!is_array($barangay_decoded) || ($barangay_decoded['type'] ?? '') !== 'FeatureCollection') {
+            continue;
+        }
+        foreach (($barangay_decoded['features'] ?? []) as $barangay_feature) {
+            if (!is_array($barangay_feature) || !isset($barangay_feature['geometry'])) {
+                continue;
+            }
+            $barangay_gtype = $barangay_feature['geometry']['type'] ?? '';
+            if ($barangay_gtype !== 'Polygon' && $barangay_gtype !== 'MultiPolygon') {
+                continue;
+            }
+            // Give every boundary a friendly name so it can be labelled / filtered on the map
+            $barangay_name = $barangay_feature['properties']['barangay_name'] ?? $barangay_feature['properties']['name'] ?? '';
+            if ($barangay_name === '') {
+                $barangay_name = ucwords(str_replace('-', ' ', pathinfo($barangay_base, PATHINFO_FILENAME)));
+            }
+            $barangay_feature['properties']['name'] = $barangay_name;
+            $barangay_features[] = $barangay_feature;
+        }
+    }
+    if (count($barangay_features) > 0) {
+        $barangay_data = ['type' => 'FeatureCollection', 'features' => $barangay_features];
+    }
+}
+
 // Helper for decision badge (used in drill-down)
 function getDecisionBadge($classification) {
     $badges = [
@@ -919,11 +957,18 @@ function getDecisionBadge($classification) {
             </div>
 
             <div id="map"></div>
-            <p class="text-xs text-gray-400 mt-2" id="filterSummary"></p>
+            <div class="flex flex-wrap items-center gap-2 mt-2">
+                <p class="text-xs text-gray-400" id="filterSummary"></p>
+                <span id="barangayFilterChip" class="hidden items-center gap-1 px-2 py-0.5 rounded-full bg-[#10A37F]/10 border border-[#10A37F]/30 text-xs font-semibold text-[#0D8568]">
+                    <i class="fas fa-map-pin"></i>
+                    <span id="barangayFilterLabel"></span>
+                    <button type="button" onclick="clearBarangayFilter()" class="ml-1 hover:text-red-600" aria-label="Clear barangay filter"><i class="fas fa-times"></i></button>
+                </span>
+            </div>
             <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
                 <i class="fas fa-info-circle"></i>
                 Clusters are formed by reports within 50m radius. Color indicates severity score.
-                Click a cluster or marker to view detailed analysis.
+                Click a cluster or marker to view detailed analysis. Click a barangay on the map to filter its reports.
             </p>
         </div>
 
@@ -1153,6 +1198,7 @@ function getDecisionBadge($classification) {
 const activeReports = <?php echo json_encode($activeReports); ?>;
 const historicalReports = <?php echo json_encode($historicalReports); ?>;
 const boundaryData = <?php echo json_encode($boundary_data); ?>;
+const barangayData = <?php echo json_encode($barangay_data); ?>;
 const severityData = <?php echo json_encode(array_values($severityTiers)); ?>;
 const seasonalData = <?php echo json_encode($seasonalData); ?>;
 const months = <?php echo json_encode($months); ?>;
@@ -1177,6 +1223,18 @@ let map;
 let currentLayer = null;
 let currentMode = 'active'; // 'active' or 'historical'
 
+// Barangay polygon layer state
+let barangayLayer = null;
+let selectedBarangay = null;
+let selectedBarangayLayer = null;
+const barangayDefaultStyle = {
+    color: "#10A37F",
+    weight: 1.5,
+    fillColor: "#10A37F",
+    fillOpacity: 0.06,
+    smoothFactor: 1
+};
+
 function initMap() {
     const center = [15.3092, 120.9033];
     map = L.map('map').setView(center, 13);
@@ -1187,17 +1245,23 @@ function initMap() {
         maxZoom: 20
     }).addTo(map);
 
-    // Add boundary if available
+    // Draw one clickable polygon per barangay (from the GeoJSON folder)
+    addBarangayLayers();
+
+    // Add the municipality outline as a subtle dashed backdrop so reports that
+    // fall outside the barangay polygons still have spatial context.
     if (boundaryData && boundaryData.features) {
         try {
             const coords = extractPolygonCoords(boundaryData);
             if (coords) {
                 L.polygon(coords, {
                     color: "#10A37F",
-                    weight: 2,
+                    weight: 1.2,
                     fillColor: "#10A37F",
-                    fillOpacity: 0.06,
-                    smoothFactor: 1
+                    fillOpacity: 0.03,
+                    dashArray: "6 4",
+                    smoothFactor: 1,
+                    interactive: false
                 }).addTo(map);
             }
         } catch(e) {}
@@ -1205,6 +1269,76 @@ function initMap() {
 
     // Load initial data
     loadMapData('active');
+}
+
+// Render all barangay boundaries as an interactive polygon layer.
+function addBarangayLayers() {
+    if (!barangayData || !barangayData.features) return;
+
+    barangayLayer = L.geoJSON(barangayData, {
+        style: barangayDefaultStyle,
+        onEachFeature: function(feature, layer) {
+            const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
+            layer.bindTooltip(name, { sticky: true });
+
+            layer.on({
+                mouseover: function() {
+                    if (!selectedBarangayLayer || layer !== selectedBarangayLayer) {
+                        layer.setStyle({ fillOpacity: 0.14, weight: 2.5 });
+                        layer.bringToFront();
+                    }
+                },
+                mouseout: function() {
+                    if (!selectedBarangayLayer || layer !== selectedBarangayLayer) {
+                        layer.setStyle(barangayDefaultStyle);
+                    }
+                },
+                click: function() {
+                    toggleBarangayFilter(name, layer);
+                }
+            });
+        }
+    }).addTo(map);
+
+    try { map.fitBounds(barangayLayer.getBounds(), { padding: [20, 20], maxZoom: 13 }); } catch(e) {}
+}
+
+// Clicking a barangay filters the report markers to only that barangay.
+// Clicking the already-selected barangay clears the filter.
+function toggleBarangayFilter(name, layer) {
+    if (selectedBarangay === name) {
+        clearBarangayFilter();
+        return;
+    }
+    selectedBarangay = name;
+    if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
+    selectedBarangayLayer = layer;
+    layer.setStyle({ fillColor: "#10A37F", fillOpacity: 0.22, weight: 3, color: "#0D8568" });
+    layer.bringToFront();
+    updateBarangayFilterChip();
+    loadMapData(currentMode);
+}
+
+function clearBarangayFilter() {
+    selectedBarangay = null;
+    if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
+    selectedBarangayLayer = null;
+    updateBarangayFilterChip();
+    loadMapData(currentMode);
+}
+
+function updateBarangayFilterChip() {
+    const chip = document.getElementById('barangayFilterChip');
+    const label = document.getElementById('barangayFilterLabel');
+    if (!chip || !label) return;
+    if (selectedBarangay) {
+        label.textContent = selectedBarangay;
+        chip.classList.remove('hidden');
+        chip.classList.add('inline-flex');
+    } else {
+        chip.classList.add('hidden');
+        chip.classList.remove('inline-flex');
+    }
 }
 
 function extractPolygonCoords(geojson) {
@@ -1258,7 +1392,9 @@ function getFilteredData(mode) {
             ? false
             : selectedCategories.has(String(report.category_id));
         const rangeOk = isWithinRange(report[dateField], selectedRange);
-        return categoryOk && rangeOk;
+        const barangayOk = !selectedBarangay
+            || String(report.barangay_name || '').trim().toLowerCase() === selectedBarangay.toLowerCase();
+        return categoryOk && rangeOk && barangayOk;
     });
 }
 
@@ -1267,7 +1403,11 @@ function updateFilterSummary(mode, count) {
     const modeLabel = (mode === 'active') ? 'active' : 'resolved (historical)';
     const el = document.getElementById('filterSummary');
     if (el) {
-        el.textContent = `Showing ${count} ${modeLabel} report(s) · ${rangeLabels[selectedRange]} · ${selectedCategories.size} of ${allCategories.length} categories selected.`;
+        let summary = `Showing ${count} ${modeLabel} report(s) · ${rangeLabels[selectedRange]} · ${selectedCategories.size} of ${allCategories.length} categories selected.`;
+        if (selectedBarangay) {
+            summary += ` · Barangay: ${selectedBarangay}`;
+        }
+        el.textContent = summary;
     }
 }
 
