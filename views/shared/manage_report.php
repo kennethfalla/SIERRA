@@ -449,6 +449,42 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         /* ===== NOTE AVATAR ===== */
         .note-avatar { width: 26px; height: 26px; border-radius: 9999px; background: linear-gradient(135deg,#10A37F,#0D8568); color: white; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+        /* ===== ENHANCED ACTION PANEL ===== */
+        /* Status Stepper */
+        .status-stepper { display: flex; align-items: flex-start; gap: 0; padding: 0 0.25rem; overflow-x: auto; }
+        .status-step { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 68px; position: relative; }
+        .status-step .step-dot { width: 38px; height: 38px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; background: #E5E7EB; color: #9CA3AF; border: 3px solid #fff; box-shadow: 0 0 0 2px #E5E7EB; z-index: 2; transition: all 0.2s ease; flex-shrink: 0; }
+        .status-step .step-label { margin-top: 8px; font-size: 0.66rem; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.03em; text-align: center; white-space: nowrap; }
+        .status-step .step-date { font-size: 0.58rem; color: #C0C8D0; margin-top: 2px; text-align: center; font-weight: 500; }
+        .status-step.done .step-dot { background: linear-gradient(135deg,#10A37F,#0D8568); color: white; box-shadow: 0 0 0 2px #10A37F; }
+        .status-step.done .step-label { color: #0D8568; }
+        .status-step.active .step-dot { background: linear-gradient(135deg,#10A37F,#0D8568); color: white; box-shadow: 0 0 0 3px rgba(16,163,127,0.28); animation: pulseDot 1.8s infinite; }
+        .status-step.active .step-label { color: #10A37F; }
+        @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 3px rgba(16,163,127,0.28); } 50% { box-shadow: 0 0 0 7px rgba(16,163,127,0.12); } }
+        .status-step.danger .step-dot { background: linear-gradient(135deg,#DC2626,#B91C1C); color: white; box-shadow: 0 0 0 3px rgba(220,38,38,0.28); }
+        .status-step.danger .step-label { color: #B91C1C; }
+        .step-connector { flex: 1; height: 3px; background: #E5E7EB; margin-top: 18px; min-width: 12px; border-radius: 2px; }
+        .step-connector.done { background: linear-gradient(90deg,#10A37F,#0D8568); }
+
+        /* Action Cards */
+        .action-cards { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        @media (min-width: 768px) { .action-cards { grid-template-columns: repeat(3, 1fr); } }
+        .action-card { background: white; border: 1px solid #E5E7EB; border-radius: 1rem; padding: 1rem; transition: all 0.2s ease; }
+        .action-card:hover { border-color: #10A37F; box-shadow: 0 4px 16px -6px rgba(16,163,127,0.18); }
+        .action-card .action-icon { width: 42px; height: 42px; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; }
+        .action-card .action-btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; }
+        .action-card .action-expand { grid-column: 1 / -1; }
+        .action-expand { grid-column: 1 / -1; }
+
+        /* Context Callouts */
+        .action-callout { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 0.9rem; font-size: 0.82rem; }
+        .action-callout.info { background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; }
+        .action-callout.warning { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; }
+        .action-callout.success { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; }
+        .action-callout.danger { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+        .action-callout .callout-title { font-weight: 700; }
+        .action-callout .callout-sub { font-size: 0.75rem; margin-top: 2px; opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -688,267 +724,340 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 </div>
             </div>
 
+            <?php
+            $flow_steps = [
+                ['key' => 'pending',          'label' => 'Submitted',    'icon' => 'fa-paper-plane'],
+                ['key' => 'under_review',     'label' => 'Under Review', 'icon' => 'fa-eye'],
+                ['key' => 'in_progress',      'label' => 'In Progress',  'icon' => 'fa-wrench'],
+                ['key' => 'escalated_pending','label' => 'Escalation',   'icon' => 'fa-hourglass-half'],
+                ['key' => 'escalated',        'label' => 'With MENRO',   'icon' => 'fa-building-shield'],
+                ['key' => 'resolved',         'label' => 'Resolved',     'icon' => 'fa-check-double'],
+            ];
+            $status_order = ['pending' => 0, 'under_review' => 1, 'verified' => 1, 'in_progress' => 2, 'escalated_pending' => 3, 'escalated' => 4, 'resolved' => 5];
+            $current_step = $status_order[$report['status']] ?? 0;
+            $is_terminal = in_array($report['status'], ['rejected', 'cancelled']);
+            ?>
+
+            <!-- STATUS LIFECYCLE STEPPER -->
+            <div class="status-stepper mb-5 no-print" role="list" aria-label="Report lifecycle">
+                <?php if ($is_terminal): ?>
+                    <div class="status-step done">
+                        <div class="step-dot"><i class="fas fa-paper-plane"></i></div>
+                        <div class="step-label">Submitted</div>
+                    </div>
+                    <div class="step-connector done"></div>
+                    <div class="status-step active danger">
+                        <div class="step-dot"><i class="fas <?php echo ($report['status'] === 'cancelled') ? 'fa-ban' : 'fa-xmark'; ?>"></i></div>
+                        <div class="step-label"><?php echo ($report['status'] === 'cancelled') ? 'Cancelled' : 'Rejected'; ?></div>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($flow_steps as $i => $s):
+                        $state = ($i < $current_step) ? 'done' : (($i === $current_step) ? 'active' : '');
+                    ?>
+                        <?php if ($i > 0): ?><div class="step-connector <?php echo ($i <= $current_step) ? 'done' : ''; ?>"></div><?php endif; ?>
+                        <div class="status-step <?php echo $state; ?>">
+                            <div class="step-dot"><i class="fas <?php echo $s['icon']; ?>"></i></div>
+                            <div class="step-label"><?php echo $s['label']; ?></div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <!-- CONTEXT CALLOUTS -->
+            <?php if ($report['status'] == 'escalated_pending'): ?>
+                <div class="action-callout warning mb-5">
+                    <i class="fas fa-hourglass-half mt-0.5"></i>
+                    <div>
+                        <p class="callout-title">Needs your attention</p>
+                        <p class="callout-sub">This report is pending MENRO approval.<?php if (!empty($escalation['escalation_reason'])): ?> <strong>Justification:</strong> <?php echo htmlspecialchars($escalation['escalation_reason']); ?><?php endif; ?></p>
+                    </div>
+                </div>
+            <?php elseif ($report['status'] == 'escalated'): ?>
+                <div class="action-callout info mb-5">
+                    <i class="fas fa-building-shield mt-0.5"></i>
+                    <div>
+                        <p class="callout-title">Under MENRO supervision</p>
+                        <p class="callout-sub">This report has been escalated and is now being managed by MENRO.</p>
+                    </div>
+                </div>
+            <?php elseif ($report['status'] == 'resolved'): ?>
+                <div class="action-callout success mb-5">
+                    <i class="fas fa-check-double mt-0.5"></i>
+                    <div>
+                        <p class="callout-title">Report resolved</p>
+                        <p class="callout-sub"><?php if (!empty($report['resolved_at'])): ?>Closed on <?php echo date('F d, Y h:i A', strtotime($report['resolved_at'])); ?>.<?php endif; ?> No further action is required.</p>
+                    </div>
+                </div>
+            <?php elseif ($report['status'] == 'rejected'): ?>
+                <div class="action-callout danger mb-5">
+                    <i class="fas fa-circle-xmark mt-0.5"></i>
+                    <div>
+                        <p class="callout-title">Report rejected</p>
+                        <p class="callout-sub"><?php if (!empty($report['rejection_reason'])): ?><strong>Reason:</strong> <?php echo htmlspecialchars($report['rejection_reason']); ?><?php endif; ?></p>
+                    </div>
+                </div>
+            <?php elseif ($report['status'] == 'pending'): ?>
+                <div class="action-callout info mb-5">
+                    <i class="fas fa-hourglass-start mt-0.5"></i>
+                    <div>
+                        <p class="callout-title">Awaiting review</p>
+                        <p class="callout-sub">This report is queued and waiting to be processed.</p>
+                    </div>
+                </div>
+            <?php elseif ($report['status'] == 'in_progress'): ?>
+                <div class="action-callout info mb-5">
+                    <i class="fas fa-wrench mt-0.5"></i>
+                    <div>
+                        <p class="callout-title">Work in progress</p>
+                        <p class="callout-sub">A resolution is currently being worked on for this report.</p>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- ACTION CARDS GRID -->
+            <div class="action-cards">
+
             <?php if ($user_role == 'barangay_official'): ?>
-                <!-- Step 1: Reclassify Risk Level & Take Action (only when in progress) -->
                 <?php if ($can_reclassify): ?>
-                <div class="mb-6">
-                    <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-200 flex items-center gap-2">
-                        <span class="step-badge">1</span> Reclassify risk level <span class="font-normal text-gray-400">(In Progress reports only)</span>
-                    </h3>
+                <div class="action-card">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="action-icon bg-indigo-50 text-indigo-600"><i class="fas fa-rotate"></i></div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-gray-800 text-sm">Reclassify Risk Level</p>
+                            <p class="text-xs text-gray-400 truncate">Adjust impact for in-progress reports</p>
+                        </div>
+                    </div>
                     <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="space-y-3" onsubmit="setLoading(this)">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                         <input type="hidden" name="action" value="reclassify_impact">
                         <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                        
-                        <div class="flex items-center gap-3 flex-wrap">
-                            <label class="text-sm font-semibold text-gray-700">Reclassify Risk:</label>
-                            <select name="new_impact" class="border-2 border-gray-300 rounded-lg px-4 py-2 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none">
-                                <option value="0" <?php echo ($report['impact_modifier'] == 0) ? 'selected' : ''; ?>>🟢 Low Risk (Localized)</option>
-                                <option value="2" <?php echo ($report['impact_modifier'] == 2) ? 'selected' : ''; ?>>🟡 Medium Risk (Moderate)</option>
-                                <option value="4" <?php echo ($report['impact_modifier'] == 4) ? 'selected' : ''; ?>>🔴 High Risk (Severe)</option>
-                            </select>
-                            
-                            <div class="flex-1 min-w-[300px]">
-                                <input type="text" name="reclassify_reason" placeholder="Reason for risk level change..." class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none" required>
-                            </div>
-                            
-                            <button type="submit" class="btn-indigo px-6">
-                                <i class="fas fa-save mr-2"></i> Update Risk
-                            </button>
-                        </div>
+                        <select name="new_impact" class="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none">
+                            <option value="0" <?php echo ($report['impact_modifier'] == 0) ? 'selected' : ''; ?>>🟢 Low Risk (Localized)</option>
+                            <option value="2" <?php echo ($report['impact_modifier'] == 2) ? 'selected' : ''; ?>>🟡 Medium Risk (Moderate)</option>
+                            <option value="4" <?php echo ($report['impact_modifier'] == 4) ? 'selected' : ''; ?>>🔴 High Risk (Severe)</option>
+                        </select>
+                        <input type="text" name="reclassify_reason" placeholder="Reason for risk level change..." class="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none" required>
+                        <button type="submit" class="action-btn btn-indigo"><i class="fas fa-save mr-2"></i> Update Risk</button>
                     </form>
                 </div>
                 <?php endif; ?>
 
-                <!-- Step 2: PRIMARY RESOLUTION ACTIONS (only when under_review) -->
-                <div class="mb-4">
-                    <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-[#10A37F] flex items-center gap-2">
-                        <span class="step-badge"><?php echo $can_reclassify ? '2' : '1'; ?></span> Primary resolution actions
-                    </h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="direction: ltr;">
-                        <?php if ($can_verify): ?>
-                            <!-- Verify Report -->
-                            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" onsubmit="setLoading(this)">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                                <input type="hidden" name="action" value="verify_report">
-                                <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                                <button type="submit" class="w-full btn-primary py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl">
-                                    <i class="fas fa-check mr-2"></i> Verify Report
-                                </button>
-                            </form>
-                        <?php endif; ?>
-                        
-                        <?php if ($can_escalate): ?>
-                            <!-- Escalate to MENRO -->
-                            <button type="button" data-target="escalateFormSection" onclick="toggleExpand(this)" class="action-trigger w-full btn-warning py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl">
-                                <i class="fas fa-share mr-2"></i> Escalate to MENRO
-                            </button>
-                            
-                            <div id="escalateFormSection" class="expand-section col-span-full bg-amber-50 border-2 border-amber-200 rounded-xl"><div>
-                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" onsubmit="setLoading(this)">
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                                    <input type="hidden" name="action" value="escalate_report">
-                                    <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                                    
-                                    <label class="block text-sm font-semibold text-gray-700"><i class="fas fa-share text-amber-600 mr-1"></i> Justification for escalation</label>
-                                    <textarea name="escalation_reason" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Explain why this report needs to be escalated to MENRO..." required></textarea>
-                                    
-                                    <div class="flex gap-3">
-                                        <button type="submit" class="btn-warning px-6 py-2">
-                                            <i class="fas fa-paper-plane mr-2"></i> Confirm Escalation
-                                        </button>
-                                        <button type="button" data-target="escalateFormSection" onclick="toggleExpand(this)" class="btn-secondary px-6 py-2">Cancel</button>
-                                    </div>
-                                </form>
-                            </div></div>
-                        <?php endif; ?>
-
-                        <?php if ($can_reject): ?>
-                            <!-- Reject Report -->
-                            <button type="button" data-target="rejectFormSection" onclick="toggleExpand(this)" class="action-trigger w-full btn-danger py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl">
-                                <i class="fas fa-times-circle mr-2"></i> Reject Report
-                            </button>
-                            
-                            <div id="rejectFormSection" class="expand-section col-span-full bg-red-50 border-2 border-red-200 rounded-xl"><div>
-                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" data-confirm="Are you sure you want to reject this report? This action will notify the resident." onsubmit="return handleReportFormSubmit(event, this)">
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                                    <input type="hidden" name="action" value="reject_report">
-                                    <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                                    
-                                    <label class="block text-sm font-semibold text-gray-700"><i class="fas fa-ban text-red-600 mr-1"></i> Reason for rejection</label>
-                                    <textarea name="rejection_reason" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" placeholder="Provide a clear reason for rejecting this report..." required></textarea>
-                                    
-                                    <div class="flex gap-3">
-                                        <button type="submit" class="btn-danger px-6 py-2">
-                                            <i class="fas fa-ban mr-2"></i> Confirm Rejection
-                                        </button>
-                                        <button type="button" data-target="rejectFormSection" onclick="toggleExpand(this)" class="btn-secondary px-6 py-2">Cancel</button>
-                                    </div>
-                                </form>
-                            </div></div>
-                        <?php endif; ?>
-
-                        <?php if ($can_resolve): ?>
-                            <!-- Mark as Resolved (moved to right) -->
-                            <button type="button" data-target="resolveFormSection" onclick="toggleExpand(this)" class="action-trigger w-full btn-success py-3 md:py-4 text-sm md:text-base font-bold shadow-lg hover:shadow-xl md:col-start-3">
-                                <i class="fas fa-check-double mr-2"></i> Mark as Resolved
-                            </button>
-                            
-                            <div id="resolveFormSection" class="expand-section col-span-full bg-green-50 border-2 border-green-200 rounded-xl"><div>
-                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" enctype="multipart/form-data" class="expand-section-inner space-y-3" onsubmit="setLoading(this)">
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                                    <input type="hidden" name="action" value="resolve_report">
-                                    <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                                    
-                                    <div class="grid md:grid-cols-2 gap-3">
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Resolution photo <span class="text-red-500">(required)</span></label>
-                                            <div class="file-upload-area" id="resImageArea" onclick="document.getElementById('resImage').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImage')">
-                                                <img class="file-upload-preview" id="resImagePreviewImg" alt="">
-                                                <div class="file-upload-placeholder">
-                                                    <i class="fas fa-camera text-3xl text-gray-400 mb-2 block"></i>
-                                                    <span class="text-sm text-gray-600 font-medium">Click or drag a photo here</span>
-                                                </div>
-                                                <input type="file" name="resolution_image" id="resImage" accept="image/*" style="display:none;" required onchange="handleFilePreview(this,'resImageArea','resImagePreviewImg','resPreview')">
-                                                <span id="resPreview" class="text-xs text-gray-500 block mt-2">JPG, PNG, GIF (Max 5MB)</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Resolution notes <span class="text-gray-400 font-normal">(optional)</span></label>
-                                            <textarea name="resolution_note" rows="5" class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe the actions taken to resolve this issue..."></textarea>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex gap-3">
-                                        <button type="submit" class="btn-success px-6 py-2">
-                                            <i class="fas fa-check mr-2"></i> Confirm Resolution
-                                        </button>
-                                        <button type="button" data-target="resolveFormSection" onclick="toggleExpand(this)" class="btn-secondary px-6 py-2">Cancel</button>
-                                    </div>
-                                </form>
-                            </div></div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-            <?php elseif ($user_role == 'admin'): ?>
-                <!-- Admin Actions -->
-                <?php if ($can_approve_escalation): ?>
-                    <div class="mb-5">
-                        <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-200 flex items-center gap-2">
-                            <span class="step-badge"><i class="fas fa-arrow-up-right-dots text-[10px]"></i></span> Escalation review
-                        </h3>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" onsubmit="setLoading(this)">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                                <input type="hidden" name="action" value="approve_escalation">
-                                <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                                <button type="submit" class="btn-success"><i class="fas fa-check mr-2"></i>Approve Escalation</button>
-                            </form>
-                            <button type="button" data-target="rejectEscalationSection" onclick="toggleExpand(this)" class="action-trigger btn-danger"><i class="fas fa-xmark mr-2"></i>Reject Escalation</button>
+                <?php if ($can_verify): ?>
+                <div class="action-card">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="action-icon bg-blue-50 text-blue-600"><i class="fas fa-check"></i></div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-gray-800 text-sm">Verify Report</p>
+                            <p class="text-xs text-gray-400 truncate">Mark this report as legitimate</p>
                         </div>
-                        <div id="rejectEscalationSection" class="expand-section bg-red-50 border-2 border-red-200 rounded-xl"><div>
-                            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" data-confirm="Reject this escalation and send it back?" onsubmit="return handleReportFormSubmit(event, this)">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                                <input type="hidden" name="action" value="reject_escalation">
-                                <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                                <label class="block text-sm font-semibold text-gray-700">Reason for rejection</label>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <input type="text" name="rejection_reason" placeholder="Reason for rejection..." class="border border-gray-300 rounded-lg px-4 py-2 text-sm flex-1 min-w-[220px] focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" required>
-                                    <button type="submit" class="btn-danger">Confirm Rejection</button>
-                                    <button type="button" data-target="rejectEscalationSection" onclick="toggleExpand(this)" class="btn-secondary">Cancel</button>
-                                </div>
-                            </form>
-                        </div></div>
                     </div>
+                    <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" onsubmit="setLoading(this)">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                        <input type="hidden" name="action" value="verify_report">
+                        <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                        <button type="submit" class="action-btn btn-primary"><i class="fas fa-check mr-2"></i> Verify Report</button>
+                    </form>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($can_escalate): ?>
+                <div class="action-card">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-share"></i></div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-gray-800 text-sm">Escalate to MENRO</p>
+                            <p class="text-xs text-gray-400 truncate">Request MENRO intervention</p>
+                        </div>
+                    </div>
+                    <button type="button" data-target="escalateFormSection" onclick="toggleExpand(this)" class="action-trigger action-btn btn-warning">
+                        <i class="fas fa-share mr-2"></i> Escalate to MENRO
+                    </button>
+                    <div id="escalateFormSection" class="expand-section mt-3 bg-amber-50 border-2 border-amber-200 rounded-xl"><div>
+                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" onsubmit="setLoading(this)">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                            <input type="hidden" name="action" value="escalate_report">
+                            <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                            <label class="block text-sm font-semibold text-gray-700"><i class="fas fa-share text-amber-600 mr-1"></i> Justification for escalation</label>
+                            <textarea name="escalation_reason" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Explain why this report needs to be escalated to MENRO..." required></textarea>
+                            <div class="flex gap-2">
+                                <button type="submit" class="btn-warning flex-1 px-4 py-2 text-xs"><i class="fas fa-paper-plane mr-1.5"></i> Confirm Escalation</button>
+                                <button type="button" data-target="escalateFormSection" onclick="toggleExpand(this)" class="btn-secondary px-4 py-2 text-xs">Cancel</button>
+                            </div>
+                        </form>
+                    </div></div>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($can_reject): ?>
+                <div class="action-card">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="action-icon bg-red-50 text-red-600"><i class="fas fa-ban"></i></div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-gray-800 text-sm">Reject Report</p>
+                            <p class="text-xs text-gray-400 truncate">Refuse this report and notify resident</p>
+                        </div>
+                    </div>
+                    <button type="button" data-target="rejectFormSection" onclick="toggleExpand(this)" class="action-trigger action-btn btn-danger">
+                        <i class="fas fa-times-circle mr-2"></i> Reject Report
+                    </button>
+                    <div id="rejectFormSection" class="expand-section mt-3 bg-red-50 border-2 border-red-200 rounded-xl"><div>
+                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" data-confirm="Are you sure you want to reject this report? This action will notify the resident." onsubmit="return handleReportFormSubmit(event, this)">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                            <input type="hidden" name="action" value="reject_report">
+                            <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                            <label class="block text-sm font-semibold text-gray-700"><i class="fas fa-ban text-red-600 mr-1"></i> Reason for rejection</label>
+                            <textarea name="rejection_reason" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" placeholder="Provide a clear reason for rejecting this report..." required></textarea>
+                            <div class="flex gap-2">
+                                <button type="submit" class="btn-danger flex-1 px-4 py-2 text-xs"><i class="fas fa-ban mr-1.5"></i> Confirm Rejection</button>
+                                <button type="button" data-target="rejectFormSection" onclick="toggleExpand(this)" class="btn-secondary px-4 py-2 text-xs">Cancel</button>
+                            </div>
+                        </form>
+                    </div></div>
+                </div>
                 <?php endif; ?>
 
                 <?php if ($can_resolve): ?>
-                    <div class="mb-5">
-                        <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-200 flex items-center gap-2">
-                            <span class="step-badge"><i class="fas fa-check-double text-[10px]"></i></span> Mark as resolved
-                        </h3>
-                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" enctype="multipart/form-data" onsubmit="setLoading(this)">
+                <div class="action-card">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="action-icon bg-emerald-50 text-emerald-600"><i class="fas fa-check-double"></i></div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-gray-800 text-sm">Mark as Resolved</p>
+                            <p class="text-xs text-gray-400 truncate">Attach photo proof and close the report</p>
+                        </div>
+                    </div>
+                    <button type="button" data-target="resolveFormSection" onclick="toggleExpand(this)" class="action-trigger action-btn btn-success">
+                        <i class="fas fa-check-double mr-2"></i> Mark as Resolved
+                    </button>
+                    <div id="resolveFormSection" class="expand-section mt-3 bg-green-50 border-2 border-green-200 rounded-xl"><div>
+                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" enctype="multipart/form-data" class="expand-section-inner space-y-3" onsubmit="setLoading(this)">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                             <input type="hidden" name="action" value="resolve_report">
                             <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                            <div class="flex flex-wrap items-start gap-3">
-                                <div class="flex-1 min-w-[220px]">
-                                    <div class="file-upload-area" id="resImageAdminArea" onclick="document.getElementById('resImageAdmin').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImageAdmin')">
-                                        <img class="file-upload-preview" id="resImageAdminPreviewImg" alt="">
-                                        <div class="file-upload-placeholder">
-                                            <i class="fas fa-camera text-2xl text-gray-400 mb-1 block"></i>
-                                            <span class="text-sm text-gray-500">Upload resolution photo</span>
-                                        </div>
-                                        <input type="file" name="resolution_image" id="resImageAdmin" accept="image/*" style="display:none;" onchange="handleFilePreview(this,'resImageAdminArea','resImageAdminPreviewImg','resPreviewAdmin')">
-                                        <span id="resPreviewAdmin" class="text-xs text-gray-400 block">JPG, PNG, GIF (Max 5MB)</span>
-                                    </div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Resolution photo <span class="text-red-500">(required)</span></label>
+                            <div class="file-upload-area" id="resImageArea" onclick="document.getElementById('resImage').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImage')">
+                                <img class="file-upload-preview" id="resImagePreviewImg" alt="">
+                                <div class="file-upload-placeholder">
+                                    <i class="fas fa-camera text-2xl text-gray-400 mb-1 block"></i>
+                                    <span class="text-xs text-gray-600 font-medium">Click or drag a photo here</span>
                                 </div>
-                                <div class="flex-1 min-w-[220px]">
-                                    <input type="text" name="resolution_note" placeholder="Optional note..." class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none">
-                                </div>
-                                <button type="submit" class="btn-success"><i class="fas fa-check mr-2"></i>Mark Resolved</button>
+                                <input type="file" name="resolution_image" id="resImage" accept="image/*" style="display:none;" required onchange="handleFilePreview(this,'resImageArea','resImagePreviewImg','resPreview')">
+                                <span id="resPreview" class="text-xs text-gray-500 block mt-2">JPG, PNG, GIF (Max 5MB)</span>
+                            </div>
+                            <textarea name="resolution_note" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe the actions taken to resolve this issue..."></textarea>
+                            <div class="flex gap-2">
+                                <button type="submit" class="btn-success flex-1 px-4 py-2 text-xs"><i class="fas fa-check mr-1.5"></i> Confirm Resolution</button>
+                                <button type="button" data-target="resolveFormSection" onclick="toggleExpand(this)" class="btn-secondary px-4 py-2 text-xs">Cancel</button>
                             </div>
                         </form>
+                    </div></div>
+                </div>
+                <?php endif; ?>
+
+            <?php elseif ($user_role == 'admin'): ?>
+                <?php if ($can_approve_escalation): ?>
+                <div class="action-card">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-arrow-up-right-dots"></i></div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-gray-800 text-sm">Escalation Review</p>
+                            <p class="text-xs text-gray-400 truncate">Decide on this pending escalation</p>
+                        </div>
                     </div>
+                    <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" onsubmit="setLoading(this)">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                        <input type="hidden" name="action" value="approve_escalation">
+                        <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                        <button type="submit" class="action-btn btn-success mb-2"><i class="fas fa-check mr-2"></i> Approve Escalation</button>
+                    </form>
+                    <button type="button" data-target="rejectEscalationSection" onclick="toggleExpand(this)" class="action-trigger action-btn btn-danger">
+                        <i class="fas fa-xmark mr-2"></i> Reject Escalation
+                    </button>
+                    <div id="rejectEscalationSection" class="expand-section mt-3 bg-red-50 border-2 border-red-200 rounded-xl"><div>
+                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" data-confirm="Reject this escalation and send it back?" onsubmit="return handleReportFormSubmit(event, this)">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                            <input type="hidden" name="action" value="reject_escalation">
+                            <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                            <label class="block text-sm font-semibold text-gray-700">Reason for rejection</label>
+                            <input type="text" name="rejection_reason" placeholder="Reason for rejection..." class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" required>
+                            <div class="flex gap-2">
+                                <button type="submit" class="btn-danger flex-1 px-4 py-2 text-xs">Confirm Rejection</button>
+                                <button type="button" data-target="rejectEscalationSection" onclick="toggleExpand(this)" class="btn-secondary px-4 py-2 text-xs">Cancel</button>
+                            </div>
+                        </form>
+                    </div></div>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($can_resolve): ?>
+                <div class="action-card">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="action-icon bg-emerald-50 text-emerald-600"><i class="fas fa-check-double"></i></div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-gray-800 text-sm">Mark as Resolved</p>
+                            <p class="text-xs text-gray-400 truncate">Close this report with photo proof</p>
+                        </div>
+                    </div>
+                    <button type="button" data-target="resolveAdminSection" onclick="toggleExpand(this)" class="action-trigger action-btn btn-success">
+                        <i class="fas fa-check-double mr-2"></i> Mark as Resolved
+                    </button>
+                    <div id="resolveAdminSection" class="expand-section mt-3 bg-green-50 border-2 border-green-200 rounded-xl"><div>
+                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" enctype="multipart/form-data" class="expand-section-inner space-y-3" onsubmit="setLoading(this)">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                            <input type="hidden" name="action" value="resolve_report">
+                            <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                            <div class="file-upload-area" id="resImageAdminArea" onclick="document.getElementById('resImageAdmin').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImageAdmin')">
+                                <img class="file-upload-preview" id="resImageAdminPreviewImg" alt="">
+                                <div class="file-upload-placeholder">
+                                    <i class="fas fa-camera text-2xl text-gray-400 mb-1 block"></i>
+                                    <span class="text-sm text-gray-500">Upload resolution photo</span>
+                                </div>
+                                <input type="file" name="resolution_image" id="resImageAdmin" accept="image/*" style="display:none;" onchange="handleFilePreview(this,'resImageAdminArea','resImageAdminPreviewImg','resPreviewAdmin')">
+                                <span id="resPreviewAdmin" class="text-xs text-gray-400 block">JPG, PNG, GIF (Max 5MB)</span>
+                            </div>
+                            <input type="text" name="resolution_note" placeholder="Optional note..." class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none">
+                            <div class="flex gap-2">
+                                <button type="submit" class="btn-success flex-1 px-4 py-2 text-xs"><i class="fas fa-check mr-1.5"></i> Confirm Resolution</button>
+                                <button type="button" data-target="resolveAdminSection" onclick="toggleExpand(this)" class="btn-secondary px-4 py-2 text-xs">Cancel</button>
+                            </div>
+                        </form>
+                    </div></div>
+                </div>
                 <?php endif; ?>
 
                 <?php if ($can_reclassify): ?>
-                    <div>
-                        <h3 class="text-sm font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-200 flex items-center gap-2">
-                            <span class="step-badge"><i class="fas fa-rotate text-[10px]"></i></span> Reclassify impact <span class="font-normal text-gray-400">(admin override)</span>
-                        </h3>
-                        <button type="button" data-target="reclassifyAdminForm" onclick="toggleExpand(this)" class="action-trigger btn-indigo"><i class="fas fa-rotate mr-2"></i>Reclassify Impact</button>
-                        <div id="reclassifyAdminForm" class="expand-section bg-gray-50 border border-gray-200 rounded-xl"><div>
-                            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                                <input type="hidden" name="action" value="reclassify_impact">
-                                <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                                <p class="text-sm text-gray-600 mb-2">Select new impact level:</p>
-                                <div class="flex flex-wrap gap-4 mb-3">
-                                    <label class="flex items-center gap-1.5 text-sm text-gray-700"><input type="radio" name="new_impact" value="0" checked> 🟢 Localized (+0)</label>
-                                    <label class="flex items-center gap-1.5 text-sm text-gray-700"><input type="radio" name="new_impact" value="2"> 🟡 Moderate (+2)</label>
-                                    <label class="flex items-center gap-1.5 text-sm text-gray-700"><input type="radio" name="new_impact" value="4"> 🔴 Severe (+4)</label>
-                                </div>
-                                <input type="text" name="reclassify_reason" placeholder="Reason for reclassification..." class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-full mb-3 focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" required>
-                                <div class="flex gap-2">
-                                    <button type="submit" class="btn-indigo">Confirm Reclassification</button>
-                                    <button type="button" data-target="reclassifyAdminForm" onclick="toggleExpand(this)" class="btn-secondary">Cancel</button>
-                                </div>
-                            </form>
-                        </div></div>
+                <div class="action-card">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="action-icon bg-indigo-50 text-indigo-600"><i class="fas fa-rotate"></i></div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-gray-800 text-sm">Reclassify Impact</p>
+                            <p class="text-xs text-gray-400 truncate">Admin override of risk level</p>
+                        </div>
                     </div>
+                    <button type="button" data-target="reclassifyAdminForm" onclick="toggleExpand(this)" class="action-trigger action-btn btn-indigo">
+                        <i class="fas fa-rotate mr-2"></i> Reclassify Impact
+                    </button>
+                    <div id="reclassifyAdminForm" class="expand-section mt-3 bg-gray-50 border border-gray-200 rounded-xl"><div>
+                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                            <input type="hidden" name="action" value="reclassify_impact">
+                            <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
+                            <p class="text-sm text-gray-600 mb-2">Select new impact level:</p>
+                            <div class="flex flex-wrap gap-3 mb-3">
+                                <label class="flex items-center gap-1.5 text-sm text-gray-700"><input type="radio" name="new_impact" value="0" checked> 🟢 Localized (+0)</label>
+                                <label class="flex items-center gap-1.5 text-sm text-gray-700"><input type="radio" name="new_impact" value="2"> 🟡 Moderate (+2)</label>
+                                <label class="flex items-center gap-1.5 text-sm text-gray-700"><input type="radio" name="new_impact" value="4"> 🔴 Severe (+4)</label>
+                            </div>
+                            <input type="text" name="reclassify_reason" placeholder="Reason for reclassification..." class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" required>
+                            <div class="flex gap-2">
+                                <button type="submit" class="btn-indigo flex-1 px-4 py-2 text-xs">Confirm Reclassification</button>
+                                <button type="button" data-target="reclassifyAdminForm" onclick="toggleExpand(this)" class="btn-secondary px-4 py-2 text-xs">Cancel</button>
+                            </div>
+                        </form>
+                    </div></div>
+                </div>
                 <?php endif; ?>
             <?php endif; ?>
-
-            <!-- Escalation status display -->
-            <?php if ($report['status'] == 'escalated_pending'): ?>
-                <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p class="text-sm text-amber-800"><i class="fas fa-hourglass-half mr-1"></i> This report is pending MENRO approval.</p>
-                    <?php if (!empty($escalation['escalation_reason'])): ?>
-                        <p class="text-xs text-amber-700 mt-1"><strong>Justification:</strong> <?php echo htmlspecialchars($escalation['escalation_reason']); ?></p>
-                    <?php endif; ?>
-                </div>
-            <?php elseif ($report['status'] == 'escalated'): ?>
-                <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p class="text-sm text-green-800"><i class="fas fa-check-circle mr-1"></i> This report is under MENRO supervision.</p>
-                </div>
-            <?php elseif ($report['status'] == 'resolved'): ?>
-                <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p class="text-sm text-green-800"><i class="fas fa-check-double mr-1"></i> This report has been resolved.</p>
-                    <?php if (!empty($report['resolved_at'])): ?>
-                        <p class="text-xs text-green-700">Resolved on: <?php echo date('F d, Y h:i A', strtotime($report['resolved_at'])); ?></p>
-                    <?php endif; ?>
-                </div>
-            <?php elseif ($report['status'] == 'rejected'): ?>
-                <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p class="text-sm text-red-800"><i class="fas fa-times-circle mr-1"></i> This report was rejected.</p>
-                    <?php if (!empty($report['rejection_reason'])): ?>
-                        <p class="text-xs text-red-700 mt-1"><strong>Reason:</strong> <?php echo htmlspecialchars($report['rejection_reason']); ?></p>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
+            </div>
         </div>
 
     </div>

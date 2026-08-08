@@ -47,6 +47,7 @@ $search_keyword = isset($_GET['search']) ? trim($_GET['search']) : '';
 $sort_order = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
+$view_mode = isset($_COOKIE['report_view_mode']) && $_COOKIE['report_view_mode'] === 'list' ? 'list' : 'grid';
 
 // Get categories for dropdown
 $categories = $db->query("SELECT id, name FROM categories WHERE is_active = 1 ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
@@ -746,6 +747,146 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
         }
 
+        /* ===== REPORT CARDS (grid design from my_reports.php) ===== */
+        .report-card-grid {
+            background: white;
+            border-radius: 1rem;
+            border: 1px solid #eef2f0;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .report-card-grid:hover {
+            transform: translateY(-2px);
+            border-color: #10A37F;
+            box-shadow: 0 4px 12px rgba(16, 163, 127, 0.1);
+        }
+        .report-card-grid .report-card-header {
+            background: linear-gradient(90deg, #10A37F 0%, #0D8568 100%);
+            padding: 1rem 1rem 0.75rem;
+            color: white;
+        }
+        .report-card-grid .report-card-header .header-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+        .report-card-grid .report-card-header .header-title {
+            font-size: 1rem;
+            line-height: 1.25;
+            font-weight: 700;
+            margin-top: 0.25rem;
+            max-width: 22rem;
+        }
+        .report-card-grid .report-card-header .header-meta {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        .report-card-grid .header-badges {
+            gap: 0.65rem;
+            margin-top: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .report-card-grid .header-badge {
+            background: rgba(255,255,255,0.16);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.18);
+        }
+        .report-card-grid .status-badge.header-badge,
+        .report-card-grid .risk-badge.header-badge,
+        .report-card-grid .severity-badge.header-badge {
+            background: rgba(255,255,255,0.18);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.22);
+        }
+        .report-card-grid .header-badge i {
+            color: white;
+        }
+        .report-card-grid .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.6rem;
+            color: #64748b;
+        }
+        @media (min-width: 640px) {
+            .report-card-grid .meta-item {
+                gap: 0.5rem;
+                font-size: 0.7rem;
+            }
+        }
+        .report-card-grid .meta-icon {
+            width: 1.4rem;
+            height: 1.4rem;
+            background: #F5FBF6;
+            border-radius: 0.4rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @media (min-width: 640px) {
+            .report-card-grid .meta-icon {
+                width: 1.75rem;
+                height: 1.75rem;
+                border-radius: 0.5rem;
+            }
+        }
+        .report-card-grid .btn-manage {
+            padding: 0.35rem 0.8rem;
+            font-size: 0.7rem;
+        }
+        @media (min-width: 640px) {
+            .report-card-grid .btn-manage {
+                padding: 0.45rem 1rem;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Grid Layout */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        @media (min-width: 640px) {
+            .reports-grid { gap: 1.25rem; }
+        }
+        @media (min-width: 768px) {
+            .reports-grid.grid-view { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1024px) {
+            .reports-grid.grid-view { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        /* View Toggle */
+        .view-toggle {
+            background: #f1f5f9;
+            border-radius: 2rem;
+            padding: 0.2rem;
+            display: inline-flex;
+            gap: 0.2rem;
+        }
+        .view-btn {
+            padding: 0.25rem 0.7rem;
+            border-radius: 1.5rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: transparent;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+        @media (min-width: 640px) {
+            .view-btn { padding: 0.375rem 1rem; font-size: 0.875rem; }
+        }
+        .view-btn.active {
+            background: white;
+            color: #10A37F;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .view-btn:hover:not(.active) { color: #10A37F; }
+
         /* Pagination */
         .pagination {
             display: flex;
@@ -1082,9 +1223,20 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
 
             <div class="toolbar-divider"></div>
 
-            <!-- Results Count + Sort -->
+            <!-- Results Count + View Toggle + Sort -->
             <div class="toolbar-results">
                 <span class="toolbar-results-text">Showing <strong id="resultsCountDisplay"><?php echo count($reports); ?></strong> of <strong><?php echo $total_reports; ?></strong> reports</span>
+
+                <!-- View Toggle -->
+                <div class="view-toggle">
+                    <button onclick="setViewMode('grid')" id="gridViewBtn" class="view-btn <?php echo $view_mode == 'grid' ? 'active' : ''; ?>">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button onclick="setViewMode('list')" id="listViewBtn" class="view-btn <?php echo $view_mode == 'list' ? 'active' : ''; ?>">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+
                 <select id="toolbarSort" class="toolbar-select" style="min-width: 140px;">
                     <option value="newest" <?php echo $sort_order=='newest'?'selected':''; ?>>Recent to Older</option>
                     <option value="oldest" <?php echo $sort_order=='oldest'?'selected':''; ?>>Older to Recent</option>
@@ -1117,12 +1269,11 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         <div style="margin-bottom: 1.5rem;"></div>
         <?php endif; ?>
         
-        <!-- Reports List -->
-        <div id="reportsGrid">
+        <!-- Reports Grid -->
+        <div id="reportsGrid" class="reports-grid <?php echo $view_mode; ?>-view">
             <?php if(count($reports) > 0): ?>
                 <?php foreach($reports as $r): 
                     $isEscalatedPending = ($r['status'] == 'escalated_pending');
-                    $riskDisplay = ucfirst($r['risk_level'] ?? 'Low');
                     $status_class = 'status-' . $r['status'];
                     $status_icon = '';
                     if ($r['status'] == 'pending') $status_icon = 'fa-clock';
@@ -1134,47 +1285,75 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                     elseif ($r['status'] == 'rejected') $status_icon = 'fa-times-circle';
                     elseif ($r['status'] == 'cancelled') $status_icon = 'fa-ban';
                     $status_label = ucfirst(str_replace('_', ' ', $r['status']));
+                    $needs_attention = $isEscalatedPending || in_array($r['status'], ['pending', 'under_review']);
                 ?>
-                <div class="report-card mb-3 <?php echo $isEscalatedPending ? 'border-2 border-orange-300 bg-orange-50/30' : ''; ?>">
-                    <div class="p-4 sm:p-5">
-                        <div class="flex flex-wrap justify-between items-start gap-4">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex flex-wrap items-center gap-2 mb-2">
-                                    <span class="status-badge <?php echo $status_class; ?>">
-                                        <i class="fas <?php echo $status_icon; ?> text-[10px] sm:text-xs"></i>
-                                        <?php echo $status_label; ?>
-                                    </span>
-                                    <?php if ($r['status'] != 'cancelled' && $r['status'] != 'rejected'): ?>
-                                    <span class="risk-badge risk-<?php echo $r['risk_level']; ?>">
-                                        <i class="fas <?php echo $r['risk_level'] == 'low' ? 'fa-seedling' : ($r['risk_level'] == 'medium' ? 'fa-exclamation-triangle' : ($r['risk_level'] == 'high' ? 'fa-fire' : 'fa-skull-crossbones')); ?> text-[10px] sm:text-xs"></i>
-                                        <?php echo ucfirst($r['risk_level']); ?>
-                                    </span>
-                                    <?php endif; ?>
-                                    <?php if(isset($r['decision_classification']) && $r['decision_classification'] && $r['status'] != 'cancelled' && $r['status'] != 'rejected'): ?>
-                                    <span class="severity-badge severity-<?php echo strtolower($r['decision_pin'] ?? 'Green'); ?>">
-                                        <i class="fas fa-chart-line text-[10px] sm:text-xs"></i>
-                                        <?php echo $r['decision_classification']; ?>
-                                        <span class="text-[8px] sm:text-[9px] font-mono opacity-75">(<?php echo $r['severity_score'] ?? 0; ?>)</span>
-                                    </span>
-                                    <?php endif; ?>
-                                    <span class="text-xs text-gray-400 font-mono">#<?php echo str_pad($r['id'], 5, '0', STR_PAD_LEFT); ?></span>
-                                    <span class="text-xs text-gray-400"><i class="far fa-calendar-alt mr-1"></i><?php echo date('M d, Y', strtotime($r['created_at'])); ?></span>
+                <div class="report-card-grid <?php echo $isEscalatedPending ? 'border-2 border-orange-300' : ''; ?>" data-report-id="<?php echo $r['id']; ?>">
+                    <div class="report-card-header rounded-t-2xl">
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-file-alt text-white/80 text-[10px] md:text-xs"></i>
+                                    </div>
+                                    <span class="header-label">Report Summary</span>
                                 </div>
-                                <h3 class="report-title mb-1"><?php echo htmlspecialchars($r['title']); ?></h3>
-                                <p class="report-description line-clamp-2"><?php echo htmlspecialchars(substr($r['description'], 0, 100)); ?>...</p>
-                                <div class="flex flex-wrap items-center gap-3 mt-2">
-                                    <span class="meta-item"><span class="meta-icon"><i class="fas fa-user text-gray-400 text-[10px] sm:text-xs"></i></span> <?php echo htmlspecialchars($r['user_name']); ?></span>
-                                    <span class="meta-item"><span class="meta-icon"><i class="fas fa-tag text-gray-400 text-[10px] sm:text-xs"></i></span> <?php echo htmlspecialchars($r['category_name']); ?></span>
-                                    <?php if (isset($r['impact_modifier'])): ?>
-                                    <span class="meta-item">
-                                        <span class="px-2 py-0.5 rounded-full <?php echo $r['impact_modifier']==4?'bg-red-100 text-red-700':($r['impact_modifier']==2?'bg-amber-100 text-amber-700':'bg-emerald-100 text-emerald-700'); ?> text-[10px] font-medium">
-                                            Impact: <?php echo $r['impact_modifier']==4?'Severe':($r['impact_modifier']==2?'Moderate':'Localized'); ?>
-                                        </span>
-                                    </span>
-                                    <?php endif; ?>
-                                </div>
+                                <h3 class="header-title"><?php echo htmlspecialchars($r['title']); ?></h3>
                             </div>
-                            <div class="flex-shrink-0 flex flex-col gap-2">
+                            <div class="text-right">
+                                <div class="header-meta">#<?php echo str_pad($r['id'], 6, '0', STR_PAD_LEFT); ?></div>
+                                <div class="header-meta mt-2"><?php echo date('M d, Y', strtotime($r['created_at'])); ?></div>
+                            </div>
+                        </div>
+                        <div class="header-badges">
+                            <span class="status-badge header-badge <?php echo $status_class; ?>">
+                                <i class="fas <?php echo $status_icon; ?> text-[10px] sm:text-xs"></i>
+                                <?php echo $status_label; ?>
+                            </span>
+                            <?php if ($r['status'] != 'cancelled' && $r['status'] != 'rejected'): ?>
+                            <span class="risk-badge header-badge risk-<?php echo $r['risk_level']; ?>">
+                                <i class="fas <?php echo $r['risk_level'] == 'low' ? 'fa-seedling' : ($r['risk_level'] == 'medium' ? 'fa-exclamation-triangle' : ($r['risk_level'] == 'high' ? 'fa-fire' : 'fa-skull-crossbones')); ?> text-[10px] sm:text-xs"></i>
+                                <?php echo ucfirst($r['risk_level']); ?>
+                            </span>
+                            <?php endif; ?>
+                            <?php if(isset($r['decision_classification']) && $r['decision_classification'] && $r['status'] != 'cancelled' && $r['status'] != 'rejected'): ?>
+                            <span class="severity-badge header-badge severity-<?php echo strtolower($r['decision_pin'] ?? 'Green'); ?>">
+                                <i class="fas fa-chart-line text-[10px] sm:text-xs"></i>
+                                <?php echo $r['decision_classification']; ?>
+                                <span class="text-[8px] sm:text-[9px] font-mono opacity-75">(<?php echo $r['severity_score'] ?? 0; ?>)</span>
+                            </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="p-4 sm:p-5">
+                        <p class="text-gray-500 mb-3 sm:mb-4 line-clamp-3"><?php echo htmlspecialchars(substr($r['description'], 0, 80)); ?><?php echo strlen($r['description']) > 80 ? '...' : ''; ?></p>
+
+                        <div class="flex flex-wrap gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-gray-100">
+                            <div class="meta-item">
+                                <div class="meta-icon"><i class="fas fa-user text-gray-400 text-[10px] sm:text-xs"></i></div>
+                                <span><?php echo htmlspecialchars($r['user_name'] ?? 'Unknown'); ?></span>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-icon"><i class="fas fa-tag text-gray-400 text-[10px] sm:text-xs"></i></div>
+                                <span><?php echo htmlspecialchars($r['category_name']); ?></span>
+                            </div>
+                            <?php if (isset($r['impact_modifier'])): ?>
+                            <div class="meta-item">
+                                <div class="meta-icon"><i class="fas fa-exclamation-triangle text-gray-400 text-[10px] sm:text-xs"></i></div>
+                                <span>Impact: <?php echo $r['impact_modifier']==4?'Severe':($r['impact_modifier']==2?'Moderate':'Localized'); ?></span>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-3">
+                            <div>
+                                <?php if ($needs_attention): ?>
+                                <span class="text-[10px] text-amber-600 font-medium"><i class="fas fa-exclamation-triangle mr-1"></i>Needs your attention</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $r['id']; ?>" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#10A37F] hover:text-[#0D8568] transition">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
                                 <?php if (PermissionHelper::canManageReport($r)): ?>
                                 <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo $r['id']; ?>" class="btn-manage">
                                     <i class="fas fa-edit"></i> Manage
@@ -1183,12 +1362,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                                 <span class="btn-manage opacity-50 cursor-not-allowed" title="You are not permitted to manage this report">
                                     <i class="fas fa-lock"></i> Manage
                                 </span>
-                                <?php endif; ?>
-                                <?php /* NOTE: UI-level gate only. The manage-report page/controller (not
-                                         provided) must also call PermissionHelper::canManageReport($report)
-                                         server-side before applying any status change. */ ?>
-                                <?php if ($r['status'] == 'pending' || $r['status'] == 'under_review'): ?>
-                                <span class="text-[10px] text-amber-600 text-center font-medium">Needs your attention</span>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -1234,6 +1407,28 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
 
 <script>
 let searchTimeout;
+let currentViewMode = '<?php echo $view_mode; ?>';
+
+// ===== VIEW MODE =====
+function setViewMode(mode) {
+    currentViewMode = mode;
+    const container = document.getElementById('reportsGrid');
+    const gridBtn = document.getElementById('gridViewBtn');
+    const listBtn = document.getElementById('listViewBtn');
+
+    container.classList.remove('grid-view', 'list-view');
+    container.classList.add(mode + '-view');
+
+    if (mode === 'grid') {
+        gridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+    } else {
+        listBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+    }
+
+    document.cookie = "report_view_mode=" + mode + "; path=/; max-age=" + (365 * 24 * 60 * 60);
+}
 
 // ===== LOADING =====
 function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
@@ -1249,6 +1444,7 @@ function applyFilters() {
     params.append('date_range', document.getElementById('popoverDateRange').value);
     params.append('search', document.getElementById('searchInput').value);
     params.append('sort', document.getElementById('toolbarSort').value);
+    params.append('scope', 'barangay');
     params.append('page', '1');
 
     fetch('<?php echo BASE_URL; ?>ajax/filter_reports.php?' + params.toString())
@@ -1373,6 +1569,7 @@ function goToPage(page) {
     params.append('date_range', document.getElementById('popoverDateRange').value);
     params.append('search', document.getElementById('searchInput').value);
     params.append('sort', document.getElementById('toolbarSort').value);
+    params.append('scope', 'barangay');
     params.append('page', page);
 
     fetch('<?php echo BASE_URL; ?>ajax/filter_reports.php?' + params.toString())

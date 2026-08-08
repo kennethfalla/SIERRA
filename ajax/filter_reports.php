@@ -1,8 +1,11 @@
 <?php
-// ajax/filter_reports.php - COMPLETE VERSION WITH VERIFICATION/UPVOTE INTEGRATION
-// Supports: Filtering, Pagination, Sorting, Verification data, AJAX upvote
+// ajax/filter_reports.php - AJAX filtering/pagination
+// scope=my       -> current user's own reports (verification card)
+// scope=barangay -> reports from the official's own barangay (manage card)
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
 requireLogin();
 
 header('Content-Type: application/json');
@@ -11,6 +14,13 @@ $database = new Database();
 $db = $database->getConnection();
 
 $user_id = $_SESSION['user_id'];
+$scope = isset($_GET['scope']) && $_GET['scope'] === 'barangay' ? 'barangay' : 'my';
+
+if ($scope === 'barangay') {
+    // Only barangay officials may list their own barangay's reports.
+    requireRole('barangay_official');
+    $barangay_id = (int)($_SESSION['barangay_id'] ?? 0);
+}
 
 // Get filter parameters
 $status = isset($_GET['status']) ? $_GET['status'] : '';
@@ -26,13 +36,27 @@ $limit = 10;
 $offset = ($page - 1) * $limit;
 
 // Build WHERE clause
-$where_conditions = ["r.user_id = :user_id"];
-$params = [':user_id' => $user_id];
+$where_conditions = [];
+$params = [];
 
-if ($status != '') {
-    $where_conditions[] = "r.status = :status";
-    $params[':status'] = $status;
+if ($scope === 'barangay') {
+    $where_conditions[] = "r.barangay_id = :barangay_id";
+    $params[':barangay_id'] = $barangay_id;
+    if ($status == 'escalated') {
+        $where_conditions[] = "r.status IN ('escalated_pending', 'escalated')";
+    } elseif ($status != '') {
+        $where_conditions[] = "r.status = :status";
+        $params[':status'] = $status;
+    }
+} else {
+    $where_conditions[] = "r.user_id = :user_id";
+    $params[':user_id'] = $user_id;
+    if ($status != '') {
+        $where_conditions[] = "r.status = :status";
+        $params[':status'] = $status;
+    }
 }
+
 if ($risk != '') {
     $where_conditions[] = "r.risk_level = :risk";
     $params[':risk'] = $risk;
@@ -46,14 +70,18 @@ if ($date_range > 0) {
     $params[':date_range'] = $date_range;
 }
 if ($search != '') {
-    $where_conditions[] = "(r.title LIKE :search OR r.description LIKE :search)";
     $params[':search'] = "%$search%";
+    if ($scope === 'barangay') {
+        $where_conditions[] = "(r.title LIKE :search OR r.description LIKE :search OR CONCAT(ou.first_name, ' ', ou.last_name) LIKE :search)";
+    } else {
+        $where_conditions[] = "(r.title LIKE :search OR r.description LIKE :search)";
+    }
 }
 
 $where_clause = implode(" AND ", $where_conditions);
 
 // Get total count
-$count_sql = "SELECT COUNT(*) as total FROM reports r WHERE $where_clause";
+$count_sql = "SELECT COUNT(*) as total FROM reports r JOIN users ou ON r.user_id = ou.id WHERE $where_clause";
 $count_stmt = $db->prepare($count_sql);
 foreach ($params as $key => $value) {
     $count_stmt->bindValue($key, $value);
@@ -65,15 +93,23 @@ $total_pages = max(1, ceil($total_reports / $limit));
 if ($page > $total_pages) $page = $total_pages;
 $offset = ($page - 1) * $limit;
 
-// Get reports with verification data
+// Get reports
 $sql = "SELECT r.*, c.name as category_name, b.name as barangay_name,
                r.verification_count,
+               CONCAT(ou.first_name, ' ', ou.last_name) as user_name,
                (SELECT COUNT(*) FROM report_verifications WHERE report_id = r.id AND user_id = :user_id_verify) as is_verified_by_user
         FROM reports r
         JOIN categories c ON r.category_id = c.id
         JOIN barangays b ON r.barangay_id = b.id
+        JOIN users ou ON r.user_id = ou.id
         WHERE $where_clause
-        ORDER BY r.created_at $sort
+        ORDER BY
+            CASE WHEN r.status = 'escalated_pending' THEN 0
+                 WHEN r.status = 'pending' THEN 1
+                 WHEN r.status = 'under_review' THEN 2
+                 WHEN r.status = 'in_progress' THEN 3
+                 ELSE 4 END,
+            r.created_at $sort
         LIMIT $limit OFFSET $offset";
 
 $stmt = $db->prepare($sql);
@@ -86,7 +122,7 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get risk summary for filtered results
 $risk_summary = ['low' => 0, 'medium' => 0, 'high' => 0, 'critical' => 0];
-$risk_sql = "SELECT risk_level, COUNT(*) as cnt FROM reports r WHERE $where_clause GROUP BY risk_level";
+$risk_sql = "SELECT risk_level, COUNT(*) as cnt FROM reports r JOIN users ou ON r.user_id = ou.id WHERE $where_clause GROUP BY risk_level";
 $risk_stmt = $db->prepare($risk_sql);
 foreach ($params as $key => $value) {
     $risk_stmt->bindValue($key, $value);
@@ -109,7 +145,7 @@ if (count($reports) > 0):
         $risk_icon = $risk_icons[$risk_level] ?? 'fa-seedling';
         $risk_label = $risk_labels[$risk_level] ?? 'Low';
         $risk_class = $risk_colors[$risk_level] ?? 'risk-low';
-        
+
         $status_label = ucfirst(str_replace('_', ' ', $row['status']));
         $status_class = 'status-' . $row['status'];
         $status_icon = '';
@@ -122,8 +158,11 @@ if (count($reports) > 0):
         elseif ($row['status'] == 'rejected') $status_icon = 'fa-times-circle';
         elseif ($row['status'] == 'cancelled') $status_icon = 'fa-ban';
         else $status_icon = 'fa-clock';
+
+        $isEscalatedPending = ($row['status'] == 'escalated_pending');
+        $needs_attention = $isEscalatedPending || in_array($row['status'], ['pending', 'under_review']);
         ?>
-<div class="report-card-grid" data-report-id="<?php echo $row['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $row['id']; ?>'" style="cursor:pointer;">
+<div class="report-card-grid <?php echo $isEscalatedPending ? 'border-2 border-orange-300' : ''; ?>" data-report-id="<?php echo $row['id']; ?>">
     <div class="report-card-header rounded-t-2xl">
         <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
             <div class="space-y-2">
@@ -162,34 +201,60 @@ if (count($reports) > 0):
     </div>
     <div class="p-4 sm:p-5">
         <p class="text-gray-500 mb-3 sm:mb-4 line-clamp-3"><?php echo htmlspecialchars(substr($row['description'], 0, 80)); ?><?php echo strlen($row['description']) > 80 ? '...' : ''; ?></p>
-        
+
         <div class="flex flex-wrap gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-gray-100">
+            <?php if ($scope === 'barangay'): ?>
+            <div class="meta-item">
+                <div class="meta-icon"><i class="fas fa-user text-gray-400 text-[10px] sm:text-xs"></i></div>
+                <span><?php echo htmlspecialchars($row['user_name'] ?? 'Unknown'); ?></span>
+            </div>
+            <?php endif; ?>
             <div class="meta-item">
                 <div class="meta-icon"><i class="fas fa-tag text-gray-400 text-[10px] sm:text-xs"></i></div>
                 <span><?php echo htmlspecialchars($row['category_name']); ?></span>
             </div>
+            <?php if (isset($row['impact_modifier'])): ?>
             <div class="meta-item">
-                <div class="meta-icon"><i class="fas fa-map-marker-alt text-gray-400 text-[10px] sm:text-xs"></i></div>
-                <span><?php echo htmlspecialchars($row['barangay_name']); ?></span>
+                <div class="meta-icon"><i class="fas fa-exclamation-triangle text-gray-400 text-[10px] sm:text-xs"></i></div>
+                <span>Impact: <?php echo $row['impact_modifier']==4?'Severe':($row['impact_modifier']==2?'Moderate':'Localized'); ?></span>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <?php if ($scope === 'barangay'): ?>
+        <div class="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-3">
+            <div>
+                <?php if ($needs_attention): ?>
+                <span class="text-[10px] text-amber-600 font-medium"><i class="fas fa-exclamation-triangle mr-1"></i>Needs your attention</span>
+                <?php endif; ?>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $row['id']; ?>" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#10A37F] hover:text-[#0D8568] transition">
+                    <i class="fas fa-eye"></i> View
+                </a>
+                <?php if (PermissionHelper::canManageReport($row)): ?>
+                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo $row['id']; ?>" class="btn-manage">
+                    <i class="fas fa-edit"></i> Manage
+                </a>
+                <?php else: ?>
+                <span class="btn-manage opacity-50 cursor-not-allowed" title="You are not permitted to manage this report">
+                    <i class="fas fa-lock"></i> Manage
+                </span>
+                <?php endif; ?>
             </div>
         </div>
-        
-        <!-- ===== VERIFICATION SECTION ===== -->
+        <?php else: ?>
         <div class="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-gray-100">
-            <!-- Verification Count -->
             <span class="verification-count">
                 <i class="fas fa-thumbs-up"></i>
                 <span class="font-medium" id="verifyCount-<?php echo $row['id']; ?>"><?php echo (int)$row['verification_count']; ?></span>
                 <span class="text-gray-400">verification<?php echo $row['verification_count'] != 1 ? 's' : ''; ?></span>
             </span>
-            
-            <!-- User verification status -->
             <?php if ($row['is_verified_by_user'] > 0): ?>
                 <span class="verification-badge">
                     <i class="fas fa-check-circle"></i> You verified this
                 </span>
             <?php else: ?>
-                <!-- Verify button (only if report is active and not resolved/rejected/cancelled) -->
                 <?php if (!in_array($row['status'], ['resolved', 'rejected', 'cancelled'])): ?>
                     <button class="verify-btn" onclick="event.stopPropagation(); verifyReport(<?php echo $row['id']; ?>, this)">
                         <i class="fas fa-thumbs-up"></i> Verify
@@ -197,7 +262,7 @@ if (count($reports) > 0):
                 <?php endif; ?>
             <?php endif; ?>
         </div>
-        
+
         <div class="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-3">
             <div class="text-xs text-gray-500">
                 <?php echo date('M d, Y', strtotime($row['created_at'])); ?>
@@ -207,6 +272,7 @@ if (count($reports) > 0):
                 <i class="fas fa-eye"></i> View Details
             </a>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 <?php
@@ -219,9 +285,6 @@ else:
     </div>
     <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg">No reports found</h3>
     <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Try adjusting your filters</p>
-    <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-        <i class="fas fa-plus-circle"></i> New Report
-    </a>
 </div>
 <?php
 endif;
@@ -237,11 +300,11 @@ if ($total_pages > 1):
     <?php else: ?>
     <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></span>
     <?php endif; ?>
-    
+
     <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
     <button onclick="goToPage(<?php echo $i; ?>)" class="page-btn <?php echo $page == $i ? 'active' : ''; ?>"><?php echo $i; ?></button>
     <?php endfor; ?>
-    
+
     <?php if($page < $total_pages): ?>
     <button onclick="goToPage(<?php echo $page+1; ?>)" class="page-btn"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></button>
     <?php else: ?>
