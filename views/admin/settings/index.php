@@ -56,9 +56,9 @@ $tabs = [
         'file' => 'map.php'
     ],
     'archiving' => [
-        'label' => 'Archiving',
+        'label' => 'Data Archiving & Retention',
         'icon' => 'fa-archive',
-        'description' => 'Auto-archive rules for old reports',
+        'description' => 'Auto-archive old reports, retain rejected/spam, and manage the archive',
         'file' => 'archiving.php'
     ],
     'barangays' => [
@@ -485,7 +485,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
         
         <!-- ===== PAGE HEADER ===== -->

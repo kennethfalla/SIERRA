@@ -519,7 +519,7 @@ $full_name = $user['first_name'] . ' ' . $user['last_name'];
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
 <!-- ===== CONTAINER STRUCTURE (matches my_reports.php) ===== -->
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
         
         <!-- Back to Dashboard -->

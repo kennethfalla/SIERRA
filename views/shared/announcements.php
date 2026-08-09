@@ -54,14 +54,27 @@ $offset = ($page - 1) * $limit;
 if($offset < 0) $offset = 0;
 
 // Build WHERE clause based on role
-$where = "1=1";
+$where = "1=1 AND a.is_archived = 0";
 $params = [];
 
 if ($is_admin) {
-    // Admin sees everything
-} elseif ($is_barangay || $is_citizen) {
-    // See public OR barangay-specific for their barangay
-    $where .= " AND (a.is_public = 1 OR (a.is_public = 0 AND a.barangay_id = ?))";
+    // Admin (MENRO / super-admin) sees everything.
+} elseif ($is_barangay) {
+    // Barangay admin sees: global public, their localized public,
+    // every internal_global, and internal_direct targeted at them.
+    $where .= " AND (
+        a.broadcast_type = 'global_public'
+        OR (a.broadcast_type = 'localized_public' AND a.barangay_id = ?)
+        OR a.broadcast_type = 'internal_global'
+        OR (a.broadcast_type = 'internal_direct' AND (a.target_admin_id = ? OR (a.barangay_id = ? AND a.target_admin_id IS NULL)))
+    )";
+    $params[] = $barangay_id;
+    $params[] = $user_id;
+    $params[] = $barangay_id;
+} elseif ($is_citizen) {
+    // Resident sees only public broadcasts: municipality-wide or their own barangay.
+    // Internal (LGU-only) broadcasts are always hidden from residents.
+    $where .= " AND (a.broadcast_type = 'global_public' OR (a.broadcast_type = 'localized_public' AND a.barangay_id = ?))";
     $params[] = $barangay_id;
 } else {
     $where .= " AND 1=0";
@@ -169,11 +182,21 @@ function getCategoryBadge($category) {
     return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ' . $color . '"><i class="fas fa-tag text-[9px]"></i> ' . htmlspecialchars($category) . '</span>';
 }
 
-function getAudienceBadge($is_public, $barangay_name = null) {
-    if ($is_public == 1) {
-        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-700 font-semibold"><i class="fas fa-globe text-[9px]"></i> Public</span>';
-    } else {
-        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-700 font-semibold"><i class="fas fa-building text-[9px]"></i> ' . htmlspecialchars($barangay_name) . ' Only</span>';
+function getAudienceBadge($announcement) {
+    $type = $announcement['broadcast_type'] ?? (($announcement['is_public'] ?? 1) ? 'global_public' : 'localized_public');
+    $brgy = isset($announcement['barangay_name']) ? htmlspecialchars($announcement['barangay_name']) : '';
+    $base = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold';
+    switch ($type) {
+        case 'global_public':
+            return '<span class="' . $base . ' bg-emerald-100 text-emerald-700"><i class="fas fa-globe text-[9px]"></i> Public (All San Isidro)</span>';
+        case 'localized_public':
+            return '<span class="' . $base . ' bg-blue-100 text-blue-700"><i class="fas fa-building text-[9px]"></i> ' . $brgy . ' Only</span>';
+        case 'internal_global':
+            return '<span class="' . $base . ' bg-purple-100 text-purple-700"><i class="fas fa-users text-[9px]"></i> Internal · All Admins</span>';
+        case 'internal_direct':
+            return '<span class="' . $base . ' bg-rose-100 text-rose-700"><i class="fas fa-user-shield text-[9px]"></i> Internal · Specific Admin</span>';
+        default:
+            return '<span class="' . $base . ' bg-emerald-100 text-emerald-700"><i class="fas fa-globe text-[9px]"></i> Public</span>';
     }
 }
 
@@ -196,10 +219,18 @@ $base_query_params = [
 ];
 $base_query_string = buildQueryString($base_query_params); // global function
 
-// Get barangays list for admin audience selector
+// Get barangays list for admin broadcast-target selectors
 $barangays = [];
+$barangay_admins = [];
 if ($is_admin) {
     $barangays = $db->query("SELECT id, name FROM barangays ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+    $barangay_admins = $db->query("
+        SELECT u.id, CONCAT(u.first_name, ' ', u.last_name) as admin_name, b.name as barangay_name
+        FROM users u
+        JOIN barangays b ON u.barangay_id = b.id
+        WHERE u.role = 'barangay_official' AND u.is_active = 1
+        ORDER BY b.name, u.first_name
+    ")->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // Generate CSRF token for forms
@@ -972,7 +1003,7 @@ if ($date_to != '') $active_filters++;
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
 
         <!-- ===== HEADER ===== -->
@@ -1181,12 +1212,12 @@ if ($date_to != '') $active_filters++;
                             <div class="flex flex-wrap items-center gap-1.5">
                                 <?php echo getCategoryBadge($announcement['category'] ?? 'General'); ?>
                                 <?php echo getSourceBadge($announcement['created_by_role'], $announcement['barangay_name']); ?>
-                                <?php echo getAudienceBadge($announcement['is_public'] ?? 1, $announcement['barangay_name']); ?>
+                                <?php echo getAudienceBadge($announcement); ?>
                             </div>
                             <?php if ($can_edit_this || $can_delete_this): ?>
                             <div class="flex gap-1 flex-shrink-0">
                                 <?php if ($can_edit_this): ?>
-                                <button onclick='openEditModal(<?php echo $announcement['id']; ?>, <?php echo json_encode(htmlspecialchars($announcement['title'])); ?>, <?php echo json_encode($announcement['content']); ?>, <?php echo json_encode($announcement['category'] ?? 'General'); ?>, <?php echo json_encode($announcement['images']); ?>)' class="text-gray-400 hover:text-emerald-600 transition p-1.5 hover:bg-emerald-50 rounded-lg" title="Edit">
+                                <button onclick='openEditModal(<?php echo $announcement['id']; ?>, <?php echo json_encode(htmlspecialchars($announcement['title'])); ?>, <?php echo json_encode($announcement['content']); ?>, <?php echo json_encode($announcement['category'] ?? 'General'); ?>, <?php echo json_encode($announcement['images']); ?>, <?php echo json_encode($announcement['broadcast_type'] ?? 'localized_public'); ?>, <?php echo json_encode($announcement['barangay_id'] ?? null); ?>, <?php echo json_encode($announcement['target_admin_id'] ?? null); ?>)' class="text-gray-400 hover:text-emerald-600 transition p-1.5 hover:bg-emerald-50 rounded-lg" title="Edit">
                                     <i class="fas fa-edit text-sm"></i>
                                 </button>
                                 <?php endif; ?>
@@ -1341,38 +1372,54 @@ if ($date_to != '') $active_filters++;
 
                 <?php if ($is_admin): ?>
                 <div class="form-group">
-                    <label class="form-label">Audience</label>
-                    <div class="radio-group-modern">
-                        <label class="radio-card">
-                            <input type="radio" name="audience" value="public" checked onchange="toggleBarangaySelect(false)">
-                            <div class="radio-label">
-                                <i class="fas fa-globe"></i>
-                                <span>Public</span>
-                            </div>
-                        </label>
-                        <label class="radio-card">
-                            <input type="radio" name="audience" value="barangay" onchange="toggleBarangaySelect(true)">
-                            <div class="radio-label">
-                                <i class="fas fa-building"></i>
-                                <span>Barangay Only</span>
-                            </div>
-                        </label>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-2 font-medium">Public: Everyone can see | Barangay Only: Only residents of selected barangay</p>
+                    <label class="form-label">Broadcast Target</label>
+                    <select id="broadcastTarget" name="broadcast_target" class="form-select-custom" onchange="updateBroadcastTarget()">
+                        <option value="global_public" selected>Global Public (All San Isidro)</option>
+                        <option value="localized_public">Localized Public (Specific Barangay)</option>
+                        <option value="internal">Internal LGU Only (No Public Visibility)</option>
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1 font-medium" id="broadcastHint">Visible to every resident and all barangay admins.</p>
                 </div>
 
-                <div class="form-group" id="barangaySelectContainer" style="display: none;">
+                <div class="form-group" id="localizedBarangayWrap" style="display: none;">
                     <label class="form-label">Select Barangay</label>
-                    <select name="barangay_id" class="form-select-custom">
+                    <select name="barangay_id" id="localizedBarangaySelect" class="form-select-custom">
                         <option value="">Select Barangay</option>
                         <?php foreach($barangays as $b): ?>
                             <option value="<?php echo $b['id']; ?>"><?php echo htmlspecialchars($b['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
+
+                <div class="form-group" id="adminLevelWrap" style="display: none;">
+                    <label class="form-label">Select Admin Level</label>
+                    <select id="adminLevel" name="admin_level" class="form-select-custom" onchange="updateAdminLevel()">
+                        <option value="internal_global" selected>All Barangay Admins (Global Internal)</option>
+                        <option value="internal_direct">Specific Barangay Admin (Direct Internal)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="directAdminWrap" style="display: none;">
+                    <label class="form-label">Select Barangay Admin</label>
+                    <select name="target_admin_id" id="directAdminSelect" class="form-select-custom">
+                        <option value="">Select Barangay Admin</option>
+                        <?php foreach($barangay_admins as $ba): ?>
+                            <option value="<?php echo $ba['id']; ?>"><?php echo htmlspecialchars($ba['barangay_name'] . ' — ' . $ba['admin_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <?php else: ?>
-                <input type="hidden" name="audience" value="barangay">
+                <div class="form-group">
+                    <label class="form-label">Broadcast Target</label>
+                    <select id="broadcastTarget" name="broadcast_target" class="form-select-custom" onchange="updateBroadcastTarget()">
+                        <option value="localized_public" selected>Localized Public (<?php echo htmlspecialchars($barangay_name); ?>)</option>
+                        <option value="internal_global">Internal LGU Only (All Barangay Admins)</option>
+                        <option value="internal_direct">Internal LGU Only (<?php echo htmlspecialchars($barangay_name); ?> Admin)</option>
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1 font-medium" id="broadcastHint">Visible to residents and admins of <?php echo htmlspecialchars($barangay_name); ?> only.</p>
+                </div>
                 <input type="hidden" name="barangay_id" value="<?php echo $barangay_id; ?>">
+                <input type="hidden" name="target_admin_id" value="<?php echo (int)$user_id; ?>">
                 <?php endif; ?>
 
                 <div class="form-group">
@@ -1456,6 +1503,46 @@ if ($date_to != '') $active_filters++;
                     </select>
                 </div>
 
+                <?php if ($is_admin): ?>
+                <div class="form-group">
+                    <label class="form-label">Broadcast Target</label>
+                    <select id="editBroadcastTarget" name="broadcast_target" class="form-select-custom" onchange="updateEditBroadcastTarget()">
+                        <option value="global_public">Global Public (All San Isidro)</option>
+                        <option value="localized_public">Localized Public (Specific Barangay)</option>
+                        <option value="internal">Internal LGU Only (No Public Visibility)</option>
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1 font-medium" id="editBroadcastHint">Visible to every resident and all barangay admins.</p>
+                </div>
+
+                <div class="form-group" id="editLocalizedBarangayWrap" style="display: none;">
+                    <label class="form-label">Select Barangay</label>
+                    <select name="barangay_id" id="editLocalizedBarangaySelect" class="form-select-custom">
+                        <option value="">Select Barangay</option>
+                        <?php foreach($barangays as $b): ?>
+                            <option value="<?php echo $b['id']; ?>"><?php echo htmlspecialchars($b['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group" id="editAdminLevelWrap" style="display: none;">
+                    <label class="form-label">Select Admin Level</label>
+                    <select id="editAdminLevel" name="admin_level" class="form-select-custom" onchange="updateEditAdminLevel()">
+                        <option value="internal_global" selected>All Barangay Admins (Global Internal)</option>
+                        <option value="internal_direct">Specific Barangay Admin (Direct Internal)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="editDirectAdminWrap" style="display: none;">
+                    <label class="form-label">Select Barangay Admin</label>
+                    <select name="target_admin_id" id="editDirectAdminSelect" class="form-select-custom">
+                        <option value="">Select Barangay Admin</option>
+                        <?php foreach($barangay_admins as $ba): ?>
+                            <option value="<?php echo $ba['id']; ?>"><?php echo htmlspecialchars($ba['barangay_name'] . ' — ' . $ba['admin_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
+
                 <div class="form-group">
                     <label class="form-label">Title</label>
                     <input type="text" name="title" id="edit_title" required class="form-input-custom">
@@ -1515,10 +1602,93 @@ if ($date_to != '') $active_filters++;
 </div>
 
 <script>
-// ===== TOGGLE BARANGAY SELECT =====
-function toggleBarangaySelect(show) {
-    document.getElementById('barangaySelectContainer').style.display = show ? 'block' : 'none';
+// ===== BROADCAST TARGET WIDGET =====
+function _btShow(el, show) { if (el) el.style.display = show ? 'block' : 'none'; }
+
+var BROADCAST_HINTS = {
+    'global_public': 'Visible to every resident and all barangay admins across the municipality.',
+    'localized_public': 'Visible only to residents of the selected barangay and that barangay\u2019s admin.',
+    'internal': 'Hidden from the public. Visible only to LGU staff / barangay admins.'
+};
+
+function updateBroadcastTarget() {
+    var target = document.getElementById('broadcastTarget');
+    if (!target) return;
+    var val = target.value;
+    var hint = document.getElementById('broadcastHint');
+    _btShow(document.getElementById('localizedBarangayWrap'), val === 'localized_public');
+    _btShow(document.getElementById('adminLevelWrap'), val === 'internal');
+    if (val === 'internal') {
+        updateAdminLevel();
+    } else {
+        _btShow(document.getElementById('directAdminWrap'), false);
+    }
+    if (hint && BROADCAST_HINTS[val]) hint.textContent = BROADCAST_HINTS[val];
 }
+
+function updateAdminLevel() {
+    var aWrap = document.getElementById('adminLevelWrap');
+    var dWrap = document.getElementById('directAdminWrap');
+    var level = document.getElementById('adminLevel');
+    if (!aWrap || !dWrap || !level) return;
+    _btShow(dWrap, aWrap.style.display === 'block' && level.value === 'internal_direct');
+}
+
+function resetCreateBroadcast() {
+    var bt = document.getElementById('broadcastTarget');
+    if (bt) bt.selectedIndex = 0;
+    var lsel = document.getElementById('localizedBarangaySelect');
+    if (lsel) lsel.value = '';
+    var dsel = document.getElementById('directAdminSelect');
+    if (dsel) dsel.value = '';
+    var al = document.getElementById('adminLevel');
+    if (al) al.value = 'internal_global';
+    updateBroadcastTarget();
+}
+
+function updateEditBroadcastTarget() {
+    var target = document.getElementById('editBroadcastTarget');
+    if (!target) return;
+    var val = target.value;
+    var hint = document.getElementById('editBroadcastHint');
+    _btShow(document.getElementById('editLocalizedBarangayWrap'), val === 'localized_public');
+    _btShow(document.getElementById('editAdminLevelWrap'), val === 'internal');
+    if (val === 'internal') {
+        updateEditAdminLevel();
+    } else {
+        _btShow(document.getElementById('editDirectAdminWrap'), false);
+    }
+    if (hint && BROADCAST_HINTS[val]) hint.textContent = BROADCAST_HINTS[val];
+}
+
+function updateEditAdminLevel() {
+    var aWrap = document.getElementById('editAdminLevelWrap');
+    var dWrap = document.getElementById('editDirectAdminWrap');
+    var level = document.getElementById('editAdminLevel');
+    if (!aWrap || !dWrap || !level) return;
+    _btShow(dWrap, aWrap.style.display === 'block' && level.value === 'internal_direct');
+}
+
+function setEditBroadcast(broadcastType, barangayId, targetAdminId) {
+    var type = broadcastType || 'localized_public';
+    var bt = document.getElementById('editBroadcastTarget');
+    var al = document.getElementById('editAdminLevel');
+    var primary = (type === 'global_public') ? 'global_public'
+        : (type === 'internal_global' || type === 'internal_direct') ? 'internal'
+        : 'localized_public';
+    if (bt) bt.value = primary;
+    if (al) al.value = (type === 'internal_direct') ? 'internal_direct' : 'internal_global';
+    var lsel = document.getElementById('editLocalizedBarangaySelect');
+    if (lsel && barangayId) lsel.value = barangayId;
+    var dsel = document.getElementById('editDirectAdminSelect');
+    if (dsel && targetAdminId) dsel.value = targetAdminId;
+    updateEditBroadcastTarget();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateBroadcastTarget();
+    updateEditBroadcastTarget();
+});
 
 // ===== LIGHTBOX =====
 let lightboxImages = [];
@@ -1733,6 +1903,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function openCreateModal() {
     document.getElementById('createModal').classList.add('active');
     document.body.style.overflow = 'hidden';
+    resetCreateBroadcast();
     setTimeout(function() {
         if (!createQuill) initQuill();
         if (createQuill) createQuill.setContents([{ insert: '\n' }]);
@@ -1742,10 +1913,11 @@ function openCreateModal() {
     updateFileInput();
 }
 
-function openEditModal(id, title, content, category, images) {
+function openEditModal(id, title, content, category, images, broadcastType, barangayId, targetAdminId) {
     document.getElementById('edit_id').value = id;
     document.getElementById('edit_title').value = title;
     document.getElementById('edit_category').value = category;
+    setEditBroadcast(broadcastType, barangayId, targetAdminId);
     document.getElementById('editModal').classList.add('active');
     document.body.style.overflow = 'hidden';
 

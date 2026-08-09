@@ -495,7 +495,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <div class="main-container">
 
         <!-- Flash Messages -->
@@ -598,7 +598,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div class="info-row"><span class="info-label">Full Name</span><span class="info-value"><?php echo htmlspecialchars($report['user_name'] ?? 'Unknown'); ?></span></div>
                     <div class="info-row"><span class="info-label">Account</span><span class="info-value">
                         <?php if ($report['is_resident'] ?? 0): ?>
-                            <span class="badge badge-resident"><i class="fas fa-check-circle mr-1"></i> Verified Resident</span>
+                            <span class="badge badge-resident"><i class="fas fa-check-circle mr-1"></i> Resident</span>
                         <?php else: ?>
                             <span class="badge badge-verified"><i class="fas fa-user mr-1"></i> Non-Resident</span>
                         <?php endif; ?>

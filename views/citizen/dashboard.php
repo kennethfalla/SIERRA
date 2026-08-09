@@ -98,7 +98,7 @@ foreach ($report_updates as $update) {
 }
 
 if ($barangay_id) {
-    $stmt = $db->prepare("SELECT * FROM announcements WHERE barangay_id = :barangay_id ORDER BY created_at DESC LIMIT 3");
+    $stmt = $db->prepare("SELECT * FROM announcements WHERE is_archived = 0 AND (broadcast_type = 'global_public' OR (broadcast_type = 'localized_public' AND barangay_id = :barangay_id)) ORDER BY created_at DESC LIMIT 3");
     $stmt->bindParam(':barangay_id', $barangay_id);
     $stmt->execute();
     $announcements = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -107,7 +107,7 @@ if ($barangay_id) {
         $notifications[] = array(
             'id' => 'announce_' . $ann['id'],
             'type' => 'announcement',
-            'title' => 'Barangay Announcement',
+            'title' => 'Announcement',
             'message' => $ann['caption'] ?? $ann['title'],
             'time' => $ann['created_at'],
             'icon' => 'fa-bullhorn',
@@ -136,10 +136,10 @@ $announcement_sql = "
     FROM announcements a
     JOIN users u ON a.created_by = u.id
     LEFT JOIN barangays b ON a.barangay_id = b.id
-    WHERE a.is_active = 1 
+    WHERE a.is_active = 1 AND a.is_archived = 0 
     AND (
-        a.is_public = 1 
-        OR (a.is_public = 0 AND a.barangay_id = :barangay_id)
+        a.broadcast_type = 'global_public' 
+        OR (a.broadcast_type = 'localized_public' AND a.barangay_id = :barangay_id)
     )
     ORDER BY a.created_at DESC
     LIMIT 1
@@ -1234,7 +1234,7 @@ $display_reports = array_slice($reports, 0, 5);
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
         
         <!-- ===== GREETING BADGE ===== -->

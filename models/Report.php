@@ -42,9 +42,7 @@ class Report {
                     title=:title, description=:description, latitude=:latitude, 
                     longitude=:longitude, location_address=:location_address,
                     risk_level=:risk_level, impact_modifier=:impact_modifier,
-                    street_name=:street_name, barangay_name=:barangay_name, 
-                    municipality_name=:municipality_name, province_name=:province_name,
-                    country_name=:country_name";
+                    street_name=:street_name, barangay_name=:barangay_name";
         
         $stmt = $this->conn->prepare($query);
         
@@ -60,9 +58,6 @@ class Report {
         $stmt->bindParam(":impact_modifier", $data['impact_modifier']);
         $stmt->bindParam(":street_name", $data['street_name']);
         $stmt->bindParam(":barangay_name", $data['barangay_name']);
-        $stmt->bindParam(":municipality_name", $data['municipality_name']);
-        $stmt->bindParam(":province_name", $data['province_name']);
-        $stmt->bindParam(":country_name", $data['country_name']);
         
         if($stmt->execute()) {
             return $this->conn->lastInsertId();

@@ -181,6 +181,57 @@ class Database {
                 error_log("[Database] Fixed categories.id to be AUTO_INCREMENT.");
             }
 
+            // ============================================
+            // 6. CHECK: reports archiving columns + index
+            // ============================================
+            if (!$this->columnExists('reports', 'is_archived')) {
+                $this->conn->exec("ALTER TABLE reports ADD COLUMN is_archived TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Hidden from active views by the archiving cron' AFTER verification_count");
+                error_log("[Database] Added 'is_archived' column to reports table.");
+            }
+            if (!$this->columnExists('reports', 'archived_at')) {
+                $this->conn->exec("ALTER TABLE reports ADD COLUMN archived_at DATETIME DEFAULT NULL COMMENT 'When the archiving job moved this report' AFTER is_archived");
+                error_log("[Database] Added 'archived_at' column to reports table.");
+            }
+            $idx = $this->conn->query("SHOW INDEX FROM reports WHERE Key_name = 'idx_reports_archive'");
+            if ($idx->rowCount() == 0) {
+                $this->conn->exec("ALTER TABLE reports ADD INDEX idx_reports_archive (is_archived, status, created_at)");
+                error_log("[Database] Added 'idx_reports_archive' index to reports table.");
+            }
+
+            // ============================================
+            // 7. CHECK: archiving retention columns
+            // ============================================
+            if (!$this->columnExists('reports', 'archived_reason')) {
+                $this->conn->exec("ALTER TABLE reports ADD COLUMN archived_reason VARCHAR(50) DEFAULT NULL COMMENT 'Why this report was archived (resolved / rejected)' AFTER archived_at");
+                error_log("[Database] Added 'archived_reason' column to reports table.");
+            }
+            if (!$this->columnExists('announcements', 'is_archived')) {
+                $this->conn->exec("ALTER TABLE announcements ADD COLUMN is_archived TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Hidden from active views by the archiving job' AFTER is_active");
+                error_log("[Database] Added 'is_archived' column to announcements table.");
+            }
+            if (!$this->columnExists('announcements', 'archived_at')) {
+                $this->conn->exec("ALTER TABLE announcements ADD COLUMN archived_at DATETIME DEFAULT NULL COMMENT 'When the archiving job moved this announcement' AFTER is_archived");
+                error_log("[Database] Added 'archived_at' column to announcements table.");
+            }
+
+            // ============================================
+            // 8. CHECK: announcement broadcast targeting
+            // ============================================
+            // broadcast_type: global_public | localized_public | internal_global | internal_direct
+            if (!$this->columnExists('announcements', 'broadcast_type')) {
+                $this->conn->exec("ALTER TABLE announcements ADD COLUMN broadcast_type VARCHAR(30) NOT NULL DEFAULT 'localized_public' COMMENT 'Broadcast routing: global_public | localized_public | internal_global | internal_direct' AFTER is_active");
+                error_log("[Database] Added 'broadcast_type' column to announcements table.");
+            }
+            if (!$this->columnExists('announcements', 'target_admin_id')) {
+                $this->conn->exec("ALTER TABLE announcements ADD COLUMN target_admin_id INT(11) DEFAULT NULL COMMENT 'Specific barangay admin targeted by internal_direct' AFTER barangay_id");
+                error_log("[Database] Added 'target_admin_id' column to announcements table.");
+            }
+            // Backfill legacy rows: old "Public" announcements map to global_public;
+            // barangay-scoped ones keep localized_public.
+            if ($this->columnExists('announcements', 'broadcast_type')) {
+                $this->conn->exec("UPDATE announcements SET broadcast_type = 'global_public' WHERE is_public = 1 AND broadcast_type = 'localized_public'");
+            }
+
             return true;
 
         } catch (PDOException $e) {

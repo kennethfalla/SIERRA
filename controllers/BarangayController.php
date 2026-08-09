@@ -75,7 +75,8 @@ class BarangayController {
     
     public function getAnnouncements($barangay_id) {
         $query = "SELECT * FROM announcements 
-                  WHERE barangay_id = :barangay_id OR barangay_id IS NULL 
+                  WHERE (barangay_id = :barangay_id OR barangay_id IS NULL)
+                  AND is_archived = 0
                   ORDER BY created_at DESC";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(":barangay_id", $barangay_id);

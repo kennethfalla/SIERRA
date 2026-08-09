@@ -668,7 +668,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
 
         <!-- Header (adapted from my_reports.php branding style) -->

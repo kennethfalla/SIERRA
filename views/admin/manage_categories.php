@@ -249,7 +249,7 @@ $inactive_categories = count(array_filter($all_categories, fn($cat) => $cat['is_
 
 <!-- MAIN CONTENT WITH CONSISTENT PADDING STRUCTURE -->
 <!-- ml-72 = 288px margin-left (sidebar is 256px, so 32px gap between sidebar and content) -->
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <!-- p-4 = 16px padding mobile | md:p-8 = 32px padding desktop -->
     <div class="p-4 md:p-8 max-w-[1600px] mx-auto">
         

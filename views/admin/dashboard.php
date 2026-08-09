@@ -343,9 +343,9 @@ if ($avgResolutionDaysLastMonth > 0) {
 // ------------------------------------------------------------
 // 7. USER DEMOGRAPHICS (Resident vs Non-Resident)
 // ------------------------------------------------------------
-// Assumes users.residency_status ('resident' / 'visitor'); falls back to
+// Assumes users.residency_status ('resident' / 'non-resident'); falls back to
 // a users.is_resident boolean column if that's how the schema is set up.
-$demographics = ['resident' => 0, 'visitor' => 0];
+$demographics = ['resident' => 0, 'non_resident' => 0];
 $demographicsAvailable = true;
 try {
     $stmt = $db->query("
@@ -355,7 +355,7 @@ try {
         GROUP BY u.residency_status
     ");
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $key = (strtolower($row['status_type']) === 'resident') ? 'resident' : 'visitor';
+        $key = (strtolower($row['status_type']) === 'resident') ? 'resident' : 'non_resident';
         $demographics[$key] += (int)$row['total'];
     }
 } catch (Exception $e) {
@@ -367,16 +367,16 @@ try {
             GROUP BY u.is_resident
         ");
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $key = ((int)$row['status_type'] === 1) ? 'resident' : 'visitor';
+            $key = ((int)$row['status_type'] === 1) ? 'resident' : 'non_resident';
             $demographics[$key] += (int)$row['total'];
         }
     } catch (Exception $e2) {
         $demographicsAvailable = false;
     }
 }
-$demographicsTotal = $demographics['resident'] + $demographics['visitor'];
+$demographicsTotal = $demographics['resident'] + $demographics['non_resident'];
 $residentPct = $demographicsTotal > 0 ? round(($demographics['resident'] / $demographicsTotal) * 100, 1) : 0;
-$visitorPct = $demographicsTotal > 0 ? round(($demographics['visitor'] / $demographicsTotal) * 100, 1) : 0;
+$nonResidentPct = $demographicsTotal > 0 ? round(($demographics['non_resident'] / $demographicsTotal) * 100, 1) : 0;
 
 // ------------------------------------------------------------
 // 8. PEAK REPORTING HOURS & DAYS (Time Analytics)
@@ -967,7 +967,7 @@ function getDecisionBadge($classification) {
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
 
         <!-- Header with Export -->
@@ -1274,18 +1274,18 @@ function getDecisionBadge($classification) {
                     <canvas id="demographicsChart"></canvas>
                 </div>
                 <div class="flex justify-center gap-6 text-xs mt-2">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10A37F;"></span> Verified Resident (<?php echo $residentPct; ?>%)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Visitor/Commuter (<?php echo $visitorPct; ?>%)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10A37F;"></span> Resident (<?php echo $residentPct; ?>%)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Non-Resident (<?php echo $nonResidentPct; ?>%)</span>
                 </div>
                 <p class="text-xs text-gray-400 mt-3 text-center">
-                    <?php echo $visitorPct; ?>% of reports come from visitors or commuters — a sign the app is catching hazards municipality-wide, not just within local subdivisions.
+                    <?php echo $nonResidentPct; ?>% of reports come from non-residents — a sign the app is catching hazards municipality-wide, not just within local subdivisions.
                 </p>
                 <?php
                     $lowGroup = null;
                     $lowGroupPct = null;
                     if ($demographicsTotal > 0) {
-                        if ($residentPct < (float)$kpi_demographic_threshold) { $lowGroup = 'Verified Residents'; $lowGroupPct = $residentPct; }
-                        if ($visitorPct < (float)$kpi_demographic_threshold && $visitorPct <= $residentPct) { $lowGroup = 'Visitors/Commuters'; $lowGroupPct = $visitorPct; }
+                        if ($residentPct < (float)$kpi_demographic_threshold) { $lowGroup = 'Residents'; $lowGroupPct = $residentPct; }
+                        if ($nonResidentPct < (float)$kpi_demographic_threshold && $nonResidentPct <= $residentPct) { $lowGroup = 'Non-Residents'; $lowGroupPct = $nonResidentPct; }
                     }
                 ?>
                 <?php if ($lowGroup): ?>
@@ -1399,7 +1399,7 @@ const seasonalData = <?php echo json_encode($seasonalData); ?>;
 const months = <?php echo json_encode($months); ?>;
 const allCategories = <?php echo json_encode($categories); ?>;
 const demographicsAvailable = <?php echo $demographicsAvailable && $demographicsTotal > 0 ? 'true' : 'false'; ?>;
-const demographicsData = <?php echo json_encode([$demographics['resident'], $demographics['visitor']]); ?>;
+const demographicsData = <?php echo json_encode([$demographics['resident'], $demographics['non_resident']]); ?>;
 const dayLabels = <?php echo json_encode($dayLabels); ?>;
 const dayCounts = <?php echo json_encode($dayCounts); ?>;
 const timeBucketLabels = <?php echo json_encode(array_keys($timeBuckets)); ?>;
@@ -2102,7 +2102,7 @@ function initCharts() {
         new Chart(ctx3, {
             type: 'doughnut',
             data: {
-                labels: ['Verified Resident', 'Visitor/Commuter'],
+                labels: ['Resident', 'Non-Resident'],
                 datasets: [{
                     data: demographicsData,
                     backgroundColor: ['#10A37F', '#F59E0B'],

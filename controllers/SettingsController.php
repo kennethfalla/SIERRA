@@ -511,12 +511,272 @@ class SettingsController {
     // 8. AUTO-ARCHIVING RULES
     // ================================================================
     private function updateArchiving() {
-        $days = (int)($_POST['archive_after_days'] ?? 30);
-        SettingsHelper::set('archive_after_days', max(0, min(365, $days)));
+        $sub_action = $_POST['sub_action'] ?? 'save_rules';
+
+        if ($sub_action === 'run_archive') {
+            $this->runManualArchive();
+            return;
+        }
+
+        if ($sub_action === 'restore') {
+            $this->restoreArchivedItem();
+            return;
+        }
+
+        if ($sub_action === 'export') {
+            $this->exportArchiveBackup();
+            return;
+        }
+
+        // ---- Default: save retention rules ----
+        $resolved_days = (int)($_POST['archive_after_days'] ?? 30);
+        $rejected_days = (int)($_POST['archive_rejected_days'] ?? 60);
+        SettingsHelper::set('archive_after_days', max(0, min(365, $resolved_days)));
+        SettingsHelper::set('archive_rejected_days', max(0, min(365, $rejected_days)));
+
+        // Toggle: when enabled, generate a cryptographically random cron
+        // secret on first activation so only holders of the URL can trigger
+        // the archive job over HTTP. CLI invocation never needs the key.
+        $enabled = !empty($_POST['archive_cron_enabled']);
+        $secret  = SettingsHelper::get('archive_cron_secret', '');
+        if ($enabled && $secret === '') {
+            $secret = bin2hex(random_bytes(32));
+            SettingsHelper::set('archive_cron_secret', $secret);
+        }
+        SettingsHelper::set('archive_cron_enabled', $enabled ? 1 : 0);
+
         SettingsHelper::clearCache();
-        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated auto-archiving rules (after $days days)", null, 'Settings');
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated archiving rules (resolved: $resolved_days days, rejected/spam: $rejected_days days, cron " . ($enabled ? 'enabled' : 'disabled') . ")", null, 'Settings');
         $_SESSION['success'] = "Archiving rules saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=archiving");
+        exit();
+    }
+
+    /**
+     * Run the archiving job immediately (manual trigger). Mirrors the
+     * cron/archive_reports.php logic so results are identical whether it is
+     * fired by the scheduler or by the "Run Manual Archive Now" button.
+     */
+    private function runManualArchive() {
+        $parts = [];
+
+        $resolvedDays = max(0, (int)SettingsHelper::get('archive_after_days', 30));
+        $rejectedDays = max(0, (int)SettingsHelper::get('archive_rejected_days', 60));
+
+        try {
+            // 1. Resolved reports (soft archive)
+            if ($resolvedDays > 0) {
+                $resolved = $this->db->prepare("
+                    UPDATE reports
+                    SET is_archived = 1, archived_at = NOW(), archived_reason = 'resolved'
+                    WHERE status = 'resolved' AND is_archived = 0
+                      AND COALESCE(resolved_at, updated_at, created_at) < DATE_SUB(NOW(), INTERVAL :days DAY)
+                ");
+                $resolved->execute([':days' => $resolvedDays]);
+                $parts[] = ((int)$resolved->rowCount()) . " resolved report(s)";
+            } else {
+                $parts[] = "0 resolved report(s)";
+            }
+
+            // 2. Rejected / spam (soft archive, then hard purge)
+            if ($rejectedDays > 0) {
+                $rejected = $this->db->prepare("
+                    UPDATE reports
+                    SET is_archived = 1, archived_at = NOW(), archived_reason = 'rejected'
+                    WHERE status = 'rejected' AND is_archived = 0
+                      AND COALESCE(rejected_at, updated_at, created_at) < DATE_SUB(NOW(), INTERVAL :days DAY)
+                ");
+                $rejected->execute([':days' => $rejectedDays]);
+                $rejectedCount = (int)$rejected->rowCount();
+
+                $stale = $this->db->prepare("
+                    SELECT id, latitude, longitude FROM reports
+                    WHERE status = 'rejected' AND is_archived = 1
+                      AND archived_at IS NOT NULL
+                      AND archived_at < DATE_SUB(NOW(), INTERVAL :days DAY)
+                ");
+                $stale->execute([':days' => $rejectedDays]);
+                $purgeCount = 0;
+                foreach ($stale->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    $rid = (int)$row['id'];
+                    foreach (['report_images', 'resolution_evidence', 'report_notes', 'escalations', 'notifications', 'report_verifications'] as $child) {
+                        $this->db->prepare("DELETE FROM `$child` WHERE report_id = ?")->execute([$rid]);
+                    }
+                    $this->db->prepare("DELETE FROM reports WHERE id = ?")->execute([$rid]);
+                    $purgeCount++;
+                    if (function_exists('recalcNearbyReports') && !empty($row['latitude']) && !empty($row['longitude'])) {
+                        recalcNearbyReports($this->db, (float)$row['latitude'], (float)$row['longitude']);
+                    }
+                }
+                $parts[] = "$rejectedCount rejected report(s) archived, $purgeCount permanently purged";
+            } else {
+                $parts[] = "0 rejected report(s)";
+            }
+
+            // 3. Expired announcements (soft archive)
+            $announcements = $this->db->prepare("
+                UPDATE announcements
+                SET is_archived = 1, archived_at = NOW()
+                WHERE is_archived = 0 AND expires_at IS NOT NULL AND expires_at < NOW()
+            ");
+            $announcements->execute();
+            $parts[] = ((int)$announcements->rowCount()) . " expired announcement(s)";
+
+            $summary = implode(', ', $parts);
+            $this->activityLog->log($this->user_id, 'Run Manual Archive', "Manual archive run: $summary", null, 'Settings');
+            $_SESSION['success'] = "Manual archive run completed: $summary.";
+        } catch (Throwable $e) {
+            error_log("[Archive Manual] Failed: " . $e->getMessage());
+            $_SESSION['error'] = "Manual archive run failed. Check the server log.";
+        }
+
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=archiving");
+        exit();
+    }
+
+    /**
+     * Restore an archived report or announcement back to the active system.
+     */
+    private function restoreArchivedItem() {
+        $type = $_POST['archive_type'] ?? 'report';
+        $id = (int)($_POST['archive_id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['error'] = "Invalid archive item ID.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=archiving");
+            exit();
+        }
+
+        if ($type === 'announcement') {
+            $stmt = $this->db->prepare("UPDATE announcements SET is_archived = 0, archived_at = NULL WHERE id = ? AND is_archived = 1");
+            $label = "announcement #$id";
+        } else {
+            $stmt = $this->db->prepare("UPDATE reports SET is_archived = 0, archived_at = NULL, archived_reason = NULL WHERE id = ? AND is_archived = 1");
+            $label = "report #$id";
+        }
+        $stmt->execute([$id]);
+
+        if ($stmt->rowCount() > 0) {
+            $this->activityLog->log($this->user_id, 'Restore Archived Item', "Restored $label to the active system", null, 'Settings');
+            $_SESSION['success'] = ucfirst($type) . " #$id restored to the active system.";
+        } else {
+            $_SESSION['error'] = "No archived $type found with ID #$id.";
+        }
+
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=archiving");
+        exit();
+    }
+
+    /**
+     * Stream a backup of all archived data as CSV (default) or SQL.
+     */
+    private function exportArchiveBackup() {
+        $format = $_POST['export_format'] ?? 'csv';
+        $format = ($format === 'sql') ? 'sql' : 'csv';
+        $stamp = date('Y-m-d_His');
+
+        try {
+            if ($format === 'csv') {
+                $this->streamArchiveCsv($stamp);
+            } else {
+                $this->streamArchiveSql($stamp);
+            }
+        } catch (Throwable $e) {
+            error_log("[Archive Export] Failed: " . $e->getMessage());
+            $_SESSION['error'] = "Archive export failed. Check the server log.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=archiving");
+            exit();
+        }
+    }
+
+    private function streamArchiveCsv($stamp) {
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="archive_backup_' . $stamp . '.csv"');
+        $out = fopen('php://output', 'w');
+
+        // Reports
+        fputcsv($out, ['archive_id', 'source_type', 'original_id', 'title', 'category', 'barangay', 'status', 'date_resolved_or_rejected', 'archived_at']);
+        $reports = $this->db->query("
+            SELECT r.id AS archive_id, 'report' AS source_type, r.id AS original_id, r.title, c.name AS category,
+                   r.barangay_name AS barangay, r.status,
+                   COALESCE(r.resolved_at, r.rejected_at) AS closed_at, r.archived_at
+            FROM reports r
+            LEFT JOIN categories c ON c.id = r.category_id
+            WHERE r.is_archived = 1
+            ORDER BY r.id
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($reports as $row) {
+            fputcsv($out, [
+                $row['archive_id'], $row['source_type'], $row['original_id'], $row['title'],
+                $row['category'], $row['barangay'], $row['status'], $row['closed_at'], $row['archived_at']
+            ]);
+        }
+
+        // Announcements
+        $announcements = $this->db->query("
+            SELECT a.id AS archive_id, 'announcement' AS source_type, a.id AS original_id, a.title, a.category,
+                   b.name AS barangay, 'expired' AS status, a.expires_at AS closed_at, a.archived_at
+            FROM announcements a
+            LEFT JOIN barangays b ON b.id = a.barangay_id
+            WHERE a.is_archived = 1
+            ORDER BY a.id
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($announcements as $row) {
+            fputcsv($out, [
+                $row['archive_id'], $row['source_type'], $row['original_id'], $row['title'],
+                $row['category'], $row['barangay'], $row['status'], $row['closed_at'], $row['archived_at']
+            ]);
+        }
+
+        fclose($out);
+        exit();
+    }
+
+    private function streamArchiveSql($stamp) {
+        header('Content-Type: application/sql; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="archive_backup_' . $stamp . '.sql"');
+        $lines = [];
+        $lines[] = "-- Sierra LGU Environmental Reporting - Archive Backup";
+        $lines[] = "-- Generated: " . date('Y-m-d H:i:s');
+        $lines[] = "SET NAMES utf8mb4;";
+        $lines[] = "";
+
+        $reports = $this->db->query("
+            SELECT r.*, c.name AS category_name FROM reports r
+            LEFT JOIN categories c ON c.id = r.category_id
+            WHERE r.is_archived = 1
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        if (count($reports) > 0) {
+            $lines[] = "-- Archived reports (" . count($reports) . ")";
+            foreach ($reports as $r) {
+                $cols = [];
+                $vals = [];
+                foreach ($r as $k => $v) {
+                    if ($k === 'category_name') continue;
+                    $cols[] = "`" . str_replace('`', '', $k) . "`";
+                    $vals[] = ($v === null) ? 'NULL' : $this->db->quote((string)$v);
+                }
+                $lines[] = "INSERT INTO `reports` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ");";
+            }
+            $lines[] = "";
+        }
+
+        $announcements = $this->db->query("SELECT * FROM announcements WHERE is_archived = 1")->fetchAll(PDO::FETCH_ASSOC);
+        if (count($announcements) > 0) {
+            $lines[] = "-- Archived announcements (" . count($announcements) . ")";
+            foreach ($announcements as $a) {
+                $cols = [];
+                $vals = [];
+                foreach ($a as $k => $v) {
+                    $cols[] = "`" . str_replace('`', '', $k) . "`";
+                    $vals[] = ($v === null) ? 'NULL' : $this->db->quote((string)$v);
+                }
+                $lines[] = "INSERT INTO `announcements` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ");";
+            }
+            $lines[] = "";
+        }
+
+        echo implode("\n", $lines);
         exit();
     }
 

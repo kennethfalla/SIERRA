@@ -215,6 +215,7 @@ class SettingsHelper {
             // ARCHIVING SETTINGS
             // ========================================
             'archive_after_days' => 30,
+            'archive_rejected_days' => 60,
 
             // ========================================
             // BARANGAY SETTINGS

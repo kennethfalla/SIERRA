@@ -1226,9 +1226,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'impact_modifier' => $impact_modifier,
             'street_name' => '',
             'barangay_name' => $barangay_name,
-            'municipality_name' => 'San Isidro',
-            'province_name' => 'Nueva Ecija',
-            'country_name' => 'Philippines',
             'postal_code' => ''
         ];
 
@@ -1253,103 +1250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=submit-report");
             exit();
         }
-    }
-
-    // ============================================
-    // UPDATE REPORT (Citizen only - pending reports)
-    // ============================================
-    if ($action === 'update') {
-        $report_id = filter_var($_POST['report_id'] ?? 0, FILTER_VALIDATE_INT);
-        if ($report_id <= 0) {
-            $_SESSION['error'] = "Invalid report ID.";
-            header("Location: " . BASE_URL . "index.php?page=my-reports");
-            exit();
-        }
-        $check_stmt = $db->prepare("SELECT id, user_id, status, latitude, longitude FROM reports WHERE id = ? AND user_id = ? AND status = ?");
-        $check_stmt->execute([$report_id, $user_id, Report::STATUS_PENDING]);
-        $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$report_data) {
-            $_SESSION['error'] = "Report not found or cannot be edited. Only pending reports can be edited.";
-            header("Location: " . BASE_URL . "index.php?page=my-reports");
-            exit();
-        }
-
-        $title = InputSanitizer::sanitizeString($_POST['title'] ?? '', 255);
-        $description = InputSanitizer::sanitizeRichText($_POST['description'] ?? '', 5000);
-        $category_id = filter_var($_POST['category_id'] ?? 0, FILTER_VALIDATE_INT);
-        $risk_level = in_array($_POST['risk_level'] ?? '', ['low', 'medium', 'high', 'critical']) ? $_POST['risk_level'] : 'low';
-        $impact_modifier = isset($_POST['impact_modifier']) ? (int)$_POST['impact_modifier'] : 0;
-        if (!in_array($impact_modifier, [0, 2, 4], true)) $impact_modifier = 0;
-
-        if (empty($title)) {
-            $_SESSION['error'] = "Title is required.";
-            header("Location: " . BASE_URL . "index.php?page=edit-report&id=" . $report_id);
-            exit();
-        }
-        if (empty($description) || strlen($description) < 10) {
-            $_SESSION['error'] = "Description must be at least 10 characters.";
-            header("Location: " . BASE_URL . "index.php?page=edit-report&id=" . $report_id);
-            exit();
-        }
-        if ($category_id <= 0) {
-            $_SESSION['error'] = "Please select a valid category.";
-            header("Location: " . BASE_URL . "index.php?page=edit-report&id=" . $report_id);
-            exit();
-        }
-
-        $stmt = $db->prepare("UPDATE reports SET title = ?, description = ?, category_id = ?, risk_level = ?, impact_modifier = ?, updated_at = NOW() WHERE id = ? AND user_id = ? AND status = ?");
-        $stmt->execute([$title, $description, $category_id, $risk_level, $impact_modifier, $report_id, $user_id, Report::STATUS_PENDING]);
-
-        $upload_dir = BASE_PATH . 'uploads/reports/';
-        if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-
-        if (isset($_FILES['new_images']) && !empty($_FILES['new_images']['name'][0])) {
-            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'm4v', 'avi', '3gp', 'mkv'];
-            $max_photo_size = 5242880;
-            $max_video_size = 26214400;
-            for ($i = 0; $i < count($_FILES['new_images']['name']); $i++) {
-                if ($_FILES['new_images']['error'][$i] === UPLOAD_ERR_OK) {
-                    $ext = strtolower(pathinfo($_FILES['new_images']['name'][$i], PATHINFO_EXTENSION));
-                    $is_video = in_array($ext, ['mp4', 'webm', 'mov', 'm4v', 'avi', '3gp', 'mkv']);
-                    $limit = $is_video ? $max_video_size : $max_photo_size;
-                    if (in_array($ext, $allowed) && $_FILES['new_images']['size'][$i] <= $limit) {
-                        $filename = uniqid() . '_' . time() . '.' . $ext;
-                        $target_path = $upload_dir . $filename;
-                        if (move_uploaded_file($_FILES['new_images']['tmp_name'][$i], $target_path)) {
-                            $image_path = 'uploads/reports/' . $filename;
-                            $ins_stmt = $db->prepare("INSERT INTO report_images (report_id, image_path, is_primary) VALUES (?, ?, 0)");
-                            $ins_stmt->execute([$report_id, $image_path]);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (isset($_POST['delete_images']) && !empty($_POST['delete_images'])) {
-            $delete_ids = explode(',', $_POST['delete_images']);
-            foreach ($delete_ids as $image_id) {
-                if (is_numeric($image_id)) {
-                    $get_img = $db->prepare("SELECT image_path FROM report_images WHERE id = ? AND report_id = ?");
-                    $get_img->execute([$image_id, $report_id]);
-                    $img_data = $get_img->fetch(PDO::FETCH_ASSOC);
-                    if ($img_data) {
-                        $file_path = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/' . $img_data['image_path'];
-                        if (file_exists($file_path)) unlink($file_path);
-                        $del = $db->prepare("DELETE FROM report_images WHERE id = ? AND report_id = ?");
-                        $del->execute([$image_id, $report_id]);
-                    }
-                }
-            }
-        }
-
-        $report->calculateAndUpdateSeverity($report_id);
-        if ($report_data['latitude'] && $report_data['longitude']) {
-            recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
-        }
-        $activityLog->log($user_id, 'Update Report', "Updated report #$report_id");
-        $_SESSION['success'] = "Report updated successfully!";
-        header("Location: " . BASE_URL . "index.php?page=track-status&id=" . $report_id);
-        exit();
     }
 
     // ============================================

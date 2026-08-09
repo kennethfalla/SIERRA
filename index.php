@@ -172,9 +172,6 @@ if($role === 'citizen') {
         case 'track-status':
             require_once 'views/citizen/track_status.php';
             break;
-        case 'edit-report':
-            require_once 'views/citizen/edit_report.php';
-            break;
         case 'edit-profile':
             require_once 'views/edit_profile.php';
             break;

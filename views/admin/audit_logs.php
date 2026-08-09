@@ -233,7 +233,7 @@ $top_actions = $db->query("
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <div class="p-4 md:p-8 max-w-[1600px] mx-auto">
         
         <!-- Header -->

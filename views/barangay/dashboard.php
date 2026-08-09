@@ -401,10 +401,10 @@ try {
 }
 
 // ============================================================
-// ========== LOCAL DEMOGRAPHICS (Verified Resident vs Non-Resident) ==========
+// ========== LOCAL DEMOGRAPHICS (Resident vs Non-Resident) ==========
 // Scoped strictly to reports submitted within this barangay.
 // ============================================================
-$demographics = ['resident' => 0, 'visitor' => 0];
+$demographics = ['resident' => 0, 'non_resident' => 0];
 $demographicsAvailable = true;
 try {
     $stmt = $db->prepare("
@@ -416,7 +416,7 @@ try {
     ");
     $stmt->execute([$barangay_id]);
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $key = (strtolower($row['status_type']) === 'resident') ? 'resident' : 'visitor';
+        $key = (strtolower($row['status_type']) === 'resident') ? 'resident' : 'non_resident';
         $demographics[$key] += (int)$row['total'];
     }
 } catch (Exception $e) {
@@ -430,16 +430,16 @@ try {
         ");
         $stmt->execute([$barangay_id]);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $key = ((int)$row['status_type'] === 1) ? 'resident' : 'visitor';
+            $key = ((int)$row['status_type'] === 1) ? 'resident' : 'non_resident';
             $demographics[$key] += (int)$row['total'];
         }
     } catch (Exception $e2) {
         $demographicsAvailable = false;
     }
 }
-$demographicsTotal = $demographics['resident'] + $demographics['visitor'];
+$demographicsTotal = $demographics['resident'] + $demographics['non_resident'];
 $residentPct = $demographicsTotal > 0 ? round(($demographics['resident'] / $demographicsTotal) * 100, 1) : 0;
-$visitorPct = $demographicsTotal > 0 ? round(($demographics['visitor'] / $demographicsTotal) * 100, 1) : 0;
+$nonResidentPct = $demographicsTotal > 0 ? round(($demographics['non_resident'] / $demographicsTotal) * 100, 1) : 0;
 
 // ============================================================
 // ========== PEAK REPORTING TIMES (day-of-week, barangay-scoped) ==========
@@ -920,7 +920,7 @@ $recent_reports->execute();
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
-<div class="ml-72 min-h-screen">
+<div class="lg:ml-72 min-h-screen">
     <div class="p-4 md:p-8 max-w-[1600px] mx-auto">
         
         <!-- PROFESSIONAL GREETING BADGE -->
@@ -1153,11 +1153,11 @@ $recent_reports->execute();
                     <canvas id="demographicsChart"></canvas>
                 </div>
                 <div class="flex justify-center gap-6 text-xs mt-2">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#059669;"></span> Verified Resident (<?php echo $residentPct; ?>%)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Non-Resident / Passerby (<?php echo $visitorPct; ?>%)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#059669;"></span> Resident (<?php echo $residentPct; ?>%)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Non-Resident (<?php echo $nonResidentPct; ?>%)</span>
                 </div>
                 <p class="text-xs text-gray-400 mt-3 text-center">
-                    Split of reports submitted in your barangay by verified residents vs. non-residents/passersby.
+                    Split of reports submitted in your barangay by residents vs. non-residents.
                 </p>
                 <?php endif; ?>
             </div>
@@ -1818,9 +1818,9 @@ const demographicsCtx = document.getElementById('demographicsChart').getContext(
 new Chart(demographicsCtx, {
     type: 'doughnut',
     data: {
-        labels: ['Verified Resident', 'Non-Resident/Passerby'],
+        labels: ['Resident', 'Non-Resident'],
         datasets: [{
-            data: [<?php echo $demographics['resident']; ?>, <?php echo $demographics['visitor']; ?>],
+            data: [<?php echo $demographics['resident']; ?>, <?php echo $demographics['non_resident']; ?>],
             backgroundColor: ['#059669', '#F59E0B'],
             borderWidth: 0
         }]

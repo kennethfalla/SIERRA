@@ -68,30 +68,90 @@ if ($action === 'create') {
         exit();
     }
 
-    // Determine audience
-    if ($user_role === 'admin') {
-        $audience = $_POST['audience'] ?? 'public';
-        $is_public = ($audience === 'public') ? 1 : 0;
-        $target_barangay_id = ($audience === 'barangay' && isset($_POST['barangay_id']) && (int)$_POST['barangay_id'] > 0) ? (int)$_POST['barangay_id'] : null;
-    } else {
-        // Barangay official always posts to own barangay
-        $is_public = 0;
-        $target_barangay_id = $barangay_id;
+    // ============================================
+    // Broadcast targeting
+    //   global_public     -> pushed to the global feed (every resident + every barangay admin)
+    //   localized_public  -> residents + admin of a specific barangay only
+    //   internal_global   -> every barangay admin only (hidden from the public)
+    //   internal_direct   -> one specific barangay admin only (hidden from all others)
+    // ============================================
+    $broadcast_target = $_POST['broadcast_target'] ?? 'localized_public';
+    // The compose form sends the primary value 'internal' plus a secondary
+    // 'admin_level' (internal_global | internal_direct). Resolve it here.
+    if ($broadcast_target === 'internal') {
+        $broadcast_target = ($_POST['admin_level'] ?? 'internal_global') === 'internal_direct' ? 'internal_direct' : 'internal_global';
     }
+    $is_public = 0;
+    $target_barangay_id = null;
+    $target_admin_id = null;
+    $can_manage_system = PermissionHelper::userHasPermission('can_manage_system');
 
-    // "System Management" permission gates municipality-wide posts
-    // (super-admin bypasses; barangay-scoped posts are unaffected).
-    if ($is_public && !PermissionHelper::userHasPermission('can_manage_system')) {
-        $_SESSION['error'] = "You are not permitted to post public announcements.";
-        header("Location: " . BASE_URL . "index.php?page=announcements");
-        exit();
+    switch ($broadcast_target) {
+        case 'global_public':
+            // Municipality-wide public post requires System Management permission
+            // (super-admin bypasses; barangay-scoped posts are unaffected).
+            if (!$can_manage_system) {
+                $_SESSION['error'] = "You are not permitted to post global public announcements.";
+                header("Location: " . BASE_URL . "index.php?page=announcements");
+                exit();
+            }
+            $is_public = 1;
+            break;
+
+        case 'localized_public':
+            if ($user_role === 'admin') {
+                $target_barangay_id = (int)($_POST['barangay_id'] ?? 0);
+                if ($target_barangay_id <= 0) {
+                    $_SESSION['error'] = "Please select a barangay for a localized public announcement.";
+                    header("Location: " . BASE_URL . "index.php?page=announcements");
+                    exit();
+                }
+            } else {
+                // Barangay official always targets their own barangay.
+                $target_barangay_id = $barangay_id;
+            }
+            break;
+
+        case 'internal_global':
+            // No public visibility, no specific target: every barangay admin.
+            break;
+
+        case 'internal_direct':
+            if ($user_role === 'admin') {
+                $target_admin_id = (int)($_POST['target_admin_id'] ?? 0);
+                if ($target_admin_id <= 0) {
+                    $_SESSION['error'] = "Please select a specific barangay admin for a direct internal announcement.";
+                    header("Location: " . BASE_URL . "index.php?page=announcements");
+                    exit();
+                }
+                // Resolve the targeted admin's barangay for reference/display.
+                $stmt_admin = $db->prepare("SELECT id, barangay_id FROM users WHERE id = ? AND role = 'barangay_official'");
+                $stmt_admin->execute([$target_admin_id]);
+                $target_admin = $stmt_admin->fetch(PDO::FETCH_ASSOC);
+                if (!$target_admin) {
+                    $_SESSION['error'] = "The selected barangay admin is no longer valid.";
+                    header("Location: " . BASE_URL . "index.php?page=announcements");
+                    exit();
+                }
+                $target_barangay_id = $target_admin['barangay_id'] ? (int)$target_admin['barangay_id'] : null;
+            } else {
+                // Barangay official can only direct an internal announcement to their own office.
+                $target_admin_id = $user_id;
+                $target_barangay_id = $barangay_id;
+            }
+            break;
+
+        default:
+            $_SESSION['error'] = "Invalid broadcast target.";
+            header("Location: " . BASE_URL . "index.php?page=announcements");
+            exit();
     }
 
     $created_by_role = ($user_role === 'admin') ? 'menro' : 'barangay';
 
     try {
-        $stmt = $db->prepare("INSERT INTO announcements (title, category, content, barangay_id, created_by, created_by_role, is_public, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW())");
-        $stmt->execute([$title, $category, $content, $target_barangay_id, $user_id, $created_by_role, $is_public]);
+        $stmt = $db->prepare("INSERT INTO announcements (title, category, content, barangay_id, created_by, created_by_role, is_public, broadcast_type, target_admin_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())");
+        $stmt->execute([$title, $category, $content, $target_barangay_id, $user_id, $created_by_role, $is_public, $broadcast_target, $target_admin_id]);
         $announcement_id = $db->lastInsertId();
 
         // Handle image uploads
@@ -158,10 +218,80 @@ if ($action === 'edit') {
         exit();
     }
 
+    // Admin may re-target an announcement on edit; barangay officials keep their
+    // (own-barangay) targeting untouched.
+    $broadcast_sets = [];
+    $broadcast_values = [];
+    if ($user_role === 'admin' && isset($_POST['broadcast_target'])) {
+        $broadcast_target = $_POST['broadcast_target'];
+        if ($broadcast_target === 'internal') {
+            $broadcast_target = ($_POST['admin_level'] ?? 'internal_global') === 'internal_direct' ? 'internal_direct' : 'internal_global';
+        }
+        $is_public = 0;
+        $target_barangay_id = null;
+        $target_admin_id = null;
+        switch ($broadcast_target) {
+            case 'global_public':
+                if (!PermissionHelper::userHasPermission('can_manage_system')) {
+                    $_SESSION['error'] = "You are not permitted to set a global public broadcast target.";
+                    header("Location: " . BASE_URL . "index.php?page=announcements");
+                    exit();
+                }
+                $is_public = 1;
+                break;
+            case 'localized_public':
+                $target_barangay_id = (int)($_POST['barangay_id'] ?? 0);
+                if ($target_barangay_id <= 0) {
+                    $_SESSION['error'] = "Please select a barangay for a localized public announcement.";
+                    header("Location: " . BASE_URL . "index.php?page=announcements");
+                    exit();
+                }
+                break;
+            case 'internal_global':
+                break;
+            case 'internal_direct':
+                $target_admin_id = (int)($_POST['target_admin_id'] ?? 0);
+                if ($target_admin_id <= 0) {
+                    $_SESSION['error'] = "Please select a specific barangay admin for a direct internal announcement.";
+                    header("Location: " . BASE_URL . "index.php?page=announcements");
+                    exit();
+                }
+                $stmt_admin = $db->prepare("SELECT id, barangay_id FROM users WHERE id = ? AND role = 'barangay_official'");
+                $stmt_admin->execute([$target_admin_id]);
+                $target_admin = $stmt_admin->fetch(PDO::FETCH_ASSOC);
+                if (!$target_admin) {
+                    $_SESSION['error'] = "The selected barangay admin is no longer valid.";
+                    header("Location: " . BASE_URL . "index.php?page=announcements");
+                    exit();
+                }
+                $target_barangay_id = $target_admin['barangay_id'] ? (int)$target_admin['barangay_id'] : null;
+                break;
+            default:
+                $_SESSION['error'] = "Invalid broadcast target.";
+                header("Location: " . BASE_URL . "index.php?page=announcements");
+                exit();
+        }
+        $broadcast_sets[] = "broadcast_type = ?";
+        $broadcast_values[] = $broadcast_target;
+        $broadcast_sets[] = "is_public = ?";
+        $broadcast_values[] = $is_public;
+        $broadcast_sets[] = "barangay_id = ?";
+        $broadcast_values[] = $target_barangay_id;
+        $broadcast_sets[] = "target_admin_id = ?";
+        $broadcast_values[] = $target_admin_id;
+    }
+
     try {
         // Update announcement
-        $stmt = $db->prepare("UPDATE announcements SET title = ?, category = ?, content = ? WHERE id = ?");
-        $stmt->execute([$title, $category, $content, $announcement_id]);
+        $update_sets = "title = ?, category = ?, content = ?";
+        $update_params = [$title, $category, $content];
+        if ($broadcast_sets) {
+            $update_sets .= ", " . implode(", ", $broadcast_sets);
+            $update_params = array_merge($update_params, $broadcast_values);
+        }
+        $update_params[] = $announcement_id;
+        $stmt = $db->prepare("UPDATE announcements SET $update_sets WHERE id = ?");
+        $stmt->execute($update_params);
 
         // Handle new image uploads
         if (isset($_FILES['images']) && is_array($_FILES['images']['name']) && $_FILES['images']['name'][0] !== '') {
