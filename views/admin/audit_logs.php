@@ -69,7 +69,7 @@ $total_pages = ceil($total_logs / $limit);
 $sql = "SELECT a.*, 
                CONCAT(u.first_name, ' ', u.last_name) as user_name,
                u.email as user_email,
-               u.role as user_role
+               u.user_type as user_role
         FROM activity_logs a
         LEFT JOIN users u ON a.user_id = u.id
         WHERE $where_clause
@@ -454,8 +454,8 @@ $top_actions = $db->query("
                                 $module = $log['target_module'] ?? ($actionModuleMap[$log['action']] ?? 'General');
                                 
                                 $role_class = '';
-                                if($log_user_role == 'admin') $role_class = 'role-badge-admin';
-                                elseif($log_user_role == 'barangay_official') $role_class = 'role-badge-barangay';
+                                if(in_array($log_user_role, ['admin', 'menro_staff'], true)) $role_class = 'role-badge-admin';
+                                elseif($log_user_role == 'barangay_personnel') $role_class = 'role-badge-barangay';
                                 else $role_class = 'role-badge-citizen';
                             ?>
                             <tr class="border-b border-emerald-50 hover:bg-emerald-50/30 transition">

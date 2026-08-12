@@ -229,11 +229,11 @@ if (count($reports) > 0):
                 <?php endif; ?>
             </div>
             <div class="flex items-center gap-2">
-                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $row['id']; ?>" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#10A37F] hover:text-[#0D8568] transition">
+                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$row['id']); ?>" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#10A37F] hover:text-[#0D8568] transition">
                     <i class="fas fa-eye"></i> View
                 </a>
                 <?php if (PermissionHelper::canManageReport($row)): ?>
-                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo $row['id']; ?>" class="btn-manage">
+                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$row['id']); ?>" class="btn-manage">
                     <i class="fas fa-edit"></i> Manage
                 </a>
                 <?php else: ?>
@@ -267,7 +267,7 @@ if (count($reports) > 0):
             <div class="text-xs text-gray-500">
                 <?php echo date('M d, Y', strtotime($row['created_at'])); ?>
             </div>
-            <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $row['id']; ?>"
+            <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$row['id']); ?>"
                class="inline-flex items-center gap-2 text-sm font-semibold text-[#10A37F] hover:text-[#0D8568] transition">
                 <i class="fas fa-eye"></i> View Details
             </a>

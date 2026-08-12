@@ -16,7 +16,7 @@ $user = new User($db);
 echo "<h3>Step 1: Check current state</h3>";
 
 // Get current user data
-$stmt = $db->prepare("SELECT id, first_name, last_name, email, role, force_password_reset, 
+$stmt = $db->prepare("SELECT id, first_name, last_name, email, user_type, force_password_reset, 
                       LEFT(password_hash, 30) as password_preview 
                       FROM users WHERE id = ?");
 $stmt->execute([$test_user_id]);

@@ -40,7 +40,7 @@ $db = $database->getConnection();
 $user = new User($db);
 
 // Check if user exists and is a staff account
-$check_stmt = $db->prepare("SELECT id, role, first_name, last_name, email FROM users WHERE id = ? AND is_active = 1");
+$check_stmt = $db->prepare("SELECT id, user_type, first_name, last_name, email FROM users WHERE id = ? AND is_active = 1");
 $check_stmt->execute([$user_id]);
 $user_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -51,15 +51,15 @@ if (!$user_data) {
     exit();
 }
 
-// Only staff accounts (barangay_official or admin) should go through this flow
-if (!in_array($user_data['role'], ['barangay_official', 'admin'])) {
+// Only staff accounts (barangay personnel, menro staff or admin) should go through this flow
+if (!in_array($user_data['user_type'] ?? '', ['barangay_personnel', 'menro_staff', 'admin'])) {
     $_SESSION['error'] = "This account does not require password reset.";
     unset($_SESSION['force_password_reset']);
     header("Location: " . BASE_URL . "index.php?page=dashboard");
     exit();
 }
 
-$role_display = ($user_data['role'] === 'barangay_official') ? 'Barangay Official' : 'MENRO Staff';
+$role_display = ($user_data['user_type'] === 'barangay_personnel') ? 'Barangay Official' : 'MENRO Staff';
 $full_name = $user_data['first_name'] . ' ' . $user_data['last_name'];
 
 // ============================================
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (
             $_SESSION['first_name'] = $fresh_user['first_name'];
             $_SESSION['last_name'] = $fresh_user['last_name'];
             $_SESSION['user_name'] = $fresh_user['first_name'] . ' ' . $fresh_user['last_name'];
-            $_SESSION['user_role'] = $fresh_user['role'];
+            $_SESSION['user_role'] = roleFromUserType($fresh_user['user_type'] ?? null);
             $_SESSION['role_id'] = $fresh_user['role_id'];
             $_SESSION['user_type'] = $fresh_user['user_type'];
             $_SESSION['barangay_id'] = $fresh_user['barangay_id'];

@@ -228,7 +228,7 @@ if ($is_admin) {
         SELECT u.id, CONCAT(u.first_name, ' ', u.last_name) as admin_name, b.name as barangay_name
         FROM users u
         JOIN barangays b ON u.barangay_id = b.id
-        WHERE u.role = 'barangay_official' AND u.is_active = 1
+        WHERE u.user_type = 'barangay_personnel' AND u.is_active = 1
         ORDER BY b.name, u.first_name
     ")->fetchAll(PDO::FETCH_ASSOC);
 }

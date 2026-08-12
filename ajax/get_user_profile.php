@@ -15,7 +15,7 @@ if ($user_id <= 0) {
 $database = new Database();
 $db = $database->getConnection();
 
-$query = "SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.user_type, u.barangay_id, 
+$query = "SELECT u.id, u.email, u.first_name, u.last_name, u.user_type, u.barangay_id, 
                  u.contact_number, u.is_active, u.created_at, u.job_title,
                  u.is_resident, u.non_resident_address,
                  b.name as barangay_name 

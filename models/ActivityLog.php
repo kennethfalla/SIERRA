@@ -26,7 +26,7 @@ class ActivityLog {
         // Capture the actor details from the session so the log stays
         // self-contained even if the user's account is later deleted.
         $actor_name = $_SESSION['user_name'] ?? null;
-        $actor_role = $_SESSION['user_role'] ?? null;
+        $actor_role = $_SESSION['user_type'] ?? null;
         if(empty($actor_role)) {
             $actor_role = $_SESSION['user_type'] ?? null;
         }

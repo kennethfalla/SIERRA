@@ -55,6 +55,7 @@ ini_set('display_startup_errors', 1);
 require_once BASE_PATH . 'config/database.php';
 require_once BASE_PATH . 'includes/functions.php';
 require_once BASE_PATH . 'helpers/SecurityHelper.php';
+require_once BASE_PATH . 'helpers/IdGuard.php';
 
 // ============================================
 // AUTO-LOAD MODEL FILES

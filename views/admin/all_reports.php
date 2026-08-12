@@ -975,7 +975,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                                     <td class="px-4 py-3 text-sm text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
                                     <td class="px-4 py-3">
                                         <?php if (PermissionHelper::canManageReport($row)): ?>
-                                        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo $row['id']; ?>" class="btn-primary px-4 py-1.5 text-white text-sm rounded-lg inline-block">
+                                        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$row['id']); ?>" class="btn-primary px-4 py-1.5 text-white text-sm rounded-lg inline-block">
                                             <i class="fas fa-edit mr-1"></i> Manage
                                         </a>
                                         <?php else: ?>

@@ -5,6 +5,7 @@
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
+require_once BASE_PATH . 'helpers/SettingsHelper.php';
 
 // ============================================
 // INITIALIZE DATABASE CONNECTION
@@ -127,6 +128,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // CSRF Protection
         if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
             echo json_encode(['error' => 'Invalid security token.']);
+            exit();
+        }
+
+        // KILL SWITCH: public registration disabled
+        if (SettingsHelper::get('enable_public_registration', '1') != '1') {
+            echo json_encode(['error' => 'Public registration is currently disabled. Please contact the MENRO office.']);
             exit();
         }
 
@@ -254,6 +261,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
 
+        // KILL SWITCH: public registration disabled
+        if (SettingsHelper::get('enable_public_registration', '1') != '1') {
+            echo json_encode(['success' => false, 'message' => 'Public registration is currently disabled. Please contact the MENRO office.']);
+            exit();
+        }
+
         $otp = trim($_POST['otp'] ?? '');
         if (strlen($otp) !== 6) {
             echo json_encode(['success' => false, 'message' => 'Invalid OTP.']);
@@ -294,6 +307,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $_SESSION['error'] = "Invalid security token. Please try again.";
             header("Location: " . BASE_URL . "index.php?page=register");
+            exit();
+        }
+
+        // KILL SWITCH: public registration disabled
+        if (SettingsHelper::get('enable_public_registration', '1') != '1') {
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                echo json_encode(['error' => 'Public registration is currently disabled. Please contact the MENRO office.']);
+                exit();
+            }
+            $_SESSION['error'] = "Public registration is currently disabled. Please contact the MENRO office.";
+            header("Location: " . BASE_URL . "index.php?page=login");
             exit();
         }
 
@@ -346,11 +370,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $query = "INSERT INTO users (
             first_name, last_name, email, contact_number, password_hash,
-            role, barangay_id, is_resident, province, municipality,
+            barangay_id, is_resident, province, municipality,
             non_resident_address, purok_street, is_verified, is_active
         ) VALUES (
             :first_name, :last_name, :email, :contact_number, :password_hash,
-            'citizen', :barangay_id, :is_resident, :province, :municipality,
+            :barangay_id, :is_resident, :province, :municipality,
             :non_resident_address, :purok_street, 1, 1
         )";
 
@@ -488,7 +512,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // ========================================
                 if ($user->needsPasswordReset($row['id'])) {
                     $_SESSION['user_id'] = $row['id'];
-                    $_SESSION['user_role'] = $row['role'];
+                    $_SESSION['user_role'] = roleFromUserType($row['user_type'] ?? null);
                     $_SESSION['role_id'] = $row['role_id'];
                     $_SESSION['user_type'] = $row['user_type'];
                     $_SESSION['barangay_id'] = $row['barangay_id'];
@@ -531,7 +555,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['first_name'] = $row['first_name'];
                 $_SESSION['last_name'] = $row['last_name'];
                 $_SESSION['user_name'] = $row['first_name'] . ' ' . $row['last_name'];
-                $_SESSION['user_role'] = $row['role'];
+                $_SESSION['user_role'] = roleFromUserType($row['user_type'] ?? null);
                 $_SESSION['role_id'] = $row['role_id'];
                 $_SESSION['user_type'] = $row['user_type'];
                 $_SESSION['barangay_id'] = $row['barangay_id'];
@@ -593,10 +617,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $role_display = 'MENRO Staff';
                 } elseif (($row['user_type'] ?? null) === 'barangay_personnel') {
                     $role_display = 'Barangay Official';
-                } elseif ($row['role'] === 'barangay_official') {
-                    $role_display = 'Barangay Official';
-                } elseif ($row['role'] === 'admin') {
-                    $role_display = 'Admin';
                 }
 
                 if ($activityLog) {
@@ -679,7 +699,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['first_name'] = $freshUser['first_name'];
                 $_SESSION['last_name'] = $freshUser['last_name'];
                 $_SESSION['user_name'] = $freshUser['first_name'] . ' ' . $freshUser['last_name'];
-                $_SESSION['user_role'] = $freshUser['role'];
+                $_SESSION['user_role'] = roleFromUserType($freshUser['user_type'] ?? null);
                 $_SESSION['role_id'] = $freshUser['role_id'];
                 $_SESSION['user_type'] = $freshUser['user_type'];
                 $_SESSION['barangay_id'] = $freshUser['barangay_id'];

@@ -242,6 +242,38 @@ function buildQueryString($params) {
 // ============================================
 
 /**
+ * Derive the legacy app-level role label from the user_type column.
+ * users.user_type is now the single source of truth (NULL = citizen).
+ *   admin -> admin
+ *   menro_staff -> admin
+ *   barangay_personnel -> barangay_official
+ */
+function roleFromUserType($user_type) {
+    $map = [
+        'admin' => 'admin',
+        'menro_staff' => 'admin',
+        'barangay_personnel' => 'barangay_official',
+    ];
+    if (!empty($user_type) && isset($map[$user_type])) {
+        return $map[$user_type];
+    }
+    return 'citizen';
+}
+
+/**
+ * Map a legacy role label to the user_type column value.
+ * Returns null for citizens (user_type stays NULL/empty).
+ */
+function userTypeFromRole($role) {
+    $map = [
+        'citizen' => null,
+        'barangay_official' => 'barangay_personnel',
+        'admin' => 'admin',
+    ];
+    return $map[$role] ?? (empty($role) ? null : $role);
+}
+
+/**
  * Get role display name
  */
 function getRoleDisplayName($role, $user_type = null) {

@@ -1385,7 +1385,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php if ($active_tab === 'supported'): ?>
                     <!-- ===== ENHANCED SUPPORTED REPORTS CARDS (matching own card spacing) ===== -->
                     <?php foreach($reports as $report): ?>
-                    <div class="supported-card" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $report['id']; ?>'">
+                    <div class="supported-card" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'">
                         <div class="card-header">
                             <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
                                 <div class="space-y-2">
@@ -1450,7 +1450,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                     <span class="text-xs text-[#0A7E6B] bg-[#E8F4F0] px-2 py-1 rounded-full">
                                         <i class="fas fa-calendar-check mr-1"></i> <?php echo date('M d', strtotime($report['supported_at'])); ?>
                                     </span>
-                                    <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $report['id']; ?>" class="track-report-btn" onclick="event.stopPropagation();">
+                                    <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>" class="track-report-btn" onclick="event.stopPropagation();">
                                         <i class="fas fa-satellite-dish"></i> Track
                                     </a>
                                 </div>
@@ -1462,7 +1462,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php else: ?>
                     <!-- ===== MY REPORTS CARDS ===== -->
                     <?php foreach($reports as $report): ?>
-                    <div class="report-card-grid" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $report['id']; ?>'" style="cursor:pointer;">
+                    <div class="report-card-grid" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'" style="cursor:pointer;">
                         <div class="report-card-header rounded-t-2xl">
                             <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
                                 <div class="space-y-2">

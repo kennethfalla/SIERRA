@@ -43,13 +43,13 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Delete user (only for non-admin users)
     if($action === 'delete') {
-        $check = $db->prepare("SELECT role, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE id = ?");
+        $check = $db->prepare("SELECT user_type, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE id = ?");
         $check->execute([$user_id]);
         $user = $check->fetch(PDO::FETCH_ASSOC);
 
         // Delete permission depends on the target account type:
         // citizens are managed under User Management, staff under Staff Management.
-        $required_key = ($user && $user['role'] === 'citizen') ? 'can_manage_users' : 'can_manage_staff';
+        $required_key = ($user && empty($user['user_type'])) ? 'can_manage_users' : 'can_manage_staff';
         if (!PermissionHelper::userHasPermission($required_key)) {
             $_SESSION['error'] = "You are not permitted to delete users.";
             header("Location: " . BASE_URL . "index.php?page=manage-users&tab=" . ($_GET['tab'] ?? 'citizens'));
@@ -63,7 +63,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
         
-        if($user && $user['role'] !== 'admin') {
+        if($user && $user['user_type'] !== 'admin') {
             $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
             if($stmt->execute([$user_id])) {
                 $target_name = $user['full_name'] ?: '#' . $user_id;
@@ -92,7 +92,7 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 // FETCH USERS FROM DATABASE
 // ============================================================
 $all_users_data = [];
-$query = "SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.user_type, u.barangay_id, 
+$query = "SELECT u.id, u.email, u.first_name, u.last_name, u.user_type, u.barangay_id, 
                  u.contact_number, u.is_active, u.created_at, u.job_title,
                  u.is_resident, u.non_resident_address, u.profile_picture,
                  b.name as barangay_name 
@@ -141,15 +141,15 @@ function applyFilters($users, $search_query, $barangay_filter, $status_filter) {
 // CATEGORIZE USERS BY ROLE
 // ============================================================
 $citizens = array_filter($all_users_data, function($user) {
-    return $user['role'] == 'citizen';
+    return empty($user['user_type']);
 });
 
 $barangay_personnel = array_filter($all_users_data, function($user) {
-    return $user['role'] == 'barangay_official';
+    return ($user['user_type'] ?? '') === 'barangay_personnel';
 });
 
 $menro_staff = array_filter($all_users_data, function($user) {
-    return $user['role'] == 'admin';
+    return in_array($user['user_type'] ?? '', ['admin', 'menro_staff'], true);
 });
 
 // Apply filters to each group
@@ -959,7 +959,7 @@ function getRoleBadge($user_type, $job_title = '') {
                                             <i class="fas fa-eye text-xs"></i>
                                         </button>
                                         
-                                        <?php if($user['role'] !== 'admin'): ?>
+                                        <?php if($user['user_type'] !== 'admin'): ?>
                                             <?php if($user['is_active'] == 1): ?>
                                             <form method="POST" class="inline" onsubmit="return confirm('Deactivate this account? The user will lose access.')">
                                                 <input type="hidden" name="action" value="deactivate">

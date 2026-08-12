@@ -41,8 +41,7 @@ class Report {
                 SET user_id=:user_id, category_id=:category_id, barangay_id=:barangay_id,
                     title=:title, description=:description, latitude=:latitude, 
                     longitude=:longitude, location_address=:location_address,
-                    risk_level=:risk_level, impact_modifier=:impact_modifier,
-                    street_name=:street_name, barangay_name=:barangay_name";
+                    risk_level=:risk_level, impact_modifier=:impact_modifier";
         
         $stmt = $this->conn->prepare($query);
         
@@ -56,8 +55,6 @@ class Report {
         $stmt->bindParam(":location_address", $data['location_address']);
         $stmt->bindParam(":risk_level", $data['risk_level']);
         $stmt->bindParam(":impact_modifier", $data['impact_modifier']);
-        $stmt->bindParam(":street_name", $data['street_name']);
-        $stmt->bindParam(":barangay_name", $data['barangay_name']);
         
         if($stmt->execute()) {
             return $this->conn->lastInsertId();
@@ -342,7 +339,7 @@ class Report {
     }
     
     public function getNotes($report_id) {
-        $query = "SELECT n.*, CONCAT(u.first_name, ' ', u.last_name) as user_name, u.role
+        $query = "SELECT n.*, CONCAT(u.first_name, ' ', u.last_name) as user_name, u.user_type
                   FROM report_notes n
                   JOIN users u ON n.user_id = u.id
                   WHERE n.report_id = :report_id

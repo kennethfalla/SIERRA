@@ -1351,11 +1351,11 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                                 <?php endif; ?>
                             </div>
                             <div class="flex items-center gap-2">
-                                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $r['id']; ?>" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#10A37F] hover:text-[#0D8568] transition">
+                                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#10A37F] hover:text-[#0D8568] transition">
                                     <i class="fas fa-eye"></i> View
                                 </a>
                                 <?php if (PermissionHelper::canManageReport($r)): ?>
-                                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo $r['id']; ?>" class="btn-manage">
+                                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="btn-manage">
                                     <i class="fas fa-edit"></i> Manage
                                 </a>
                                 <?php else: ?>

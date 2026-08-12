@@ -91,7 +91,7 @@ foreach ($report_updates as $update) {
             'time' => $update['updated_at'],
             'icon' => $info['icon'],
             'color' => $info['color'],
-            'link' => BASE_URL . "index.php?page=track-status&id=" . $update['id'],
+            'link' => BASE_URL . "index.php?page=track-status&id=" . IdGuard::enc((int)$update['id']),
             'read' => false
         );
     }
@@ -150,6 +150,74 @@ $ann_stmt->execute();
 $latest_announcement = $ann_stmt->fetch(PDO::FETCH_ASSOC);
 
 $display_reports = array_slice($reports, 0, 5);
+
+// ========== COMMUNITY REPORTS MAP (animates-only data, no reporter names) ==========
+$map_reports = array();
+try {
+    $map_sql = "
+        SELECT r.id, r.title, r.description, r.latitude, r.longitude, r.status,
+               r.created_at, c.name AS category_name, c.icon_class,
+               b.name AS barangay_name
+        FROM reports r
+        JOIN categories c ON r.category_id = c.id
+        JOIN barangays b ON r.barangay_id = b.id
+        WHERE r.status NOT IN ('cancelled', 'rejected', 'resolved', 'closed')
+          AND r.is_archived = 0
+          AND r.latitude <> 0 AND r.longitude <> 0
+          AND r.user_id <> :current_user_id
+        ORDER BY r.created_at DESC
+        LIMIT 250
+    ";
+    $map_stmt = $db->prepare($map_sql);
+    $map_stmt->bindValue(':current_user_id', $user_id);
+    $map_stmt->execute();
+    $map_reports = $map_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $map_reports = array();
+}
+
+// ========== SAN ISIDRO MUNICIPALITY BOUNDARY ==========
+$geojson_file = BASE_PATH . 'geojson/sanisidro.geojson';
+$boundary_data = null;
+if (file_exists($geojson_file)) {
+    $boundary_data = json_decode(file_get_contents($geojson_file), true);
+}
+
+// ========== BARANGAY BOUNDARIES (merged FeatureCollection) ==========
+$barangays_dir = BASE_PATH . 'geojson/barangay';
+$barangay_data = null;
+if (is_dir($barangays_dir)) {
+    $barangay_features = [];
+    foreach (glob($barangays_dir . '/*.geojson') as $barangay_file) {
+        $barangay_base = basename($barangay_file);
+        // Skip the combined "all barangays" file and any *_with_reports outputs
+        if ($barangay_base === 'san-isidro.barangay.geojson' || strpos($barangay_base, '_with_reports') !== false) {
+            continue;
+        }
+        $barangay_decoded = json_decode(file_get_contents($barangay_file), true);
+        if (!is_array($barangay_decoded) || ($barangay_decoded['type'] ?? '') !== 'FeatureCollection') {
+            continue;
+        }
+        foreach (($barangay_decoded['features'] ?? []) as $barangay_feature) {
+            if (!is_array($barangay_feature) || !isset($barangay_feature['geometry'])) {
+                continue;
+            }
+            $barangay_gtype = $barangay_feature['geometry']['type'] ?? '';
+            if ($barangay_gtype !== 'Polygon' && $barangay_gtype !== 'MultiPolygon') {
+                continue;
+            }
+            $barangay_name = $barangay_feature['properties']['barangay_name'] ?? $barangay_feature['properties']['name'] ?? '';
+            if ($barangay_name === '') {
+                $barangay_name = ucwords(str_replace('-', ' ', pathinfo($barangay_base, PATHINFO_FILENAME)));
+            }
+            $barangay_feature['properties']['name'] = $barangay_name;
+            $barangay_features[] = $barangay_feature;
+        }
+    }
+    if (count($barangay_features) > 0) {
+        $barangay_data = ['type' => 'FeatureCollection', 'features' => $barangay_features];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -160,6 +228,8 @@ $display_reports = array_slice($reports, 0, 5);
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -679,6 +749,84 @@ $display_reports = array_slice($reports, 0, 5);
             .stats-grid {
                 gap: 1rem;
             }
+        }
+
+        /* ===== RIGHT COLUMN (ecological CTA above stats) ===== */
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        @media (min-width: 640px) {
+            .right-col {
+                gap: 1.5rem;
+            }
+        }
+
+        /* ===== COMMUNITY REPORTS MAP (admin-style) ===== */
+        #map-container {
+            background: white;
+            border-radius: 1.25rem;
+            border: 1px solid rgba(16, 163, 127, 0.08);
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        #communityMap {
+            height: 500px;
+            width: 100%;
+            border-radius: 0.75rem;
+            z-index: 1;
+        }
+        @media (max-width: 768px) {
+            #communityMap { height: 350px; }
+        }
+
+        /* Map toggle (status filter) */
+        .map-toggle {
+            display: flex;
+            flex-wrap: wrap;
+            background: #f1f5f9;
+            border-radius: 2rem;
+            padding: 0.2rem;
+            gap: 0.2rem;
+        }
+        .map-toggle button {
+            padding: 0.4rem 1.2rem;
+            border-radius: 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            background: transparent;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+        .map-toggle button.active {
+            background: white;
+            color: #10A37F;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .map-toggle button:hover:not(.active) { color: #10A37F; }
+
+        .map-popup-title {
+            font-weight: 700;
+            color: #1a2e1a;
+            font-size: 0.85rem;
+            line-height: 1.25;
+            margin-bottom: 4px;
+        }
+        .map-popup-meta {
+            color: #5b7a68;
+            font-size: 0.72rem;
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+        .map-popup-meta i { color: #10A37F; margin-right: 4px; }
+        .map-popup-desc {
+            color: #3f5a4c;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            margin-top: 4px;
         }
 
         .notification-bell { 
@@ -1379,9 +1527,38 @@ $display_reports = array_slice($reports, 0, 5);
             </div>
         </div>
 
-        <!-- ===== TWO COLUMN: REPORT ISSUE + STATS ===== -->
+        <!-- ===== TWO COLUMN: COMMUNITY MAP (LEFT) | ECO CTA + STATS (RIGHT) ===== -->
         <div class="two-col">
-            <!-- LEFT: Report Issue -->
+            <!-- LEFT: Community Reports Map (admin design, citizen data) -->
+            <div id="map-container">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+                            <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
+                            Community Reports
+                        </h2>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-3 text-xs mb-3">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Pending</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#3B82F6;"></span> Verified</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#8B5CF6;"></span> In Progress</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Escalated</span>
+                </div>
+
+                <div id="communityMap"></div>
+
+                <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                    <i class="fas fa-info-circle"></i>
+                    Click a marker to view the report details — reporter identities are kept private.
+                </p>
+            </div>
+
+            <!-- RIGHT: Ecological CTA on top, statistics below -->
+            <div class="right-col">
+
+            <!-- ECOLOGICAL CTA -->
             <div class="report-issue-card">
                 <div class="flex items-start gap-3 md:gap-4">
                     <div class="issue-icon-large"><i class="fas fa-tree"></i></div>
@@ -1400,7 +1577,7 @@ $display_reports = array_slice($reports, 0, 5);
                 </div>
             </div>
 
-            <!-- RIGHT: Statistics Cards -->
+            <!-- STATISTICS -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="flex justify-between items-start">
@@ -1440,6 +1617,7 @@ $display_reports = array_slice($reports, 0, 5);
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
         
@@ -1492,7 +1670,7 @@ $display_reports = array_slice($reports, 0, 5);
                             </td>
                             <td class="date-cell"><?php echo date('M d', strtotime($row['created_at'])); ?></td>
                             <td class="action-cell">
-                                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $row['id']; ?>">
+                                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$row['id']); ?>">
                                     <i class="fas fa-eye"></i> View
                                 </a>
                             </td>
@@ -1551,7 +1729,7 @@ $display_reports = array_slice($reports, 0, 5);
                                 </span>
                             </span>
                             <span class="card-action">
-                                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $row['id']; ?>">
+                                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$row['id']); ?>">
                                     <i class="fas fa-eye"></i> View
                                 </a>
                             </span>
@@ -1750,6 +1928,164 @@ if (bell) {
     setTimeout(function() { bell.classList.remove('ring-animation'); }, 600);
 }
 <?php endif; ?>
+</script>
+
+<script>
+// ============================================
+// COMMUNITY REPORTS MAP (reporter names hidden)
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    var mapEl = document.getElementById('communityMap');
+    if (!mapEl) return;
+
+    var communityMap = L.map('communityMap', { scrollWheelZoom: false }).setView([15.3092, 120.9033], 13);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+    }).addTo(communityMap);
+
+    var boundaryData = <?php echo json_encode($boundary_data); ?>;
+    var barangayData = <?php echo json_encode($barangay_data); ?>;
+
+    function extractPolygonCoords(geojson) {
+        if (!geojson || !geojson.features) return null;
+        for (var i = 0; i < geojson.features.length; i++) {
+            var f = geojson.features[i];
+            if (f.geometry && f.geometry.type === 'MultiPolygon') {
+                return f.geometry.coordinates[0][0].map(function(coord) { return [coord[1], coord[0]]; });
+            }
+            if (f.geometry && f.geometry.type === 'Polygon') {
+                return f.geometry.coordinates[0].map(function(coord) { return [coord[1], coord[0]]; });
+            }
+        }
+        return null;
+    }
+
+    // San Isidro municipality outline (subtle dashed backdrop)
+    if (boundaryData && boundaryData.features) {
+        try {
+            var coords = extractPolygonCoords(boundaryData);
+            if (coords) {
+                L.polygon(coords, {
+                    color: "#10A37F",
+                    weight: 1.2,
+                    fillColor: "#10A37F",
+                    fillOpacity: 0.03,
+                    dashArray: "6 4",
+                    smoothFactor: 1,
+                    interactive: false
+                }).addTo(communityMap);
+            }
+        } catch (e) {}
+    }
+
+    // Barangay boundaries (hover to see the name, click to zoom in)
+    var barangayStyle = { color: "#10A37F", weight: 1.5, fillColor: "#10A37F", fillOpacity: 0.06, smoothFactor: 1 };
+    var barangayLayer = null;
+    if (barangayData && barangayData.features) {
+        barangayLayer = L.geoJSON(barangayData, {
+            style: barangayStyle,
+            onEachFeature: function(feature, layer) {
+                var name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
+                layer.bindTooltip(name, { sticky: true });
+                layer.on({
+                    mouseover: function() {
+                        layer.setStyle({ fillOpacity: 0.14, weight: 2.5 });
+                        layer.bringToFront();
+                    },
+                    mouseout: function() {
+                        layer.setStyle(barangayStyle);
+                    },
+                    click: function() {
+                        try { communityMap.fitBounds(layer.getBounds(), { maxZoom: 14 }); } catch (e) {}
+                    }
+                });
+            }
+        }).addTo(communityMap);
+    }
+
+    var statusColors = {
+        pending: '#F59E0B',
+        under_review: '#F59E0B',
+        verified: '#3B82F6',
+        in_progress: '#8B5CF6',
+        escalated_pending: '#F97316',
+        escalated: '#EF4444',
+        resolved: '#10A37F',
+        closed: '#6B7280',
+        rejected: '#DC2626',
+        cancelled: '#9CA3AF'
+    };
+
+    var statusLabels = {
+        pending: 'Pending',
+        under_review: 'Under Review',
+        verified: 'Verified',
+        in_progress: 'In Progress',
+        escalated_pending: 'Escalation Pending',
+        escalated: 'Escalated',
+        resolved: 'Resolved',
+        closed: 'Closed',
+        rejected: 'Rejected',
+        cancelled: 'Cancelled'
+    };
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    var mapData = <?php echo json_encode($map_reports); ?>;
+    var markersLayer = L.layerGroup();
+
+    mapData.forEach(function(r) {
+        var lat = parseFloat(r.latitude);
+        var lng = parseFloat(r.longitude);
+        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
+
+        var color = statusColors[r.status] || '#10A37F';
+        var title = esc(r.title || 'Untitled Report');
+        var desc = String(r.description || '');
+        if (desc.length > 140) desc = desc.substring(0, 140) + '…';
+        desc = esc(desc);
+        var statusLabel = statusLabels[r.status] || esc(r.status);
+        var dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+        var html = '';
+        html += '<div class="map-popup-title">' + title + '</div>';
+        html += '<div class="map-popup-meta"><i class="fas fa-tag"></i>' + esc(r.category_name || 'General') + '</div>';
+        html += '<div class="map-popup-meta"><i class="fas fa-map-marker-alt"></i>' + esc(r.barangay_name || 'San Isidro') + '</div>';
+        html += '<div class="map-popup-meta"><i class="fas fa-circle" style="color:' + color + ';"></i>' + statusLabel + '</div>';
+        if (dateStr) html += '<div class="map-popup-meta"><i class="far fa-calendar-alt"></i>' + dateStr + '</div>';
+        if (desc) html += '<div class="map-popup-desc">' + desc + '</div>';
+
+        var icon = L.divIcon({
+            html: '<div style="background:' + color + ';width:22px;height:22px;border-radius:50%;border:2px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+            className: 'community-report-marker'
+        });
+
+        var marker = L.marker([lat, lng], { icon: icon })
+            .bindPopup(html, { autoPanPadding: [40, 40] });
+
+        marker.on('click', function() { this.openPopup(); });
+
+        markersLayer.addLayer(marker);
+    });
+
+    communityMap.addLayer(markersLayer);
+
+    // Start framed on the whole municipality so the boundaries are visible
+    if (barangayLayer) {
+        try { communityMap.fitBounds(barangayLayer.getBounds(), { padding: [20, 20], maxZoom: 13 }); } catch (e) {}
+    } else if (markersLayer.getLayers().length > 0) {
+        try { communityMap.fitBounds(markersLayer.getBounds().pad(0.12), { maxZoom: 13 }); } catch (e) {}
+    }
+
+    setTimeout(function() { communityMap.invalidateSize(); }, 250);
+});
 </script>
 
 </body>

@@ -43,7 +43,7 @@
             </div>
             
             <div class="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100">
-                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo $row['id']; ?>" 
+                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$row['id']); ?>" 
                    class="inline-flex items-center gap-2 text-sm font-semibold text-[#10A37F] hover:text-[#0D8568] transition">
                     <i class="fas fa-eye"></i> View Details
                 </a>

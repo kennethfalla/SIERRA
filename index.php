@@ -4,6 +4,7 @@
 // Updated: Login → Dashboard, Register → Login, Reset Password → Dashboard
 
 require_once 'config/config.php';
+require_once BASE_PATH . 'helpers/SettingsHelper.php';
 
 // ============================================
 // CHECK FOR LOGOUT ACTION - MUST BE FIRST
@@ -17,6 +18,31 @@ if(isset($_GET['page']) && $_GET['page'] === 'logout') {
 // GET THE PAGE PARAMETER - DEFAULT TO HOME
 // ============================================
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
+
+// ============================================
+// MAINTENANCE MODE - MASTER KILL SWITCH
+// ============================================
+// When maintenance_mode is ON, everyone except logged-in admins sees the
+// maintenance splash. The login page stays reachable so an admin can always
+// get back in and toggle the switch off.
+//
+// Failsafe: any non-admin session is force-logged-out immediately. Without
+// this, a logged-in citizen gets trapped in a loop (login -> dashboard ->
+// maintenance splash -> login...) and can never reach the login form.
+if (SettingsHelper::get('maintenance_mode', 0) == 1) {
+    $is_admin_session = isset($_SESSION['user_id'])
+        && ($_SESSION['user_role'] ?? '') === 'admin';
+
+    if (!$is_admin_session && isset($_SESSION['user_id'])) {
+        forceLogout('Maintenance mode is active. You have been signed out; staff may log in below.');
+    }
+
+    $allowed_during_maintenance = in_array($page, ['login', 'reset-password', 'forgot-password']);
+    if (!$is_admin_session && !$allowed_during_maintenance) {
+        require_once 'views/maintenance.php';
+        exit();
+    }
+}
 
 // ============================================
 // CSRF TOKEN GENERATION FOR FORMS
@@ -38,6 +64,12 @@ if($page === 'login' || $page === 'register') {
     if(isLoggedIn()) {
         // If already logged in, redirect to dashboard (not home)
         header("Location: " . BASE_URL . "index.php?page=dashboard");
+        exit();
+    }
+    // KILL SWITCH: public registration disabled -> hide the register form
+    if ($page === 'register' && SettingsHelper::get('enable_public_registration', '1') != '1') {
+        $_SESSION['error'] = "Public registration is currently disabled. Please contact the MENRO office.";
+        header("Location: " . BASE_URL . "index.php?page=login");
         exit();
     }
     require_once $page === 'login' ? 'views/auth/login.php' : 'views/auth/register.php';

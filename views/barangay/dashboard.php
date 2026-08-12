@@ -377,6 +377,12 @@ $activeMapQuery = $db->prepare("
 $activeMapQuery->execute([$barangay_id]);
 $activeReports = $activeMapQuery->fetchAll(PDO::FETCH_ASSOC);
 
+// Attach opaque tokens so dashboard drill links never expose raw report IDs
+foreach ($activeReports as &$drill_row) {
+    $drill_row['token'] = IdGuard::enc((int)$drill_row['id']);
+}
+unset($drill_row);
+
 $historicalMapQuery = $db->prepare("
     SELECT id, title, latitude, longitude, severity_score, spatial_density_count,
            decision_classification, category_id, status, risk_level, created_at, resolved_at
@@ -390,6 +396,12 @@ $historicalMapQuery = $db->prepare("
 ");
 $historicalMapQuery->execute([$barangay_id]);
 $historicalReports = $historicalMapQuery->fetchAll(PDO::FETCH_ASSOC);
+
+// Attach opaque tokens so dashboard drill links never expose raw report IDs
+foreach ($historicalReports as &$drill_row) {
+    $drill_row['token'] = IdGuard::enc((int)$drill_row['id']);
+}
+unset($drill_row);
 
 // Category checkboxes for the map's Category Filter toggle
 $categories = [];
@@ -1347,7 +1359,7 @@ $recent_reports->execute();
                             </td>
                             <td class="px-5 py-4 text-sm font-medium text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
                             <td class="px-5 py-4">
-                                <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=<?php echo $row['id']; ?>" 
+                                <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=<?php echo IdGuard::enc((int)$row['id']); ?>" 
                                    class="text-[#059669] hover:text-[#047857] transition text-sm font-bold">
                                     Manage
                                 </a>
@@ -1743,7 +1755,7 @@ function renderDrillPanel(report) {
             <h4 class="font-semibold text-gray-700 mb-2">Citizen Evidence (${report.spatial_density_count || 0} reports)</h4>
             <p class="text-sm text-gray-500">View full report for complete evidence list.</p>
             <div class="mt-2">
-                <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.id}" target="_blank" class="text-[#059669] hover:underline text-sm">
+                <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" target="_blank" class="text-[#059669] hover:underline text-sm">
                     <i class="fas fa-external-link-alt mr-1"></i>Open in Verify Reports
                 </a>
             </div>

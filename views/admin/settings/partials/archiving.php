@@ -20,10 +20,11 @@ $db = $database->getConnection();
 $archive_rows = [];
 
 $stmt = $db->query("
-    SELECT r.id, r.title, r.status, r.barangay_name, r.resolved_at, r.rejected_at,
+    SELECT r.id, r.title, r.status, b.name AS barangay_name, r.resolved_at, r.rejected_at,
            r.archived_at, r.archived_reason, c.name AS category_name
     FROM reports r
     LEFT JOIN categories c ON c.id = r.category_id
+    LEFT JOIN barangays b ON b.id = r.barangay_id
     WHERE r.is_archived = 1
     ORDER BY r.archived_at DESC, r.id DESC
 ");

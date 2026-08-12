@@ -136,6 +136,67 @@ class SettingsHelper {
             'lgu_logo' => '',
 
             // ========================================
+            // LANDING PAGE (public homepage content)
+            // Editable in Settings > Landing Page
+            // ========================================
+            'lp_hero_badge' => 'Working together for a cleaner community',
+            'lp_hero_headline_1' => 'Sama-sama nating',
+            'lp_hero_headline_2' => "pangalagaan ang\nSan Isidro.",
+            'lp_hero_bg_type' => 'image',
+            'lp_hero_bg_image' => 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2069&q=80',
+            'lp_hero_bg_video' => '',
+            'lp_hero_subtitle_guest' => "See something wrong in your neighborhood? Illegal dumping, clogged canals, or air pollution?\nReport it here, and your barangay will take action. It's free, fast, and easy.",
+            'lp_hero_subtitle_staff' => "As a {role}, you can review, verify, and manage environmental reports from your community.\nTake action on pending reports and help resolve issues faster.",
+            'lp_hero_subtitle_user' => "Your voice matters. Report environmental issues like illegal dumping, flooding, or pollution —\nand we'll help track them until they're resolved.",
+            'lp_how_kicker' => 'How It Works',
+            'lp_how_heading' => 'Three simple steps',
+            'lp_how_intro' => "You don't need to be an expert. Anyone can report an environmental issue in their neighborhood.",
+            'lp_how_step1_title' => 'Join the Community',
+            'lp_how_step1_desc' => "Create a free account. No fees, no hidden charges. Just a commitment to a cleaner community.",
+            'lp_how_step2_title' => 'Report the Problem',
+            'lp_how_step2_desc' => "Take a photo, tag the location on the map, and describe the issue. It takes just a few minutes.",
+            'lp_how_step3_title' => 'Track the Action',
+            'lp_how_step3_desc' => "See when your barangay takes action until the issue is resolved. You'll get updates every step of the way.",
+            'lp_map_kicker' => 'Live Map',
+            'lp_map_heading' => 'Environmental Reports Map',
+            'lp_map_intro' => 'See where environmental issues are being reported across San Isidro.',
+            'lp_stats_kicker' => 'Community Impact',
+            'lp_stats_heading' => 'San Isidro Statistics',
+            'lp_stats_intro' => "Together, we're making a difference in our community.",
+            'lp_stat_barangays' => 9,
+            'lp_stat_barangays_label' => 'Barangays',
+            'lp_stat_barangays_sub' => 'All working together',
+            'lp_stat_population' => 55108,
+            'lp_stat_population_label' => 'Population',
+            'lp_stat_population_sub' => 'Caring for each other',
+            'lp_stat_households' => 12828,
+            'lp_stat_households_label' => 'Households',
+            'lp_stat_households_sub' => 'Building a better future',
+            'lp_stat_reports_label' => 'Reports Submitted',
+            'lp_stat_reports_sub' => 'Voices heard',
+            'lp_about_kicker' => 'About LGU',
+            'lp_about_heading' => 'Municipal Environment & Natural Resources Office',
+            'lp_about_subtitle' => "Committed to protecting and preserving San Isidro's environment for future generations.",
+            'lp_vision_title' => 'Our Vision',
+            'lp_vision_tagline' => 'A greener, cleaner San Isidro',
+            'lp_vision_body' => "A clean, green, and sustainable San Isidro where every citizen is an active steward of the environment, and environmental resources are protected and preserved for future generations.",
+            'lp_vision_label' => 'Vision 2030',
+            'lp_about_title' => 'About MENRO',
+            'lp_about_tagline' => 'Municipal Environment Office',
+            'lp_mission_body' => "The Municipal Environment and Natural Resources Office (MENRO) of San Isidro is dedicated to the protection, conservation, and sustainable management of the municipality's natural resources and environment. MENRO works closely with barangay officials, community organizations, and citizens to address environmental concerns, enforce environmental laws, and promote ecological awareness. Through the Sierra Environmental Reporting System, MENRO aims to empower every citizen to participate in environmental governance and contribute to a cleaner, healthier community.",
+            'lp_about_body' => "The Municipal Environment and Natural Resources Office (MENRO) of San Isidro is dedicated to the protection, conservation, and sustainable management of the municipality's natural resources and environment. MENRO works closely with barangay officials, community organizations, and citizens to address environmental concerns, enforce environmental laws, and promote ecological awareness. Through the Sierra Environmental Reporting System, MENRO aims to empower every citizen to participate in environmental governance and contribute to a cleaner, healthier community.",
+            'lp_core_protection_title' => 'Protection',
+            'lp_core_protection_desc' => 'Safeguarding natural resources',
+            'lp_core_service_title' => 'Service',
+            'lp_core_service_desc' => 'Dedicated to the community',
+            'lp_core_sustainability_title' => 'Sustainability',
+            'lp_core_sustainability_desc' => 'For future generations',
+            'lp_core_partnership_title' => 'Partnership',
+            'lp_core_partnership_desc' => 'Working together for change',
+            'lp_footer_about' => 'Environmental reporting system for San Isidro, Nueva Ecija. Working together for a cleaner, greener community.',
+            'lp_footer_address' => 'San Isidro, Nueva Ecija',
+
+            // ========================================
             // SECURITY SETTINGS
             // ========================================
             'password_min_length' => 8,
@@ -155,6 +216,16 @@ class SettingsHelper {
             'allow_edit_pending_reports' => 1,
             'enable_escalation' => 1,
             'enable_notifications' => 1,
+
+            // ========================================
+            // MASTER KILL SWITCHES
+            // If something breaks, MENRO can turn these off
+            // from Settings > Features without touching code.
+            // ========================================
+            'maintenance_mode' => 0,
+            'enable_report_submission' => 1,
+            'enable_report_support' => 1,
+            'enable_announcements' => 1,
 
             // ========================================
             // SEVERITY ALGORITHM
@@ -721,12 +792,14 @@ class SettingsHelper {
     // PERMISSIONS (RBAC) — dynamic, admin-created roles
     // ========================================================
     // Roles now live in the `roles` table (Create Role feature) instead
-    // of being hardcoded to the users.role enum. `users.role` is still
-    // used for the hard citizen/barangay_official/admin boundary
-    // (requireRole()); `users.role_id` points at the custom role that
-    // drives these 9 feature-level permission toggles; `users.user_type`
-    // (barangay_personnel/menro_staff/admin) drives the report-scoping
-    // runtime logic in PermissionHelper::canManageReport().
+    // of being hardcoded to a users.role enum. The legacy `users.role`
+    // enum column has been removed entirely: `users.user_type`
+    // (barangay_personnel/menro_staff/admin, NULL = citizen) is the single
+    // source of truth for the citizen/staff boundary and the report-scoping
+    // runtime logic (PermissionHelper::canManageReport()); `users.role_id`
+    // points at the custom role that drives the 9 feature-level permission
+    // toggles. The legacy role label is derived from user_type via
+    // roleFromUserType() for requireRole()/hasRole() checks.
     // ========================================================
 
     private static function getDb() {

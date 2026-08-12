@@ -58,6 +58,13 @@ if ($action === 'create') {
         exit();
     }
 
+    // KILL SWITCH: announcements disabled
+    if (SettingsHelper::get('enable_announcements', '1') != '1') {
+        $_SESSION['error'] = "Creating announcements is currently disabled by the system administrator.";
+        header("Location: " . BASE_URL . "index.php?page=announcements");
+        exit();
+    }
+
     $title = InputSanitizer::sanitizeString($_POST['title'] ?? '');
     $category = InputSanitizer::sanitizeString($_POST['category'] ?? 'General');
     $content = InputSanitizer::sanitizeRichText($_POST['content'] ?? '');
@@ -125,7 +132,7 @@ if ($action === 'create') {
                     exit();
                 }
                 // Resolve the targeted admin's barangay for reference/display.
-                $stmt_admin = $db->prepare("SELECT id, barangay_id FROM users WHERE id = ? AND role = 'barangay_official'");
+                $stmt_admin = $db->prepare("SELECT id, barangay_id FROM users WHERE id = ? AND user_type = 'barangay_personnel'");
                 $stmt_admin->execute([$target_admin_id]);
                 $target_admin = $stmt_admin->fetch(PDO::FETCH_ASSOC);
                 if (!$target_admin) {
@@ -256,7 +263,7 @@ if ($action === 'edit') {
                     header("Location: " . BASE_URL . "index.php?page=announcements");
                     exit();
                 }
-                $stmt_admin = $db->prepare("SELECT id, barangay_id FROM users WHERE id = ? AND role = 'barangay_official'");
+                $stmt_admin = $db->prepare("SELECT id, barangay_id FROM users WHERE id = ? AND user_type = 'barangay_personnel'");
                 $stmt_admin->execute([$target_admin_id]);
                 $target_admin = $stmt_admin->fetch(PDO::FETCH_ASSOC);
                 if (!$target_admin) {

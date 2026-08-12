@@ -81,18 +81,25 @@ $activeReports = $db->query("
                 r.category_id,
                 COALESCE(c.name, '') AS category_name,
                 r.location_address,
-                r.barangay_name,
+                b.name as barangay_name,
                 r.status,
                 r.risk_level,
                 r.created_at,
                 (SELECT GROUP_CONCAT(image_path) FROM report_images WHERE report_id = r.id LIMIT 3) as image_paths
         FROM reports r
         LEFT JOIN categories c ON r.category_id = c.id
+        LEFT JOIN barangays b ON r.barangay_id = b.id
         WHERE r.status NOT IN ('resolved', 'rejected', 'cancelled')
             AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
             AND r.latitude != 0 AND r.longitude != 0
         ORDER BY r.severity_score DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Attach opaque tokens so dashboard drill links never expose raw report IDs
+foreach ($activeReports as &$drill_row) {
+    $drill_row['token'] = IdGuard::enc((int)$drill_row['id']);
+}
+unset($drill_row);
 
 // Historical (resolved) reports for the toggle
 $historicalReports = $db->query("
@@ -103,7 +110,7 @@ $historicalReports = $db->query("
                 r.category_id,
                 COALESCE(c.name, '') AS category_name,
                 r.location_address,
-                r.barangay_name,
+                b.name as barangay_name,
                 r.status,
                 r.risk_level,
                 r.created_at,
@@ -111,12 +118,19 @@ $historicalReports = $db->query("
                 (SELECT GROUP_CONCAT(image_path) FROM report_images WHERE report_id = r.id LIMIT 3) as image_paths
         FROM reports r
         LEFT JOIN categories c ON r.category_id = c.id
+        LEFT JOIN barangays b ON r.barangay_id = b.id
         WHERE r.status = 'resolved'
             AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
             AND r.latitude != 0 AND r.longitude != 0
         ORDER BY r.resolved_at DESC
         LIMIT 500
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Attach opaque tokens so dashboard drill links never expose raw report IDs
+foreach ($historicalReports as &$drill_row) {
+    $drill_row['token'] = IdGuard::enc((int)$drill_row['id']);
+}
+unset($drill_row);
 
 // ------------------------------------------------------------
 // 2b. CATEGORIES – for the Category Filter dropdown
@@ -1976,7 +1990,7 @@ function renderDrillPanel(report) {
         </div>
 
         <!-- Open Full Report -->
-        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=${report.id}" target="_blank" class="drill-open-btn">
+        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=${report.token}" target="_blank" class="drill-open-btn">
             <i class="fas fa-external-link-alt mr-2"></i> Open Full Report
         </a>
 

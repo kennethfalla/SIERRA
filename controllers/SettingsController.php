@@ -111,6 +111,562 @@ class SettingsController {
     }
 
     // ================================================================
+    // 1b. LANDING PAGE SETTINGS (Public homepage content)
+    // ================================================================
+    private function updateLanding() {
+        // Sub-action handling for the hero media gallery (upload / select / delete)
+        $sub_action = $_POST['sub_action'] ?? '';
+        if ($sub_action === 'hero_gallery_upload') {
+            $this->heroGalleryUpload();
+            return;
+        }
+        if ($sub_action === 'hero_gallery_select') {
+            $this->heroGallerySelect();
+            return;
+        }
+        if ($sub_action === 'hero_gallery_delete') {
+            $this->heroGalleryDelete();
+            return;
+        }
+        if ($sub_action === 'about_gallery_upload') {
+            $this->aboutGalleryUpload();
+            return;
+        }
+        if ($sub_action === 'about_gallery_select') {
+            $this->aboutGallerySelect();
+            return;
+        }
+        if ($sub_action === 'about_gallery_delete') {
+            $this->aboutGalleryDelete();
+            return;
+        }
+        if ($sub_action === 'about_slot_upload') {
+            $this->aboutSlotUpload();
+            return;
+        }
+        if ($sub_action === 'about_slot_clear') {
+            $this->aboutSlotClear();
+            return;
+        }
+
+        // Single-line / short fields (strip tags, collapse whitespace)
+        $single = [
+            'lp_hero_badge' => 200,
+            'lp_hero_headline_1' => 200,
+            'lp_how_kicker' => 100,
+            'lp_how_heading' => 200,
+            'lp_how_step1_title' => 150,
+            'lp_how_step2_title' => 150,
+            'lp_how_step3_title' => 150,
+            'lp_map_kicker' => 100,
+            'lp_map_heading' => 200,
+            'lp_stats_kicker' => 100,
+            'lp_stats_heading' => 200,
+            'lp_stat_barangays_label' => 100,
+            'lp_stat_barangays_sub' => 200,
+            'lp_stat_population_label' => 100,
+            'lp_stat_population_sub' => 200,
+            'lp_stat_households_label' => 100,
+            'lp_stat_households_sub' => 200,
+            'lp_stat_reports_label' => 100,
+            'lp_stat_reports_sub' => 200,
+            'lp_about_kicker' => 100,
+            'lp_about_heading' => 300,
+            'lp_vision_title' => 100,
+            'lp_vision_tagline' => 150,
+            'lp_vision_label' => 100,
+            'lp_about_title' => 100,
+            'lp_about_tagline' => 150,
+            'lp_core_protection_title' => 100,
+            'lp_core_protection_desc' => 200,
+            'lp_core_service_title' => 100,
+            'lp_core_service_desc' => 200,
+            'lp_core_sustainability_title' => 100,
+            'lp_core_sustainability_desc' => 200,
+            'lp_core_partnership_title' => 100,
+            'lp_core_partnership_desc' => 200,
+            'lp_footer_about' => 500,
+            'lp_footer_address' => 200,
+        ];
+        foreach ($single as $key => $maxLen) {
+            SettingsHelper::set($key, InputSanitizer::sanitizeString($_POST[$key] ?? '', $maxLen));
+        }
+
+        // Multi-line / paragraph fields (strip tags but KEEP line breaks)
+        $multi = [
+            'lp_hero_headline_2' => 500,
+            'lp_hero_subtitle_guest' => 2000,
+            'lp_hero_subtitle_staff' => 2000,
+            'lp_hero_subtitle_user' => 2000,
+            'lp_how_intro' => 2000,
+            'lp_how_step1_desc' => 1000,
+            'lp_how_step2_desc' => 1000,
+            'lp_how_step3_desc' => 1000,
+            'lp_map_intro' => 2000,
+            'lp_stats_intro' => 2000,
+            'lp_about_subtitle' => 2000,
+            'lp_mission_body' => 5000,
+            'lp_vision_body' => 5000,
+            'lp_about_body' => 5000,
+        ];
+        foreach ($multi as $key => $maxLen) {
+            SettingsHelper::set($key, $this->cleanLandingText($_POST[$key] ?? '', $maxLen));
+        }
+
+        // Numeric stat fields
+        SettingsHelper::set('lp_stat_barangays', InputSanitizer::sanitizeInt($_POST['lp_stat_barangays'] ?? 0, 0));
+        SettingsHelper::set('lp_stat_population', InputSanitizer::sanitizeInt($_POST['lp_stat_population'] ?? 0, 0));
+        SettingsHelper::set('lp_stat_households', InputSanitizer::sanitizeInt($_POST['lp_stat_households'] ?? 0, 0));
+
+        // Hero background media (image | video | none)
+        $hero_bg_type = $_POST['lp_hero_bg_type'] ?? 'image';
+        $hero_bg_type = in_array($hero_bg_type, ['image', 'video', 'none'], true) ? $hero_bg_type : 'image';
+        SettingsHelper::set('lp_hero_bg_type', $hero_bg_type);
+        SettingsHelper::set('lp_hero_bg_image', $this->cleanMediaUrl($_POST['lp_hero_bg_image'] ?? ''));
+        SettingsHelper::set('lp_hero_bg_video', $this->cleanMediaUrl($_POST['lp_hero_bg_video'] ?? ''));
+
+        SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated landing page content", null, 'Settings');
+        $_SESSION['success'] = "Landing page saved successfully!";
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+        exit();
+    }
+
+    /**
+     * Sanitize multi-line landing text: strip all HTML/PHP tags and unsafe
+     * input but preserve line breaks so the page can render them via nl2br().
+     * @param string $text
+     * @param int $maxLength
+     * @return string
+     */
+    private function cleanLandingText($text, $maxLength = 5000) {
+        if ($text === null || $text === '') {
+            return '';
+        }
+
+        $text = (string)$text;
+        $text = str_replace(chr(0), '', $text);
+        $text = strip_tags($text);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/&[#a-zA-Z0-9]+;/', '', $text);
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
+        $text = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]/u', '', $text);
+
+        // Normalize line endings then collapse 3+ blank lines to 2
+        $text = str_replace("\r\n", "\n", $text);
+        $text = str_replace("\r", "\n", $text);
+        $text = preg_replace("/\n{3,}/", "\n\n", $text);
+        $text = preg_replace('/[ \t]{2,}/', ' ', $text);
+
+        if ($maxLength > 0 && mb_strlen($text, 'UTF-8') > $maxLength) {
+            $text = mb_substr($text, 0, $maxLength, 'UTF-8');
+        }
+        return trim($text);
+    }
+
+    /**
+     * Sanitize a media URL/path for the hero background. Allows http(s)
+     * external URLs and safe relative upload paths under uploads/.
+     * @param string $value
+     * @return string
+     */
+    private function cleanMediaUrl($value) {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return '';
+        }
+        // External URL: http/https only
+        if (preg_match('#^https?://#i', $value)) {
+            $filtered = filter_var($value, FILTER_SANITIZE_URL);
+            return filter_var($filtered, FILTER_VALIDATE_URL) ? $filtered : '';
+        }
+        // Local upload: safe relative path under uploads/
+        if (preg_match('#^uploads/[a-zA-Z0-9_\-/]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|ogg|m4v)$#i', $value)) {
+            return $value;
+        }
+        return '';
+    }
+
+    /**
+     * Absolute path of the hero media gallery directory (autocreated).
+     * @return string
+     */
+    private function heroGalleryDir() {
+        $dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/uploads/settings/hero/';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        return $dir;
+    }
+
+    /**
+     * Allowed gallery extensions => whether it is a video.
+     * @return array<string,bool>
+     */
+    private function heroGalleryExts() {
+        return [
+            'jpg' => false, 'jpeg' => false, 'png' => false, 'gif' => false, 'webp' => false,
+            'mp4' => true, 'webm' => true, 'mov' => true, 'm4v' => true, 'ogg' => true,
+        ];
+    }
+
+    /**
+     * Handle uploading a new image/video into the hero media gallery.
+     */
+    private function heroGalleryUpload() {
+        $dir = $this->heroGalleryDir();
+        $exts = $this->heroGalleryExts();
+
+        if (!isset($_FILES['hero_media']) || $_FILES['hero_media']['error'] === UPLOAD_ERR_NO_FILE) {
+            $_SESSION['error'] = "No file selected for upload.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+        if ($_FILES['hero_media']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['error'] = "Upload failed (error code " . (int)$_FILES['hero_media']['error'] . ").";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $file = $_FILES['hero_media'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!isset($exts[$ext])) {
+            $_SESSION['error'] = "Invalid media type. Allowed images: JPG, PNG, GIF, WebP. Allowed videos: MP4, WEBM, MOV, M4V, OGG.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $is_video = $exts[$ext];
+        $max_size = $is_video ? 52428800 : 5242880; // 50MB video, 5MB image
+        if ($file['size'] > $max_size) {
+            $_SESSION['error'] = ($is_video ? "Video" : "Image") . " is too large. Max " . ($max_size / 1048576) . "MB.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $basename = 'hero_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $target = $dir . $basename;
+        if (move_uploaded_file($file['tmp_name'], $target)) {
+            // Auto-activate the freshly uploaded media as the hero background so
+            // the public landing page updates immediately after the upload.
+            $rel = 'uploads/settings/hero/' . $basename;
+            SettingsHelper::set('lp_hero_bg_type', $is_video ? 'video' : 'image');
+            if ($is_video) {
+                SettingsHelper::set('lp_hero_bg_video', $rel);
+            } else {
+                SettingsHelper::set('lp_hero_bg_image', $rel);
+            }
+            SettingsHelper::clearCache();
+            $this->activityLog->log($this->user_id, 'Update System Settings', "Added hero background media and set it active: " . $basename, null, 'Settings');
+            $_SESSION['success'] = ($is_video ? "Video" : "Image") . " uploaded and set as the hero background.";
+        } else {
+            $_SESSION['error'] = "Could not move the uploaded file. Check folder permissions.";
+        }
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+        exit();
+    }
+
+    /**
+     * Handle selecting a gallery file as the hero background (image or video).
+     */
+    private function heroGallerySelect() {
+        $dir = $this->heroGalleryDir();
+        $file = basename((string)($_POST['hero_file'] ?? ''));
+        $type = ($_POST['hero_type'] ?? 'image') === 'video' ? 'video' : 'image';
+        $exts = $this->heroGalleryExts();
+
+        if ($file === '' || !isset($exts[strtolower(pathinfo($file, PATHINFO_EXTENSION))])) {
+            $_SESSION['error'] = "Invalid gallery file.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $abs = $dir . $file;
+        if (!is_file($abs)) {
+            $_SESSION['error'] = "That file is no longer in the gallery.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $rel = 'uploads/settings/hero/' . $file;
+        SettingsHelper::set('lp_hero_bg_type', $type);
+        if ($type === 'video') {
+            SettingsHelper::set('lp_hero_bg_video', $rel);
+        } else {
+            SettingsHelper::set('lp_hero_bg_image', $rel);
+        }
+        SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Set hero background to " . $rel . " (" . $type . ")", null, 'Settings');
+        $_SESSION['success'] = ($type === 'video' ? "Video" : "Image") . " background activated from the gallery.";
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+        exit();
+    }
+
+    /**
+     * Handle deleting a gallery file. Clears the background setting if the
+     * deleted file was the currently active image or video.
+     */
+    private function heroGalleryDelete() {
+        $dir = $this->heroGalleryDir();
+        $file = basename((string)($_POST['hero_file'] ?? ''));
+        $exts = $this->heroGalleryExts();
+
+        if ($file === '' || !isset($exts[strtolower(pathinfo($file, PATHINFO_EXTENSION))])) {
+            $_SESSION['error'] = "Invalid gallery file.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $abs = $dir . $file;
+        if (is_file($abs) && @unlink($abs)) {
+            $rel = 'uploads/settings/hero/' . $file;
+            if (SettingsHelper::get('lp_hero_bg_image') === $rel) {
+                SettingsHelper::set('lp_hero_bg_image', '');
+            }
+            if (SettingsHelper::get('lp_hero_bg_video') === $rel) {
+                SettingsHelper::set('lp_hero_bg_video', '');
+            }
+            SettingsHelper::clearCache();
+            $this->activityLog->log($this->user_id, 'Update System Settings', "Removed hero background media: " . $file, null, 'Settings');
+            $_SESSION['success'] = "Media removed from the gallery.";
+        } else {
+            $_SESSION['error'] = "Could not delete that file.";
+        }
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+        exit();
+    }
+
+    // ================================================================
+    // ABOUT GALLERY (Mission & Vision photos)
+    // ================================================================
+
+    /**
+     * Absolute path of the about image gallery directory (autocreated).
+     * @return string
+     */
+    private function aboutGalleryDir() {
+        $dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/uploads/settings/about/';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        return $dir;
+    }
+
+    /**
+     * Allowed image extensions for the about gallery (images only).
+     * @return array<string,true>
+     */
+    private function aboutGalleryExts() {
+        return ['jpg' => true, 'jpeg' => true, 'png' => true, 'gif' => true, 'webp' => true];
+    }
+
+    /**
+     * Maps a gallery "target" to the system_settings key it controls.
+     * @return array<string,string>
+     */
+    private function aboutGallerySlots() {
+        return [
+            'mission_main'  => 'lp_mission_image_main',
+            'mission_inset' => 'lp_mission_image_inset',
+            'vision_main'   => 'lp_vision_image',
+        ];
+    }
+
+    /**
+     * Handle uploading a new image into the about gallery.
+     */
+    private function aboutGalleryUpload() {
+        $dir = $this->aboutGalleryDir();
+        $exts = $this->aboutGalleryExts();
+
+        if (!isset($_FILES['about_media']) || $_FILES['about_media']['error'] === UPLOAD_ERR_NO_FILE) {
+            $_SESSION['error'] = "No file selected for upload.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+        if ($_FILES['about_media']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['error'] = "Upload failed (error code " . (int)$_FILES['about_media']['error'] . ").";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $file = $_FILES['about_media'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!isset($exts[$ext])) {
+            $_SESSION['error'] = "Invalid image type. Allowed: JPG, PNG, GIF, WebP.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        if ($file['size'] > 5242880) { // 5MB
+            $_SESSION['error'] = "Image is too large. Max 5MB.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $basename = 'about_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $target = $dir . $basename;
+        if (move_uploaded_file($file['tmp_name'], $target)) {
+            SettingsHelper::clearCache();
+            $this->activityLog->log($this->user_id, 'Update System Settings', "Added about/mission-vision photo: " . $basename, null, 'Settings');
+            $_SESSION['success'] = "Photo uploaded. Use the buttons on it to assign it to Mission or Vision.";
+        } else {
+            $_SESSION['error'] = "Could not move the uploaded file. Check folder permissions.";
+        }
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+        exit();
+    }
+
+    /**
+     * Assign a gallery image to the Mission main, Mission inset, or Vision slot.
+     */
+    private function aboutGallerySelect() {
+        $dir = $this->aboutGalleryDir();
+        $file = basename((string)($_POST['about_file'] ?? ''));
+        $target = (string)($_POST['about_target'] ?? '');
+        $slots = $this->aboutGallerySlots();
+        $exts = $this->aboutGalleryExts();
+
+        if ($file === '' || $target === '' || !isset($slots[$target]) || !isset($exts[strtolower(pathinfo($file, PATHINFO_EXTENSION))])) {
+            $_SESSION['error'] = "Invalid gallery selection.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $abs = $dir . $file;
+        if (!is_file($abs)) {
+            $_SESSION['error'] = "That photo is no longer in the gallery.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $rel = 'uploads/settings/about/' . $file;
+        $label = [
+            'mission_main'  => 'Mission',
+            'mission_inset' => 'Mission Inset',
+            'vision_main'   => 'Vision',
+        ][$target];
+        SettingsHelper::set($slots[$target], $rel);
+        SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Set $label photo to " . $rel, null, 'Settings');
+        $_SESSION['success'] = "$label photo set successfully.";
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+        exit();
+    }
+
+    /**
+     * Handle deleting an about gallery image. Clears any slot pointing to it.
+     */
+    private function aboutGalleryDelete() {
+        $dir = $this->aboutGalleryDir();
+        $file = basename((string)($_POST['about_file'] ?? ''));
+        $slots = $this->aboutGallerySlots();
+        $exts = $this->aboutGalleryExts();
+
+        if ($file === '' || !isset($exts[strtolower(pathinfo($file, PATHINFO_EXTENSION))])) {
+            $_SESSION['error'] = "Invalid gallery file.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $abs = $dir . $file;
+        if (is_file($abs) && @unlink($abs)) {
+            $rel = 'uploads/settings/about/' . $file;
+            foreach ($slots as $slot => $key) {
+                if (SettingsHelper::get($key) === $rel) {
+                    SettingsHelper::set($key, '');
+                }
+            }
+            SettingsHelper::clearCache();
+            $this->activityLog->log($this->user_id, 'Update System Settings', "Removed about/mission-vision photo: " . $file, null, 'Settings');
+            $_SESSION['success'] = "Photo removed from the gallery.";
+        } else {
+            $_SESSION['error'] = "Could not delete that file.";
+        }
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+        exit();
+    }
+
+    /**
+     * Upload an image directly into a designated slot (mission_main,
+     * mission_inset, or vision_main) and assign it right away — no need to
+     * pick from a gallery afterwards.
+     */
+    private function aboutSlotUpload() {
+        $dir = $this->aboutGalleryDir();
+        $exts = $this->aboutGalleryExts();
+        $slots = $this->aboutGallerySlots();
+        $slot = (string)($_POST['about_slot'] ?? '');
+
+        if ($slot === '' || !isset($slots[$slot])) {
+            $_SESSION['error'] = "Invalid image slot.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+        if (!isset($_FILES['about_media']) || $_FILES['about_media']['error'] === UPLOAD_ERR_NO_FILE) {
+            $_SESSION['error'] = "No file selected for upload.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+        if ($_FILES['about_media']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['error'] = "Upload failed (error code " . (int)$_FILES['about_media']['error'] . ").";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $file = $_FILES['about_media'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!isset($exts[$ext])) {
+            $_SESSION['error'] = "Invalid image type. Allowed: JPG, PNG, GIF, WebP.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+        if ($file['size'] > 5242880) { // 5MB
+            $_SESSION['error'] = "Image is too large. Max 5MB.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        $basename = 'about_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $target = $dir . $basename;
+        if (move_uploaded_file($file['tmp_name'], $target)) {
+            $rel = 'uploads/settings/about/' . $basename;
+            SettingsHelper::set($slots[$slot], $rel);
+            SettingsHelper::clearCache();
+            $label = ['mission_main' => 'Mission', 'mission_inset' => 'Mission Inset', 'vision_main' => 'Vision'][$slot];
+            $this->activityLog->log($this->user_id, 'Update System Settings', "Uploaded and assigned $label image: " . $basename, null, 'Settings');
+            $_SESSION['success'] = "$label image uploaded and set.";
+        } else {
+            $_SESSION['error'] = "Could not move the uploaded file. Check folder permissions.";
+        }
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+        exit();
+    }
+
+    /**
+     * Clear the image assigned to a designated slot (keeps the file on disk,
+     * just unlinks it from the landing page so the default graphic shows).
+     */
+    private function aboutSlotClear() {
+        $slots = $this->aboutGallerySlots();
+        $slot = (string)($_POST['about_slot'] ?? '');
+
+        if ($slot === '' || !isset($slots[$slot])) {
+            $_SESSION['error'] = "Invalid image slot.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+            exit();
+        }
+
+        SettingsHelper::set($slots[$slot], '');
+        SettingsHelper::clearCache();
+        $label = ['mission_main' => 'Mission', 'mission_inset' => 'Mission Inset', 'vision_main' => 'Vision'][$slot];
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Removed $label image", null, 'Settings');
+        $_SESSION['success'] = "$label image removed.";
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
+        exit();
+    }
+
+    // ================================================================
     // 2. SECURITY SETTINGS (Password Policies, Lockout)
     // ================================================================
     private function updateSecurity() {
@@ -142,24 +698,55 @@ class SettingsController {
     }
 
     // ================================================================
-    // 3. FEATURE TOGGLES
+    // 3. FEATURE TOGGLES (MASTER KILL SWITCHES)
     // ================================================================
     private function updateFeatures() {
-        $features = [
+        // The form submits a list of toggle keys via feature_keys[]; each key's
+        // "on" state is derived from whether the checkbox was present. This way
+        // unchecking a toggle saves 0, while keys not shown on the form are
+        // never modified.
+        $keys = isset($_POST['feature_keys']) && is_array($_POST['feature_keys'])
+            ? array_map('strval', $_POST['feature_keys'])
+            : [];
+
+        // Whitelist against known toggles (defense in depth)
+        $allowed = [
+            'maintenance_mode',
             'enable_public_registration',
             'show_heatmap',
             'allow_citizen_cancellations',
             'allow_edit_pending_reports',
             'enable_escalation',
-            'enable_notifications'
+            'enable_notifications',
+            'enable_report_submission',
+            'enable_report_support',
+            'enable_announcements',
         ];
-        foreach ($features as $feature) {
+
+        if (empty($keys)) {
+            $_SESSION['error'] = "No feature toggles were submitted. Nothing was changed.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=features");
+            exit();
+        }
+
+        foreach ($keys as $feature) {
+            if (!in_array($feature, $allowed, true)) {
+                continue;
+            }
             $value = isset($_POST[$feature]) ? 1 : 0;
             SettingsHelper::set($feature, $value);
         }
         SettingsHelper::clearCache();
-        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated feature toggles", null, 'Settings');
-        $_SESSION['success'] = "Feature toggles saved successfully!";
+
+        $maintenance = SettingsHelper::get('maintenance_mode') == 1;
+        $this->activityLog->log(
+            $this->user_id,
+            'Update System Settings',
+            "Updated feature kill switches (maintenance_mode=" . ($maintenance ? 'ON' : 'OFF') . ", " . count($keys) . " toggle(s))",
+            null,
+            'Settings'
+        );
+        $_SESSION['success'] = "Kill switch settings saved successfully!" . ($maintenance ? " Maintenance mode is now ACTIVE." : "");
         header("Location: " . BASE_URL . "index.php?page=settings&tab=features");
         exit();
     }
@@ -698,10 +1285,11 @@ class SettingsController {
         fputcsv($out, ['archive_id', 'source_type', 'original_id', 'title', 'category', 'barangay', 'status', 'date_resolved_or_rejected', 'archived_at']);
         $reports = $this->db->query("
             SELECT r.id AS archive_id, 'report' AS source_type, r.id AS original_id, r.title, c.name AS category,
-                   r.barangay_name AS barangay, r.status,
+                   b.name AS barangay, r.status,
                    COALESCE(r.resolved_at, r.rejected_at) AS closed_at, r.archived_at
             FROM reports r
             LEFT JOIN categories c ON c.id = r.category_id
+            LEFT JOIN barangays b ON b.id = r.barangay_id
             WHERE r.is_archived = 1
             ORDER BY r.id
         ")->fetchAll(PDO::FETCH_ASSOC);

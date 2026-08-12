@@ -58,12 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $barangay_id = !empty($_POST['barangay_id']) ? (int)$_POST['barangay_id'] : null;
         $job_title = InputSanitizer::sanitizeString($_POST['job_title'] ?? '');
 
-        // Legacy `role` enum still gates requireRole('admin') etc. across
-        // the app, so keep it in sync with the new user_type:
-        //   barangay_personnel -> barangay_official
-        //   menro_staff/admin  -> admin
-        $role = $user_type === 'barangay_personnel' ? 'barangay_official' : 'admin';
-
         // Validation
         $errors = [];
         if (empty($first_name)) $errors[] = "First name is required";
@@ -111,7 +105,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'last_name' => $last_name,
             'email' => $email,
             'contact_number' => $contact_number,
-            'role' => $role,           // legacy enum, kept in sync for requireRole() checks
             'role_id' => $role_id,     // custom role from Create Role
             'user_type' => $user_type, // barangay_personnel | menro_staff | admin
             'barangay_id' => $barangay_id,

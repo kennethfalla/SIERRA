@@ -19,6 +19,12 @@ $tabs = [
         'description' => 'System name, logo, and contact information',
         'file' => 'general.php'
     ],
+    'landing' => [
+        'label' => 'Landing Page',
+        'icon' => 'fa-home',
+        'description' => 'Edit all content shown on the public homepage',
+        'file' => 'landing.php'
+    ],
     'security' => [
         'label' => 'Security',
         'icon' => 'fa-shield-alt',
@@ -26,9 +32,9 @@ $tabs = [
         'file' => 'security.php'
     ],
     'features' => [
-        'label' => 'Features',
-        'icon' => 'fa-toggle-on',
-        'description' => 'Enable or disable system features',
+        'label' => 'Features & Kill Switches',
+        'icon' => 'fa-exclamation-triangle',
+        'description' => 'Master kill switches — turn features on/off instantly without touching code',
         'file' => 'features.php'
     ],
     'algorithm' => [

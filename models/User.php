@@ -13,7 +13,6 @@ class User {
     public $email;
     public $contact_number;
     public $password;
-    public $role;
     public $barangay_id;
     public $is_resident;
     public $province;
@@ -21,8 +20,6 @@ class User {
     public $non_resident_address;
     public $purok_street;
     public $is_verified;
-    public $verification_code;
-    public $verification_expires;
     public $is_active;
     public $job_title;
     public $profile_picture;
@@ -47,16 +44,13 @@ class User {
                       email = :email,
                       contact_number = :contact_number, 
                       password_hash = :password, 
-                      role = :role, 
                       barangay_id = :barangay_id,
                       is_resident = :is_resident,
                       province = :province,
                       municipality = :municipality,
                       non_resident_address = :non_resident_address,
                       purok_street = :purok_street,
-                      is_verified = :is_verified,
-                      verification_code = :verification_code,
-                      verification_expires = :verification_expires";
+                      is_verified = :is_verified";
         
         $stmt = $this->conn->prepare($query);
         
@@ -67,7 +61,6 @@ class User {
         $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":contact_number", $this->contact_number);
         $stmt->bindParam(":password", $hashed_password);
-        $stmt->bindParam(":role", $this->role);
         $stmt->bindParam(":barangay_id", $this->barangay_id);
         $stmt->bindParam(":is_resident", $this->is_resident);
         $stmt->bindParam(":province", $this->province);
@@ -75,8 +68,6 @@ class User {
         $stmt->bindParam(":non_resident_address", $this->non_resident_address);
         $stmt->bindParam(":purok_street", $this->purok_street);
         $stmt->bindParam(":is_verified", $this->is_verified);
-        $stmt->bindParam(":verification_code", $this->verification_code);
-        $stmt->bindParam(":verification_expires", $this->verification_expires);
         
         if($stmt->execute()) {
             $this->id = $this->conn->lastInsertId();
@@ -108,7 +99,7 @@ class User {
                     'last_name' => $row['last_name'],
                     'email' => $row['email'],
                     'contact_number' => $row['contact_number'],
-                    'role' => $row['role'],
+                    'role' => roleFromUserType($row['user_type'] ?? null),
                     'barangay_id' => $row['barangay_id'],
                     'is_resident' => $row['is_resident'],
                     'province' => $row['province'],
@@ -172,12 +163,12 @@ class User {
      * @return bool True if user is staff
      */
     public function isStaffAccount($user_id) {
-        $query = "SELECT role FROM " . $this->table . " WHERE id = :id";
+        $query = "SELECT user_type FROM " . $this->table . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":id", $user_id, PDO::PARAM_INT);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return ($result && in_array($result['role'], ['barangay_official', 'admin']));
+        return ($result && in_array($result['user_type'], ['admin', 'menro_staff', 'barangay_personnel']));
     }
 
     /**
@@ -186,12 +177,12 @@ class User {
      * @return bool True if user is a barangay official
      */
     public function isBarangayOfficial($user_id) {
-        $query = "SELECT role FROM " . $this->table . " WHERE id = :id";
+        $query = "SELECT user_type FROM " . $this->table . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":id", $user_id, PDO::PARAM_INT);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return ($result && $result['role'] === 'barangay_official');
+        return ($result && $result['user_type'] === 'barangay_personnel');
     }
 
     /**
@@ -212,7 +203,6 @@ class User {
             email, 
             contact_number, 
             password_hash, 
-            role, 
             role_id,
             user_type,
             barangay_id, 
@@ -228,7 +218,6 @@ class User {
             :email, 
             :contact_number, 
             :password_hash, 
-            :role, 
             :role_id,
             :user_type,
             :barangay_id, 
@@ -246,7 +235,6 @@ class User {
         $stmt->bindValue(":email", $data['email']);
         $stmt->bindValue(":contact_number", $data['contact_number']);
         $stmt->bindValue(":password_hash", $hashed_password);
-        $stmt->bindValue(":role", $data['role']);
         $stmt->bindValue(":role_id", $data['role_id'] ?? null);
         $stmt->bindValue(":user_type", $data['user_type'] ?? null);
         $stmt->bindValue(":barangay_id", $data['barangay_id']);
@@ -394,14 +382,25 @@ class User {
      * @return PDOStatement
      */
     public function getUsersByRole($role) {
-        $query = "SELECT u.*, b.name as barangay_name,
-                  CONCAT(u.first_name, ' ', u.last_name) as full_name
-                  FROM " . $this->table . " u
-                  LEFT JOIN barangays b ON u.barangay_id = b.id
-                  WHERE u.role = :role
-                  ORDER BY u.created_at DESC";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":role", $role);
+        $user_type = userTypeFromRole($role);
+        if ($user_type === null) {
+            $query = "SELECT u.*, b.name as barangay_name,
+                      CONCAT(u.first_name, ' ', u.last_name) as full_name
+                      FROM " . $this->table . " u
+                      LEFT JOIN barangays b ON u.barangay_id = b.id
+                      WHERE (u.user_type IS NULL OR u.user_type = '')
+                      ORDER BY u.created_at DESC";
+            $stmt = $this->conn->prepare($query);
+        } else {
+            $query = "SELECT u.*, b.name as barangay_name,
+                      CONCAT(u.first_name, ' ', u.last_name) as full_name
+                      FROM " . $this->table . " u
+                      LEFT JOIN barangays b ON u.barangay_id = b.id
+                      WHERE u.user_type = :user_type
+                      ORDER BY u.created_at DESC";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":user_type", $user_type);
+        }
         $stmt->execute();
         return $stmt;
     }
@@ -475,10 +474,17 @@ class User {
      * @return bool
      */
     public function updateRole($user_id, $role) {
-        $query = "UPDATE " . $this->table . " SET role = :role WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":role", $role);
-        $stmt->bindParam(":id", $user_id, PDO::PARAM_INT);
+        $user_type = userTypeFromRole($role);
+        if ($user_type === null) {
+            $query = "UPDATE " . $this->table . " SET user_type = NULL WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":id", $user_id, PDO::PARAM_INT);
+        } else {
+            $query = "UPDATE " . $this->table . " SET user_type = :user_type WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":user_type", $user_type);
+            $stmt->bindParam(":id", $user_id, PDO::PARAM_INT);
+        }
         return $stmt->execute();
     }
 
@@ -502,7 +508,7 @@ class User {
      * @return bool
      */
     public function verifyUser($user_id) {
-        $query = "UPDATE " . $this->table . " SET is_verified = 1, verification_code = NULL, verification_expires = NULL WHERE id = :id";
+        $query = "UPDATE " . $this->table . " SET is_verified = 1 WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":id", $user_id, PDO::PARAM_INT);
         return $stmt->execute();
@@ -644,9 +650,16 @@ class User {
      * @return int
      */
     public function getCountByRole($role) {
-        $query = "SELECT COUNT(*) as count FROM " . $this->table . " WHERE role = :role";
+        $user_type = userTypeFromRole($role);
+        if ($user_type === null) {
+            $query = "SELECT COUNT(*) as count FROM " . $this->table . " WHERE user_type IS NULL OR user_type = ''";
+        } else {
+            $query = "SELECT COUNT(*) as count FROM " . $this->table . " WHERE user_type = :user_type";
+        }
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":role", $role);
+        if ($user_type !== null) {
+            $stmt->bindParam(":user_type", $user_type);
+        }
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)$result['count'];
@@ -671,7 +684,7 @@ class User {
      */
     public function getCitizenCountByBarangay($barangay_id) {
         $query = "SELECT COUNT(*) as count FROM " . $this->table . " 
-                  WHERE barangay_id = :barangay_id AND role = 'citizen'";
+                  WHERE barangay_id = :barangay_id AND (user_type IS NULL OR user_type = '')";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":barangay_id", $barangay_id, PDO::PARAM_INT);
         $stmt->execute();
@@ -686,9 +699,9 @@ class User {
     public function getUserStatistics() {
         $query = "SELECT 
                     COUNT(*) as total_users,
-                    SUM(CASE WHEN role = 'citizen' THEN 1 ELSE 0 END) as total_citizens,
-                    SUM(CASE WHEN role = 'barangay_official' THEN 1 ELSE 0 END) as total_officials,
-                    SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as total_admins,
+                    SUM(CASE WHEN (user_type IS NULL OR user_type = '') THEN 1 ELSE 0 END) as total_citizens,
+                    SUM(CASE WHEN user_type = 'barangay_personnel' THEN 1 ELSE 0 END) as total_officials,
+                    SUM(CASE WHEN user_type IN ('admin', 'menro_staff') THEN 1 ELSE 0 END) as total_admins,
                     SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_users,
                     SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive_users,
                     SUM(CASE WHEN is_verified = 1 THEN 1 ELSE 0 END) as verified_users,
@@ -709,7 +722,7 @@ class User {
                   CONCAT(u.first_name, ' ', u.last_name) as full_name
                   FROM " . $this->table . " u
                   LEFT JOIN barangays b ON u.barangay_id = b.id
-                  WHERE u.role = 'citizen'
+                  WHERE (u.user_type IS NULL OR u.user_type = '')
                   ORDER BY u.created_at DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
@@ -725,7 +738,7 @@ class User {
                   CONCAT(u.first_name, ' ', u.last_name) as full_name
                   FROM " . $this->table . " u
                   LEFT JOIN barangays b ON u.barangay_id = b.id
-                  WHERE u.role = 'barangay_official'
+                  WHERE u.user_type = 'barangay_personnel'
                   ORDER BY b.name, u.last_name";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
@@ -819,12 +832,12 @@ class User {
      * @return string|null Role or null if not found
      */
     public function getUserRole($user_id) {
-        $query = "SELECT role FROM " . $this->table . " WHERE id = :id";
+        $query = "SELECT user_type FROM " . $this->table . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":id", $user_id, PDO::PARAM_INT);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? $result['role'] : null;
+        return $result ? roleFromUserType($result['user_type'] ?? null) : null;
     }
 
     /**

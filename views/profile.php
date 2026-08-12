@@ -129,9 +129,6 @@ if (count($name_parts) >= 2) {
 }
 
 $user_type = $user['user_type'] ?? null;
-if ($user_type === null) {
-    $user_type = ['admin' => 'admin', 'barangay_official' => 'barangay_personnel'][$user['role']] ?? null;
-}
 $role_display = ['admin' => 'Admin', 'menro_staff' => 'MENRO Staff', 'barangay_personnel' => 'Barangay Official'][$user_type] ?? 'Citizen';
 $role_badge_color = in_array($user_type, ['admin', 'menro_staff']) ? 'bg-purple-100 text-purple-700' :
                     ($user_type === 'barangay_personnel' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700');
@@ -595,7 +592,7 @@ $full_name = $user['first_name'] . ' ' . $user['last_name'];
                                 <h1 class="text-2xl md:text-3xl font-bold text-gray-800"><?php echo htmlspecialchars($full_name); ?></h1>
                                 <div class="flex flex-wrap items-center gap-2 mt-1">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?php echo $role_badge_color; ?>">
-                                        <i class="fas <?php echo ($user['role'] == 'admin') ? 'fa-building' : (($user['role'] == 'barangay_official') ? 'fa-landmark' : 'fa-user'); ?> mr-1"></i>
+                                        <i class="fas <?php echo in_array($user_type, ['admin', 'menro_staff'], true) ? 'fa-building' : ($user_type === 'barangay_personnel' ? 'fa-landmark' : 'fa-user'); ?> mr-1"></i>
                                         <?php echo $role_display; ?>
                                     </span>
                                     <?php if($barangay_name): ?>

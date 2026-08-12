@@ -13,6 +13,45 @@ $report = new Report($db);
 $activityLog = new ActivityLog($db);
 
 // ============================================
+// HELPER: Build obfuscated (token-based) report URLs
+// ============================================
+function manageReportUrl($id) {
+    return BASE_URL . 'index.php?page=manage-report&id=' . IdGuard::enc((int)$id);
+}
+
+function trackStatusUrl($id) {
+    return BASE_URL . 'index.php?page=track-status&id=' . IdGuard::enc((int)$id);
+}
+
+// ============================================
+// HELPER: Can the current session access report details
+// (used to guard the JSON/AJAX endpoints — IDOR protection)
+// ============================================
+function canAccessReportData($db, $report_id) {
+    $stmt = $db->prepare("SELECT user_id, barangay_id FROM reports WHERE id = ?");
+    $stmt->execute([(int)$report_id]);
+    $r = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$r) {
+        return false;
+    }
+
+    $role = $_SESSION['user_role'] ?? '';
+    $uid  = $_SESSION['user_id'] ?? 0;
+    $bid  = $_SESSION['barangay_id'] ?? null;
+
+    if (in_array($role, ['admin', 'menro'], true)) {
+        return true;
+    }
+    if ($role === 'barangay_official') {
+        return $bid !== null && (int)$r['barangay_id'] === (int)$bid;
+    }
+    if ($role === 'citizen') {
+        return (int)$r['user_id'] === (int)$uid;
+    }
+    return false;
+}
+
+// ============================================
 // HELPER: Recalculate severity for reports near a location
 // ============================================
 function recalcNearbyReports($db, $lat, $lng, $excludeId = null) {
@@ -26,7 +65,7 @@ function recalcNearbyReports($db, $lat, $lng, $excludeId = null) {
 if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
     requireLogin();
     
-    $report_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    $report_id = IdGuard::req($_GET['id'] ?? '');
     if ($report_id == 0) {
         $_SESSION['error'] = "Invalid report ID.";
         header('Location: ' . BASE_URL . 'index.php?page=dashboard');
@@ -182,7 +221,17 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
     header('Content-Type: application/json');
     $action = $_GET['action'];
-    $report_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    $report_id = IdGuard::req($_GET['id'] ?? '');
+
+    if (($action === 'get_full' || $action === 'get_notes' || $action === 'get_images') && $report_id > 0) {
+        // IDOR protection: these endpoints only serve data the current
+        // session is authorized to access (admin = all, barangay_official =
+        // own barangay, citizen = own reports).
+        if (!isset($_SESSION['user_id']) || !canAccessReportData($db, $report_id)) {
+            echo json_encode(['error' => 'Access denied.']);
+            exit();
+        }
+    }
 
     if ($action === 'get_full' && $report_id > 0) {
         $stmt = $db->prepare("
@@ -300,6 +349,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // CANCEL REPORT (Resident only, pending status)
     // ============================================
     if ($action === 'cancel_report') {
+        // KILL SWITCH: citizen cancellations disabled
+        if (SettingsHelper::get('allow_citizen_cancellations', '1') != '1') {
+            if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'Cancellation is currently disabled by the system administrator.']); exit(); }
+            $_SESSION['error'] = "Cancellation is currently disabled by the system administrator.";
+            header("Location: " . BASE_URL . "index.php?page=my-reports");
+            exit();
+        }
         $report_id = filter_var($_POST['report_id'] ?? 0, FILTER_VALIDATE_INT);
         if ($report_id <= 0) {
             if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'Invalid report ID.']); exit(); }
@@ -366,6 +422,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // UPVOTE / SUPPORT REPORT (Citizen confirms an existing report is the same issue)
     // ============================================
     if ($action === 'upvote_report') {
+        // KILL SWITCH: community support/verification disabled
+        if (SettingsHelper::get('enable_report_support', '1') != '1') {
+            echo json_encode(['success' => false, 'message' => 'Report support is currently disabled by the system administrator.']);
+            exit();
+        }
         $report_id = filter_var($_POST['report_id'] ?? 0, FILTER_VALIDATE_INT);
         if ($report_id <= 0) {
             echo json_encode(['success' => false, 'message' => 'Invalid report ID.']);
@@ -439,7 +500,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $activityLog->log($user_id, 'Verify Report', "Verified report #$report_id and moved to In Progress");
         $_SESSION['success'] = "Report #$report_id verified and moved to IN PROGRESS.";
-        header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+        header("Location: " . manageReportUrl($report_id));
         exit();
     }
 
@@ -456,7 +517,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (strlen($reason) < 5) {
             $_SESSION['error'] = "Please provide a detailed rejection reason (at least 5 characters).";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         if ($user_role !== 'barangay_official') {
@@ -506,7 +567,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $activityLog->log($user_id, 'Reject Report', "Rejected report #$report_id. Reason: $reason");
         $_SESSION['success'] = "Report #$report_id rejected.";
-        header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+        header("Location: " . manageReportUrl($report_id));
         exit();
     }
 
@@ -541,7 +602,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user_role == 'barangay_official') {
             if ($report_data['status'] != Report::STATUS_IN_PROGRESS) {
                 $_SESSION['error'] = "Only in-progress reports can be resolved by barangay.";
-                header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+                header("Location: " . manageReportUrl($report_id));
                 exit();
             }
             if ($report_data['barangay_id'] != $_SESSION['barangay_id']) {
@@ -563,7 +624,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!isset($_FILES['resolution_image']) || $_FILES['resolution_image']['error'] !== UPLOAD_ERR_OK) {
             $_SESSION['error'] = "Please upload a photo as proof of resolution.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         $file = $_FILES['resolution_image'];
@@ -571,12 +632,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         if (!in_array($extension, $allowed)) {
             $_SESSION['error'] = "Invalid file type. Allowed: JPG, PNG, GIF, WebP.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         if ($file['size'] > 5242880) {
             $_SESSION['error'] = "File size exceeds 5MB limit.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         $filename = 'resolution_' . uniqid() . '.' . $extension;
@@ -584,7 +645,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!is_dir(UPLOAD_DIR)) mkdir(UPLOAD_DIR, 0777, true);
         if (!move_uploaded_file($file['tmp_name'], $target_path)) {
             $_SESSION['error'] = "Failed to upload resolution image.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         $image_path = 'uploads/reports/' . $filename;
@@ -606,7 +667,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $activityLog->log($user_id, 'Resolve Report', "Resolved report #$report_id");
         $_SESSION['success'] = "Report #$report_id marked as RESOLVED.";
         $redirect = ($user_role == 'admin') ? 'all-reports' : 'manage-report';
-        header("Location: " . BASE_URL . "index.php?page=" . $redirect . "&id=" . $report_id);
+        header("Location: " . BASE_URL . "index.php?page=" . $redirect . "&id=" . IdGuard::enc($report_id));
         exit();
     }
 
@@ -614,6 +675,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ESCALATE TO MENRO (Barangay only)
     // ============================================
     if ($action === 'escalate_report') {
+        // KILL SWITCH: escalation to MENRO disabled
+        if (SettingsHelper::get('enable_escalation', '1') != '1') {
+            $_SESSION['error'] = "Escalation is currently disabled by the system administrator.";
+            header("Location: " . BASE_URL . "index.php?page=verify-reports");
+            exit();
+        }
         $report_id = filter_var($_POST['report_id'] ?? 0, FILTER_VALIDATE_INT);
         $reason = InputSanitizer::sanitizeString($_POST['escalation_reason'] ?? '', 1000);
         if ($report_id <= 0) {
@@ -623,7 +690,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (strlen($reason) < 10) {
             $_SESSION['error'] = "Please provide a detailed justification (at least 10 characters).";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         if ($user_role !== 'barangay_official') {
@@ -656,7 +723,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($report_data['status'] != Report::STATUS_UNDER_REVIEW) {
             $_SESSION['error'] = "Only reports under review can be escalated.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         $check_esc = $db->prepare("SELECT id, status FROM escalations WHERE report_id = ? ORDER BY escalated_at DESC LIMIT 1");
@@ -665,11 +732,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($existing) {
             if ($existing['status'] == 'pending') {
                 $_SESSION['error'] = "This report already has a pending escalation request.";
-                header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+                header("Location: " . manageReportUrl($report_id));
                 exit();
             } elseif ($existing['status'] == 'approved') {
                 $_SESSION['error'] = "This report is already under MENRO supervision.";
-                header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+                header("Location: " . manageReportUrl($report_id));
                 exit();
             }
         }
@@ -688,7 +755,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $activityLog->log($user_id, 'Escalate Report', "Escalated report #$report_id to MENRO. Reason: $reason");
         $_SESSION['success'] = "Report #$report_id escalated to MENRO.";
-        header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+        header("Location: " . manageReportUrl($report_id));
         exit();
     }
 
@@ -745,7 +812,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $activityLog->log($user_id, 'Approve Escalation', "Approved escalation for report #$report_id");
         $_SESSION['success'] = "Escalation approved. Report is now under MENRO supervision.";
-        header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+        header("Location: " . manageReportUrl($report_id));
         exit();
     }
 
@@ -762,7 +829,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (strlen($reason) < 5) {
             $_SESSION['error'] = "Please provide a detailed rejection reason (at least 5 characters).";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         if ($user_role !== 'admin') {
@@ -808,7 +875,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $activityLog->log($user_id, 'Reject Escalation', "Rejected escalation for report #$report_id. Reason: $reason");
         $_SESSION['success'] = "Escalation rejected. Report returned to barangay.";
-        header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+        header("Location: " . manageReportUrl($report_id));
         exit();
     }
 
@@ -828,13 +895,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!in_array($new_impact, [0, 2, 4])) {
             if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'Invalid impact value.']); exit(); }
             $_SESSION['error'] = "Invalid impact value.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         if (empty($reason) || strlen($reason) < 3) {
             if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'Please provide a reason for reclassification.']); exit(); }
             $_SESSION['error'] = "Please provide a reason for reclassification.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         if ($user_role == 'barangay_official') {
@@ -868,7 +935,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($report_data['status'] != Report::STATUS_IN_PROGRESS) {
                 if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'Only in-progress reports can be reclassified.']); exit(); }
                 $_SESSION['error'] = "Only in-progress reports can be reclassified.";
-                header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+                header("Location: " . manageReportUrl($report_id));
                 exit();
             }
         } elseif ($user_role == 'admin') {
@@ -919,7 +986,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
             $_SESSION['success'] = "Impact modifier reclassified successfully.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         } else {
             if ($is_ajax) {
@@ -927,7 +994,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
             $_SESSION['error'] = "Failed to reclassify.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
     }
@@ -947,7 +1014,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($note) || strlen($note) < 2) {
             if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'Note must be at least 2 characters.']); exit(); }
             $_SESSION['error'] = "Note must be at least 2 characters.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         $check_stmt = $db->prepare("SELECT id, barangay_id, status FROM reports WHERE id = ?");
@@ -974,7 +1041,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!in_array($report_data['status'], [Report::STATUS_IN_PROGRESS, Report::STATUS_ESCALATED_PENDING, Report::STATUS_ESCALATED])) {
             if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'Notes can only be added to active reports.']); exit(); }
             $_SESSION['error'] = "Notes can only be added to active reports.";
-            header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+            header("Location: " . manageReportUrl($report_id));
             exit();
         }
         if ($user_role == 'barangay_official' && $report_data['barangay_id'] != $_SESSION['barangay_id']) {
@@ -991,7 +1058,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
         $_SESSION['success'] = "Note added successfully.";
-        header("Location: " . BASE_URL . "index.php?page=manage-report&id=" . $report_id);
+        header("Location: " . manageReportUrl($report_id));
         exit();
     }
 
@@ -1069,6 +1136,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // STORE NEW REPORT (Citizen only)
     // ============================================
     if ($action === 'store') {
+        // KILL SWITCH: report submission disabled
+        if (SettingsHelper::get('enable_report_submission', '1') != '1') {
+            $_SESSION['error'] = "Report submission is currently disabled by the system administrator.";
+            header("Location: " . BASE_URL . "index.php?page=submit-report");
+            exit();
+        }
         if ($user_role !== 'citizen') {
             $_SESSION['error'] = "Only citizens can submit reports.";
             header("Location: " . BASE_URL . "index.php?page=dashboard");
@@ -1224,8 +1297,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'location_address' => $location_address,
             'risk_level' => $risk_level,
             'impact_modifier' => $impact_modifier,
-            'street_name' => '',
-            'barangay_name' => $barangay_name,
             'postal_code' => ''
         ];
 
@@ -1243,7 +1314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $activityLog->log($user_id, 'Create Report', "Created report #$report_id");
             $_SESSION['success'] = "Report submitted successfully with " . count($image_paths) . " photo(s)/video(s)!";
-            header("Location: " . BASE_URL . "index.php?page=track-status&id=" . $report_id);
+            header("Location: " . trackStatusUrl($report_id));
             exit();
         } else {
             $_SESSION['error'] = "Failed to submit report. Please try again.";

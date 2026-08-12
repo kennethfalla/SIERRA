@@ -49,7 +49,6 @@ if ($user_id) {
                 CONCAT(u.first_name, ' ', u.last_name) AS full_name,
                 u.email,
                 u.contact_number,
-                u.role,
                 u.role_id,
                 u.user_type,
                 u.barangay_id,
@@ -78,11 +77,8 @@ if ($user_id) {
             $user_fullname = $user_data['full_name'] ?? '';
             $user_email_address = $user_data['email'] ?? '';
             $user_contact_number = $user_data['contact_number'] ?? '';
-            $user_role = $user_data['role'] ?? 'citizen';
             $user_type = $user_data['user_type'] ?? null;
-            if ($user_type === null) {
-                $user_type = ['admin' => 'admin', 'barangay_official' => 'barangay_personnel'][$user_role] ?? null;
-            }
+            $user_role = roleFromUserType($user_type);
             $barangay_id = $user_data['barangay_id'] ?? null;
             $user_is_active = $user_data['is_active'] ?? 1;
             $user_created_at = $user_data['created_at'] ?? date('Y-m-d H:i:s');

@@ -21,11 +21,16 @@ $resolved_reports = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $stmt = $db->query("SELECT COUNT(*) as total FROM users");
 $total_users = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-// San Isidro Statistics
+// San Isidro Statistics (editable in Settings > Landing Page)
+$lp = function($key, $default = '') {
+    $value = SettingsHelper::get($key, $default);
+    return ($value === null || $value === '') ? $default : $value;
+};
+
 $san_isidro_stats = [
-    'barangays' => 9,
-    'population' => 55108,
-    'households' => 12828
+    'barangays'  => (int)$lp('lp_stat_barangays', 9),
+    'population' => (int)$lp('lp_stat_population', 55108),
+    'households' => (int)$lp('lp_stat_households', 12828),
 ];
 
 // Get logged in user's info for filtering
@@ -46,9 +51,32 @@ $reports_for_map = $db->query("
     LIMIT 50
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// MENRO Vision and About
-$menro_vision = "A clean, green, and sustainable San Isidro where every citizen is an active steward of the environment, and environmental resources are protected and preserved for future generations.";
-$menro_about = "The Municipal Environment and Natural Resources Office (MENRO) of San Isidro is dedicated to the protection, conservation, and sustainable management of the municipality's natural resources and environment. MENRO works closely with barangay officials, community organizations, and citizens to address environmental concerns, enforce environmental laws, and promote ecological awareness. Through the Sierra Environmental Reporting System, MENRO aims to empower every citizen to participate in environmental governance and contribute to a cleaner, healthier community.";
+// Attach opaque tokens so the public map links never expose raw report IDs
+foreach ($reports_for_map as &$map_row) {
+    $map_row['token'] = IdGuard::enc((int)$map_row['id']);
+}
+unset($map_row);
+
+// MENRO Vision, Mission, and About (editable in Settings > Landing Page)
+$menro_vision = $lp('lp_vision_body', 'A clean, green, and sustainable San Isidro where every citizen is an active steward of the environment, and environmental resources are protected and preserved for future generations.');
+$menro_mission = $lp('lp_mission_body', 'The Municipal Environment and Natural Resources Office (MENRO) of San Isidro is dedicated to the protection, conservation, and sustainable management of the municipality\'s natural resources and environment. MENRO works closely with barangay officials, community organizations, and citizens to address environmental concerns, enforce environmental laws, and promote ecological awareness. Through the Sierra Environmental Reporting System, MENRO aims to empower every citizen to participate in environmental governance and contribute to a cleaner, healthier community.');
+$menro_about = $lp('lp_about_body', 'The Municipal Environment and Natural Resources Office (MENRO) of San Isidro is dedicated to the protection, conservation, and sustainable management of the municipality\'s natural resources and environment. MENRO works closely with barangay officials, community organizations, and citizens to address environmental concerns, enforce environmental laws, and promote ecological awareness. Through the Sierra Environmental Reporting System, MENRO aims to empower every citizen to participate in environmental governance and contribute to a cleaner, healthier community.');
+
+// Mission & Vision imagery (editable in Settings > Landing Page > Media gallery).
+// When no image has been uploaded yet, the section falls back to on-brand
+// gradient + icon artwork instead of a broken image or an off-brand stock photo.
+$mission_image_main = $lp('lp_mission_image_main', '');
+if ($mission_image_main !== '' && preg_match('#^uploads/#i', $mission_image_main)) {
+    $mission_image_main = BASE_URL . $mission_image_main;
+}
+$mission_image_inset = $lp('lp_mission_image_inset', '');
+if ($mission_image_inset !== '' && preg_match('#^uploads/#i', $mission_image_inset)) {
+    $mission_image_inset = BASE_URL . $mission_image_inset;
+}
+$vision_image_main = $lp('lp_vision_image', '');
+if ($vision_image_main !== '' && preg_match('#^uploads/#i', $vision_image_main)) {
+    $vision_image_main = BASE_URL . $vision_image_main;
+}
 
 // ===== DYNAMIC SETTINGS =====
 $system_name = SettingsHelper::get('system_name', 'Sierra');
@@ -56,6 +84,51 @@ $contact_email = SettingsHelper::get('contact_email', 'menro@sanisidro.gov.ph');
 $emergency_hotline = SettingsHelper::get('emergency_hotline', '0917-123-4567');
 $lgu_logo = SettingsHelper::get('lgu_logo', '');
 $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
+
+// ===== HERO BACKGROUND MEDIA (editable in Settings > Landing Page) =====
+$hero_bg_type  = $lp('lp_hero_bg_type', 'image');
+$hero_bg_image = $lp('lp_hero_bg_image', 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2069&q=80');
+$hero_bg_video = $lp('lp_hero_bg_video', '');
+
+// File picked from the Settings > Landing media gallery is stored as a relative
+// path (e.g. uploads/settings/hero/hero_....webp). Make it absolute so the hero
+// background loads no matter what URL the homepage is reached through.
+if ($hero_bg_image !== '' && preg_match('#^uploads/#i', $hero_bg_image)) {
+    $hero_bg_image = BASE_URL . $hero_bg_image;
+}
+if ($hero_bg_video !== '' && preg_match('#^uploads/#i', $hero_bg_video)) {
+    $hero_bg_video = BASE_URL . $hero_bg_video;
+}
+
+$hero_bg_style = '';
+$show_hero_video = false;
+$show_hero_overlay = false;
+if ($hero_bg_type === 'video' && $hero_bg_video) {
+    $show_hero_video = true;
+    // Green brand gradient behind the video while it loads; the overlay div
+    // above the content adds a complementary brand-green tint on the video.
+    $show_hero_overlay = true;
+    $hero_bg_style = "background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%);";
+} elseif ($hero_bg_type === 'image' && $hero_bg_image) {
+    // Brand-green gradient layered over the hero image for a green tint while
+    // keeping the white hero text readable.
+    $hero_bg_style = "background-image: linear-gradient(180deg, rgba(6,78,59,0.42) 0%, rgba(4,120,87,0.20) 40%, rgba(6,78,59,0.45) 70%, rgba(6,20,14,0.78) 100%), url('" . htmlspecialchars($hero_bg_image) . "'); background-size: cover; background-position: center;";
+} else {
+    // 'none' or a video type with no video URL: rich brand-green gradient
+    $hero_bg_style = "background: linear-gradient(135deg, #064e3b 0%, #047857 45%, #0f766e 100%);";
+}
+
+// Role-aware hero subtitle (editable in Settings > Landing Page)
+if ($isLoggedIn && $is_staff) {
+    $hero_subtitle = str_replace('{role}', $staff_label, $lp('lp_hero_subtitle_staff', "As a {role}, you can review, verify, and manage environmental reports from your community.\nTake action on pending reports and help resolve issues faster."));
+} elseif ($isLoggedIn) {
+    $hero_subtitle = $lp('lp_hero_subtitle_user', "Your voice matters. Report environmental issues like illegal dumping, flooding, or pollution —\nand we'll help track them until they're resolved.");
+} else {
+    $hero_subtitle = $lp('lp_hero_subtitle_guest', "See something wrong in your neighborhood? Illegal dumping, clogged canals, or air pollution?\nReport it here, and your barangay will take action. It's free, fast, and easy.");
+}
+
+// Resolution rate for the hero stat panel
+$resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_reports) * 100) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -170,7 +243,81 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
             text-align: center;
             margin-top: 1rem;
         }
-        
+
+        /* ============================================ */
+        /* HERO REDESIGN */
+        /* ============================================ */
+        .hero-bg {
+            background-image:
+                linear-gradient(180deg, rgba(6,78,59,0.42) 0%, rgba(4,120,87,0.20) 40%, rgba(6,78,59,0.45) 70%, rgba(6,20,14,0.78) 100%),
+                url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2069&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .hero-media-video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        .hero-bg-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(4,40,31,0.78) 0%, rgba(6,78,59,0.55) 35%, rgba(4,120,87,0.45) 60%, rgba(3,22,15,0.85) 100%);
+            z-index: 0;
+        }
+
+        .hero-heading {
+            text-transform: uppercase;
+            letter-spacing: -0.01em;
+            line-height: 1.02;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.45), 0 4px 30px rgba(0,0,0,0.35);
+        }
+
+        .hero-eyebrow {
+            background: rgba(255,255,255,0.14);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.95);
+            box-shadow: 0 8px 24px -8px rgba(0,0,0,0.25);
+        }
+
+        .hero-scroll-cue {
+            text-shadow: 0 1px 6px rgba(0,0,0,0.25);
+        }
+
+        .glass-card {
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 35px -10px rgba(0,0,0,0.25);
+        }
+
+        .btn-light {
+            background: white;
+            color: #047857;
+            transition: all 0.3s ease;
+        }
+        .btn-light:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(255,255,255,0.4);
+        }
+
+        .btn-outline-light {
+            border: 2px solid rgba(255,255,255,0.75);
+            color: white;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(6px);
+            transition: all 0.3s ease;
+        }
+        .btn-outline-light:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
         @media (max-width: 768px) {
             #map { height: 300px; }
             .login-prompt .btn-primary {
@@ -248,134 +395,111 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
 <!-- ============================================ -->
 <!-- SECTION 1: HOME (HERO) -->
 <!-- ============================================ -->
-<section id="home" class="relative min-h-screen pt-20 overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50"></div>
-    <div class="absolute top-0 right-0 w-96 h-96 bg-emerald-100 rounded-full blur-3xl opacity-30"></div>
-    <div class="absolute bottom-0 left-0 w-80 h-80 bg-teal-100 rounded-full blur-3xl opacity-30"></div>
-    
-    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 min-h-screen flex items-center">
-        <div class="grid lg:grid-cols-2 gap-12 items-center py-12">
-            <div>
-                <div class="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-emerald-100 mb-6 animate-fade-up">
-                    <i class="fas fa-hand-peace text-emerald-600 text-sm"></i>
-                    <span class="text-gray-700 text-sm">Working together for a cleaner community</span>
-                </div>
-                
-                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-800 leading-tight mb-5 animate-fade-up delay-1">
+<section id="home" class="relative min-h-screen overflow-hidden hero-bg rounded-b-[2rem] sm:rounded-b-[2.5rem] flex flex-col justify-end" style="<?php echo $hero_bg_style; ?>">
+    <?php if ($show_hero_video): ?>
+        <video class="hero-media-video" autoplay muted loop playsinline src="<?php echo htmlspecialchars($hero_bg_video); ?>"></video>
+    <?php endif; ?>
+    <?php if ($show_hero_overlay): ?>
+        <div class="absolute inset-0 hero-bg-overlay"></div>
+    <?php endif; ?>
+    <div class="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-24 sm:pb-28 pt-24">
+
+            <!-- Left: eyebrow + heading + subtitle + CTAs -->
+            <div class="max-w-2xl animate-fade-up">
+                <p class="hero-eyebrow inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold mb-6">
+                    <span class="relative flex h-2 w-2 flex-shrink-0">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    <?php echo htmlspecialchars($lp('lp_hero_badge', "Environmental care is more than a policy. It protects your barangay and keeps San Isidro clean today.")); ?>
+                </p>
+
+                <h1 class="hero-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-6">
                     <?php if($isLoggedIn): ?>
                         Good to see you,<br>
-                        <span class="text-emerald-600"><?php echo htmlspecialchars($user_name); ?>!</span>
+                        <span class="text-white"><?php echo htmlspecialchars($user_name); ?>!</span>
                     <?php else: ?>
-                        Sama-sama nating<br>
-                        <span class="text-emerald-600">pangalagaan ang<br>San Isidro.</span>
+                        <?php echo htmlspecialchars($lp('lp_hero_headline_1', 'Sama-sama nating')); ?><br>
+                        <?php echo nl2br(htmlspecialchars($lp('lp_hero_headline_2', "pangalagaan ang\nSan Isidro."))); ?>
                     <?php endif; ?>
                 </h1>
-                
-                <p class="text-lg text-gray-600 mb-8 leading-relaxed animate-fade-up delay-2">
-                    <?php if($isLoggedIn && ($user_role === 'barangay_official' || $user_role === 'admin')): ?>
-                        As a <?php echo ($user_type === 'barangay_personnel' || $user_role === 'barangay_official') ? 'Barangay Official' : $staff_label; ?>, you can review, verify, and manage environmental reports from your community. 
-                        Take action on pending reports and help resolve issues faster.
-                    <?php elseif($isLoggedIn): ?>
-                        Your voice matters. Report environmental issues like illegal dumping, flooding, or pollution — 
-                        and we'll help track them until they're resolved.
-                    <?php else: ?>
-                        See something wrong in your neighborhood? Illegal dumping, clogged canals, or air pollution? 
-                        Report it here, and your barangay will take action. It's free, fast, and easy.
-                    <?php endif; ?>
+
+                <p class="text-white/85 text-base sm:text-lg leading-relaxed mb-8 max-w-xl">
+                    <?php echo nl2br(htmlspecialchars($hero_subtitle)); ?>
                 </p>
-                
-                <div class="flex flex-wrap gap-4 animate-fade-up delay-2">
+
+                <div class="flex flex-wrap gap-3 animate-fade-up delay-2">
                     <?php if($isLoggedIn && ($user_role === 'barangay_official' || $user_role === 'admin')): ?>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" class="btn-primary px-6 py-3 text-white rounded-xl font-medium flex items-center gap-2">
+                        <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" class="btn-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
                             <i class="fas fa-check-double"></i> Manage Reports
                         </a>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=announcements" class="btn-outline px-6 py-3 rounded-xl font-medium flex items-center gap-2">
+                        <a href="<?php echo BASE_URL; ?>index.php?page=announcements" class="btn-outline-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
                             <i class="fas fa-bullhorn"></i> Post Announcement
                         </a>
                     <?php elseif($isLoggedIn): ?>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary px-6 py-3 text-white rounded-xl font-medium flex items-center gap-2">
+                        <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
                             <i class="fas fa-plus-circle"></i> Report an Issue
                         </a>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="btn-outline px-6 py-3 rounded-xl font-medium flex items-center gap-2">
+                        <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="btn-outline-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
                             <i class="fas fa-list"></i> My Reports
+                        </a>
+                    <?php else: ?>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
+                            <i class="fas fa-user-plus"></i> Create Free Account
+                        </a>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=login" class="btn-outline-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
                         </a>
                     <?php endif; ?>
                 </div>
-                
-                <!-- Quick Stats -->
-                <div class="grid grid-cols-3 gap-4 mt-8 animate-fade-up delay-3">
-                    <div class="stat-card bg-white rounded-xl p-4 text-center shadow-sm">
-                        <div class="text-2xl font-bold text-emerald-600"><?php echo number_format($total_reports); ?></div>
-                        <div class="text-xs text-gray-500 mt-1">Total Reports</div>
+            </div>
+
+            <!-- Right: unified community stats panel -->
+            <div class="w-full lg:w-96 flex-shrink-0 animate-fade-up delay-3">
+                <div class="glass-card rounded-3xl p-7">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-seedling text-white text-base"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-extrabold text-gray-800 leading-tight uppercase">San Isidro at a Glance</div>
+                            <p class="text-[11px] text-gray-500 mt-1 text-base"><?php echo htmlspecialchars($lp('lp_hero_stats_caption', 'Community impact in real time.')); ?></p>
+                        </div>
                     </div>
-                    <div class="stat-card bg-white rounded-xl p-4 text-center shadow-sm">
-                        <div class="text-2xl font-bold text-emerald-600"><?php echo number_format($resolved_reports); ?></div>
-                        <div class="text-xs text-gray-500 mt-1">Resolved</div>
+
+                    <div class="grid grid-cols-3 divide-x divide-gray-200">
+                        <div class="pr-3">
+                            <div class="text-2xl font-extrabold text-emerald-700"><?php echo number_format($total_reports); ?></div>
+                            <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wide mt-1">Reports</div>
+                        </div>
+                        <div class="px-3">
+                            <div class="text-2xl font-extrabold text-emerald-700"><?php echo number_format($total_users); ?></div>
+                            <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wide mt-1">Citizens</div>
+                        </div>
+                        <div class="pl-3">
+                            <div class="text-2xl font-extrabold text-emerald-700"><?php echo $resolution_rate; ?>%</div>
+                            <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wide mt-1">Resolved</div>
+                        </div>
                     </div>
-                    <div class="stat-card bg-white rounded-xl p-4 text-center shadow-sm">
-                        <div class="text-2xl font-bold text-emerald-600"><?php echo number_format($total_users); ?></div>
-                        <div class="text-xs text-gray-500 mt-1">Active Citizens</div>
+
+                    <div class="mt-6">
+                        <div class="flex justify-between text-[11px] font-semibold text-gray-600 mb-1.5">
+                            <span>Resolution rate</span>
+                            <span><?php echo $resolution_rate; ?>%</span>
+                        </div>
+                        <div class="h-2 rounded-full bg-gray-200 overflow-hidden">
+                            <div class="h-full rounded-full bg-gradient-to-r from-emerald-600 to-green-500" style="width: <?php echo $resolution_rate; ?>%;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Right Side - Login/Register CTA -->
-            <div class="animate-fade-up delay-2">
-                <?php if($isLoggedIn): ?>
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
-                        <div class="p-8 text-center">
-                            <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                                <i class="fas fa-user-check text-emerald-600 text-3xl"></i>
-                            </div>
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Welcome Back!</h3>
-                            <p class="text-gray-500 text-sm mb-6">You're logged in as <?php echo htmlspecialchars($is_staff ? $staff_label : ($user_type === 'barangay_personnel' || $user_role === 'barangay_official' ? 'Barangay Official' : 'Citizen')); ?></p>
-                            <div class="space-y-3">
-                                <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary w-full py-3 text-white rounded-xl font-medium block text-center">
-                                    <i class="fas fa-tachometer-alt mr-2"></i>Go to Dashboard
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
-                        <div class="p-8">
-                            <div class="text-center">
-                                <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                                    <i class="fas fa-leaf text-emerald-600 text-3xl"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-gray-800 mb-2">Join the Community</h3>
-                                <p class="text-gray-500 text-sm mb-6">Start reporting environmental issues today and help keep San Isidro clean.</p>
-                            </div>
-                            
-                            <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-primary w-full py-3 text-white rounded-xl font-medium block text-center">
-                                <i class="fas fa-user-plus mr-2"></i>Create Free Account
-                            </a>
-                            
-                            <div class="relative my-5">
-                                <div class="absolute inset-0 flex items-center">
-                                    <div class="w-full border-t border-gray-200"></div>
-                                </div>
-                                <div class="relative flex justify-center text-xs">
-                                    <span class="px-3 bg-white text-gray-400">or</span>
-                                </div>
-                            </div>
-                            
-                            <a href="<?php echo BASE_URL; ?>index.php?page=login" class="w-full py-3 text-emerald-600 rounded-xl font-medium block text-center border-2 border-emerald-200 hover:bg-emerald-50 transition">
-                                <i class="fas fa-sign-in-alt mr-2"></i>Sign In
-                            </a>
-                            
-                            <div class="mt-6 text-center">
-                                <p class="text-xs text-gray-400">
-                                    <i class="fas fa-lock text-gray-300 mr-1"></i>
-                                    Your information is safe and private
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
     </div>
+
+    <!-- Scroll cue -->
+    <a href="#features" class="hero-scroll-cue hidden sm:flex flex-col items-center gap-1.5 absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 hover:text-white transition" aria-label="Scroll to explore">
+        <span class="text-[10px] uppercase tracking-widest">Scroll</span>
+        <i class="fas fa-chevron-down text-sm animate-bounce"></i>
+    </a>
 </section>
 
 <!-- ============================================ -->
@@ -384,10 +508,10 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
 <section id="features" class="py-20 bg-white">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-            <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider">How It Works</span>
+            <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_how_kicker', 'How It Works')); ?></span>
             <div class="section-divider"></div>
-            <h2 class="text-3xl font-bold text-gray-800 mt-2">Three simple steps</h2>
-            <p class="text-gray-500 mt-2 max-w-2xl mx-auto">You don't need to be an expert. Anyone can report an environmental issue in their neighborhood.</p>
+            <h2 class="text-3xl font-bold text-gray-800 mt-2"><?php echo htmlspecialchars($lp('lp_how_heading', 'Three simple steps')); ?></h2>
+            <p class="text-gray-500 mt-2 max-w-2xl mx-auto"><?php echo htmlspecialchars($lp('lp_how_intro', "You don't need to be an expert. Anyone can report an environmental issue in their neighborhood.")); ?></p>
         </div>
         
         <div class="grid md:grid-cols-3 gap-8">
@@ -395,8 +519,8 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                 <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
                     <span class="text-3xl font-bold text-emerald-600">1</span>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-3">Join the Community</h3>
-                <p class="text-gray-500 text-sm leading-relaxed">Create a free account. No fees, no hidden charges. Just a commitment to a cleaner community.</p>
+                <h3 class="text-xl font-bold text-gray-800 mb-3"><?php echo htmlspecialchars($lp('lp_how_step1_title', 'Join the Community')); ?></h3>
+                <p class="text-gray-500 text-sm leading-relaxed"><?php echo nl2br(htmlspecialchars($lp('lp_how_step1_desc'))); ?></p>
                 <?php if(!$isLoggedIn): ?>
                 <div class="mt-4">
                     <a href="<?php echo BASE_URL; ?>index.php?page=register" class="text-emerald-600 font-medium hover:underline text-sm">Sign up now →</a>
@@ -408,8 +532,8 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                 <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
                     <span class="text-3xl font-bold text-emerald-600">2</span>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-3">Report the Problem</h3>
-                <p class="text-gray-500 text-sm leading-relaxed">Take a photo, tag the location on the map, and describe the issue. It takes just a few minutes.</p>
+                <h3 class="text-xl font-bold text-gray-800 mb-3"><?php echo htmlspecialchars($lp('lp_how_step2_title', 'Report the Problem')); ?></h3>
+                <p class="text-gray-500 text-sm leading-relaxed"><?php echo nl2br(htmlspecialchars($lp('lp_how_step2_desc'))); ?></p>
                 <?php if(!$isLoggedIn): ?>
                 <div class="mt-4">
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" class="text-emerald-600 font-medium hover:underline text-sm">Login to report →</a>
@@ -421,8 +545,8 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                 <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
                     <span class="text-3xl font-bold text-emerald-600">3</span>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-3">Track the Action</h3>
-                <p class="text-gray-500 text-sm leading-relaxed">See when your barangay takes action until the issue is resolved. You'll get updates every step of the way.</p>
+                <h3 class="text-xl font-bold text-gray-800 mb-3"><?php echo htmlspecialchars($lp('lp_how_step3_title', 'Track the Action')); ?></h3>
+                <p class="text-gray-500 text-sm leading-relaxed"><?php echo nl2br(htmlspecialchars($lp('lp_how_step3_desc'))); ?></p>
                 <?php if(!$isLoggedIn): ?>
                 <div class="mt-4">
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" class="text-emerald-600 font-medium hover:underline text-sm">Login to track →</a>
@@ -457,10 +581,10 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
 <section id="map-section" class="py-20 bg-[#F5FBF6]">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-            <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider">Live Map</span>
+            <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_map_kicker', 'Live Map')); ?></span>
             <div class="section-divider"></div>
-            <h2 class="text-3xl font-bold text-gray-800 mt-2">Environmental Reports Map</h2>
-            <p class="text-gray-500 mt-2 max-w-2xl mx-auto">See where environmental issues are being reported across San Isidro.</p>
+            <h2 class="text-3xl font-bold text-gray-800 mt-2"><?php echo htmlspecialchars($lp('lp_map_heading', 'Environmental Reports Map')); ?></h2>
+            <p class="text-gray-500 mt-2 max-w-2xl mx-auto"><?php echo htmlspecialchars($lp('lp_map_intro', 'See where environmental issues are being reported across San Isidro.')); ?></p>
             <?php if(!$isLoggedIn): ?>
             <p class="text-xs text-gray-400 mt-2">
                 <i class="fas fa-info-circle mr-1"></i>
@@ -490,32 +614,32 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
 <section id="stats" class="py-20 bg-white">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-            <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider">Community Impact</span>
+            <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_stats_kicker', 'Community Impact')); ?></span>
             <div class="section-divider"></div>
-            <h2 class="text-3xl font-bold text-gray-800 mt-2">San Isidro Statistics</h2>
-            <p class="text-gray-500 mt-2 max-w-2xl mx-auto">Together, we're making a difference in our community.</p>
+            <h2 class="text-3xl font-bold text-gray-800 mt-2"><?php echo htmlspecialchars($lp('lp_stats_heading', 'San Isidro Statistics')); ?></h2>
+            <p class="text-gray-500 mt-2 max-w-2xl mx-auto"><?php echo htmlspecialchars($lp('lp_stats_intro', "Together, we're making a difference in our community.")); ?></p>
         </div>
         
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div class="stat-card bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 text-center">
                 <div class="text-3xl font-bold text-emerald-600"><?php echo number_format($san_isidro_stats['barangays']); ?></div>
-                <p class="text-sm text-gray-600 mt-1">Barangays</p>
-                <p class="text-xs text-gray-400 mt-2">All working together</p>
+                <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_barangays_label', 'Barangays')); ?></p>
+                <p class="text-xs text-gray-400 mt-2"><?php echo htmlspecialchars($lp('lp_stat_barangays_sub')); ?></p>
             </div>
-            <div class="stat-card bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 text-center">
-                <div class="text-3xl font-bold text-blue-600"><?php echo number_format($san_isidro_stats['population']); ?></div>
-                <p class="text-sm text-gray-600 mt-1">Population</p>
-                <p class="text-xs text-gray-400 mt-2">Caring for each other</p>
+            <div class="stat-card bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 text-center">
+                <div class="text-3xl font-bold text-emerald-700"><?php echo number_format($san_isidro_stats['population']); ?></div>
+                <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_population_label', 'Population')); ?></p>
+                <p class="text-xs text-gray-400 mt-2"><?php echo htmlspecialchars($lp('lp_stat_population_sub')); ?></p>
             </div>
-            <div class="stat-card bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 text-center">
-                <div class="text-3xl font-bold text-purple-600"><?php echo number_format($san_isidro_stats['households']); ?></div>
-                <p class="text-sm text-gray-600 mt-1">Households</p>
-                <p class="text-xs text-gray-400 mt-2">Building a better future</p>
+            <div class="stat-card bg-gradient-to-br from-teal-50 to-emerald-100 rounded-2xl p-6 text-center">
+                <div class="text-3xl font-bold text-teal-700"><?php echo number_format($san_isidro_stats['households']); ?></div>
+                <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_households_label', 'Households')); ?></p>
+                <p class="text-xs text-gray-400 mt-2"><?php echo htmlspecialchars($lp('lp_stat_households_sub')); ?></p>
             </div>
-            <div class="stat-card bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 text-center">
-                <div class="text-3xl font-bold text-amber-600"><?php echo number_format($total_reports); ?></div>
-                <p class="text-sm text-gray-600 mt-1">Reports Submitted</p>
-                <p class="text-xs text-gray-400 mt-2">Voices heard</p>
+            <div class="stat-card bg-gradient-to-br from-emerald-100 to-white rounded-2xl p-6 text-center">
+                <div class="text-3xl font-bold text-emerald-700"><?php echo number_format($total_reports); ?></div>
+                <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_reports_label', 'Reports Submitted')); ?></p>
+                <p class="text-xs text-gray-400 mt-2"><?php echo htmlspecialchars($lp('lp_stat_reports_sub')); ?></p>
             </div>
         </div>
         
@@ -548,115 +672,130 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
 <!-- SECTION 5: ABOUT LGU -->
 <!-- ============================================ -->
 <section id="about" class="py-20 relative overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-br from-white via-emerald-50/30 to-purple-50/30"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-white via-emerald-50/30 to-emerald-100/30"></div>
     <div class="absolute top-0 right-0 w-96 h-96 bg-emerald-100/20 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-0 left-0 w-80 h-80 bg-purple-100/20 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 left-0 w-80 h-80 bg-emerald-100/25 rounded-full blur-3xl"></div>
     
     <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div class="text-center mb-14">
             <div class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-4 py-1.5 rounded-full mb-4">
                 <i class="fas fa-building text-emerald-600 text-xs"></i>
-                <span class="text-emerald-700 text-xs font-semibold uppercase tracking-wider">About LGU</span>
+                <span class="text-emerald-700 text-xs font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_about_kicker', 'About LGU')); ?></span>
             </div>
             <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-                Municipal Environment &amp; Natural Resources Office
+                <?php echo htmlspecialchars($lp('lp_about_heading', 'Municipal Environment & Natural Resources Office')); ?>
             </h2>
             <p class="text-gray-500 max-w-2xl mx-auto">
-                Committed to protecting and preserving San Isidro's environment for future generations.
+                <?php echo htmlspecialchars($lp('lp_about_subtitle', "Committed to protecting and preserving San Isidro's environment for future generations.")); ?>
             </p>
-            <div class="w-20 h-1 bg-gradient-to-r from-emerald-500 to-purple-500 mx-auto mt-4 rounded-full"></div>
+            <div class="w-20 h-1 bg-gradient-to-r from-emerald-500 to-teal-600 mx-auto mt-4 rounded-full"></div>
         </div>
         
-        <div class="grid md:grid-cols-2 gap-8">
-            
-            <!-- Vision Card -->
-            <div class="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 border border-emerald-100/50 overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
-                <div class="absolute bottom-0 left-0 w-24 h-24 bg-emerald-100/20 rounded-full translate-y-1/2 -translate-x-1/2"></div>
-                
-                <div class="relative p-8">
-                    <div class="flex items-center gap-4 mb-6">
-                        <div class="w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-100 group-hover:scale-110 transition-transform duration-300">
-                            <i class="fas fa-eye text-white text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-800">Our Vision</h3>
-                            <p class="text-sm text-emerald-600 font-medium">A greener, cleaner San Isidro</p>
-                        </div>
+        <!-- Our Mission -->
+        <div class="grid md:grid-cols-2 gap-10 lg:gap-16 items-center mb-24">
+
+            <!-- Mission Imagery -->
+            <div class="relative order-2 md:order-1">
+                <div class="absolute -top-6 -left-6 w-40 h-40 bg-emerald-100 rounded-3xl -z-10 hidden md:block"></div>
+
+                <?php if ($mission_image_main): ?>
+                    <img src="<?php echo htmlspecialchars($mission_image_main); ?>" alt="<?php echo htmlspecialchars($lp('lp_mission_title', 'Our Mission')); ?>" class="w-full h-[320px] md:h-[380px] object-cover rounded-2xl shadow-xl">
+                <?php else: ?>
+                    <div class="relative w-full h-[320px] md:h-[380px] rounded-2xl shadow-xl overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 flex items-center justify-center">
+                        <div class="absolute inset-0 opacity-20" style="background-image:radial-gradient(circle at 25% 25%, white 0, transparent 45%), radial-gradient(circle at 80% 80%, white 0, transparent 40%);"></div>
+                        <i class="fas fa-bullseye text-white/90 text-7xl relative"></i>
                     </div>
-                    
-                    <div class="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-xl p-6 border border-emerald-100/50">
-                        <p class="text-gray-700 leading-relaxed text-lg italic">
-                            "<?php echo $menro_vision; ?>"
-                        </p>
-                        <div class="mt-4 flex items-center gap-2 text-emerald-600">
-                            <span class="w-8 h-0.5 bg-emerald-400"></span>
-                            <span class="text-sm font-medium">Vision 2030</span>
+                <?php endif; ?>
+
+                <div class="absolute -bottom-8 -right-6 md:-right-8 w-2/5 aspect-square rounded-2xl shadow-xl border-4 border-white overflow-hidden">
+                    <?php if ($mission_image_inset): ?>
+                        <img src="<?php echo htmlspecialchars($mission_image_inset); ?>" alt="MENRO field team" class="w-full h-full object-cover">
+                    <?php else: ?>
+                        <div class="w-full h-full bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center">
+                            <i class="fas fa-users text-white/90 text-3xl"></i>
                         </div>
-                    </div>
-                    
-                    <div class="mt-6 grid grid-cols-3 gap-3">
-                        <div class="text-center p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/30">
-                            <i class="fas fa-tree text-emerald-500 text-lg mb-1 block"></i>
-                            <span class="text-xs font-medium text-gray-600">Green</span>
-                        </div>
-                        <div class="text-center p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/30">
-                            <i class="fas fa-hand-holding-heart text-emerald-500 text-lg mb-1 block"></i>
-                            <span class="text-xs font-medium text-gray-600">Sustainable</span>
-                        </div>
-                        <div class="text-center p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/30">
-                            <i class="fas fa-users text-emerald-500 text-lg mb-1 block"></i>
-                            <span class="text-xs font-medium text-gray-600">Inclusive</span>
-                        </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
-            
-            <!-- About MENRO Card -->
-            <div class="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 border border-purple-100/50 overflow-hidden">
-                <div class="absolute top-0 left-0 w-32 h-32 bg-purple-50 rounded-full -translate-y-1/2 -translate-x-1/2 opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
-                <div class="absolute bottom-0 right-0 w-24 h-24 bg-purple-100/20 rounded-full translate-y-1/2 translate-x-1/2"></div>
-                
-                <div class="relative p-8">
-                    <div class="flex items-center gap-4 mb-6">
-                        <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-100 group-hover:scale-110 transition-transform duration-300">
-                            <i class="fas fa-building text-white text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-800">About MENRO</h3>
-                            <p class="text-sm text-purple-600 font-medium">Municipal Environment Office</p>
-                        </div>
+
+            <!-- Mission Text -->
+            <div class="order-1 md:order-2">
+                <div class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-4 py-1.5 rounded-full mb-4">
+                    <i class="fas fa-bullseye text-emerald-600 text-xs"></i>
+                    <span class="text-emerald-700 text-xs font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_mission_tagline', 'Our Purpose')); ?></span>
+                </div>
+                <h3 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+                    <?php echo htmlspecialchars($lp('lp_mission_title', 'Our Mission')); ?>
+                </h3>
+<p class="text-gray-600 leading-relaxed mb-7">
+                        <?php echo nl2br(htmlspecialchars($menro_mission)); ?>
+                    </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
+                        <span class="text-gray-700 font-medium"><?php echo htmlspecialchars($lp('lp_mission_point1', 'Fostering Sustainable Growth and Green Development')); ?></span>
                     </div>
-                    
-                    <div class="bg-gradient-to-br from-purple-50 to-purple-100/30 rounded-xl p-6 border border-purple-100/50">
-                        <p class="text-gray-700 leading-relaxed">
-                            <?php echo $menro_about; ?>
-                        </p>
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
+                        <span class="text-gray-700 font-medium"><?php echo htmlspecialchars($lp('lp_mission_point2', 'Innovating for a Sustainable Future')); ?></span>
                     </div>
-                    
-                    <div class="mt-6 grid grid-cols-2 gap-2">
-                        <div class="flex items-center gap-2 p-2.5 bg-purple-50/50 rounded-lg border border-purple-100/30">
-                            <i class="fas fa-check-circle text-purple-500 text-xs"></i>
-                            <span class="text-xs font-medium text-gray-600">Protection</span>
-                        </div>
-                        <div class="flex items-center gap-2 p-2.5 bg-purple-50/50 rounded-lg border border-purple-100/30">
-                            <i class="fas fa-check-circle text-purple-500 text-xs"></i>
-                            <span class="text-xs font-medium text-gray-600">Community</span>
-                        </div>
-                        <div class="flex items-center gap-2 p-2.5 bg-purple-50/50 rounded-lg border border-purple-100/30">
-                            <i class="fas fa-check-circle text-purple-500 text-xs"></i>
-                            <span class="text-xs font-medium text-gray-600">Sustainability</span>
-                        </div>
-                        <div class="flex items-center gap-2 p-2.5 bg-purple-50/50 rounded-lg border border-purple-100/30">
-                            <i class="fas fa-check-circle text-purple-500 text-xs"></i>
-                            <span class="text-xs font-medium text-gray-600">Partnership</span>
-                        </div>
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
+                        <span class="text-gray-700 font-medium"><?php echo htmlspecialchars($lp('lp_mission_point3', 'Community-Centered Public Service')); ?></span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
+                        <span class="text-gray-700 font-medium"><?php echo htmlspecialchars($lp('lp_mission_point4', 'Building Stronger, Resilient Barangays')); ?></span>
                     </div>
                 </div>
             </div>
         </div>
-        
+
+        <!-- Our Vision -->
+        <div class="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
+
+            <!-- Vision Text -->
+            <div>
+                <div class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-4 py-1.5 rounded-full mb-4">
+                    <i class="fas fa-eye text-emerald-600 text-xs"></i>
+                    <span class="text-emerald-700 text-xs font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_vision_tagline', 'Looking Ahead')); ?></span>
+                </div>
+                <h3 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+                    <?php echo htmlspecialchars($lp('lp_vision_title', 'Our Vision')); ?>
+                </h3>
+                <p class="text-gray-600 leading-relaxed mb-7">
+                    <?php echo nl2br(htmlspecialchars($menro_vision)); ?>
+                </p>
+
+                <div class="space-y-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
+                        <span class="text-gray-700 font-medium"><?php echo htmlspecialchars($lp('lp_vision_point1', 'Inspiring Environmental Stewardship')); ?></span>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
+                        <span class="text-gray-700 font-medium"><?php echo htmlspecialchars($lp('lp_vision_point2', 'Pioneering Sustainable Community Development')); ?></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vision Imagery -->
+            <div class="relative">
+                <div class="absolute -top-6 -right-6 w-40 h-40 bg-emerald-100 rounded-3xl -z-10 hidden md:block"></div>
+
+                <?php if ($vision_image_main): ?>
+                    <img src="<?php echo htmlspecialchars($vision_image_main); ?>" alt="<?php echo htmlspecialchars($lp('lp_vision_title', 'Our Vision')); ?>" class="w-full h-[320px] md:h-[380px] object-cover rounded-2xl shadow-xl">
+                <?php else: ?>
+                    <div class="relative w-full h-[320px] md:h-[380px] rounded-2xl shadow-xl overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 flex items-center justify-center">
+                        <div class="absolute inset-0 opacity-20" style="background-image:radial-gradient(circle at 25% 25%, white 0, transparent 45%), radial-gradient(circle at 80% 80%, white 0, transparent 40%);"></div>
+                        <i class="fas fa-binoculars text-white/90 text-7xl relative"></i>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Core Values -->
         <div class="mt-12">
             <div class="text-center mb-8">
@@ -669,36 +808,36 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                     <div class="w-16 h-16 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
                         <i class="fas fa-shield-alt text-emerald-600 text-2xl"></i>
                     </div>
-                    <h4 class="font-bold text-gray-800 text-sm mb-1">Protection</h4>
-                    <p class="text-xs text-gray-400">Safeguarding natural resources</p>
+                    <h4 class="font-bold text-gray-800 text-sm mb-1"><?php echo htmlspecialchars($lp('lp_core_protection_title', 'Protection')); ?></h4>
+                    <p class="text-xs text-gray-400"><?php echo htmlspecialchars($lp('lp_core_protection_desc')); ?></p>
                     <div class="mt-3 w-8 h-0.5 bg-emerald-400 mx-auto rounded-full group-hover:w-12 transition-all duration-300"></div>
                 </div>
                 
                 <div class="group bg-white rounded-xl p-6 text-center border border-gray-100 hover:border-emerald-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                    <div class="w-16 h-16 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas fa-hand-holding-heart text-blue-600 text-2xl"></i>
-                    </div>
-                    <h4 class="font-bold text-gray-800 text-sm mb-1">Service</h4>
-                    <p class="text-xs text-gray-400">Dedicated to the community</p>
-                    <div class="mt-3 w-8 h-0.5 bg-blue-400 mx-auto rounded-full group-hover:w-12 transition-all duration-300"></div>
-                </div>
-                
-                <div class="group bg-white rounded-xl p-6 text-center border border-gray-100 hover:border-emerald-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                     <div class="w-16 h-16 bg-gradient-to-br from-teal-50 to-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas fa-recycle text-teal-600 text-2xl"></i>
+                        <i class="fas fa-hand-holding-heart text-teal-600 text-2xl"></i>
                     </div>
-                    <h4 class="font-bold text-gray-800 text-sm mb-1">Sustainability</h4>
-                    <p class="text-xs text-gray-400">For future generations</p>
+                    <h4 class="font-bold text-gray-800 text-sm mb-1"><?php echo htmlspecialchars($lp('lp_core_service_title', 'Service')); ?></h4>
+                    <p class="text-xs text-gray-400"><?php echo htmlspecialchars($lp('lp_core_service_desc')); ?></p>
                     <div class="mt-3 w-8 h-0.5 bg-teal-400 mx-auto rounded-full group-hover:w-12 transition-all duration-300"></div>
                 </div>
                 
                 <div class="group bg-white rounded-xl p-6 text-center border border-gray-100 hover:border-emerald-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                    <div class="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas fa-users text-purple-600 text-2xl"></i>
+                    <div class="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-recycle text-emerald-700 text-2xl"></i>
                     </div>
-                    <h4 class="font-bold text-gray-800 text-sm mb-1">Partnership</h4>
-                    <p class="text-xs text-gray-400">Working together for change</p>
-                    <div class="mt-3 w-8 h-0.5 bg-purple-400 mx-auto rounded-full group-hover:w-12 transition-all duration-300"></div>
+                    <h4 class="font-bold text-gray-800 text-sm mb-1"><?php echo htmlspecialchars($lp('lp_core_sustainability_title', 'Sustainability')); ?></h4>
+                    <p class="text-xs text-gray-400"><?php echo htmlspecialchars($lp('lp_core_sustainability_desc')); ?></p>
+                    <div class="mt-3 w-8 h-0.5 bg-emerald-500 mx-auto rounded-full group-hover:w-12 transition-all duration-300"></div>
+                </div>
+                
+                <div class="group bg-white rounded-xl p-6 text-center border border-gray-100 hover:border-emerald-200 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                    <div class="w-16 h-16 bg-gradient-to-br from-teal-50 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-users text-teal-700 text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-sm mb-1"><?php echo htmlspecialchars($lp('lp_core_partnership_title', 'Partnership')); ?></h4>
+                    <p class="text-xs text-gray-400"><?php echo htmlspecialchars($lp('lp_core_partnership_desc')); ?></p>
+                    <div class="mt-3 w-8 h-0.5 bg-teal-500 mx-auto rounded-full group-hover:w-12 transition-all duration-300"></div>
                 </div>
             </div>
         </div>
@@ -729,7 +868,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                     <?php endif; ?>
                     <span class="text-lg font-bold"><?php echo htmlspecialchars($system_name); ?></span>
                 </div>
-                <p class="text-gray-400 text-sm">Environmental reporting system for San Isidro, Nueva Ecija. Working together for a cleaner, greener community.</p>
+                <p class="text-gray-400 text-sm"><?php echo nl2br(htmlspecialchars($lp('lp_footer_about', 'Environmental reporting system for San Isidro, Nueva Ecija. Working together for a cleaner, greener community.'))); ?></p>
                 <div class="mt-4 text-sm text-gray-400">
                     <p><i class="fas fa-envelope mr-2"></i> <?php echo htmlspecialchars($contact_email); ?></p>
                     <p><i class="fas fa-phone mr-2"></i> <?php echo htmlspecialchars($emergency_hotline); ?></p>
@@ -769,7 +908,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                 </div>
                 <p class="text-sm text-gray-400 mt-4">
                     <i class="fas fa-map-marker-alt mr-2"></i>
-                    San Isidro, Nueva Ecija
+                    <?php echo htmlspecialchars($lp('lp_footer_address', 'San Isidro, Nueva Ecija')); ?>
                 </p>
             </div>
         </div>
@@ -866,7 +1005,7 @@ function initMap() {
                     <strong style="font-size: 14px; color: #1e293b;">${escapeHtml(report.title)}</strong><br>
                     <span style="font-size: 12px; color: #64748b;">Risk: ${risk.charAt(0).toUpperCase() + risk.slice(1)}</span><br>
                     <span style="font-size: 12px; color: #64748b;">Status: ${statusDisplay}</span><br>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=${report.id}" 
+                    <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=${report.token}" 
                        style="display: inline-block; margin-top: 8px; padding: 4px 12px; background: #059669; color: white; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: 500;">
                         View Details
                     </a>

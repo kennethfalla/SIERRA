@@ -10,7 +10,7 @@ requireLogin();
 $database = new Database();
 $db = $database->getConnection();
 
-$report_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$report_id = IdGuard::req($_GET['id'] ?? '');
 
 if ($report_id == 0) {
     $_SESSION['error'] = "Invalid report ID.";
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_resolution'])
         $_SESSION['error'] = "Unable to confirm resolution. Report may not exist, not belong to you, or not be resolved yet.";
     }
     
-    header("Location: " . BASE_URL . "index.php?page=track-status&id=" . $confirm_id);
+    header("Location: " . BASE_URL . "index.php?page=track-status&id=" . IdGuard::enc($confirm_id));
     exit();
 }
 
@@ -83,6 +83,16 @@ if ($_SESSION['user_role'] !== 'admin' && $_SESSION['user_role'] !== 'barangay_o
     $_SESSION['error'] = "You don't have permission to view this report.";
     header("Location: " . BASE_URL . "index.php?page=my-reports");
     exit();
+}
+
+// IDOR protection: barangay officials may only view reports from their own barangay
+if ($_SESSION['user_role'] === 'barangay_official') {
+    $session_barangay = (int)($_SESSION['barangay_id'] ?? 0);
+    if ($session_barangay === 0 || (int)$report['barangay_id'] !== $session_barangay) {
+        $_SESSION['error'] = "You don't have permission to view this report.";
+        header("Location: " . BASE_URL . "index.php?page=verify-reports");
+        exit();
+    }
 }
 
 // If report is cancelled, only owner or admin can view
