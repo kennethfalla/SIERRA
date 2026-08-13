@@ -1216,6 +1216,8 @@ if (resolutionBar) {
     var splash = document.getElementById('intro-splash');
     if (!splash) return;
 
+    var seenKey = 'sierra_intro_seen';
+
     var cleaned = false;
     function cleanup() {
         if (cleaned) return;
@@ -1224,7 +1226,16 @@ if (resolutionBar) {
         document.body.classList.remove('splash-lock');
     }
 
+    // Show the intro only once per browser session
+    try {
+        if (sessionStorage.getItem(seenKey)) {
+            cleanup();
+            return;
+        }
+    } catch (e) {}
+
     function run() {
+        try { sessionStorage.setItem(seenKey, '1'); } catch (e) {}
         var brand = splash.querySelector('.intro-brand');
         var logo = splash.querySelector('.intro-logo, .intro-logo-fallback');
         var chars = splash.querySelectorAll('.tw-char');
