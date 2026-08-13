@@ -1,15 +1,13 @@
 <?php
 // views/admin/settings/partials/archiving.php
 // Data Archiving & Retention - Three sections:
-//   A. Automated Retention Rules (resolved / rejected / announcements)
+//   A. Retention Rules (resolved / rejected / announcements)
 //   B. Manual Archive Action Triggers (run now / export backup)
 //   C. Archive Management Table (view details / restore)
 
 // Load current archiving settings
 $archive_after_days    = (int)SettingsHelper::get('archive_after_days', 30);
 $archive_rejected_days = (int)SettingsHelper::get('archive_rejected_days', 60);
-$archive_cron_enabled  = (bool)SettingsHelper::get('archive_cron_enabled', 0);
-$archive_cron_secret   = (string)SettingsHelper::get('archive_cron_secret', '');
 
 $csrf_token = InputSanitizer::generateCsrfToken();
 
@@ -193,16 +191,18 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
 <div class="card-info">
     <div class="title"><i class="fas fa-archive mr-1"></i> Data Archiving & Retention</div>
     <div class="desc">
-        Keeps the database fast and compliant. Old resolved reports, rejected/spam reports, and
-        expired announcements are moved out of the active lists into the archive automatically.
-        Use the manual triggers to run an archive now or export an audit backup.
+        Keeps the database fast and clean. Archiving is fully manual: click
+        "Run Manual Archive Now" to apply the retention rules below. Old
+        resolved reports, rejected/spam reports, and expired announcements are
+        moved to the archive <strong>only when you trigger it</strong>. Export
+        an audit backup before rejected reports are permanently purged.
     </div>
 </div>
 
 <!-- ============================================ -->
-<!-- SECTION A: AUTOMATED RETENTION RULES -->
+<!-- SECTION A: RETENTION RULES -->
 <!-- ============================================ -->
-<div class="archive-section-title"><span class="num">A</span> Automated Retention Rules</div>
+<div class="archive-section-title"><span class="num">A</span> Retention Rules</div>
 
 <form method="POST" action="<?php echo $settings_url; ?>" id="archivingForm">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
@@ -269,53 +269,11 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
                 Expired Municipal Broadcasts &amp; Announcements
             </div>
             <p class="setting-desc">
-                Announcements whose <strong>expiry date has passed</strong> are automatically moved
-                to the archive on the next archive run. They remain restorable.
+                Announcements whose <strong>expiry date has passed</strong> are moved
+                to the archive when you run the manual archive. They remain restorable.
             </p>
         </div>
-        <span class="badge-active">Automatic</span>
-    </div>
-
-    <!-- Master Toggle -->
-    <div class="setting-row">
-        <div style="flex:1;">
-            <div class="setting-title">
-                <i class="fas fa-toggle-on text-[#10A37F]"></i>
-                Enable Auto-Archiving (Master Switch)
-                <span class="badge-<?php echo $archive_cron_enabled ? 'active' : 'inactive'; ?>">
-                    <?php echo $archive_cron_enabled ? 'Active' : 'Disabled'; ?>
-                </span>
-            </div>
-            <p class="setting-desc">
-                When enabled, a scheduled job (Windows Task Scheduler, Linux cron, or a hosted
-                scheduler) runs all three retention rules above automatically. The job is
-                triggered via a private, secret-protected URL.
-            </p>
-
-            <?php if ($archive_cron_enabled): ?>
-                <?php if ($archive_cron_secret !== ''): ?>
-                <p class="setting-desc" style="margin-top: 0.75rem;">
-                    <strong>Schedule this URL</strong> (e.g. daily):
-                </p>
-                <div class="code-block">
-                    <?php echo htmlspecialchars(BASE_URL . 'cron/archive_reports.php?key=' . $archive_cron_secret); ?>
-                </div>
-                <p class="help-text" style="margin-top: 0.5rem;">
-                    Or run from the command line (no key needed):
-                    <code>php <?php echo htmlspecialchars(BASE_PATH); ?>cron/archive_reports.php</code>
-                </p>
-                <?php else: ?>
-                <p class="help-text" style="margin-top: 0.75rem;">
-                    A secret URL will be generated when you save with this toggle ON.
-                </p>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-        <div class="toggle-switch">
-            <input type="checkbox" name="archive_cron_enabled" id="archive_cron_enabled"
-                   value="1" <?php echo $archive_cron_enabled ? 'checked' : ''; ?>>
-            <label class="toggle-slider" for="archive_cron_enabled"></label>
-        </div>
+        <span class="badge-inactive">Manual</span>
     </div>
 
     <!-- Save Rules -->
@@ -341,8 +299,8 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
             Run Manual Archive Now
         </div>
         <p class="setting-desc">
-            Execute all retention rules immediately, without waiting for the scheduled job.
-            Rejected reports that have passed their retention window will be permanently purged.
+            Apply all retention rules immediately. Rejected reports that have
+            passed their retention window will be permanently purged.
         </p>
     </div>
     <form method="POST" action="<?php echo $settings_url; ?>" style="flex-shrink:0;">

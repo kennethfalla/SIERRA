@@ -1095,7 +1095,7 @@ class SettingsController {
     }
 
     // ================================================================
-    // 8. AUTO-ARCHIVING RULES
+    // 8. ARCHIVING & RETENTION RULES (MANUAL)
     // ================================================================
     private function updateArchiving() {
         $sub_action = $_POST['sub_action'] ?? 'save_rules';
@@ -1121,28 +1121,16 @@ class SettingsController {
         SettingsHelper::set('archive_after_days', max(0, min(365, $resolved_days)));
         SettingsHelper::set('archive_rejected_days', max(0, min(365, $rejected_days)));
 
-        // Toggle: when enabled, generate a cryptographically random cron
-        // secret on first activation so only holders of the URL can trigger
-        // the archive job over HTTP. CLI invocation never needs the key.
-        $enabled = !empty($_POST['archive_cron_enabled']);
-        $secret  = SettingsHelper::get('archive_cron_secret', '');
-        if ($enabled && $secret === '') {
-            $secret = bin2hex(random_bytes(32));
-            SettingsHelper::set('archive_cron_secret', $secret);
-        }
-        SettingsHelper::set('archive_cron_enabled', $enabled ? 1 : 0);
-
         SettingsHelper::clearCache();
-        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated archiving rules (resolved: $resolved_days days, rejected/spam: $rejected_days days, cron " . ($enabled ? 'enabled' : 'disabled') . ")", null, 'Settings');
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated archiving rules (resolved: $resolved_days days, rejected/spam: $rejected_days days)", null, 'Settings');
         $_SESSION['success'] = "Archiving rules saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=archiving");
         exit();
     }
 
     /**
-     * Run the archiving job immediately (manual trigger). Mirrors the
-     * cron/archive_reports.php logic so results are identical whether it is
-     * fired by the scheduler or by the "Run Manual Archive Now" button.
+     * Run the archiving job immediately (manual trigger). Applies all
+     * retention rules on demand from the "Run Manual Archive Now" button.
      */
     private function runManualArchive() {
         $parts = [];

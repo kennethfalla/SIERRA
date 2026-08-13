@@ -64,7 +64,7 @@ $tabs = [
     'archiving' => [
         'label' => 'Data Archiving & Retention',
         'icon' => 'fa-archive',
-        'description' => 'Auto-archive old reports, retain rejected/spam, and manage the archive',
+        'description' => 'Manually archive old reports, retain rejected/spam, and manage the archive',
         'file' => 'archiving.php'
     ],
     'barangays' => [
