@@ -268,7 +268,7 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
         .hero-bg-overlay {
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, rgba(4,40,31,0.78) 0%, rgba(6,78,59,0.55) 35%, rgba(4,120,87,0.45) 60%, rgba(3,22,15,0.85) 100%);
+            background: linear-gradient(180deg, rgba(4,40,31,0.58) 0%, rgba(6,78,59,0.40) 35%, rgba(4,120,87,0.32) 60%, rgba(3,22,15,0.62) 100%);
             z-index: 0;
         }
 
