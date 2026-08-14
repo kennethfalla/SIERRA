@@ -1344,6 +1344,9 @@ if (is_dir($barangays_dir)) {
     let isDuplicateCheckDone = false;
     let viewingReportId = null;
 
+    // NEW: Store duplicate reports for details modal
+    let currentDuplicateReports = [];
+
     const MAX_PHOTOS = 3;
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
     const MAX_VIDEO_SIZE = 25 * 1024 * 1024;
@@ -2106,6 +2109,9 @@ if (is_dir($barangays_dir)) {
     }
 
     function showDuplicateModal(reports) {
+        // Store the reports for later use in details modal
+        currentDuplicateReports = reports;
+
         duplicateReportList.innerHTML = '';
         duplicateReportId = null;
         
@@ -2140,12 +2146,19 @@ if (is_dir($barangays_dir)) {
                 duplicateReportId = parseInt(this.dataset.reportId, 10);
             });
             
-            // View Details button
+            // View Details button – use stored data
             const detailsBtn = div.querySelector('.view-details-btn');
             detailsBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const reportId = parseInt(this.dataset.reportId, 10);
-                openDetailsModal(reportId);
+                // Find the report data from the stored list
+                const report = currentDuplicateReports.find(r => r.id === reportId);
+                if (report) {
+                    showReportDetailsFromData(report);
+                } else {
+                    // Fallback to fetch
+                    openDetailsModal(reportId);
+                }
             });
             
             duplicateReportList.appendChild(div);
@@ -2198,6 +2211,30 @@ if (is_dir($barangays_dir)) {
         });
     }
 
+    // NEW: Show details directly from stored data (no extra fetch)
+    function showReportDetailsFromData(report) {
+        detailsModal.style.display = 'flex';
+        detailsContent.innerHTML = `
+            <div class="text-center py-8">
+                <div class="loading-spinner"></div>
+                <p class="text-gray-400 text-sm mt-2">Loading images...</p>
+            </div>
+        `;
+        supportFromDetailsBtn.disabled = false;
+        supportFromDetailsBtn.innerHTML = '<i class="fas fa-thumbs-up"></i> Support This Report';
+        supportFromDetailsBtn.style.opacity = '1';
+        supportFromDetailsBtn.dataset.reportId = report.id;
+
+        // Try to fetch images, but render details even if it fails
+        fetchReportImages(report.id)
+            .then(images => {
+                renderReportDetails(report, images);
+            })
+            .catch(() => {
+                renderReportDetails(report, []);
+            });
+    }
+
     function closeDetailsModal() {
         detailsModal.style.display = 'none';
         viewingReportId = null;
@@ -2214,12 +2251,14 @@ if (is_dir($barangays_dir)) {
     }
 
     async function fetchReportImages(reportId) {
-        const url = '<?php echo BASE_URL; ?>controllers/ReportController.php?action=get_images&id=' + reportId;
-        const response = await fetch(url, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        const data = await response.json();
-        return data || [];
+        try {
+            const url = '<?php echo BASE_URL; ?>controllers/ReportController.php?action=get_images&id=' + reportId;
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await response.json();
+            return data || [];
+        } catch (e) {
+            return [];
+        }
     }
 
     function renderReportDetails(data, images) {
