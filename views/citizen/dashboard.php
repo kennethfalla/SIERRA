@@ -63,38 +63,115 @@ $notifications[] = array(
     'read' => false
 );
 
-$stmt = $db->prepare("SELECT id, title, status, updated_at FROM reports WHERE user_id = :user_id AND status != 'pending' ORDER BY updated_at DESC LIMIT 10");
+// Per-report notifications rendered from the admin Notification Templates —
+// submitted / status update / report solved / report escalated only.
+// No SMS is sent for these; SMS is only used for staff-account creation.
+if (!class_exists('SettingsHelper')) {
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+}
+
+$me_stmt = $db->prepare("SELECT first_name, last_name, email, contact_number FROM users WHERE id = :id");
+$me_stmt->bindValue(':id', $user_id, PDO::PARAM_INT);
+$me_stmt->execute();
+$me = $me_stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+$stmt = $db->prepare("SELECT r.id, r.title, r.status, r.created_at, r.updated_at, r.severity_score,
+                             c.name AS category_name, b.name AS barangay_name
+                      FROM reports r
+                      JOIN categories c ON r.category_id = c.id
+                      JOIN barangays b ON r.barangay_id = b.id
+                      WHERE r.user_id = :user_id AND r.status != 'cancelled'
+                      ORDER BY r.updated_at DESC LIMIT 10");
 $stmt->bindParam(':user_id', $user_id);
 $stmt->execute();
 $report_updates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+$status_display = [
+    'title' => [
+        'pending' => 'Report Submitted',
+        'verified' => 'Report Verified',
+        'under_review' => 'Report Under Review',
+        'in_progress' => 'Action Being Taken',
+        'escalated_pending' => 'Escalation Pending',
+        'escalated' => 'Escalated to MENRO',
+        'resolved' => 'Issue Resolved!',
+        'closed' => 'Report Closed',
+        'rejected' => 'Report Rejected',
+    ],
+    'icon' => [
+        'pending' => 'fa-paper-plane',
+        'verified' => 'fa-check-circle',
+        'under_review' => 'fa-search',
+        'in_progress' => 'fa-spinner',
+        'escalated_pending' => 'fa-hourglass-half',
+        'escalated' => 'fa-shield-alt',
+        'resolved' => 'fa-check-double',
+        'closed' => 'fa-archive',
+        'rejected' => 'fa-times-circle',
+    ],
+    'color' => [
+        'pending' => '#10A37F',
+        'verified' => '#3B82F6',
+        'under_review' => '#3B82F6',
+        'in_progress' => '#F59E0B',
+        'escalated_pending' => '#F97316',
+        'escalated' => '#EF4444',
+        'resolved' => '#10A37F',
+        'closed' => '#6B7280',
+        'rejected' => '#EF4444',
+    ],
+    'label' => [
+        'pending' => 'Pending',
+        'verified' => 'Verified',
+        'under_review' => 'Under Review',
+        'in_progress' => 'In Progress',
+        'escalated_pending' => 'Escalation Pending',
+        'escalated' => 'Escalated to MENRO',
+        'resolved' => 'Resolved',
+        'closed' => 'Closed',
+        'rejected' => 'Rejected',
+    ],
+];
+$tpl_type_for_status = [
+    'pending' => 'template_submitted',
+    'verified' => 'template_status_update',
+    'under_review' => 'template_status_update',
+    'in_progress' => 'template_status_update',
+    'escalated_pending' => 'template_escalated',
+    'escalated' => 'template_escalated',
+    'resolved' => 'template_resolved',
+    'closed' => 'template_status_update',
+    'rejected' => 'template_status_update',
+];
+
 foreach ($report_updates as $update) {
-    $shortTitle = strlen($update['title']) > 40 ? substr($update['title'], 0, 40) . '...' : $update['title'];
-    
-    $status_map = [
-        'verified' => ['title' => 'Report Verified', 'icon' => 'fa-check-circle', 'color' => '#3B82F6', 'msg' => 'has been verified by barangay officials.'],
-        'in_progress' => ['title' => 'Action Being Taken', 'icon' => 'fa-spinner', 'color' => '#F59E0B', 'msg' => 'your barangay is now working on'],
-        'escalated_pending' => ['title' => 'Escalation Pending', 'icon' => 'fa-hourglass-half', 'color' => '#F97316', 'msg' => 'has been escalated to MENRO and is awaiting approval.'],
-        'escalated' => ['title' => 'Escalated to MENRO', 'icon' => 'fa-shield-alt', 'color' => '#EF4444', 'msg' => 'has been accepted by MENRO and is under their supervision.'],
-        'resolved' => ['title' => 'Issue Resolved!', 'icon' => 'fa-check-double', 'color' => '#10A37F', 'msg' => 'has been resolved. Great news!'],
-        'closed' => ['title' => 'Report Closed', 'icon' => 'fa-archive', 'color' => '#6B7280', 'msg' => 'has been closed. Thank you for your cooperation!'],
-        'rejected' => ['title' => 'Report Rejected', 'icon' => 'fa-times-circle', 'color' => '#EF4444', 'msg' => 'was rejected by barangay officials.']
+    if (!isset($tpl_type_for_status[$update['status']])) continue;
+    $tpl_key = $tpl_type_for_status[$update['status']];
+    $tpl_data = [
+        '{report_id}'      => $update['id'],
+        '{report_title}'   => $update['title'],
+        '{report_status}'  => $status_display['label'][$update['status']],
+        '{barangay_name}'  => $update['barangay_name'] ?? '',
+        '{category_name}'  => $update['category_name'] ?? '',
+        '{severity_score}' => $update['severity_score'] ?? 0,
+        '{first_name}'     => $me['first_name'] ?? '',
+        '{last_name}'      => $me['last_name'] ?? '',
+        '{full_name}'      => trim(($me['first_name'] ?? '') . ' ' . ($me['last_name'] ?? '')),
+        '{email}'          => $me['email'] ?? '',
+        '{contact_number}' => $me['contact_number'] ?? '',
+        '{role}'           => 'Citizen',
     ];
-    
-    if (isset($status_map[$update['status']])) {
-        $info = $status_map[$update['status']];
-        $notifications[] = array(
-            'id' => 'report_' . $update['status'] . '_' . $update['id'],
-            'type' => 'report',
-            'title' => $info['title'],
-            'message' => 'Your report "' . htmlspecialchars($shortTitle) . '" ' . $info['msg'],
-            'time' => $update['updated_at'],
-            'icon' => $info['icon'],
-            'color' => $info['color'],
-            'link' => BASE_URL . "index.php?page=track-status&id=" . IdGuard::enc((int)$update['id']),
-            'read' => false
-        );
-    }
+    $notifications[] = array(
+        'id' => 'report_' . $update['status'] . '_' . $update['id'],
+        'type' => 'report',
+        'title' => $status_display['title'][$update['status']],
+        'message' => SettingsHelper::parseTemplate(SettingsHelper::getTemplate($tpl_key), $tpl_data),
+        'time' => $update['updated_at'],
+        'icon' => $status_display['icon'][$update['status']],
+        'color' => $status_display['color'][$update['status']],
+        'link' => BASE_URL . "index.php?page=track-status&id=" . IdGuard::enc((int)$update['id']),
+        'read' => false
+    );
 }
 
 if ($barangay_id) {

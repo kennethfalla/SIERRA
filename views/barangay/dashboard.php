@@ -102,7 +102,7 @@ $notifications[] = array(
     'message' => "Welcome back, $user_name! You're managing reports for " . ($barangay_info['name'] ?? 'your barangay'),
     'time' => date('Y-m-d H:i:s'),
     'icon' => 'fa-leaf',
-    'color' => '#059669',
+    'color' => '#10A37F',
     'link' => '',
     'read' => false
 );
@@ -156,7 +156,7 @@ if($recently_resolved > 0) {
         'message' => "$recently_resolved report(s) have been resolved in the last 7 days. Great work!",
         'time' => date('Y-m-d H:i:s'),
         'icon' => 'fa-check-circle',
-        'color' => '#059669',
+        'color' => '#10A37F',
         'link' => BASE_URL . "index.php?page=verify-reports&status=resolved",
         'read' => false
     );
@@ -202,6 +202,81 @@ if($new_this_week > 0) {
         'icon' => 'fa-chart-line',
         'color' => '#8B5CF6',
         'link' => BASE_URL . "index.php?page=verify-reports",
+        'read' => false
+    );
+}
+
+// 7. Template-driven report notifications (submitted / status update / resolved / escalated)
+// Messages are rendered from the admin Notification Templates — no SMS is sent for these.
+// SMS is only used for staff-account creation (see AdminController::sendWelcomeSMS).
+$tpl_status_map = [
+    'submitted'     => ['title' => 'Report Submitted',   'icon' => 'fa-paper-plane',   'color' => '#10A37F'],
+    'status_update' => ['title' => 'Report Status Update','icon' => 'fa-sync-alt',     'color' => '#3B82F6'],
+    'resolved'      => ['title' => 'Report Resolved',    'icon' => 'fa-check-circle',  'color' => '#10B981'],
+    'escalated'     => ['title' => 'Report Escalated',   'icon' => 'fa-share-alt',     'color' => '#EF4444'],
+];
+$tpl_event_for_status = [
+    'pending'          => 'submitted',
+    'verified'         => 'status_update',
+    'under_review'     => 'status_update',
+    'in_progress'      => 'status_update',
+    'escalated_pending'=> 'escalated',
+    'escalated'        => 'escalated',
+    'resolved'         => 'resolved',
+    'rejected'         => 'status_update',
+    'closed'           => 'status_update',
+];
+$tpl_type_key = [
+    'submitted'     => 'template_submitted',
+    'status_update' => 'template_status_update',
+    'resolved'      => 'template_resolved',
+    'escalated'     => 'template_escalated',
+];
+$tpl_reports_stmt = $db->prepare("
+    SELECT r.id, r.title, r.status, r.created_at, r.updated_at, r.severity_score,
+           c.name AS category_name, b.name AS barangay_name,
+           u.first_name, u.last_name, u.email, u.contact_number
+    FROM reports r
+    JOIN categories c ON r.category_id = c.id
+    JOIN barangays b ON r.barangay_id = b.id
+    JOIN users u ON r.user_id = u.id
+    WHERE r.barangay_id = :barangay_id AND r.status != 'cancelled'
+    ORDER BY r.updated_at DESC
+    LIMIT 8
+");
+$tpl_reports_stmt->bindValue(':barangay_id', $barangay_id);
+$tpl_reports_stmt->execute();
+while ($tpl_report = $tpl_reports_stmt->fetch(PDO::FETCH_ASSOC)) {
+    $event = $tpl_event_for_status[$tpl_report['status']] ?? null;
+    if ($event === null) continue;
+    if (!class_exists('SettingsHelper')) {
+        require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+    }
+    $tpl_text = SettingsHelper::getTemplate($tpl_type_key[$event]);
+    $status_label = ucwords(str_replace('_', ' ', $tpl_report['status']));
+    $tpl_data = [
+        '{report_id}'      => $tpl_report['id'],
+        '{report_title}'   => $tpl_report['title'],
+        '{report_status}'  => $status_label,
+        '{barangay_name}'  => $tpl_report['barangay_name'] ?? '',
+        '{category_name}'  => $tpl_report['category_name'] ?? '',
+        '{severity_score}' => $tpl_report['severity_score'] ?? 0,
+        '{first_name}'     => $tpl_report['first_name'] ?? '',
+        '{last_name}'      => $tpl_report['last_name'] ?? '',
+        '{full_name}'      => trim(($tpl_report['first_name'] ?? '') . ' ' . ($tpl_report['last_name'] ?? '')),
+        '{email}'          => $tpl_report['email'] ?? '',
+        '{contact_number}' => $tpl_report['contact_number'] ?? '',
+        '{role}'           => 'Citizen',
+    ];
+    $notifications[] = array(
+        'id' => 'tpl_' . $event . '_' . $tpl_report['id'],
+        'type' => $event,
+        'title' => $tpl_status_map[$event]['title'],
+        'message' => SettingsHelper::parseTemplate($tpl_text, $tpl_data),
+        'time' => $tpl_report['updated_at'] ?: $tpl_report['created_at'],
+        'icon' => $tpl_status_map[$event]['icon'],
+        'color' => $tpl_status_map[$event]['color'],
+        'link' => BASE_URL . "index.php?page=verify-reports&id=" . IdGuard::enc((int)$tpl_report['id']),
         'read' => false
     );
 }
@@ -505,7 +580,12 @@ $recent_reports->execute();
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
-        
+        body { background: #F5FBF6; overflow-x: hidden; }
+
+        .main-container { max-width: 1600px; margin: 0 auto; padding: 1rem; }
+        @media (min-width: 640px) { .main-container { padding: 1.5rem; } }
+        @media (min-width: 768px) { .main-container { padding: 2rem; } }
+
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -516,18 +596,12 @@ $recent_reports->execute();
             border-radius: 20px;
         }
         ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #059669, #047857);
+            background: linear-gradient(135deg, #10A37F, #0D8568);
             border-radius: 20px;
         }
         * {
             scrollbar-width: thin;
-            scrollbar-color: #059669 #f1f5f9;
-        }
-        
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Manrope', sans-serif;
-            font-weight: 700;
-            letter-spacing: -0.02em;
+            scrollbar-color: #10A37F #f1f5f9;
         }
         
         /* ========== RADIUS SCALE SYSTEM ========== */
@@ -543,22 +617,8 @@ $recent_reports->execute();
         .radius-16 { border-radius: 16px; }
         .modal-content { border-radius: 16px; }
         .radius-24 { border-radius: 24px; }
-        .greeting-badge { border-radius: 24px; }
         .radius-full { border-radius: 9999px; }
         .status-badge, .notification-badge, .notification-dropdown { border-radius: 9999px; }
-        
-        .stat-card { 
-            transition: all 0.2s ease; 
-            border: 1px solid rgba(5, 150, 105, 0.08);
-            border-radius: 12px;
-            opacity: 0;
-            animation: slideUp 0.5s ease-out forwards;
-        }
-        .stat-card:hover { 
-            transform: translateY(-2px); 
-            border-color: #059669; 
-            box-shadow: 0 8px 20px -12px rgba(5, 150, 105, 0.15); 
-        }
         
         .status-badge { 
             display: inline-flex; 
@@ -571,7 +631,7 @@ $recent_reports->execute();
         .status-pending { background: #FEF3C7; color: #D97706; }
         .status-verified { background: #DBEAFE; color: #2563EB; }
         .status-in_progress { background: #FCE7F3; color: #DB2777; }
-        .status-resolved { background: #D1FAE5; color: #059669; }
+        .status-resolved { background: #D1FAE5; color: #10A37F; }
         .status-rejected { background: #FEE2E2; color: #DC2626; }
         
         @keyframes slideUp {
@@ -579,22 +639,6 @@ $recent_reports->execute();
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
-        
-        .stat-card:nth-child(1) { animation-delay: 0.05s; }
-        .stat-card:nth-child(2) { animation-delay: 0.1s; }
-        .stat-card:nth-child(3) { animation-delay: 0.15s; }
-        .stat-card:nth-child(4) { animation-delay: 0.2s; }
-        .stat-card:nth-child(5) { animation-delay: 0.25s; }
-        .stat-card:nth-child(6) { animation-delay: 0.3s; }
-        
-        .greeting-badge {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            position: relative;
-            overflow: hidden;
-            border-radius: 24px;
-            opacity: 0;
-            animation: slideUp 0.5s ease-out forwards;
-        }
         
         .notification-dropdown {
             position: fixed !important;
@@ -704,7 +748,7 @@ $recent_reports->execute();
         .notification-dot { 
             width: 8px; 
             height: 8px; 
-            background: #059669; 
+            background: #10A37F; 
             border-radius: 50%; 
             flex-shrink: 0; 
             margin-top: 2px; 
@@ -719,13 +763,13 @@ $recent_reports->execute();
             font-weight: 600; 
             cursor: pointer; 
             transition: all 0.2s; 
-            color: #059669; 
+            color: #10A37F; 
         }
-        .mark-all-read:hover { background: #F0FDF4; color: #047857; }
+        .mark-all-read:hover { background: #F0FDF4; color: #0D8568; }
         
         .resolution-card {
             background: white;
-            border: 1px solid rgba(5, 150, 105, 0.08);
+            border: 1px solid rgba(16, 163, 127, 0.08);
             border-radius: 12px;
             overflow: hidden;
         }
@@ -739,7 +783,7 @@ $recent_reports->execute();
         
         .resolution-progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #059669, #34D399);
+            background: linear-gradient(90deg, #10A37F 0%, #0D8568 100%);
             border-radius: 4px;
             transition: width 0.5s ease;
         }
@@ -752,13 +796,13 @@ $recent_reports->execute();
         
         .reports-table::-webkit-scrollbar { height: 6px; }
         .reports-table::-webkit-scrollbar-track { background: #F3F4F6; border-radius: 10px; }
-        .reports-table::-webkit-scrollbar-thumb { background: #059669; border-radius: 10px; }
+        .reports-table::-webkit-scrollbar-thumb { background: #10A37F; border-radius: 10px; }
         
         /* ========== ALGORITHMIC KPI WIDGETS (top row) ========== */
         .kpi-card {
             background: white;
             border-radius: 1rem;
-            border: 1px solid rgba(5, 150, 105, 0.08);
+            border: 1px solid rgba(16, 163, 127, 0.08);
             padding: 1.25rem 1rem;
             transition: all 0.25s ease;
             position: relative;
@@ -766,8 +810,8 @@ $recent_reports->execute();
         }
         .kpi-card:hover {
             transform: translateY(-4px);
-            border-color: #059669;
-            box-shadow: 0 12px 28px -8px rgba(5, 150, 105, 0.15);
+            border-color: #10A37F;
+            box-shadow: 0 12px 28px -8px rgba(16, 163, 127, 0.15);
         }
         .kpi-card .kpi-label {
             font-size: 0.7rem;
@@ -803,7 +847,7 @@ $recent_reports->execute();
         #map-container {
             background: white;
             border-radius: 1.25rem;
-            border: 1px solid rgba(5, 150, 105, 0.08);
+            border: 1px solid rgba(16, 163, 127, 0.08);
             padding: 1rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
@@ -835,10 +879,10 @@ $recent_reports->execute();
         }
         .map-toggle button.active {
             background: white;
-            color: #059669;
+            color: #10A37F;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        .map-toggle button:hover:not(.active) { color: #059669; }
+        .map-toggle button:hover:not(.active) { color: #10A37F; }
 
         /* Drill-down panel */
         #drillPanel {
@@ -897,7 +941,7 @@ $recent_reports->execute();
         .chart-card {
             background: white;
             border-radius: 1rem;
-            border: 1px solid rgba(5, 150, 105, 0.08);
+            border: 1px solid rgba(16, 163, 127, 0.08);
             padding: 1.25rem;
         }
         .chart-card .chart-title {
@@ -918,6 +962,11 @@ $recent_reports->execute();
             padding: 0.5rem 1rem;
             text-align: center;
         }
+        .greeting-badge {
+            background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
+            border-radius: 1.25rem;
+            box-shadow: 0 12px 28px -8px rgba(16, 163, 127, 0.25);
+        }
         
         @media (max-width: 768px) {
             .ml-72 { margin-left: 0; }
@@ -928,12 +977,12 @@ $recent_reports->execute();
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-[#F5FBF6] to-[#EAF7F2]">
+<body>
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
-    <div class="p-4 md:p-8 max-w-[1600px] mx-auto">
+    <div class="main-container">
         
         <!-- PROFESSIONAL GREETING BADGE -->
         <div class="greeting-badge p-6 text-white mb-8">
@@ -977,7 +1026,7 @@ $recent_reports->execute();
                         <h3 class="font-extrabold text-gray-800 tracking-tight">Notifications</h3>
                         <p class="text-xs text-gray-400 mt-0.5 font-medium">Stay updated on barangay reports</p>
                     </div>
-                    <span class="text-xs bg-emerald-50 text-[#059669] px-2.5 py-1 rounded-full font-bold">
+                    <span class="text-xs bg-emerald-50 text-[#10A37F] px-2.5 py-1 rounded-full font-bold">
                         <?php echo count($notifications); ?> updates
                     </span>
                 </div>
@@ -1046,19 +1095,19 @@ $recent_reports->execute();
         <!-- 1. TOP ROW: ALGORITHMIC KPI WIDGETS (Local Health) -->
         <!-- ============================================================ -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div class="kpi-card kpi-pending animate-slide-up" style="animation-delay: 0.05s;">
+            <div class="kpi-card kpi-pending">
                 <div class="kpi-icon"><i class="fas fa-inbox"></i></div>
                 <div class="kpi-label">Pending Acknowledgment</div>
                 <div class="kpi-value text-red-600"><?php echo $pending_count; ?></div>
                 <div class="kpi-sub">Submitted reports awaiting review</div>
             </div>
-            <div class="kpi-card kpi-hotspot animate-slide-up" style="animation-delay: 0.1s;">
+            <div class="kpi-card kpi-hotspot">
                 <div class="kpi-icon"><i class="fas fa-map-pin"></i></div>
                 <div class="kpi-label">Critical Local Hotspots</div>
                 <div class="kpi-value text-amber-600"><?php echo $criticalHotspotsCount; ?></div>
                 <div class="kpi-sub">Clusters scoring 16+ / 20</div>
             </div>
-            <div class="kpi-card kpi-speed animate-slide-up" style="animation-delay: 0.15s;">
+            <div class="kpi-card kpi-speed">
                 <div class="kpi-icon"><i class="fas fa-stopwatch"></i></div>
                 <div class="kpi-label">Avg Resolution Speed</div>
                 <div class="kpi-value text-blue-600"><?php echo $avgResolutionDaysAllTime; ?><span class="text-base font-bold">d</span></div>
@@ -1072,7 +1121,7 @@ $recent_reports->execute();
                     <?php endif; ?>
                 </div>
             </div>
-            <div class="kpi-card kpi-rate animate-slide-up" style="animation-delay: 0.2s;">
+            <div class="kpi-card kpi-rate">
                 <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
                 <div class="kpi-label">Resolution Rate (This Month)</div>
                 <div class="kpi-value text-emerald-600"><?php echo $resolutionRateThisMonth; ?>%</div>
@@ -1085,11 +1134,11 @@ $recent_reports->execute();
         <!-- Strictly WHERE barangay_id = ? · same 50m clustering + -->
         <!-- 20-point severity algorithm as the MENRO map, scaled to the LGU -->
         <!-- ============================================================ -->
-        <div id="map-container" class="mb-6 animate-slide-up" style="animation-delay: 0.25s;">
+        <div id="map-container" class="mb-6">
             <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
                 <div class="flex flex-wrap items-center gap-3">
                     <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
-                        <i class="fas fa-map-marked-alt text-[#059669]"></i>
+                        <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
                         Local Incident Map
                     </h2>
                     <div class="map-toggle" id="mapToggle">
@@ -1108,8 +1157,8 @@ $recent_reports->execute();
             <!-- Category Filter -->
             <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
                 <div class="relative" id="categoryFilterWrap">
-                    <button id="categoryFilterBtn" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 hover:border-[#059669] transition">
-                        <i class="fas fa-filter text-[#059669]"></i>
+                    <button id="categoryFilterBtn" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 hover:border-[#10A37F] transition">
+                        <i class="fas fa-filter text-[#10A37F]"></i>
                         <span id="categoryFilterLabel">All Categories</span>
                         <i class="fas fa-chevron-down text-xs text-gray-400"></i>
                     </button>
@@ -1117,14 +1166,14 @@ $recent_reports->execute();
                         <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
                             <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Hazard Categories</span>
                             <div class="flex gap-2">
-                                <button type="button" id="catSelectAll" class="text-xs text-[#059669] font-semibold hover:underline">All</button>
+                                <button type="button" id="catSelectAll" class="text-xs text-[#10A37F] font-semibold hover:underline">All</button>
                                 <button type="button" id="catSelectNone" class="text-xs text-gray-400 font-semibold hover:underline">None</button>
                             </div>
                         </div>
                         <div id="categoryCheckboxList" class="max-h-56 overflow-y-auto space-y-1">
                             <?php foreach ($categories as $cat): ?>
                             <label class="flex items-center gap-2 text-sm text-gray-700 px-1 py-1 rounded hover:bg-gray-50 cursor-pointer">
-                                <input type="checkbox" class="category-checkbox accent-[#059669]" value="<?php echo htmlspecialchars($cat['id']); ?>" checked>
+                                <input type="checkbox" class="category-checkbox accent-[#10A37F]" value="<?php echo htmlspecialchars($cat['id']); ?>" checked>
                                 <span><?php echo htmlspecialchars($cat['name']); ?></span>
                             </label>
                             <?php endforeach; ?>
@@ -1137,7 +1186,7 @@ $recent_reports->execute();
                 <p class="text-xs text-gray-400 font-medium">📍 <?php echo count($activeReports); ?> active reports in your barangay</p>
             </div>
 
-            <div id="map" class="overflow-hidden border border-emerald-100"></div>
+            <div id="map"></div>
             <p class="text-xs text-gray-400 mt-2" id="filterSummary"></p>
             <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
                 <i class="fas fa-info-circle"></i>
@@ -1156,8 +1205,8 @@ $recent_reports->execute();
         <!-- ============================================================ -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             <!-- User Demographics -->
-            <div class="chart-card animate-slide-up" style="animation-delay: 0.3s;">
-                <div class="chart-title"><i class="fas fa-users text-[#059669] mr-2"></i>User Demographics</div>
+            <div class="chart-card">
+                <div class="chart-title"><i class="fas fa-users text-[#10A37F] mr-2"></i>User Demographics</div>
                 <?php if (!$demographicsAvailable || $demographicsTotal === 0): ?>
                     <p class="text-sm text-gray-400 py-10 text-center">Demographic data not available yet.</p>
                 <?php else: ?>
@@ -1165,7 +1214,7 @@ $recent_reports->execute();
                     <canvas id="demographicsChart"></canvas>
                 </div>
                 <div class="flex justify-center gap-6 text-xs mt-2">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#059669;"></span> Resident (<?php echo $residentPct; ?>%)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10A37F;"></span> Resident (<?php echo $residentPct; ?>%)</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Non-Resident (<?php echo $nonResidentPct; ?>%)</span>
                 </div>
                 <p class="text-xs text-gray-400 mt-3 text-center">
@@ -1175,8 +1224,8 @@ $recent_reports->execute();
             </div>
 
             <!-- Peak Reporting Times -->
-            <div class="chart-card animate-slide-up" style="animation-delay: 0.35s;">
-                <div class="chart-title"><i class="fas fa-clock text-[#059669] mr-2"></i>Peak Reporting Times</div>
+            <div class="chart-card">
+                <div class="chart-title"><i class="fas fa-clock text-[#10A37F] mr-2"></i>Peak Reporting Times</div>
                 <div class="chart-container">
                     <canvas id="peakDayChart"></canvas>
                 </div>
@@ -1195,12 +1244,9 @@ $recent_reports->execute();
         <!-- Risk Distribution + Issues by Category + Weekly Trends (kept from previous version) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
             <!-- Risk Level Distribution -->
-            <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-5 animate-slide-up" style="animation-delay: 0.4s;">
+            <div class="chart-card">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-lg font-extrabold text-gray-800 flex items-center gap-2 tracking-tight">
-                        <i class="fas fa-exclamation-triangle text-[#059669]"></i> 
-                        Risk Distribution
-                    </h3>
+                    <div class="chart-title mb-0"><i class="fas fa-exclamation-triangle text-[#10A37F] mr-2"></i>Risk Distribution</div>
                     <p class="text-xs text-gray-400 font-medium"><?php echo $risk_total; ?> total</p>
                 </div>
                 <?php if(!empty($risk_data) && $risk_total > 0): ?>
@@ -1213,14 +1259,14 @@ $recent_reports->execute();
                             'critical' => '#EF4444',
                             'high' => '#F97316',
                             'medium' => '#F59E0B',
-                            'low' => '#059669'
+                            'low' => '#10B981'
                         ];
                         foreach($risk_data as $risk): 
                             $percentage = round(($risk['count'] / $risk_total) * 100);
                         ?>
                         <div class="bg-gray-50 rounded-xl p-3">
                             <div class="flex items-center gap-2">
-                                <div class="w-3 h-3 rounded-full" style="background-color: <?php echo $risk_colors[$risk['risk_level']] ?? '#059669'; ?>"></div>
+                                <div class="w-3 h-3 rounded-full" style="background-color: <?php echo $risk_colors[$risk['risk_level']] ?? '#10B981'; ?>"></div>
                                 <span class="text-xs font-extrabold text-gray-700"><?php echo ucfirst($risk['risk_level']); ?></span>
                             </div>
                             <p class="text-xl font-extrabold mt-1 tracking-tight"><?php echo $risk['count']; ?></p>
@@ -1236,12 +1282,9 @@ $recent_reports->execute();
             </div>
 
             <!-- Issues by Category -->
-            <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-5 animate-slide-up" style="animation-delay: 0.45s;">
+            <div class="chart-card">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-lg font-extrabold text-gray-800 flex items-center gap-2 tracking-tight">
-                        <i class="fas fa-chart-pie text-[#059669]"></i> 
-                        Issues by Category
-                    </h3>
+                    <div class="chart-title mb-0"><i class="fas fa-chart-pie text-[#10A37F] mr-2"></i>Issues by Category</div>
                     <p class="text-xs text-gray-400 font-medium"><?php echo count($category_data); ?> categories</p>
                 </div>
                 <?php if(!empty($category_data)): ?>
@@ -1250,7 +1293,7 @@ $recent_reports->execute();
                     </div>
                     <div class="space-y-1 mt-2">
                         <?php 
-                        $colors = ['#059669', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'];
+                        $colors = ['#10A37F', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'];
                         $total_category = array_sum(array_column($category_data, 'count'));
                         foreach(array_slice($category_data, 0, 4) as $index => $cat): 
                             $percentage = round(($cat['count'] / $total_category) * 100);
@@ -1272,18 +1315,15 @@ $recent_reports->execute();
             </div>
 
             <!-- Weekly Resolution Statistics -->
-            <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-5 animate-slide-up" style="animation-delay: 0.5s;">
-                <h3 class="text-lg font-extrabold text-gray-800 mb-3 flex items-center gap-2 tracking-tight">
-                    <i class="fas fa-chart-bar text-[#059669]"></i> 
-                    Weekly Resolution Trends
-                </h3>
+            <div class="chart-card">
+                <div class="chart-title mb-3"><i class="fas fa-chart-bar text-[#10A37F] mr-2"></i>Weekly Resolution Trends</div>
                 <div class="chart-canvas-container" style="height:160px;">
                     <canvas id="weeklyChart"></canvas>
                 </div>
                 <div class="grid grid-cols-2 gap-3 mt-4">
                     <div class="bg-emerald-50 rounded-xl p-3 text-center">
                         <p class="text-xs text-gray-500 font-bold">New Reports (7d)</p>
-                        <p class="text-xl font-extrabold text-[#059669] tracking-tight"><?php echo array_sum(array_column($weekly_data, 'total')); ?></p>
+                        <p class="text-xl font-extrabold text-[#10A37F] tracking-tight"><?php echo array_sum(array_column($weekly_data, 'total')); ?></p>
                     </div>
                     <div class="bg-amber-50 rounded-xl p-3 text-center">
                         <p class="text-xs text-gray-500 font-bold">Resolved (7d)</p>
@@ -1294,28 +1334,26 @@ $recent_reports->execute();
         </div>
 
         <!-- Recent Reports Table -->
-        <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 overflow-hidden animate-slide-up" style="animation-delay: 0.55s;">
-            <div class="px-5 py-4 border-b border-emerald-50 bg-[#F5FBF6] flex justify-between items-center">
-                <div>
-                    <h3 class="text-lg font-extrabold text-gray-800 tracking-tight">Recent Reports</h3>
-                    <p class="text-xs text-gray-400 mt-0.5 font-medium">Latest reports submitted in your barangay</p>
-                </div>
-                <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" class="text-sm text-[#059669] hover:text-[#047857] font-bold">
+        <div class="chart-card">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <div class="chart-title mb-0"><i class="fas fa-list text-[#10A37F] mr-2"></i>Recent Reports</div>
+                <span class="text-xs text-gray-400">Latest reports submitted in your barangay</span>
+                <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" class="text-sm text-[#10A37F] hover:text-[#0D8568] font-bold">
                     View All <i class="fas fa-arrow-right text-xs"></i>
                 </a>
             </div>
             <div class="reports-table overflow-x-auto">
-                <table class="w-full min-w-[800px]">
+                <table class="w-full min-w-[800px] text-sm">
                     <thead>
-                        <tr class="border-b border-emerald-50 bg-[#F5FBF6]">
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">ID</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Title</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Reporter</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Category</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Risk</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Date</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Action</th>
+                        <tr class="text-left text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                            <th class="px-3 py-2">ID</th>
+                            <th class="px-3 py-2">Title</th>
+                            <th class="px-3 py-2">Reporter</th>
+                            <th class="px-3 py-2">Category</th>
+                            <th class="px-3 py-2">Risk</th>
+                            <th class="px-3 py-2">Status</th>
+                            <th class="px-3 py-2">Date</th>
+                            <th class="px-3 py-2">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1325,10 +1363,10 @@ $recent_reports->execute();
                             if($counter++ >= 10) break;
                             $risk_level = $row['risk_level'] ?? 'low';
                             $risk_badge = '';
-                            if($risk_level == 'low') $risk_badge = 'bg-green-100 text-green-700';
-                            elseif($risk_level == 'medium') $risk_badge = 'bg-yellow-100 text-yellow-700';
-                            elseif($risk_level == 'high') $risk_badge = 'bg-orange-100 text-orange-700';
-                            else $risk_badge = 'bg-red-100 text-red-700';
+                            if($risk_level == 'low') $risk_badge = 'bg-[#D1FAE5] text-[#065F46]';
+                            elseif($risk_level == 'medium') $risk_badge = 'bg-[#FEF3C7] text-[#92400E]';
+                            elseif($risk_level == 'high') $risk_badge = 'bg-[#FFEDD5] text-[#9A3412]';
+                            else $risk_badge = 'bg-[#FEE2E2] text-[#991B1B]';
                             
                             $display_status = $row['status'];
                             if($display_status == 'escalated_pending' || $display_status == 'escalated') {
@@ -1338,29 +1376,29 @@ $recent_reports->execute();
                                 $display_status = 'declined';
                             }
                         ?>
-                        <tr class="border-b border-emerald-50 hover:bg-emerald-50/30 transition">
-                            <td class="px-5 py-4 text-sm font-mono text-gray-500 font-medium">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
-                            <td class="px-5 py-4">
+                        <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition">
+                            <td class="px-3 py-3 text-sm font-mono text-gray-500 font-medium">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
+                            <td class="px-3 py-3">
                                 <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($row['title']); ?></p>
                                 <p class="text-xs text-gray-400 font-medium"><?php echo htmlspecialchars(substr($row['description'], 0, 50)); ?>...</p>
                             </td>
-                            <td class="px-5 py-4 text-sm font-semibold text-gray-600"><?php echo htmlspecialchars($row['full_name']); ?></td>
-                            <td class="px-5 py-4 text-sm font-medium text-gray-600"><?php echo htmlspecialchars($row['category_name']); ?></td>
-                            <td class="px-5 py-4">
+                            <td class="px-3 py-3 text-sm font-semibold text-gray-600"><?php echo htmlspecialchars($row['full_name']); ?></td>
+                            <td class="px-3 py-3 text-sm font-medium text-gray-600"><?php echo htmlspecialchars($row['category_name']); ?></td>
+                            <td class="px-3 py-3">
                                 <span class="px-2.5 py-1 text-xs rounded-full font-extrabold <?php echo $risk_badge; ?>">
                                     <?php echo ucfirst($risk_level); ?>
                                 </span>
                             </td>
-                            <td class="px-5 py-4">
+                            <td class="px-3 py-3">
                                 <span class="status-badge status-<?php echo $row['status'] == 'rejected' ? 'rejected' : $row['status']; ?>">
                                     <i class="fas <?php echo $row['status'] == 'pending' ? 'fa-clock' : ($row['status'] == 'in_progress' ? 'fa-spinner fa-pulse' : ($row['status'] == 'resolved' ? 'fa-check-circle' : ($row['status'] == 'rejected' ? 'fa-times' : 'fa-share'))); ?> mr-1 text-xs"></i>
                                     <?php echo $display_status == 'escalated' ? 'Escalated' : ($display_status == 'declined' ? 'Declined' : ($display_status == 'in_progress' ? 'In Progress' : ucfirst($display_status))); ?>
                                 </span>
                             </td>
-                            <td class="px-5 py-4 text-sm font-medium text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
-                            <td class="px-5 py-4">
+                            <td class="px-3 py-3 text-sm font-medium text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
+                            <td class="px-3 py-3">
                                 <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=<?php echo IdGuard::enc((int)$row['id']); ?>" 
-                                   class="text-[#059669] hover:text-[#047857] transition text-sm font-bold">
+                                   class="text-[#10A37F] hover:text-[#0D8568] transition text-sm font-bold">
                                     Manage
                                 </a>
                             </td>
@@ -1368,7 +1406,7 @@ $recent_reports->execute();
                         <?php endwhile; ?>
                         <?php if($counter == 0): ?>
                         <tr>
-                            <td colspan="8" class="px-6 py-16 text-center">
+                            <td colspan="8" class="px-4 py-12 text-center">
                                 <i class="fas fa-inbox text-5xl text-gray-300 mb-3 block"></i>
                                 <p class="text-gray-400 font-medium">No reports found in your barangay</p>
                             </td>
@@ -1519,9 +1557,9 @@ function initMap() {
     if (barangayBoundary && barangayBoundary.features) {
         const brgyLayer = L.geoJSON(barangayBoundary, {
             style: {
-                color: "#059669",
+                color: "#10A37F",
                 weight: 2.5,
-                fillColor: "#059669",
+                fillColor: "#10A37F",
                 fillOpacity: 0.07,
                 smoothFactor: 1
             },
@@ -1608,7 +1646,7 @@ function loadMapData(mode) {
                 <strong style="font-size: 14px; color:#1f2937;">#${String(report.id).padStart(5,'0')} — ${escapeHtml(report.title)}</strong><br>
                 <span style="font-size: 12px; color: #64748b;">Severity: ${score}/20 (${tier})</span><br>
                 <span style="font-size: 12px; color: #64748b;">Reports in cluster: ${report.spatial_density_count || 0}</span><br>
-                <button onclick="openDrillPanel(${report.id})" style="margin-top: 6px; background: #059669; color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer;">Analyze</button>
+                <button onclick="openDrillPanel(${report.id})" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer;">Analyze</button>
             </div>
         `;
 
@@ -1696,7 +1734,7 @@ document.getElementById('catSelectNone').addEventListener('click', function() {
 
 // ========== DRILL-DOWN PANEL (reuses the existing ReportController endpoint) ==========
 function openDrillPanel(reportId) {
-    document.getElementById('drillContent').innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-[#059669]"></i><p class="mt-2 text-gray-500">Loading analysis...</p></div>';
+    document.getElementById('drillContent').innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-[#10A37F]"></i><p class="mt-2 text-gray-500">Loading analysis...</p></div>';
     document.getElementById('drillPanel').classList.add('open');
 
     fetch('<?php echo BASE_URL; ?>controllers/ReportController.php?action=get_full&id=' + reportId)
@@ -1755,7 +1793,7 @@ function renderDrillPanel(report) {
             <h4 class="font-semibold text-gray-700 mb-2">Citizen Evidence (${report.spatial_density_count || 0} reports)</h4>
             <p class="text-sm text-gray-500">View full report for complete evidence list.</p>
             <div class="mt-2">
-                <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" target="_blank" class="text-[#059669] hover:underline text-sm">
+                <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" target="_blank" class="text-[#10A37F] hover:underline text-sm">
                     <i class="fas fa-external-link-alt mr-1"></i>Open in Verify Reports
                 </a>
             </div>
@@ -1784,7 +1822,7 @@ new Chart(riskCtx, {
         labels: [<?php foreach($risk_data as $r) echo "'" . ucfirst($r['risk_level']) . "',"; ?>],
         datasets: [{
             data: [<?php foreach($risk_data as $r) echo $r['count'] . ","; ?>],
-            backgroundColor: ['#EF4444', '#F97316', '#F59E0B', '#059669'],
+            backgroundColor: ['#EF4444', '#F97316', '#F59E0B', '#10B981'],
             borderWidth: 0
         }]
     },
@@ -1800,7 +1838,7 @@ new Chart(categoryCtx, {
         labels: [<?php foreach($category_data as $cat) echo "'" . addslashes($cat['name']) . "',"; ?>],
         datasets: [{
             data: [<?php foreach($category_data as $cat) echo $cat['count'] . ","; ?>],
-            backgroundColor: ['#059669', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'],
+            backgroundColor: ['#10A37F', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'],
             borderWidth: 0
         }]
     },
@@ -1814,7 +1852,7 @@ new Chart(weeklyCtx, {
     data: {
         labels: [<?php foreach($weekly_data as $w) echo "'" . $w['day'] . "',"; ?>],
         datasets: [
-            { label: 'Total', data: [<?php foreach($weekly_data as $w) echo $w['total'] . ","; ?>], backgroundColor: '#059669', borderRadius: 6, barPercentage: 0.7 },
+            { label: 'Total', data: [<?php foreach($weekly_data as $w) echo $w['total'] . ","; ?>], backgroundColor: '#10A37F', borderRadius: 6, barPercentage: 0.7 },
             { label: 'Resolved', data: [<?php foreach($weekly_data as $w) echo $w['resolved'] . ","; ?>], backgroundColor: '#F59E0B', borderRadius: 6, barPercentage: 0.7 }
         ]
     },
@@ -1833,7 +1871,7 @@ new Chart(demographicsCtx, {
         labels: ['Resident', 'Non-Resident'],
         datasets: [{
             data: [<?php echo $demographics['resident']; ?>, <?php echo $demographics['non_resident']; ?>],
-            backgroundColor: ['#059669', '#F59E0B'],
+            backgroundColor: ['#10A37F', '#F59E0B'],
             borderWidth: 0
         }]
     },
@@ -1849,7 +1887,7 @@ new Chart(peakDayCtx, {
         datasets: [{
             label: 'Reports by Day',
             data: <?php echo json_encode($dayCounts); ?>,
-            backgroundColor: '#059669',
+            backgroundColor: '#10A37F',
             borderRadius: 4,
             maxBarThickness: 32
         }]

@@ -793,134 +793,76 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
         </div>
         <?php endif; ?>
 
-        <!-- ===== FILTER TOOLBAR (adapted from my_reports.php) ===== -->
-        <div class="reports-toolbar <?php echo $active_filters > 0 ? 'style-has-chips' : ''; ?>" style="<?php echo $active_filters > 0 ? 'border-radius: 14px 14px 0 0;' : ''; ?>">
-            <!-- Search -->
-            <div class="toolbar-search">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search reports...">
-            </div>
+        <!-- ===== FILTER TOOLBAR (shared partial) ===== -->
+        <?php
+        $ft_popover_count = 0;
+        if ($category_filter > 0) $ft_popover_count++;
+        if ($barangay_filter > 0) $ft_popover_count++;
+        if ($risk_filter != '') $ft_popover_count++;
+        if ($date_from != '') $ft_popover_count++;
+        if ($date_to != '') $ft_popover_count++;
 
-            <!-- Status Dropdown -->
-            <select id="toolbarStatus" class="toolbar-select">
-                <option value="">All Statuses</option>
-                <option value="pending" <?php echo $status_filter=='pending'?'selected':''; ?>>Pending</option>
-                <option value="under_review" <?php echo $status_filter=='under_review'?'selected':''; ?>>Under Review</option>
-                <option value="in_progress" <?php echo $status_filter=='in_progress'?'selected':''; ?>>In Progress</option>
-                <option value="escalated" <?php echo $status_filter=='escalated'?'selected':''; ?>>Escalated</option>
-                <option value="resolved" <?php echo $status_filter=='resolved'?'selected':''; ?>>Resolved</option>
-                <option value="rejected" <?php echo $status_filter=='rejected'?'selected':''; ?>>Rejected</option>
-            </select>
+        $ft_chips = [];
+        if (!empty($search)) $ft_chips[] = '<span class="filter-chip">"' . htmlspecialchars($search) . '" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>';
+        if ($status_filter != '') $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($status_labels[$status_filter] ?? ucfirst($status_filter)) . ' <span class="chip-remove" data-filter="status"><i class="fas fa-times"></i></span></span>';
+        if ($category_filter > 0) $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($active_category_name) . ' <span class="chip-remove" data-filter="category"><i class="fas fa-times"></i></span></span>';
+        if ($barangay_filter > 0) $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($active_barangay_name) . ' <span class="chip-remove" data-filter="barangay"><i class="fas fa-times"></i></span></span>';
+        if ($risk_filter != '') $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($risk_labels[$risk_filter] ?? ucfirst($risk_filter)) . ' <span class="chip-remove" data-filter="risk"><i class="fas fa-times"></i></span></span>';
+        if ($date_from != '') $ft_chips[] = '<span class="filter-chip">From: ' . date('M d, Y', strtotime($date_from)) . ' <span class="chip-remove" data-filter="date_from"><i class="fas fa-times"></i></span></span>';
+        if ($date_to != '') $ft_chips[] = '<span class="filter-chip">To: ' . date('M d, Y', strtotime($date_to)) . ' <span class="chip-remove" data-filter="date_to"><i class="fas fa-times"></i></span></span>';
 
-            <!-- Filter By Popover -->
-            <div class="filter-popover-wrapper">
-                <button type="button" class="toolbar-filter-btn <?php echo ($category_filter > 0 || $barangay_filter > 0 || $risk_filter > 0 || $date_from != '' || $date_to != '') ? 'active' : ''; ?>" id="filterByBtn">
-                    <i class="fas fa-sliders-h"></i> Filter By
-                    <?php 
-                        $popover_count = 0;
-                        if ($category_filter > 0) $popover_count++;
-                        if ($barangay_filter > 0) $popover_count++;
-                        if ($risk_filter != '') $popover_count++;
-                        if ($date_from != '') $popover_count++;
-                        if ($date_to != '') $popover_count++;
-                        if ($popover_count > 0): 
-                    ?>
-                    <span class="filter-count-badge"><?php echo $popover_count; ?></span>
-                    <?php endif; ?>
-                </button>
-                <div class="filter-popover" id="filterPopover">
-                    <div class="popover-title">Refine Results</div>
-                    <div class="popover-grid">
-                        <div class="popover-field">
-                            <label>Category</label>
-                            <select id="popoverCategory">
-                                <option value="0">All Categories</option>
-                                <?php foreach($categories as $cat): ?>
-                                <option value="<?php echo $cat['id']; ?>" <?php echo $category_filter==$cat['id']?'selected':''; ?>><?php echo htmlspecialchars($cat['name']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="popover-field">
-                            <label>Barangay</label>
-                            <select id="popoverBarangay">
-                                <option value="0">All Barangays</option>
-                                <?php foreach($barangays as $b): ?>
-                                <option value="<?php echo $b['id']; ?>" <?php echo $barangay_filter==$b['id']?'selected':''; ?>><?php echo htmlspecialchars($b['name']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="popover-field">
-                            <label>Risk Level</label>
-                            <select id="popoverRisk">
-                                <option value="">All Levels</option>
-                                <option value="low" <?php echo $risk_filter=='low'?'selected':''; ?>>Low</option>
-                                <option value="medium" <?php echo $risk_filter=='medium'?'selected':''; ?>>Medium</option>
-                                <option value="high" <?php echo $risk_filter=='high'?'selected':''; ?>>High</option>
-                                <option value="critical" <?php echo $risk_filter=='critical'?'selected':''; ?>>Critical</option>
-                            </select>
-                        </div>
-                        <div class="popover-field">
-                            <label>Date To</label>
-                            <input type="date" id="popoverDateTo" value="<?php echo $date_to; ?>" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm">
-                        </div>
-                    </div>
-                    <div class="popover-grid full-width" style="margin-top: 10px;">
-                        <div class="popover-field">
-                            <label>Date From</label>
-                            <input type="date" id="popoverDateFrom" value="<?php echo $date_from; ?>" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm">
-                        </div>
-                    </div>
-                    <div class="popover-actions">
-                        <button type="button" class="popover-btn-reset" id="popoverReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
-                        <button type="button" class="popover-btn-apply" id="popoverApply"><i class="fas fa-check" style="font-size:0.7rem; margin-right:4px"></i>Apply Filters</button>
-                    </div>
-                </div>
-            </div>
+        $ft_cat_options = ['0' => 'All Categories'];
+        foreach ($categories as $cat) { $ft_cat_options[(string)$cat['id']] = $cat['name']; }
+        $ft_barangay_options = ['0' => 'All Barangays'];
+        foreach ($barangays as $b) { $ft_barangay_options[(string)$b['id']] = $b['name']; }
 
-            <div class="toolbar-divider"></div>
-
-            <!-- Results Count + Limit -->
-            <div class="toolbar-results">
-                <span class="toolbar-results-text">Showing <strong id="resultsCountDisplay"><?php echo count($reports); ?></strong> of <strong><?php echo $total; ?></strong> reports</span>
-                
-                <select id="toolbarLimit" class="toolbar-select" style="min-width: 80px;">
-                    <option value="10" <?php echo $limit==10?'selected':''; ?>>10</option>
-                    <option value="20" <?php echo $limit==20?'selected':''; ?>>20</option>
-                    <option value="50" <?php echo $limit==50?'selected':''; ?>>50</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Active Filter Chips -->
-        <?php if ($active_filters > 0): ?>
-        <div class="active-filters-row">
-            <span class="active-filters-label">Active:</span>
-            <?php if (!empty($search)): ?>
-                <span class="filter-chip">"<?php echo htmlspecialchars($search); ?>" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($status_filter != ''): ?>
-                <span class="filter-chip"><?php echo $status_labels[$status_filter] ?? ucfirst($status_filter); ?> <span class="chip-remove" data-filter="status"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($category_filter > 0): ?>
-                <span class="filter-chip"><?php echo htmlspecialchars($active_category_name); ?> <span class="chip-remove" data-filter="category"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($barangay_filter > 0): ?>
-                <span class="filter-chip"><?php echo htmlspecialchars($active_barangay_name); ?> <span class="chip-remove" data-filter="barangay"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($risk_filter != ''): ?>
-                <span class="filter-chip"><?php echo $risk_labels[$risk_filter] ?? ucfirst($risk_filter); ?> <span class="chip-remove" data-filter="risk"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($date_from != ''): ?>
-                <span class="filter-chip">From: <?php echo date('M d, Y', strtotime($date_from)); ?> <span class="chip-remove" data-filter="date_from"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($date_to != ''): ?>
-                <span class="filter-chip">To: <?php echo date('M d, Y', strtotime($date_to)); ?> <span class="chip-remove" data-filter="date_to"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <a href="#" class="chips-clear-all" id="clearAllFilters">Clear all</a>
-        </div>
-        <?php else: ?>
-        <div style="margin-bottom: 1.5rem;"></div>
-        <?php endif; ?>
+        $ft = [
+            'search_id'          => 'searchInput',
+            'search_value'       => $search,
+            'search_placeholder' => 'Search reports...',
+            'results_text'       => 'Showing <strong id="resultsCountDisplay">' . count($reports) . '</strong> of <strong>' . $total . '</strong> reports',
+            'inline_selects'     => [
+                [
+                    'id'        => 'toolbarStatus',
+                    'value'     => $status_filter,
+                    'min_width' => null,
+                    'options'   => array_merge(['' => 'All Statuses'], $status_labels),
+                ],
+            ],
+            'filter_by'          => [
+                'active' => ($category_filter > 0 || $barangay_filter > 0 || $risk_filter != '' || $date_from != '' || $date_to != ''),
+                'count'  => $ft_popover_count,
+            ],
+            'popover_fields'     => [
+                ['kind' => 'select', 'id' => 'popoverCategory', 'label' => 'Category', 'value' => $category_filter, 'default' => '0', 'options' => $ft_cat_options],
+                ['kind' => 'select', 'id' => 'popoverBarangay', 'label' => 'Barangay', 'value' => $barangay_filter, 'default' => '0', 'options' => $ft_barangay_options],
+                ['kind' => 'select', 'id' => 'popoverRisk', 'label' => 'Risk Level', 'value' => $risk_filter, 'default' => '',
+                 'options' => ['' => 'All Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical']],
+                ['kind' => 'date', 'id' => 'popoverDateFrom', 'label' => 'Date From', 'value' => $date_from, 'default' => ''],
+                ['kind' => 'date', 'id' => 'popoverDateTo', 'label' => 'Date To', 'value' => $date_to, 'default' => ''],
+            ],
+            'trailing_select'    => [
+                'id'        => 'toolbarLimit',
+                'value'     => $limit,
+                'min_width' => '80px',
+                'options'   => ['10' => '10', '20' => '20', '50' => '50'],
+            ],
+            'active_filters'     => (int)$active_filters,
+            'chips'              => $ft_chips,
+            'chips_clear_all'    => true,
+            'chip_clear_map'     => [
+                'search'     => ['el' => 'searchInput', 'clear' => ''],
+                'status'     => ['el' => 'toolbarStatus', 'clear' => ''],
+                'category'   => ['el' => 'popoverCategory', 'clear' => '0'],
+                'barangay'   => ['el' => 'popoverBarangay', 'clear' => '0'],
+                'risk'       => ['el' => 'popoverRisk', 'clear' => ''],
+                'date_from'  => ['el' => 'popoverDateFrom', 'clear' => ''],
+                'date_to'    => ['el' => 'popoverDateTo', 'clear' => ''],
+            ],
+            'callback'           => 'applyFilters',
+        ];
+        include __DIR__ . '/../shared/report_filter_toolbar.php';
+        ?>
 
         <!-- Results Table -->
         <div id="reportsGrid">
@@ -1038,7 +980,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
 </div>
 
 <script>
-// ===== FILTER FUNCTIONALITY (adapted from my_reports.php) =====
+// ===== FILTER FUNCTIONALITY (shared partial handles search/status/limit/popover/chips) =====
 
 // Apply filters - redirect with all parameters
 function applyFilters() {
@@ -1065,107 +1007,6 @@ function applyFilters() {
     
     window.location.href = '?' + params.toString();
 }
-
-// ===== SEARCH WITH DEBOUNCE =====
-let searchTimeout;
-document.getElementById('searchInput').addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(applyFilters, 400);
-});
-
-// ===== STATUS & LIMIT CHANGES =====
-document.getElementById('toolbarStatus').addEventListener('change', applyFilters);
-document.getElementById('toolbarLimit').addEventListener('change', applyFilters);
-
-// ===== POPOVER TOGGLE =====
-const filterBtn = document.getElementById('filterByBtn');
-const filterPopover = document.getElementById('filterPopover');
-
-filterBtn?.addEventListener('click', function(e) {
-    e.stopPropagation();
-    filterPopover.classList.toggle('open');
-});
-
-document.addEventListener('click', function(e) {
-    if (filterPopover && !filterPopover.contains(e.target) && e.target !== filterBtn) {
-        filterPopover.classList.remove('open');
-    }
-});
-
-filterPopover?.addEventListener('click', function(e) {
-    e.stopPropagation();
-});
-
-// ===== POPOVER APPLY =====
-document.getElementById('popoverApply')?.addEventListener('click', function() {
-    filterPopover.classList.remove('open');
-    applyFilters();
-});
-
-// ===== POPOVER RESET (resets only popover fields, not status/search/limit) =====
-document.getElementById('popoverReset')?.addEventListener('click', function() {
-    document.getElementById('popoverCategory').value = '0';
-    document.getElementById('popoverBarangay').value = '0';
-    document.getElementById('popoverRisk').value = '';
-    document.getElementById('popoverDateFrom').value = '';
-    document.getElementById('popoverDateTo').value = '';
-    filterPopover.classList.remove('open');
-    applyFilters();
-});
-
-// ===== REMOVE INDIVIDUAL FILTER CHIP =====
-function removeFilter(type) {
-    if (type === 'search') {
-        document.getElementById('searchInput').value = '';
-    } else if (type === 'status') {
-        document.getElementById('toolbarStatus').value = '';
-    } else if (type === 'category') {
-        document.getElementById('popoverCategory').value = '0';
-    } else if (type === 'barangay') {
-        document.getElementById('popoverBarangay').value = '0';
-    } else if (type === 'risk') {
-        document.getElementById('popoverRisk').value = '';
-    } else if (type === 'date_from') {
-        document.getElementById('popoverDateFrom').value = '';
-    } else if (type === 'date_to') {
-        document.getElementById('popoverDateTo').value = '';
-    }
-    applyFilters();
-}
-
-// ===== CLEAR ALL FILTERS =====
-function clearAllFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('toolbarStatus').value = '';
-    document.getElementById('popoverCategory').value = '0';
-    document.getElementById('popoverBarangay').value = '0';
-    document.getElementById('popoverRisk').value = '';
-    document.getElementById('popoverDateFrom').value = '';
-    document.getElementById('popoverDateTo').value = '';
-    // Keep limit as is
-    applyFilters();
-}
-
-// ===== ATTACH CHIP REMOVE EVENTS =====
-document.querySelectorAll('.chip-remove').forEach(function(el) {
-    el.addEventListener('click', function(e) {
-        e.preventDefault();
-        const filter = this.getAttribute('data-filter');
-        removeFilter(filter);
-    });
-});
-
-document.getElementById('clearAllFilters')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    clearAllFilters();
-});
-
-// Close popover with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && filterPopover?.classList.contains('open')) {
-        filterPopover.classList.remove('open');
-    }
-});
 </script>
 
 </body>

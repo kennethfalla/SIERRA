@@ -303,6 +303,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
         try {
             // Exclude current user's own reports from nearby detection
             $nearby = $report->getActiveReportsNearLocation($lat, $lng, $radius, $category_id ?: 0, $_SESSION['user_id']);
+            // Attach evidence photos/videos to each nearby report so the duplicate-detection
+            // details modal can show them (the get_images/get_full endpoints are gated by
+            // an owner-only access check and cannot serve other users' reports).
+            foreach ($nearby as &$rpt) {
+                $rpt['images'] = [];
+                if (!empty($rpt['image_paths'])) {
+                    $paths = array_filter(array_map('trim', explode(',', $rpt['image_paths'])));
+                    foreach (array_slice($paths, 0, 3) as $p) {
+                        $rpt['images'][] = [
+                            'image_path' => BASE_URL . $p,
+                            'is_video' => preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $p) ? 1 : 0,
+                        ];
+                    }
+                }
+                unset($rpt['image_paths']);
+            }
+            unset($rpt);
             echo json_encode(['success' => true, 'reports' => $nearby, 'debug_radius' => $radius, 'debug_lat' => $lat, 'debug_lng' => $lng]);
         } catch (\PDOException $e) {
             error_log('check_nearby_reports failed: ' . $e->getMessage());
@@ -973,11 +990,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
         if ($report->reclassifyImpact($report_id, $new_impact, $user_id)) {
-            $log = $db->prepare("INSERT INTO activity_logs (user_id, action, description, ip_address, created_at) VALUES (?, 'Reclassify Impact', ?, ?, NOW())");
+            $log = $db->prepare("INSERT INTO activity_logs (user_id, action, description, ip_address, user_agent, status, created_at) VALUES (?, 'Reclassify Impact', ?, ?, ?, 'SUCCESS', NOW())");
             $role_label = ($user_role == 'admin') ? 'Admin' : 'Barangay';
             $description = "$role_label reclassified report #$report_id impact modifier to $new_impact. Reason: $reason";
             $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-            $log->execute([$user_id, $description, $ip]);
+            $ua = isset($_SERVER['HTTP_USER_AGENT']) ? substr($_SERVER['HTTP_USER_AGENT'], 0, 255) : null;
+            $log->execute([$user_id, $description, $ip, $ua]);
             if ($report_data['latitude'] && $report_data['longitude']) {
                 recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
             }

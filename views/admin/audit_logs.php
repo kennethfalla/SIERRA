@@ -17,6 +17,7 @@ $db = $database->getConnection();
 // Get filter parameters
 $action_filter = $_GET['action'] ?? 'all';
 $user_filter = $_GET['user'] ?? '';
+$status_filter = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : 'all';
 $date_from = $_GET['date_from'] ?? '';
 $date_to = $_GET['date_to'] ?? '';
 $search = $_GET['search'] ?? '';
@@ -31,6 +32,11 @@ $params = [];
 if($action_filter !== 'all') {
     $where[] = "a.action = :action";
     $params[':action'] = $action_filter;
+}
+
+if($status_filter !== 'all') {
+    $where[] = "a.status = :status";
+    $params[':status'] = $status_filter;
 }
 
 if(!empty($user_filter)) {
@@ -49,7 +55,7 @@ if(!empty($date_to)) {
 }
 
 if(!empty($search)) {
-    $where[] = "(a.description LIKE :search OR u.first_name LIKE :search OR u.last_name LIKE :search OR u.email LIKE :search)";
+    $where[] = "(a.description LIKE :search OR u.first_name LIKE :search OR u.last_name LIKE :search OR u.email LIKE :search OR a.status LIKE :search OR a.user_agent LIKE :search)";
     $params[':search'] = "%$search%";
 }
 
@@ -357,6 +363,16 @@ $top_actions = $db->query("
                         </select>
                     </div>
                     
+                    <div class="w-40">
+                        <label class="block text-xs text-gray-500 mb-1 font-semibold">Status</label>
+                        <select name="status" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#059669] focus:ring-2 focus:ring-emerald-100 outline-none bg-white">
+                            <option value="all">All Statuses</option>
+                            <option value="SUCCESS" <?php echo $status_filter == 'SUCCESS' ? 'selected' : ''; ?>>SUCCESS</option>
+                            <option value="FAILED" <?php echo $status_filter == 'FAILED' ? 'selected' : ''; ?>>FAILED</option>
+                            <option value="UNAUTHORIZED_ATTEMPT" <?php echo $status_filter == 'UNAUTHORIZED_ATTEMPT' ? 'selected' : ''; ?>>UNAUTHORIZED_ATTEMPT</option>
+                        </select>
+                    </div>
+                    
                     <div class="w-44">
                         <label class="block text-xs text-gray-500 mb-1 font-semibold">User</label>
                         <select name="user" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#059669] focus:ring-2 focus:ring-emerald-100 outline-none bg-white">
@@ -408,8 +424,10 @@ $top_actions = $db->query("
                             <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Role</th>
                             <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Action</th>
                             <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Module</th>
+                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Details</th>
                             <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">IP Address</th>
+                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Device</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -489,17 +507,31 @@ $top_actions = $db->query("
                                         <?php echo htmlspecialchars($module); ?>
                                     </span>
                                 </td>
+                                <td class="px-5 py-3">
+                                    <?php $log_status = $log['status'] ?? 'SUCCESS'; ?>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide
+                                        <?php
+                                        if ($log_status === 'FAILED') { echo 'bg-red-100 text-red-700'; }
+                                        elseif ($log_status === 'UNAUTHORIZED_ATTEMPT') { echo 'bg-orange-100 text-orange-700'; }
+                                        else { echo 'bg-emerald-100 text-emerald-700'; }
+                                        ?>">
+                                        <?php echo htmlspecialchars($log_status); ?>
+                                    </span>
+                                </td>
                                 <td class="px-5 py-3 text-sm text-gray-600 max-w-xs">
                                     <?php echo htmlspecialchars($log['description'] ?: '—'); ?>
                                 </td>
                                 <td class="px-5 py-3 text-sm text-gray-500 font-mono">
                                     <?php echo htmlspecialchars($log['ip_address'] ?: '—'); ?>
                                 </td>
+                                <td class="px-5 py-3 text-sm text-gray-500">
+                                    <?php echo htmlspecialchars(trim($log['user_agent'] ?? '') ?: '—'); ?>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="7" class="px-6 py-16 text-center">
+                                <td colspan="9" class="px-6 py-16 text-center">
                                     <i class="fas fa-history text-5xl text-gray-300 mb-3 block"></i>
                                     <p class="text-gray-500 text-lg font-semibold">No audit logs found</p>
                                     <p class="text-gray-400 text-sm mt-1 font-medium">Try adjusting your filters</p>
@@ -515,15 +547,15 @@ $top_actions = $db->query("
         <?php if($total_pages > 1): ?>
         <div class="flex justify-center gap-2 animate-slide-up">
             <?php if($page > 1): ?>
-            <a href="?page=audit-logs&page_num=<?php echo $page-1; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn"><i class="fas fa-chevron-left mr-1"></i>Prev</a>
+            <a href="?page=audit-logs&page_num=<?php echo $page-1; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&status=<?php echo $status_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn"><i class="fas fa-chevron-left mr-1"></i>Prev</a>
             <?php endif; ?>
             
             <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
-            <a href="?page=audit-logs&page_num=<?php echo $i; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn <?php echo $page == $i ? 'pagination-active' : ''; ?>"><?php echo $i; ?></a>
+            <a href="?page=audit-logs&page_num=<?php echo $i; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&status=<?php echo $status_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn <?php echo $page == $i ? 'pagination-active' : ''; ?>"><?php echo $i; ?></a>
             <?php endfor; ?>
             
             <?php if($page < $total_pages): ?>
-            <a href="?page=audit-logs&page_num=<?php echo $page+1; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn">Next<i class="fas fa-chevron-right ml-1"></i></a>
+            <a href="?page=audit-logs&page_num=<?php echo $page+1; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&status=<?php echo $status_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn">Next<i class="fas fa-chevron-right ml-1"></i></a>
             <?php endif; ?>
         </div>
         <?php endif; ?>

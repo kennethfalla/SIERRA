@@ -719,6 +719,8 @@ class Report {
             SELECT r.id, r.title, r.description, r.status, r.created_at, r.category_id,
                    c.name as category_name,
                    CONCAT(u.first_name, ' ', u.last_name) as reporter_name,
+                   (SELECT GROUP_CONCAT(image_path ORDER BY is_primary DESC, uploaded_at DESC SEPARATOR ',')
+                    FROM report_images WHERE report_id = r.id) as image_paths,
                    (6371 * ACOS(
                        COS(RADIANS(:lat)) * COS(RADIANS(r.latitude)) *
                        COS(RADIANS(r.longitude) - RADIANS(:lng)) +
@@ -978,12 +980,13 @@ class Report {
             
             // Log the reclassification
             $log = $this->conn->prepare("
-                INSERT INTO activity_logs (user_id, action, description, ip_address, created_at)
-                VALUES (?, 'Reclassify Impact', ?, ?, NOW())
+                INSERT INTO activity_logs (user_id, action, description, ip_address, user_agent, status, created_at)
+                VALUES (?, 'Reclassify Impact', ?, ?, ?, 'SUCCESS', NOW())
             ");
             $description = "Reclassified report #$reportId impact modifier to $newImpact";
             $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-            $log->execute([$userId, $description, $ip]);
+            $ua = isset($_SERVER['HTTP_USER_AGENT']) ? substr($_SERVER['HTTP_USER_AGENT'], 0, 255) : null;
+            $log->execute([$userId, $description, $ip, $ua]);
             
             return true;
         }

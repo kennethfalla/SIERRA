@@ -333,311 +333,6 @@ if ($date_to != '') $active_filters++;
             --lt-gray-800: #1F2937;
         }
 
-        .reports-toolbar {
-            background: var(--lt-white);
-            border: 1px solid var(--lt-border);
-            border-radius: 14px;
-            padding: 10px 16px;
-            margin-bottom: 0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            position: relative;
-        }
-
-        .toolbar-search {
-            position: relative;
-            flex: 1 1 220px;
-            min-width: 180px;
-        }
-        .toolbar-search i {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9CA3AF;
-            font-size: 0.8rem;
-            pointer-events: none;
-        }
-        .toolbar-search input {
-            width: 100%;
-            padding: 8px 12px 8px 36px;
-            border: 1.5px solid var(--lt-border-light);
-            border-radius: 10px;
-            font-size: 0.85rem;
-            color: var(--lt-gray-800);
-            background: var(--lt-gray-50);
-            transition: all 0.2s ease;
-            outline: none;
-        }
-        .toolbar-search input:focus {
-            border-color: var(--lt-forest);
-            background: var(--lt-white);
-            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.10);
-        }
-        .toolbar-search input::placeholder { color: #9CA3AF; }
-
-        .toolbar-select {
-            appearance: none;
-            padding: 8px 32px 8px 12px;
-            border: 1.5px solid var(--lt-border-light);
-            border-radius: 10px;
-            font-size: 0.82rem;
-            font-weight: 500;
-            color: var(--lt-gray-700);
-            background: var(--lt-gray-50);
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            outline: none;
-            white-space: nowrap;
-        }
-        .toolbar-select:focus {
-            border-color: var(--lt-forest);
-            background-color: var(--lt-white);
-            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.10);
-        }
-        .toolbar-select:hover { border-color: var(--lt-forest); }
-
-        .toolbar-divider {
-            width: 1px;
-            height: 28px;
-            background: var(--lt-border-light);
-            flex-shrink: 0;
-        }
-
-        .toolbar-filter-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border: 1.5px solid var(--lt-border-light);
-            border-radius: 10px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--lt-gray-700);
-            background: var(--lt-gray-50);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            white-space: nowrap;
-        }
-        .toolbar-filter-btn:hover {
-            border-color: var(--lt-forest);
-            color: var(--lt-forest);
-            background: var(--lt-forest-light);
-        }
-        .toolbar-filter-btn.active {
-            border-color: var(--lt-forest);
-            color: var(--lt-forest);
-            background: var(--lt-forest-light);
-        }
-        .toolbar-filter-btn .filter-count-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 18px;
-            height: 18px;
-            padding: 0 5px;
-            border-radius: 9px;
-            background: var(--lt-forest);
-            color: var(--lt-white);
-            font-size: 0.65rem;
-            font-weight: 700;
-            line-height: 1;
-        }
-
-        .filter-popover-wrapper { position: relative; }
-        .filter-popover {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            z-index: 50;
-            background: var(--lt-white);
-            border: 1px solid var(--lt-border);
-            border-radius: 12px;
-            box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.12), 0 4px 12px -4px rgba(0, 0, 0, 0.06);
-            padding: 16px;
-            min-width: 320px;
-            display: none;
-            animation: popoverIn 0.2s ease;
-        }
-        .filter-popover.open { display: block; }
-        @keyframes popoverIn {
-            from { opacity: 0; transform: translateY(-6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .popover-title {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--lt-gray-500);
-            margin-bottom: 12px;
-        }
-        .popover-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        .popover-grid.full-width { grid-template-columns: 1fr; }
-        .popover-field label {
-            display: block;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: var(--lt-gray-500);
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-        .popover-field select,
-        .popover-field input {
-            width: 100%;
-            padding: 7px 10px;
-            border: 1.5px solid var(--lt-border-light);
-            border-radius: 8px;
-            font-size: 0.82rem;
-            color: var(--lt-gray-700);
-            background: var(--lt-gray-50);
-            appearance: none;
-            cursor: pointer;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-        .popover-field select {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            padding-right: 30px;
-        }
-        .popover-field select:focus,
-        .popover-field input:focus {
-            border-color: var(--lt-forest);
-            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.10);
-        }
-        .popover-actions {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-top: 14px;
-            padding-top: 12px;
-            border-top: 1px solid var(--lt-border-light);
-        }
-        .popover-btn-apply {
-            padding: 7px 18px;
-            background: var(--lt-forest);
-            color: var(--lt-white);
-            border: none;
-            border-radius: 8px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .popover-btn-apply:hover {
-            background: var(--lt-forest-mid);
-            box-shadow: 0 4px 12px rgba(16, 163, 127, 0.2);
-        }
-        .popover-btn-reset {
-            padding: 7px 14px;
-            background: var(--lt-white);
-            color: var(--lt-gray-500);
-            border: 1.5px solid var(--lt-border-light);
-            border-radius: 8px;
-            font-size: 0.82rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .popover-btn-reset:hover {
-            border-color: #EF4444;
-            color: #EF4444;
-            background: #FEF2F2;
-        }
-
-        .toolbar-results {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-left: auto;
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-        .toolbar-results-text {
-            font-size: 0.8rem;
-            color: var(--lt-gray-500);
-            font-weight: 500;
-        }
-        .toolbar-results-text strong { color: var(--lt-gray-800); font-weight: 700; }
-
-        .active-filters-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--lt-white);
-            border: 1px solid var(--lt-border);
-            border-top: none;
-            border-radius: 0 0 14px 14px;
-            margin-top: -1px;
-            margin-bottom: 1.5rem;
-        }
-        .active-filters-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: var(--lt-gray-500);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-right: 2px;
-        }
-        .filter-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px 4px 12px;
-            background: var(--lt-forest-light);
-            color: var(--lt-forest);
-            border-radius: 20px;
-            font-size: 0.72rem;
-            font-weight: 600;
-            transition: all 0.15s ease;
-        }
-        .filter-chip:hover { background: #D4E4D2; }
-        .filter-chip .chip-remove {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: rgba(16, 163, 127, 0.15);
-            color: var(--lt-forest);
-            font-size: 0.55rem;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            text-decoration: none;
-            line-height: 1;
-        }
-        .filter-chip .chip-remove:hover { background: #c53030; color: white; }
-        .chips-clear-all {
-            font-size: 0.72rem;
-            color: var(--lt-gray-500);
-            text-decoration: none;
-            font-weight: 500;
-            margin-left: 4px;
-            transition: color 0.15s ease;
-        }
-        .chips-clear-all:hover { color: #c53030; }
-
         /* ===== FEED CARDS ===== */
         .announcement-card {
             background: white;
@@ -951,28 +646,7 @@ if ($date_to != '') $active_filters++;
         }
         @media (min-width: 640px) { .empty-state { padding: 3rem 2rem; } }
 
-        /* ===== Responsive toolbar ===== */
         @media (max-width: 768px) {
-            .reports-toolbar {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 8px;
-                padding: 12px;
-            }
-            .toolbar-search { min-width: 100%; }
-            .toolbar-divider { display: none; }
-            .toolbar-results {
-                margin-left: 0;
-                flex-wrap: wrap;
-                justify-content: space-between;
-            }
-            .toolbar-select { width: 100%; }
-            .filter-popover {
-                left: -16px;
-                right: -16px;
-                min-width: auto;
-            }
-            .active-filters-row { padding: 8px 12px; }
             .fb-photo-grid.grid-1 { max-height: 280px; }
             .fb-photo-grid.grid-1 .fb-photo-item { max-height: 280px; min-height: 160px; }
             .fb-photo-grid.grid-2 .fb-photo-item { max-height: 200px; }
@@ -1109,83 +783,49 @@ if ($date_to != '') $active_filters++;
         <?php endif; ?>
 
         <!-- ===== FILTER TOOLBAR ===== -->
-        <div class="reports-toolbar <?php echo $active_filters > 0 ? 'style-has-chips' : ''; ?>" style="<?php echo $active_filters > 0 ? 'border-radius: 14px 14px 0 0;' : ''; ?>">
-            <!-- Search -->
-            <div class="toolbar-search">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" value="<?php echo htmlspecialchars($search_query); ?>" placeholder="Search announcements...">
-            </div>
-
-            <!-- Category Dropdown -->
-            <select id="toolbarCategory" class="toolbar-select">
-                <option value="all">All Categories</option>
-                <?php foreach($categories as $cat): ?>
-                    <option value="<?php echo $cat; ?>" <?php echo $category_filter==$cat?'selected':''; ?>><?php echo $cat; ?></option>
-                <?php endforeach; ?>
-            </select>
-
-            <!-- Filter By Popover -->
-            <div class="filter-popover-wrapper">
-                <button type="button" class="toolbar-filter-btn <?php echo ($date_from != '' || $date_to != '') ? 'active' : ''; ?>" id="filterByBtn">
-                    <i class="fas fa-sliders-h"></i> Filter By
-                    <?php if($date_from != '' || $date_to != ''): ?>
-                        <span class="filter-count-badge">1</span>
-                    <?php endif; ?>
-                </button>
-                <div class="filter-popover" id="filterPopover">
-                    <div class="popover-title">Refine Results</div>
-                    <div class="popover-grid full-width" style="margin-top: 10px;">
-                        <div class="popover-field">
-                            <label>Date From</label>
-                            <input type="date" id="popoverDateFrom" value="<?php echo $date_from; ?>" class="filter-input" style="padding: 7px 10px; border: 1.5px solid #E5E7EB; border-radius: 8px; width: 100%;">
-                        </div>
-                        <div class="popover-field">
-                            <label>Date To</label>
-                            <input type="date" id="popoverDateTo" value="<?php echo $date_to; ?>" class="filter-input" style="padding: 7px 10px; border: 1.5px solid #E5E7EB; border-radius: 8px; width: 100%;">
-                        </div>
-                    </div>
-                    <div class="popover-actions">
-                        <button type="button" class="popover-btn-reset" id="popoverReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
-                        <button type="button" class="popover-btn-apply" id="popoverApply"><i class="fas fa-check" style="font-size:0.7rem; margin-right:4px"></i>Apply Filters</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="toolbar-divider"></div>
-
-            <!-- Results Count + Per Page -->
-            <div class="toolbar-results">
-                <span class="toolbar-results-text">Showing <strong><?php echo count($announcements); ?></strong> of <strong><?php echo $total_filtered; ?></strong> posts</span>
-                <select id="perPageSelect" class="toolbar-select" style="min-width: 80px;" onchange="changePerPage(this.value)">
-                    <option value="5" <?php echo $limit==5?'selected':''; ?>>5</option>
-                    <option value="10" <?php echo $limit==10?'selected':''; ?>>10</option>
-                    <option value="25" <?php echo $limit==25?'selected':''; ?>>25</option>
-                    <option value="50" <?php echo $limit==50?'selected':''; ?>>50</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Active Filter Chips -->
-        <?php if ($active_filters > 0): ?>
-        <div class="active-filters-row">
-            <span class="active-filters-label">Active:</span>
-            <?php if (!empty($search_query)): ?>
-                <span class="filter-chip">"<?php echo htmlspecialchars($search_query); ?>" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($category_filter != 'all'): ?>
-                <span class="filter-chip"><?php echo htmlspecialchars($category_filter); ?> <span class="chip-remove" data-filter="category"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($date_from != ''): ?>
-                <span class="filter-chip">From <?php echo date('M d', strtotime($date_from)); ?> <span class="chip-remove" data-filter="date_from"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($date_to != ''): ?>
-                <span class="filter-chip">To <?php echo date('M d', strtotime($date_to)); ?> <span class="chip-remove" data-filter="date_to"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <a href="#" class="chips-clear-all" id="clearAllFilters">Clear all</a>
-        </div>
-        <?php else: ?>
-        <div style="margin-bottom: 1.5rem;"></div>
-        <?php endif; ?>
+        <?php
+        $ft_popover_count = (($date_from != '') ? 1 : 0) + (($date_to != '') ? 1 : 0);
+        $ft = [
+            'search_id'          => 'searchInput',
+            'search_value'       => htmlspecialchars($search_query),
+            'search_placeholder' => 'Search announcements...',
+            'results_text'       => 'Showing <strong>' . count($announcements) . '</strong> of <strong>' . $total_filtered . '</strong> posts',
+            'inline_selects'     => [
+                [
+                    'id'        => 'toolbarCategory',
+                    'value'     => $category_filter,
+                    'min_width' => null,
+                    'options'   => array_merge(['all' => 'All Categories'], array_combine($categories, $categories)),
+                ],
+            ],
+            'filter_by'          => [
+                'active' => ($date_from != '' || $date_to != ''),
+                'count'  => $ft_popover_count,
+            ],
+            'popover_fields'     => [
+                ['kind' => 'date', 'id' => 'popoverDateFrom', 'label' => 'Date From', 'value' => $date_from],
+                ['kind' => 'date', 'id' => 'popoverDateTo', 'label' => 'Date To', 'value' => $date_to],
+            ],
+            'trailing_select'    => [
+                'id'       => 'perPageSelect',
+                'value'    => $limit,
+                'min_width'=> '80px',
+                'spacer'   => true,
+                'onchange' => 'changePerPage(this.value)',
+                'options'  => ['5' => '5', '10' => '10', '25' => '25', '50' => '50'],
+            ],
+            'active_filters'     => (int)$active_filters,
+            'chips'              => array_filter([
+                !empty($search_query) ? '<span class="filter-chip">"' . htmlspecialchars($search_query) . '" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>' : null,
+                ($category_filter != 'all') ? '<span class="filter-chip">' . htmlspecialchars($category_filter) . ' <span class="chip-remove" data-filter="category"><i class="fas fa-times"></i></span></span>' : null,
+                ($date_from != '') ? '<span class="filter-chip">From ' . date('M d', strtotime($date_from)) . ' <span class="chip-remove" data-filter="date_from"><i class="fas fa-times"></i></span></span>' : null,
+                ($date_to != '') ? '<span class="filter-chip">To ' . date('M d', strtotime($date_to)) . ' <span class="chip-remove" data-filter="date_to"><i class="fas fa-times"></i></span></span>' : null,
+            ], fn($v) => $v !== null),
+            'chips_clear_all'    => true,
+            'callback'           => 'applyFilters',
+        ];
+        include __DIR__ . '/report_filter_toolbar.php';
+        ?>
 
         <!-- ===== FEED ===== -->
         <div id="announcementsGrid" class="feed-container">
@@ -1753,7 +1393,6 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ===== FILTER FUNCTIONS =====
-let searchTimeout;
 
 function applyFilters() {
     const params = new URLSearchParams();
@@ -1786,73 +1425,14 @@ function changePerPage(limit) {
     window.location.href = '<?php echo BASE_URL; ?>index.php?page=announcements&' + params.toString();
 }
 
-// Remove individual filter chip
-document.querySelectorAll('.chip-remove').forEach(el => {
-    el.addEventListener('click', function(e) {
-        e.preventDefault();
-        const filter = this.getAttribute('data-filter');
-        if (filter === 'search') {
-            document.getElementById('searchInput').value = '';
-        } else if (filter === 'category') {
-            document.getElementById('toolbarCategory').value = 'all';
-        } else if (filter === 'date_from') {
-            document.getElementById('popoverDateFrom').value = '';
-        } else if (filter === 'date_to') {
-            document.getElementById('popoverDateTo').value = '';
-        }
-        applyFilters();
-    });
-});
+// Filter chip removal and "Clear all" are handled by the shared toolbar partial
+// (report_filter_toolbar.php) via a delegated listener.
 
-// Clear all filters
-document.getElementById('clearAllFilters')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    document.getElementById('searchInput').value = '';
-    document.getElementById('toolbarCategory').value = 'all';
+// ===== POPOVER RESET (called by shared toolbar before applying) =====
+window.ftResetPopover = function() {
     document.getElementById('popoverDateFrom').value = '';
     document.getElementById('popoverDateTo').value = '';
-    applyFilters();
-});
-
-// Popover toggle
-const filterBtn = document.getElementById('filterByBtn');
-const filterPopover = document.getElementById('filterPopover');
-
-filterBtn?.addEventListener('click', function(e) {
-    e.stopPropagation();
-    filterPopover.classList.toggle('open');
-});
-
-document.addEventListener('click', function(e) {
-    if (filterPopover && !filterPopover.contains(e.target) && e.target !== filterBtn) {
-        filterPopover.classList.remove('open');
-    }
-});
-
-filterPopover?.addEventListener('click', function(e) {
-    e.stopPropagation();
-});
-
-document.getElementById('popoverApply')?.addEventListener('click', function() {
-    filterPopover.classList.remove('open');
-    applyFilters();
-});
-
-document.getElementById('popoverReset')?.addEventListener('click', function() {
-    document.getElementById('popoverDateFrom').value = '';
-    document.getElementById('popoverDateTo').value = '';
-    filterPopover.classList.remove('open');
-    applyFilters();
-});
-
-// Search debounce
-document.getElementById('searchInput')?.addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => applyFilters(), 400);
-});
-
-// Category dropdown change
-document.getElementById('toolbarCategory')?.addEventListener('change', applyFilters);
+};
 
 // ===== QUILL EDITORS =====
 var createQuill = null;

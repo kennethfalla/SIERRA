@@ -1146,128 +1146,72 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             <?php endif; endforeach; ?>
         </div>
         
-        <!-- ===== FILTER TOOLBAR ===== -->
-        <div class="reports-toolbar <?php echo $active_filters > 0 ? 'style-has-chips' : ''; ?>" style="<?php echo $active_filters > 0 ? 'border-radius: 14px 14px 0 0;' : ''; ?>">
-            <!-- Search -->
-            <div class="toolbar-search">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" value="<?php echo htmlspecialchars($search_keyword); ?>" placeholder="Search reports...">
-            </div>
+        <!-- ===== FILTER TOOLBAR (shared partial) ===== -->
+        <?php
+        $ft_popover_count = 0;
+        if ($risk_filter != '') $ft_popover_count++;
+        if ($category_filter > 0) $ft_popover_count++;
+        if ($date_range > 0) $ft_popover_count++;
 
-            <!-- Status Dropdown -->
-            <select id="toolbarStatus" class="toolbar-select">
-                <option value="">All Statuses</option>
-                <option value="pending" <?php echo $status_filter=='pending'?'selected':''; ?>>Pending</option>
-                <option value="under_review" <?php echo $status_filter=='under_review'?'selected':''; ?>>Under Review</option>
-                <option value="in_progress" <?php echo $status_filter=='in_progress'?'selected':''; ?>>In Progress</option>
-                <option value="escalated" <?php echo $status_filter=='escalated'?'selected':''; ?>>Escalated</option>
-                <option value="resolved" <?php echo $status_filter=='resolved'?'selected':''; ?>>Resolved</option>
-                <option value="rejected" <?php echo $status_filter=='rejected'?'selected':''; ?>>Rejected</option>
-                <option value="cancelled" <?php echo $status_filter=='cancelled'?'selected':''; ?>>Cancelled</option>
-            </select>
+        $ft_chips = [];
+        if (!empty($search_keyword)) $ft_chips[] = '<span class="filter-chip">"' . htmlspecialchars($search_keyword) . '" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>';
+        if ($status_filter != '') $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($status_labels[$status_filter] ?? ucfirst($status_filter)) . ' <span class="chip-remove" data-filter="status"><i class="fas fa-times"></i></span></span>';
+        if ($risk_filter != '') $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($risk_labels[$risk_filter] ?? ucfirst($risk_filter)) . ' <span class="chip-remove" data-filter="risk"><i class="fas fa-times"></i></span></span>';
+        if ($category_filter > 0) $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($active_category_name) . ' <span class="chip-remove" data-filter="category"><i class="fas fa-times"></i></span></span>';
+        if ($date_range > 0) $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($date_range_labels[$date_range] ?? $date_range . ' days') . ' <span class="chip-remove" data-filter="date"><i class="fas fa-times"></i></span></span>';
 
-            <!-- Filter By Popover -->
-            <div class="filter-popover-wrapper">
-                <button type="button" class="toolbar-filter-btn <?php echo ($risk_filter != '' || $category_filter > 0 || $date_range > 0) ? 'active' : ''; ?>" id="filterByBtn">
-                    <i class="fas fa-sliders-h"></i> Filter By
-                    <?php 
-                        $popover_count = 0;
-                        if ($risk_filter != '') $popover_count++;
-                        if ($category_filter > 0) $popover_count++;
-                        if ($date_range > 0) $popover_count++;
-                        if ($popover_count > 0): 
-                    ?>
-                    <span class="filter-count-badge"><?php echo $popover_count; ?></span>
-                    <?php endif; ?>
-                </button>
-                <div class="filter-popover" id="filterPopover">
-                    <div class="popover-title">Refine Results</div>
-                    <div class="popover-grid">
-                        <div class="popover-field">
-                            <label>Risk Level</label>
-                            <select id="popoverRisk">
-                                <option value="">All Levels</option>
-                                <option value="low" <?php echo $risk_filter=='low'?'selected':''; ?>>Low</option>
-                                <option value="medium" <?php echo $risk_filter=='medium'?'selected':''; ?>>Medium</option>
-                                <option value="high" <?php echo $risk_filter=='high'?'selected':''; ?>>High</option>
-                                <option value="critical" <?php echo $risk_filter=='critical'?'selected':''; ?>>Critical</option>
-                            </select>
-                        </div>
-                        <div class="popover-field">
-                            <label>Category</label>
-                            <select id="popoverCategory">
-                                <option value="0">All Categories</option>
-                                <?php foreach($categories as $cat): ?>
-                                <option value="<?php echo $cat['id']; ?>" <?php echo $category_filter==$cat['id']?'selected':''; ?>><?php echo htmlspecialchars($cat['name']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="popover-grid full-width" style="margin-top: 10px;">
-                        <div class="popover-field">
-                            <label>Date Range</label>
-                            <select id="popoverDateRange">
-                                <option value="0">All Time</option>
-                                <option value="7" <?php echo $date_range==7?'selected':''; ?>>Last 7 Days</option>
-                                <option value="30" <?php echo $date_range==30?'selected':''; ?>>Last 30 Days</option>
-                                <option value="90" <?php echo $date_range==90?'selected':''; ?>>Last 90 Days</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="popover-actions">
-                        <button type="button" class="popover-btn-reset" id="popoverReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
-                        <button type="button" class="popover-btn-apply" id="popoverApply"><i class="fas fa-check" style="font-size:0.7rem; margin-right:4px"></i>Apply Filters</button>
-                    </div>
-                </div>
-            </div>
+        $ft_cat_options = ['0' => 'All Categories'];
+        foreach ($categories as $cat) { $ft_cat_options[(string)$cat['id']] = $cat['name']; }
 
-            <div class="toolbar-divider"></div>
-
-            <!-- Results Count + View Toggle + Sort -->
-            <div class="toolbar-results">
-                <span class="toolbar-results-text">Showing <strong id="resultsCountDisplay"><?php echo count($reports); ?></strong> of <strong><?php echo $total_reports; ?></strong> reports</span>
-
-                <!-- View Toggle -->
-                <div class="view-toggle">
-                    <button onclick="setViewMode('grid')" id="gridViewBtn" class="view-btn <?php echo $view_mode == 'grid' ? 'active' : ''; ?>">
-                        <i class="fas fa-th"></i>
-                    </button>
-                    <button onclick="setViewMode('list')" id="listViewBtn" class="view-btn <?php echo $view_mode == 'list' ? 'active' : ''; ?>">
-                        <i class="fas fa-list"></i>
-                    </button>
-                </div>
-
-                <select id="toolbarSort" class="toolbar-select" style="min-width: 140px;">
-                    <option value="newest" <?php echo $sort_order=='newest'?'selected':''; ?>>Recent to Older</option>
-                    <option value="oldest" <?php echo $sort_order=='oldest'?'selected':''; ?>>Older to Recent</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Active Filter Chips -->
-        <?php if ($active_filters > 0): ?>
-        <div class="active-filters-row">
-            <span class="active-filters-label">Active:</span>
-            <?php if (!empty($search_keyword)): ?>
-                <span class="filter-chip">"<?php echo htmlspecialchars($search_keyword); ?>" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($status_filter != ''): ?>
-                <span class="filter-chip"><?php echo $status_labels[$status_filter] ?? ucfirst($status_filter); ?> <span class="chip-remove" data-filter="status"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($risk_filter != ''): ?>
-                <span class="filter-chip"><?php echo $risk_labels[$risk_filter] ?? ucfirst($risk_filter); ?> <span class="chip-remove" data-filter="risk"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($category_filter > 0): ?>
-                <span class="filter-chip"><?php echo htmlspecialchars($active_category_name); ?> <span class="chip-remove" data-filter="category"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <?php if ($date_range > 0): ?>
-                <span class="filter-chip"><?php echo $date_range_labels[$date_range] ?? $date_range . ' days'; ?> <span class="chip-remove" data-filter="date"><i class="fas fa-times"></i></span></span>
-            <?php endif; ?>
-            <a href="#" class="chips-clear-all" id="clearAllFilters">Clear all</a>
-        </div>
-        <?php else: ?>
-        <div style="margin-bottom: 1.5rem;"></div>
-        <?php endif; ?>
+        $ft = [
+            'search_id'          => 'searchInput',
+            'search_value'       => $search_keyword,
+            'search_placeholder' => 'Search reports...',
+            'results_text'       => 'Showing <strong id="resultsCountDisplay">' . count($reports) . '</strong> of <strong>' . $total_reports . '</strong> reports',
+            'inline_selects'     => [
+                [
+                    'id'        => 'toolbarStatus',
+                    'value'     => $status_filter,
+                    'min_width' => null,
+                    'options'   => array_merge(['' => 'All Statuses'], $status_labels),
+                ],
+            ],
+            'filter_by'          => [
+                'active' => ($risk_filter != '' || $category_filter > 0 || $date_range > 0),
+                'count'  => $ft_popover_count,
+            ],
+            'popover_fields'     => [
+                ['kind' => 'select', 'id' => 'popoverRisk', 'label' => 'Risk Level', 'value' => $risk_filter, 'default' => '',
+                 'options' => ['' => 'All Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical']],
+                ['kind' => 'select', 'id' => 'popoverCategory', 'label' => 'Category', 'value' => $category_filter, 'default' => '0', 'options' => $ft_cat_options],
+                ['kind' => 'select', 'id' => 'popoverDateRange', 'label' => 'Date Range', 'value' => $date_range, 'default' => '0',
+                 'options' => ['0' => 'All Time', '7' => 'Last 7 Days', '30' => 'Last 30 Days', '90' => 'Last 90 Days']],
+            ],
+            'view_toggle'        => [
+                'active' => $view_mode,
+                'grid'   => "setViewMode('grid')",
+                'list'   => "setViewMode('list')",
+            ],
+            'trailing_select'    => [
+                'id'        => 'toolbarSort',
+                'value'     => $sort_order,
+                'min_width' => '140px',
+                'options'   => ['newest' => 'Recent to Older', 'oldest' => 'Older to Recent'],
+            ],
+            'active_filters'     => (int)$active_filters,
+            'chips'              => $ft_chips,
+            'chips_clear_all'    => true,
+            'chip_clear_map'     => [
+                'search'   => ['el' => 'searchInput', 'clear' => ''],
+                'status'   => ['el' => 'toolbarStatus', 'clear' => ''],
+                'risk'     => ['el' => 'popoverRisk', 'clear' => ''],
+                'category' => ['el' => 'popoverCategory', 'clear' => '0'],
+                'date'     => ['el' => 'popoverDateRange', 'clear' => '0'],
+            ],
+            'callback'           => 'applyFilters',
+        ];
+        include __DIR__ . '/../shared/report_filter_toolbar.php';
+        ?>
         
         <!-- Reports Grid -->
         <div id="reportsGrid" class="reports-grid <?php echo $view_mode; ?>-view">
@@ -1406,7 +1350,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
 </div>
 
 <script>
-let searchTimeout;
 let currentViewMode = '<?php echo $view_mode; ?>';
 
 // ===== VIEW MODE =====
@@ -1490,12 +1433,20 @@ function updateActiveFilters() {
     
     if (activeCount === 0) {
         if (container) container.style.display = 'none';
-        if (toolbar) toolbar.style.borderRadius = '14px';
+        if (toolbar) {
+            toolbar.style.borderRadius = '14px';
+            toolbar.classList.remove('style-has-chips');
+            toolbar.style.marginBottom = '1.5rem';
+        }
         return;
     }
     
     if (container) {
         container.style.display = 'flex';
+        if (toolbar) {
+            toolbar.classList.add('style-has-chips');
+            toolbar.style.marginBottom = '0';
+        }
         let html = '<span class="active-filters-label">Active:</span>';
         if (search) {
             const searchDisplay = search.length > 20 ? search.substring(0,20)+'...' : search;
@@ -1520,44 +1471,13 @@ function updateActiveFilters() {
         }
         html += `<a href="#" class="chips-clear-all" id="clearAllFilters">Clear all</a>`;
         container.innerHTML = html;
-        
-        container.querySelectorAll('.chip-remove').forEach(el => {
-            el.addEventListener('click', function(e) {
-                e.preventDefault();
-                const filter = this.getAttribute('data-filter');
-                removeFilter(filter);
-            });
-        });
-        const clearAll = container.querySelector('#clearAllFilters');
-        if (clearAll) {
-            clearAll.addEventListener('click', function(e) {
-                e.preventDefault();
-                clearAllFilters();
-            });
-        }
+
         if (toolbar) toolbar.style.borderRadius = '14px 14px 0 0';
     }
 }
 
-// ===== REMOVE INDIVIDUAL FILTER =====
-function removeFilter(type) {
-    if (type === 'search') document.getElementById('searchInput').value = '';
-    else if (type === 'status') document.getElementById('toolbarStatus').value = '';
-    else if (type === 'risk') document.getElementById('popoverRisk').value = '';
-    else if (type === 'category') document.getElementById('popoverCategory').value = '0';
-    else if (type === 'date') document.getElementById('popoverDateRange').value = '0';
-    applyFilters();
-}
-
-// ===== CLEAR ALL FILTERS =====
-function clearAllFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('toolbarStatus').value = '';
-    document.getElementById('popoverRisk').value = '';
-    document.getElementById('popoverCategory').value = '0';
-    document.getElementById('popoverDateRange').value = '0';
-    applyFilters();
-}
+// (Chip removal + Clear all are handled by the delegated listener in the shared
+//  report_filter_toolbar partial, so they also work after the AJAX re-render.)
 
 // ===== GO TO PAGE =====
 function goToPage(page) {
@@ -1586,46 +1506,9 @@ function goToPage(page) {
         .catch(() => hideLoading());
 }
 
-// ===== EVENT LISTENERS =====
-document.getElementById('searchInput').addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => applyFilters(), 400);
-});
-
-document.getElementById('toolbarStatus').addEventListener('change', applyFilters);
-document.getElementById('toolbarSort').addEventListener('change', applyFilters);
-
-// Popover toggle
-const filterBtn = document.getElementById('filterByBtn');
-const filterPopover = document.getElementById('filterPopover');
-
-filterBtn?.addEventListener('click', function(e) {
-    e.stopPropagation();
-    filterPopover.classList.toggle('open');
-});
-
-document.addEventListener('click', function(e) {
-    if (filterPopover && !filterPopover.contains(e.target) && e.target !== filterBtn) {
-        filterPopover.classList.remove('open');
-    }
-});
-
-filterPopover?.addEventListener('click', function(e) {
-    e.stopPropagation();
-});
-
-document.getElementById('popoverApply')?.addEventListener('click', function() {
-    filterPopover.classList.remove('open');
-    applyFilters();
-});
-
-document.getElementById('popoverReset')?.addEventListener('click', function() {
-    document.getElementById('popoverRisk').value = '';
-    document.getElementById('popoverCategory').value = '0';
-    document.getElementById('popoverDateRange').value = '0';
-    filterPopover.classList.remove('open');
-    applyFilters();
-});
+// Event listeners for search/status/sort/popover/chips are provided by the shared
+// report_filter_toolbar partial (search debounce, onchange, popover toggle/apply/reset,
+// delegated chip removal + clear all, Escape close). Only page-specific handlers remain.
 
 // ===== INITIAL UPDATE =====
 updateActiveFilters();

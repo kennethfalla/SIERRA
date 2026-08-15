@@ -217,9 +217,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Store OTP in verification_codes (user_id = 0 for registration, type = 'registration')
         try {
-            $checkColumn = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'");
-            if ($checkColumn->rowCount() == 0) {
+            $typeCol = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'")->fetch(PDO::FETCH_ASSOC);
+            if (!$typeCol) {
                 $db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            } elseif (stripos($typeCol['Type'], 'enum') === 0) {
+                // Legacy schema used an ENUM that does not allow 'forgot'. Convert to VARCHAR
+                // so type='forgot' / 'registration' values are stored instead of silently coerced to ''.
+                $db->exec("ALTER TABLE verification_codes MODIFY COLUMN type VARCHAR(20) DEFAULT 'forgot'");
             }
             $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (0, ?, ?, 'registration')");
             $stmt->execute([$otp, $expires_at]);
@@ -633,6 +637,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             } else {
                 // Password incorrect
+                if ($activityLog) {
+                    $activityLog->log($row['id'], 'Login', "Failed login attempt - incorrect password for {$login}", null, 'Auth', 'FAILED');
+                }
                 $_SESSION['error'] = "Invalid email or password.";
                 header("Location: " . BASE_URL . "index.php?page=login");
                 exit();
@@ -651,11 +658,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt2->rowCount() > 0) {
                 $row2 = $stmt2->fetch(PDO::FETCH_ASSOC);
                 if ($row2['is_active'] == 0) {
+                    if ($activityLog) {
+                        $activityLog->log($row2['id'], 'Login', "Login attempt on deactivated account ({$login})", null, 'Auth', 'UNAUTHORIZED_ATTEMPT');
+                    }
                     $_SESSION['error'] = "Your account has been deactivated. Please contact support.";
                 } else {
+                    if ($activityLog) {
+                        $activityLog->log($row2['id'], 'Login', "Failed login attempt - user exists but unknown error ({$login})", null, 'Auth', 'FAILED');
+                    }
                     $_SESSION['error'] = "Invalid email or password.";
                 }
             } else {
+                if ($activityLog) {
+                    $activityLog->log(null, 'Login', "Login attempt for non-existent account ({$login})", null, 'Auth', 'UNAUTHORIZED_ATTEMPT');
+                }
                 $_SESSION['error'] = "Invalid email or password.";
             }
             header("Location: " . BASE_URL . "index.php?page=login");
@@ -783,9 +799,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Store OTP
             try {
-                $checkColumn = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'");
-                if ($checkColumn->rowCount() == 0) {
+                $typeCol = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'")->fetch(PDO::FETCH_ASSOC);
+                if (!$typeCol) {
                     $db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+                } elseif (stripos($typeCol['Type'], 'enum') === 0) {
+                    // Legacy schema used an ENUM that does not allow 'forgot'. Convert to VARCHAR
+                    // so type='forgot' / 'registration' values are stored instead of silently coerced to ''.
+                    $db->exec("ALTER TABLE verification_codes MODIFY COLUMN type VARCHAR(20) DEFAULT 'forgot'");
                 }
                 $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'forgot')");
                 $stmt->execute([$user['id'], $otp, $expires_at]);

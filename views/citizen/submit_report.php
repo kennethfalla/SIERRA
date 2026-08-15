@@ -2108,6 +2108,18 @@ if (is_dir($barangays_dir)) {
         }
     }
 
+    // Render small evidence thumbnails for a nearby report card
+    function renderNearbyThumbnails(r) {
+        if (!r.images || !r.images.length) return '';
+        const thumbs = r.images.map(function(img) {
+            if (img.is_video) {
+                return `<video src="${img.image_path}" muted playsinline preload="metadata" class="w-16 h-14 object-cover rounded-lg border border-gray-100" onclick="event.stopPropagation()"></video>`;
+            }
+            return `<img src="${img.image_path}" alt="Evidence photo" class="w-16 h-14 object-cover rounded-lg border border-gray-100" onclick="event.stopPropagation()">`;
+        }).join('');
+        return `<div class="flex gap-2 mt-2">${thumbs}</div>`;
+    }
+
     function showDuplicateModal(reports) {
         // Store the reports for later use in details modal
         currentDuplicateReports = reports;
@@ -2131,6 +2143,7 @@ if (is_dir($barangays_dir)) {
                     </div>
                     <span class="distance-badge flex-shrink-0 ml-2">${distance}</span>
                 </div>
+                ${renderNearbyThumbnails(r)}
                 <div class="mt-2 flex justify-end">
                     <button class="text-xs text-[#10A37F] font-medium hover:underline view-details-btn" data-report-id="${r.id}">
                         <i class="fas fa-eye mr-1"></i>View Details
@@ -2224,6 +2237,14 @@ if (is_dir($barangays_dir)) {
         supportFromDetailsBtn.innerHTML = '<i class="fas fa-thumbs-up"></i> Support This Report';
         supportFromDetailsBtn.style.opacity = '1';
         supportFromDetailsBtn.dataset.reportId = report.id;
+
+        // Use evidence photos bundled in the nearby-report payload (the get_images
+        // endpoint is owner-only and cannot serve other users' reports). Fall back to
+        // fetching only if no images were included.
+        if (report.images && report.images.length) {
+            renderReportDetails(report, report.images);
+            return;
+        }
 
         // Try to fetch images, but render details even if it fails
         fetchReportImages(report.id)
