@@ -505,6 +505,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             color: #10A37F;
             cursor: pointer;
         }
+        @media (max-width: 640px) {
+            .verify-btn {
+                font-size: 0.8rem;
+                padding: 0.6rem 1.1rem;
+                min-height: 44px;
+            }
+        }
         .verify-btn:hover:not(:disabled) {
             background: #10A37F;
             color: white;
@@ -757,14 +764,66 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 padding: 0.75rem 0.75rem 0.75rem 0.75rem;
             }
         }
+        body.resolution-active .main-container {
+            padding-bottom: 6.5rem;
+        }
         @media (min-width: 768px) {
             body.resolution-active .main-container {
                 padding-bottom: 7.5rem;
             }
         }
+        @media (max-width: 640px) {
+            .resolution-confirm-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+            .resolution-confirm-bar form {
+                width: 100%;
+            }
+            .resolution-confirm-bar button[type="submit"] {
+                width: 100%;
+                justify-content: center;
+            }
+        }
         @media (min-width: 768px) {
             .resolution-confirm-bar {
                 padding: 1rem 1.25rem;
+            }
+        }
+        /* Scroll-to-top floating button */
+        .scroll-top-btn {
+            position: fixed;
+            right: 16px;
+            bottom: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #10A37F;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 16px rgba(16, 163, 127, 0.35);
+            z-index: 2000;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(12px);
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .scroll-top-btn.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        body.resolution-active .scroll-top-btn {
+            bottom: 84px;
+        }
+        @media (min-width: 768px) {
+            body.resolution-active .scroll-top-btn {
+                bottom: 96px;
             }
         }
     </style>
@@ -1111,7 +1170,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     </div>
                     <div class="min-w-0">
                         <h3 class="font-bold text-gray-800 text-sm md:text-base">Resolution Confirmation Required</h3>
-                        <p class="text-gray-600 text-xs md:text-sm truncate">
+                        <p class="text-gray-600 text-xs md:text-sm sm:truncate">
                             <?php if($menro_accepted): ?>
                                 MENRO has marked this report as resolved. Please confirm if you agree with the resolution.
                             <?php else: ?>
@@ -1174,8 +1233,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8">
             <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 md:mb-4">Report Location</h3>
             <?php if($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
-            <div class="rounded-xl overflow-hidden border border-emerald-100">
+            <div class="rounded-xl overflow-hidden border border-emerald-100 relative">
                 <div id="reportMap" class="h-64 md:h-80"></div>
+                <div id="mapTapOverlay" class="absolute inset-0 bg-black/0 active:bg-black/5 flex items-center justify-center md:hidden">
+                    <span class="bg-white/95 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-full shadow flex items-center gap-1.5">
+                        <i class="fas fa-hand-pointer text-[#10A37F]"></i> Tap to interact with map
+                    </span>
+                </div>
             </div>
             <p class="text-xs text-gray-400 mt-2 text-center">
                 <i class="fas fa-map-pin mr-1 text-[#10A37F]"></i>
@@ -1284,16 +1348,21 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </div>
 </div>
 
+
+<button id="scrollTopBtn" class="scroll-top-btn" aria-label="Scroll to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <i class="fas fa-arrow-up"></i>
+</button>
+
 <!-- Lightbox Modal -->
 <div id="lightboxModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[10000] hidden items-center justify-center p-4" onclick="closeLightbox()">
-    <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white hover:text-gray-300 transition z-10">
-        <i class="fas fa-times text-3xl"></i>
+    <button onclick="closeLightbox()" class="absolute top-3 right-3 sm:top-6 sm:right-6 text-white hover:text-gray-300 transition z-10 p-2">
+        <i class="fas fa-times text-2xl sm:text-3xl"></i>
     </button>
-    <button onclick="prevImage()" class="absolute left-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10">
-        <i class="fas fa-chevron-left text-4xl"></i>
+    <button onclick="prevImage()" class="absolute left-1 sm:left-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10 p-2 sm:p-3">
+        <i class="fas fa-chevron-left text-3xl sm:text-4xl"></i>
     </button>
-    <button onclick="nextImage()" class="absolute right-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10">
-        <i class="fas fa-chevron-right text-4xl"></i>
+    <button onclick="nextImage()" class="absolute right-1 sm:right-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10 p-2 sm:p-3">
+        <i class="fas fa-chevron-right text-3xl sm:text-4xl"></i>
     </button>
     <div class="max-w-5xl max-h-[85vh] w-full h-full flex items-center justify-center" onclick="event.stopPropagation()">
         <img id="lightboxImage" src="" alt="Full size image" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl">
@@ -1622,6 +1691,47 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// ===== Scroll-to-top button =====
+(function () {
+    var btn = document.getElementById('scrollTopBtn');
+    if (!btn) return;
+    var ticking = false;
+    function update() {
+        ticking = false;
+        if (window.scrollY > 500) { btn.classList.add('visible'); } else { btn.classList.remove('visible'); }
+    }
+    window.addEventListener('scroll', function () {
+        if (!ticking) { requestAnimationFrame(update); ticking = true; }
+    }, { passive: true });
+    update();
+})();
+
+// ===== Lightbox swipe navigation (mobile) =====
+(function () {
+    var lightboxEl = document.getElementById('lightboxModal');
+    if (!lightboxEl) return;
+    var touchStartX = 0, touchStartY = 0, tracking = false;
+
+    lightboxEl.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        tracking = true;
+    }, { passive: true });
+
+    lightboxEl.addEventListener('touchend', function (e) {
+        if (!tracking) return;
+        tracking = false;
+        var touch = e.changedTouches[0];
+        var dx = touch.clientX - touchStartX;
+        var dy = touch.clientY - touchStartY;
+        // Only treat as a swipe if it's mostly horizontal and past a small threshold
+        if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            if (dx < 0) { nextImage(); } else { prevImage(); }
+        }
+    }, { passive: true });
+})();
+
 // ============================================
 // SUPPORT / VERIFY REPORT (AJAX)
 // ============================================
@@ -1716,7 +1826,13 @@ document.addEventListener('DOMContentLoaded', function() {
     var colorMap = { 'green': '#10A37F', 'yellow': '#F59E0B', 'orange': '#F97316', 'red': '#EF4444' };
     var color = colorMap[pinColor] || '#10A37F';
 
-    var map = L.map('reportMap').setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], 16);
+    var isMobileViewport = window.matchMedia('(max-width: 767px)').matches;
+    var map = L.map('reportMap', {
+        dragging: !isMobileViewport,
+        tap: !isMobileViewport,
+        scrollWheelZoom: !isMobileViewport,
+        touchZoom: !isMobileViewport
+    }).setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], 16);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         subdomains: 'abcd',
@@ -1782,6 +1898,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 <span class="text-xs">${'<?php echo addslashes(htmlspecialchars($report['title'])); ?>'}</span>
             </div>
         `);
+
+    var mapTapOverlay = document.getElementById('mapTapOverlay');
+    if (mapTapOverlay && isMobileViewport) {
+        mapTapOverlay.addEventListener('click', function () {
+            map.dragging.enable();
+            map.tap && map.tap.enable();
+            map.touchZoom.enable();
+            mapTapOverlay.remove();
+        }, { once: true });
+    }
     <?php endif; ?>
 });
 

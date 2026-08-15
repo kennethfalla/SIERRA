@@ -424,13 +424,148 @@ foreach ($ft_popover_fields as $pf) {
         .ft-toolbar .toolbar-search { min-width: 100%; }
         .ft-toolbar .toolbar-results { width: 100%; justify-content: space-between; }
     }
+
+    /* ===== Mobile "3 dots" more menu ===== */
+    .ft-toolbar .ft-more-btn {
+        display: none;
+    }
+    .ft-toolbar .ft-more-controls {
+        display: contents;
+    }
+    .ft-toolbar .ft-more-controls-header {
+        display: none;
+    }
+    .ft-toolbar .ft-more-backdrop {
+        display: none;
+    }
+    @media (max-width: 640px) {
+        .ft-toolbar .reports-toolbar {
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+        }
+        .ft-toolbar .toolbar-search {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        /* View toggle gets JS-repositioned to sit right after search on mobile */
+        .ft-toolbar .view-toggle {
+            flex-shrink: 0;
+        }
+        .ft-toolbar .ft-more-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: 1.5px solid var(--ft-border-light);
+            background: var(--ft-gray-50);
+            color: var(--ft-gray-700);
+            cursor: pointer;
+        }
+        .ft-toolbar .ft-more-btn.active {
+            border-color: var(--ft-forest);
+            color: var(--ft-forest);
+            background: var(--ft-forest-light);
+        }
+        .ft-toolbar .ft-more-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            border-radius: 8px;
+            background: var(--ft-forest);
+            color: var(--ft-white);
+            font-size: 0.6rem;
+            font-weight: 700;
+            line-height: 16px;
+            text-align: center;
+        }
+        .ft-toolbar .ft-more-backdrop.open {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 190;
+        }
+        .ft-toolbar .ft-more-controls {
+            display: none;
+        }
+        .ft-toolbar .ft-more-controls.open {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 200;
+            background: var(--ft-white);
+            padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+            border-radius: 18px 18px 0 0;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
+            max-height: 75vh;
+            overflow-y: auto;
+            animation: ftSheetUp 0.22s ease;
+        }
+        @keyframes ftSheetUp {
+            from { transform: translateY(16px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .ft-toolbar .ft-more-controls-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--ft-gray-800);
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--ft-border-light);
+        }
+        .ft-toolbar .ft-more-close {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: var(--ft-gray-50);
+            color: var(--ft-gray-500);
+            cursor: pointer;
+        }
+        .ft-toolbar .ft-more-controls.open .toolbar-select,
+        .ft-toolbar .ft-more-controls.open .filter-popover-wrapper,
+        .ft-toolbar .ft-more-controls.open .toolbar-filter-btn {
+            width: 100%;
+        }
+        .ft-toolbar .ft-more-controls.open .toolbar-divider {
+            display: none;
+        }
+        .ft-toolbar .ft-more-controls.open .toolbar-results {
+            width: 100%;
+            margin-left: 0;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .ft-toolbar .ft-more-controls.open .view-toggle {
+            display: none;
+        }
+        .ft-toolbar .ft-more-controls.open .filter-popover {
+            left: 0;
+            right: 0;
+        }
+    }
 </style>
 
 <div class="ft-toolbar">
     <div class="reports-toolbar<?php echo $ft_active_filters > 0 ? ' style-has-chips' : ''; ?>"
          style="<?php echo $ft_active_filters > 0 ? 'border-radius: 14px 14px 0 0;' : ''; ?>">
 
-        <!-- Search -->
+        <!-- Search (always visible, incl. mobile) -->
         <div class="toolbar-search">
             <i class="fas fa-search"></i>
             <input type="text" id="<?php echo htmlspecialchars($ft_search_id); ?>"
@@ -438,102 +573,123 @@ foreach ($ft_popover_fields as $pf) {
                    placeholder="<?php echo htmlspecialchars($ft_search_placeholder); ?>">
         </div>
 
-        <!-- Inline selects -->
-        <?php foreach ($ft_inline_selects as $sel): ?>
-            <?php
-            $sel_id   = $sel['id'] ?? '';
-            $sel_value = (string)($sel['value'] ?? '');
-            $sel_min   = !empty($sel['min_width']) ? 'min-width:' . htmlspecialchars($sel['min_width']) . ';' : '';
-            $sel_onchange = !empty($sel['onchange']) ? $sel['onchange'] : ($ft_callback . '()');
-            $sel_options  = $sel['options'] ?? [];
-            ?>
-            <select id="<?php echo htmlspecialchars($sel_id); ?>" class="toolbar-select"
-                    style="<?php echo $sel_min; ?>" onchange="<?php echo htmlspecialchars($sel_onchange); ?>">
-                <?php foreach ($sel_options as $opt_value => $opt_label): ?>
-                    <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
-                        <?php echo ($sel_value === (string)$opt_value) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars((string)$opt_label); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        <?php endforeach; ?>
+        <!-- Mobile-only "more filters" trigger (3 dots) -->
+        <button type="button" class="ft-more-btn" id="ftMoreBtn" aria-label="More filters" aria-expanded="false">
+            <i class="fas fa-ellipsis-vertical"></i>
+            <?php if ($ft_active_filters > 0): ?>
+                <span class="ft-more-badge"><?php echo (int)$ft_active_filters; ?></span>
+            <?php endif; ?>
+        </button>
 
-        <!-- Filter By popover -->
-        <?php if (!empty($ft_popover_fields)): ?>
-        <div class="filter-popover-wrapper">
-            <button type="button" class="toolbar-filter-btn <?php echo $ft_filter_count > 0 ? 'active' : ''; ?>" id="filterByBtn">
-                <i class="fas fa-sliders-h"></i> Filter By
-                <?php if ($ft_filter_count > 0): ?>
-                    <span class="filter-count-badge"><?php echo (int)$ft_filter_count; ?></span>
-                <?php endif; ?>
-            </button>
-            <div class="filter-popover" id="filterPopover">
-                <div class="popover-title">Refine Results</div>
-                <div class="popover-grid<?php echo count($ft_popover_fields) <= 1 ? ' full-width' : ''; ?>">
-                    <?php foreach ($ft_popover_fields as $pf): ?>
-                        <div class="popover-field">
-                            <label><?php echo htmlspecialchars($pf['label'] ?? ''); ?></label>
-                            <?php if (($pf['kind'] ?? 'date') === 'select'): ?>
-                                <select id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>">
-                                    <?php foreach (($pf['options'] ?? []) as $opt_value => $opt_label): ?>
-                                        <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
-                                            <?php echo ((string)($pf['value'] ?? '') === (string)$opt_value) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)$opt_label); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            <?php else: ?>
-                                <input type="date" id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>"
-                                       value="<?php echo htmlspecialchars($pf['value'] ?? ''); ?>">
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-                <div class="popover-actions">
-                    <button type="button" class="popover-btn-reset" id="popoverReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
-                    <button type="button" class="popover-btn-apply" id="popoverApply"><i class="fas fa-check" style="font-size:0.7rem; margin-right:4px"></i>Apply Filters</button>
-                </div>
+        <!-- Controls hidden on mobile behind the 3-dot menu (unchanged on desktop) -->
+        <div class="ft-more-controls" id="ftMoreControls">
+            <div class="ft-more-controls-header">
+                <span>Filters &amp; Sort</span>
+                <button type="button" class="ft-more-close" id="ftMoreClose" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
-        </div>
-        <?php endif; ?>
 
-        <?php if ($ft_results_text !== '' || $ft_view_toggle || $ft_trailing_select): ?>
-        <div class="toolbar-divider"></div>
-        <div class="toolbar-results">
-            <?php if ($ft_results_text !== ''): ?>
-                <span class="toolbar-results-text"><?php echo $ft_results_text; ?></span>
-            <?php endif; ?>
-
-            <?php if ($ft_view_toggle): ?>
-                <div class="view-toggle">
-                    <button type="button" id="gridViewBtn" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'grid' ? 'active' : ''; ?>"
-                            onclick="<?php echo htmlspecialchars($ft_view_toggle['grid'] ?? ''); ?>"><i class="fas fa-th"></i></button>
-                    <button type="button" id="listViewBtn" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'list' ? 'active' : ''; ?>"
-                            onclick="<?php echo htmlspecialchars($ft_view_toggle['list'] ?? ''); ?>"><i class="fas fa-list"></i></button>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($ft_trailing_select): ?>
+            <!-- Inline selects -->
+            <?php foreach ($ft_inline_selects as $sel): ?>
                 <?php
-                $ts_id   = $ft_trailing_select['id'] ?? '';
-                $ts_value = (string)($ft_trailing_select['value'] ?? '');
-                $ts_min   = !empty($ft_trailing_select['min_width']) ? 'min-width:' . htmlspecialchars($ft_trailing_select['min_width']) . ';' : '';
-                $ts_onchange = $ft_trailing_select['onchange'] ?? ($ft_callback . '()');
-                $ts_options  = $ft_trailing_select['options'] ?? [];
+                $sel_id   = $sel['id'] ?? '';
+                $sel_value = (string)($sel['value'] ?? '');
+                $sel_min   = !empty($sel['min_width']) ? 'min-width:' . htmlspecialchars($sel['min_width']) . ';' : '';
+                $sel_onchange = !empty($sel['onchange']) ? $sel['onchange'] : ($ft_callback . '()');
+                $sel_options  = $sel['options'] ?? [];
                 ?>
-                <select id="<?php echo htmlspecialchars($ts_id); ?>" class="toolbar-select"
-                        style="<?php echo $ts_min; ?>" onchange="<?php echo htmlspecialchars($ts_onchange); ?>">
-                    <?php foreach ($ts_options as $opt_value => $opt_label): ?>
+                <select id="<?php echo htmlspecialchars($sel_id); ?>" class="toolbar-select"
+                        style="<?php echo $sel_min; ?>" onchange="<?php echo htmlspecialchars($sel_onchange); ?>">
+                    <?php foreach ($sel_options as $opt_value => $opt_label): ?>
                         <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
-                            <?php echo ($ts_value === (string)$opt_value) ? 'selected' : ''; ?>>
+                            <?php echo ($sel_value === (string)$opt_value) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars((string)$opt_label); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+            <?php endforeach; ?>
+
+            <!-- Filter By popover -->
+            <?php if (!empty($ft_popover_fields)): ?>
+            <div class="filter-popover-wrapper">
+                <button type="button" class="toolbar-filter-btn <?php echo $ft_filter_count > 0 ? 'active' : ''; ?>" id="filterByBtn">
+                    <i class="fas fa-sliders-h"></i> Filter By
+                    <?php if ($ft_filter_count > 0): ?>
+                        <span class="filter-count-badge"><?php echo (int)$ft_filter_count; ?></span>
+                    <?php endif; ?>
+                </button>
+                <div class="filter-popover" id="filterPopover">
+                    <div class="popover-title">Refine Results</div>
+                    <div class="popover-grid<?php echo count($ft_popover_fields) <= 1 ? ' full-width' : ''; ?>">
+                        <?php foreach ($ft_popover_fields as $pf): ?>
+                            <div class="popover-field">
+                                <label><?php echo htmlspecialchars($pf['label'] ?? ''); ?></label>
+                                <?php if (($pf['kind'] ?? 'date') === 'select'): ?>
+                                    <select id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>">
+                                        <?php foreach (($pf['options'] ?? []) as $opt_value => $opt_label): ?>
+                                            <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
+                                                <?php echo ((string)($pf['value'] ?? '') === (string)$opt_value) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars((string)$opt_label); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <input type="date" id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>"
+                                           value="<?php echo htmlspecialchars($pf['value'] ?? ''); ?>">
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="popover-actions">
+                        <button type="button" class="popover-btn-reset" id="popoverReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
+                        <button type="button" class="popover-btn-apply" id="popoverApply"><i class="fas fa-check" style="font-size:0.7rem; margin-right:4px"></i>Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($ft_results_text !== '' || $ft_view_toggle || $ft_trailing_select): ?>
+            <div class="toolbar-divider"></div>
+            <div class="toolbar-results">
+                <?php if ($ft_results_text !== ''): ?>
+                    <span class="toolbar-results-text"><?php echo $ft_results_text; ?></span>
+                <?php endif; ?>
+
+                <?php if ($ft_view_toggle): ?>
+                    <!-- View toggle: lives here on desktop; JS moves it up next to Search on mobile -->
+                    <span id="ftViewTogglePlaceholder" style="display:none"></span>
+                    <div class="view-toggle" id="ftViewToggle">
+                        <button type="button" id="gridViewBtn" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'grid' ? 'active' : ''; ?>"
+                                onclick="<?php echo htmlspecialchars($ft_view_toggle['grid'] ?? ''); ?>"><i class="fas fa-th"></i></button>
+                        <button type="button" id="listViewBtn" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'list' ? 'active' : ''; ?>"
+                                onclick="<?php echo htmlspecialchars($ft_view_toggle['list'] ?? ''); ?>"><i class="fas fa-list"></i></button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($ft_trailing_select): ?>
+                    <?php
+                    $ts_id   = $ft_trailing_select['id'] ?? '';
+                    $ts_value = (string)($ft_trailing_select['value'] ?? '');
+                    $ts_min   = !empty($ft_trailing_select['min_width']) ? 'min-width:' . htmlspecialchars($ft_trailing_select['min_width']) . ';' : '';
+                    $ts_onchange = $ft_trailing_select['onchange'] ?? ($ft_callback . '()');
+                    $ts_options  = $ft_trailing_select['options'] ?? [];
+                    ?>
+                    <select id="<?php echo htmlspecialchars($ts_id); ?>" class="toolbar-select"
+                            style="<?php echo $ts_min; ?>" onchange="<?php echo htmlspecialchars($ts_onchange); ?>">
+                        <?php foreach ($ts_options as $opt_value => $opt_label): ?>
+                            <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
+                                <?php echo ($ts_value === (string)$opt_value) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars((string)$opt_label); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                <?php endif; ?>
+            </div>
             <?php endif; ?>
         </div>
-        <?php endif; ?>
     </div>
+
+    <!-- Backdrop for the mobile "more filters" sheet -->
+    <div class="ft-more-backdrop" id="ftMoreBackdrop"></div>
 
     <?php if ($ft_active_filters > 0): ?>
     <div class="active-filters-row">
@@ -566,6 +722,60 @@ foreach ($ft_popover_fields as $pf) {
     var filterBtn = document.getElementById('filterByBtn');
     var filterPopover = document.getElementById('filterPopover');
     var searchTimer = null;
+
+    // ===== Mobile "3 dots" more menu (bottom sheet) =====
+    var moreBtn = document.getElementById('ftMoreBtn');
+    var moreControls = document.getElementById('ftMoreControls');
+    var moreBackdrop = document.getElementById('ftMoreBackdrop');
+    var moreClose = document.getElementById('ftMoreClose');
+    var mobileQuery = window.matchMedia('(max-width: 640px)');
+
+    function openMore() {
+        if (!moreControls) return;
+        moreControls.classList.add('open');
+        moreBackdrop && moreBackdrop.classList.add('open');
+        moreBtn && moreBtn.classList.add('active');
+        moreBtn && moreBtn.setAttribute('aria-expanded', 'true');
+    }
+    function closeMore() {
+        if (!moreControls) return;
+        moreControls.classList.remove('open');
+        moreBackdrop && moreBackdrop.classList.remove('open');
+        moreBtn && moreBtn.classList.remove('active');
+        moreBtn && moreBtn.setAttribute('aria-expanded', 'false');
+        filterPopover && filterPopover.classList.remove('open');
+    }
+    moreBtn && moreBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (moreControls.classList.contains('open')) { closeMore(); } else { openMore(); }
+    });
+    moreClose && moreClose.addEventListener('click', closeMore);
+    moreBackdrop && moreBackdrop.addEventListener('click', closeMore);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMore();
+    });
+
+    // ===== Move the grid/list view toggle next to Search on mobile =====
+    var viewToggle = document.getElementById('ftViewToggle');
+    var viewTogglePlaceholder = document.getElementById('ftViewTogglePlaceholder');
+    var viewToggleMoved = false;
+    function layoutViewToggle() {
+        if (!viewToggle || !moreBtn) return;
+        if (mobileQuery.matches && !viewToggleMoved) {
+            moreBtn.parentNode.insertBefore(viewToggle, moreBtn);
+            viewToggleMoved = true;
+        } else if (!mobileQuery.matches && viewToggleMoved && viewTogglePlaceholder) {
+            viewTogglePlaceholder.parentNode.insertBefore(viewToggle, viewTogglePlaceholder.nextSibling);
+            viewToggleMoved = false;
+        }
+    }
+    layoutViewToggle();
+    if (mobileQuery.addEventListener) {
+        mobileQuery.addEventListener('change', layoutViewToggle);
+    } else if (mobileQuery.addListener) {
+        mobileQuery.addListener(layoutViewToggle);
+    }
+    window.addEventListener('resize', layoutViewToggle);
 
     function ftRun() {
         if (typeof window[FT.callback] === 'function') window[FT.callback]();

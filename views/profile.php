@@ -534,14 +534,9 @@ $full_name = $user['first_name'] . ' ' . $user['last_name'];
                 </div>
                 <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold">My Profile</span>
             </div>
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                    <h1 class="page-title font-bold text-gray-800">My Profile</h1>
-                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">View and manage your personal account information</p>
-                </div>
-                <button id="editToggleBtn" class="btn-primary inline-flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-center">
-                    <i class="fas fa-pen text-xs md:text-sm"></i> Edit Profile
-                </button>
+            <div>
+                <h1 class="page-title font-bold text-gray-800">My Profile</h1>
+                <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">View and manage your personal account information</p>
             </div>
         </div>
         
@@ -586,8 +581,8 @@ $full_name = $user['first_name'] . ' ' . $user['last_name'];
                     </div>
                     
                     <!-- User Info -->
-                    <div class="flex-1 min-w-0">
-                        <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div class="flex-1 min-w-0 w-full">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <h1 class="text-2xl md:text-3xl font-bold text-gray-800"><?php echo htmlspecialchars($full_name); ?></h1>
                                 <div class="flex flex-wrap items-center gap-2 mt-1">
@@ -605,7 +600,10 @@ $full_name = $user['first_name'] . ' ' . $user['last_name'];
                                     </span>
                                 </div>
                             </div>
-                            <!-- The Edit Profile button is now in the header, but we keep a fallback here just in case -->
+                            <!-- Edit Profile button lives inside the card, full-width on mobile -->
+                            <button id="editToggleBtn" class="btn-primary inline-flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-center flex-shrink-0">
+                                <i class="fas fa-pen text-xs md:text-sm"></i> Edit Profile
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -311,6 +311,86 @@ class SettingsController {
     }
 
     /**
+     * Downscale + re-encode a freshly uploaded image to JPEG so it always
+     * stays far below the 10MB hosting limit, regardless of which landing
+     * page upload slot it came from (hero background, Vision/Mission/Inset
+     * photos, or the about gallery). Returns the new basename (.jpg) or
+     * null when the image could not be processed (kept as-is).
+     * If the first pass is still too big (very high-res source), quality
+     * is stepped down, and dimensions shrunk further as a last resort,
+     * until it fits under the safe limit.
+     * @param string $dir
+     * @param string $basename
+     * @param string $prefix filename prefix for the re-encoded output
+     * @return string|null
+     */
+    private function optimizeUploadedImage($dir, $basename, $prefix = 'img') {
+        if (!function_exists('imagecreatefromjpeg')) {
+            return null;
+        }
+        $src = $dir . $basename;
+        $ext = strtolower(pathinfo($basename, PATHINFO_EXTENSION));
+        $img = null;
+        switch ($ext) {
+            case 'jpg': case 'jpeg': $img = @imagecreatefromjpeg($src); break;
+            case 'png': $img = @imagecreatefrompng($src); break;
+            case 'gif': $img = @imagecreatefromgif($src); break;
+            case 'webp': $img = @imagecreatefromwebp($src); break;
+        }
+        if (!$img) {
+            return null;
+        }
+        $w = imagesx($img);
+        $h = imagesy($img);
+        $maxDim = 1920;
+        $ratio = min(1.0, $maxDim / max($w, $h));
+        $nw = max(1, (int)round($w * $ratio));
+        $nh = max(1, (int)round($h * $ratio));
+        $dst = imagecreatetruecolor($nw, $nh);
+        $bg = imagecolorallocate($dst, 255, 255, 255);
+        imagefill($dst, 0, 0, $bg);
+        imagecopyresampled($dst, $img, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        imagedestroy($img);
+
+        $out = $prefix . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.jpg';
+        $safeLimit = 9437184; // 9MB — stay comfortably under the 10MB hosting cap
+        $quality = 82;
+        $ok = imagejpeg($dst, $dir . $out, $quality);
+        while ($ok && filesize($dir . $out) > $safeLimit && $quality > 35) {
+            $quality -= 15;
+            $ok = imagejpeg($dst, $dir . $out, $quality);
+        }
+        // Last resort: if it's still oversized at the lowest quality, scale
+        // the dimensions down further and re-encode once more.
+        if ($ok && filesize($dir . $out) > $safeLimit) {
+            $nw2 = max(1, (int)round($nw * 0.7));
+            $nh2 = max(1, (int)round($nh * 0.7));
+            $dst2 = imagecreatetruecolor($nw2, $nh2);
+            $bg2 = imagecolorallocate($dst2, 255, 255, 255);
+            imagefill($dst2, 0, 0, $bg2);
+            imagecopyresampled($dst2, $dst, 0, 0, 0, 0, $nw2, $nh2, $nw, $nh);
+            $ok = imagejpeg($dst2, $dir . $out, 60);
+            imagedestroy($dst2);
+        }
+        imagedestroy($dst);
+        if (!$ok) {
+            @unlink($dir . $out);
+            return null;
+        }
+        return $out;
+    }
+
+    /**
+     * Back-compat wrapper for the hero background upload path.
+     * @param string $dir
+     * @param string $basename
+     * @return string|null
+     */
+    private function optimizeHeroImage($dir, $basename) {
+        return $this->optimizeUploadedImage($dir, $basename, 'hero');
+    }
+
+    /**
      * Handle uploading a new image/video into the hero media gallery.
      */
     private function heroGalleryUpload() {
@@ -323,7 +403,12 @@ class SettingsController {
             exit();
         }
         if ($_FILES['hero_media']['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['error'] = "Upload failed (error code " . (int)$_FILES['hero_media']['error'] . ").";
+            $errCode = (int)$_FILES['hero_media']['error'];
+            if ($errCode === UPLOAD_ERR_INI_SIZE || $errCode === UPLOAD_ERR_FORM_SIZE) {
+                $_SESSION['error'] = "The file exceeds the server's upload limit (10MB). Videos over 8MB are compressed automatically in the browser before upload — please use Chrome or Edge.";
+            } else {
+                $_SESSION['error'] = "Upload failed (error code " . $errCode . "). Please try again.";
+            }
             header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
             exit();
         }
@@ -337,9 +422,11 @@ class SettingsController {
         }
 
         $is_video = $exts[$ext];
-        $max_size = $is_video ? 52428800 : 5242880; // 50MB video, 5MB image
+        // Keep uploads comfortably under the 10MB InfinityFree server limit.
+        // Larger videos are auto-compressed in the browser before upload.
+        $max_size = 9437184; // 9MB
         if ($file['size'] > $max_size) {
-            $_SESSION['error'] = ($is_video ? "Video" : "Image") . " is too large. Max " . ($max_size / 1048576) . "MB.";
+            $_SESSION['error'] = ($is_video ? "Video" : "Image") . " is too large. Max " . (int)($max_size / 1048576) . "MB.";
             header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
             exit();
         }
@@ -347,6 +434,15 @@ class SettingsController {
         $basename = 'hero_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
         $target = $dir . $basename;
         if (move_uploaded_file($file['tmp_name'], $target)) {
+            // Auto-compress images server-side so they always stay far under
+            // the hosting limit (in-browser compression is the first line).
+            if (!$is_video) {
+                $optimized = $this->optimizeHeroImage($dir, $basename);
+                if ($optimized !== null) {
+                    @unlink($dir . $basename);
+                    $basename = $optimized;
+                }
+            }
             // Auto-activate the freshly uploaded media as the hero background so
             // the public landing page updates immediately after the upload.
             $rel = 'uploads/settings/hero/' . $basename;
@@ -498,8 +594,9 @@ class SettingsController {
             exit();
         }
 
-        if ($file['size'] > 5242880) { // 5MB
-            $_SESSION['error'] = "Image is too large. Max 5MB.";
+        $max_size = 9437184; // 9MB — comfortably under the 10MB hosting limit
+        if ($file['size'] > $max_size) {
+            $_SESSION['error'] = "Image is too large (" . round($file['size'] / 1048576, 1) . "MB). Max " . (int)($max_size / 1048576) . "MB.";
             header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
             exit();
         }
@@ -507,9 +604,15 @@ class SettingsController {
         $basename = 'about_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
         $target = $dir . $basename;
         if (move_uploaded_file($file['tmp_name'], $target)) {
+            // Auto-compress so gallery photos also stay well under the limit.
+            $optimized = $this->optimizeUploadedImage($dir, $basename, 'about');
+            if ($optimized !== null) {
+                @unlink($dir . $basename);
+                $basename = $optimized;
+            }
             SettingsHelper::clearCache();
             $this->activityLog->log($this->user_id, 'Update System Settings', "Added about/mission-vision photo: " . $basename, null, 'Settings');
-            $_SESSION['success'] = "Photo uploaded. Use the buttons on it to assign it to Mission or Vision.";
+            $_SESSION['success'] = "Photo uploaded and optimized. Use the buttons on it to assign it to Mission or Vision.";
         } else {
             $_SESSION['error'] = "Could not move the uploaded file. Check folder permissions.";
         }
@@ -621,8 +724,12 @@ class SettingsController {
             header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
             exit();
         }
-        if ($file['size'] > 5242880) { // 5MB
-            $_SESSION['error'] = "Image is too large. Max 5MB.";
+        // The browser already compresses the image before it gets here, so
+        // this is just a safety ceiling — kept comfortably under the 10MB
+        // hosting limit, matching the hero background uploader.
+        $max_size = 9437184; // 9MB
+        if ($file['size'] > $max_size) {
+            $_SESSION['error'] = "Image is too large (" . round($file['size'] / 1048576, 1) . "MB). Max " . (int)($max_size / 1048576) . "MB.";
             header("Location: " . BASE_URL . "index.php?page=settings&tab=landing");
             exit();
         }
@@ -630,12 +737,22 @@ class SettingsController {
         $basename = 'about_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
         $target = $dir . $basename;
         if (move_uploaded_file($file['tmp_name'], $target)) {
+            // Auto-compress server-side too, so the image always stays well
+            // under the hosting limit even if the browser couldn't shrink it.
+            $optimized = $this->optimizeUploadedImage($dir, $basename, 'about');
+            if ($optimized !== null) {
+                @unlink($dir . $basename);
+                $basename = $optimized;
+            }
             $rel = 'uploads/settings/about/' . $basename;
+            // This is the setting the public landing page reads for this
+            // slot, so setting it here is what makes the new photo show up
+            // on the homepage immediately.
             SettingsHelper::set($slots[$slot], $rel);
             SettingsHelper::clearCache();
             $label = ['mission_main' => 'Mission', 'mission_inset' => 'Mission Inset', 'vision_main' => 'Vision'][$slot];
             $this->activityLog->log($this->user_id, 'Update System Settings', "Uploaded and assigned $label image: " . $basename, null, 'Settings');
-            $_SESSION['success'] = "$label image uploaded and set.";
+            $_SESSION['success'] = "$label image uploaded, optimized, and set on the landing page.";
         } else {
             $_SESSION['error'] = "Could not move the uploaded file. Check folder permissions.";
         }

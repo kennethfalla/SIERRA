@@ -115,7 +115,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <button type="button" id="heroGalleryChooseBtn" class="btn-secondary flex items-center gap-2 text-sm">
                         <i class="fas fa-folder-open"></i> <span id="heroMediaLabel">Choose from Gallery</span>
                     </button>
-                    <p class="text-xs text-gray-400" id="heroMediaHint">Images ≤ 5MB · Videos ≤ 50MB — picking a file uploads it AND sets it as the hero background right away.</p>
+                    <p class="text-xs text-gray-400" id="heroMediaHint">Images are compressed automatically. Videos over 9MB are compressed in your browser (use Chrome/Edge) — picking a file uploads it AND sets it as the hero background right away.</p>
                 </div>
             </form>
 
@@ -426,7 +426,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <button type="button" id="visionChooseBtn" class="btn-secondary flex items-center gap-2 text-sm">
                         <i class="fas fa-folder-open"></i> <span id="visionMediaLabel"><?php echo $vision_img ? 'Replace photo' : 'Choose photo'; ?></span>
                     </button>
-                    <p class="text-xs text-gray-400 mt-1.5">Images ≤ 5MB. Picking a file uploads and sets it right away.</p>
+                    <p class="text-xs text-gray-400 mt-1.5" id="visionMediaHint">Any size is fine — it's automatically compressed to fit under 10MB. Picking a file uploads and sets it right away.</p>
                     <?php if ($vision_img): ?>
                         <button type="button" class="about-slot-clear text-xs text-red-500 hover:text-red-600 font-medium mt-1.5" data-slot="vision_main">
                             <i class="fas fa-trash-alt mr-1"></i> Remove photo
@@ -473,7 +473,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <button type="button" id="missionChooseBtn" class="btn-secondary flex items-center gap-2 text-sm">
                         <i class="fas fa-folder-open"></i> <span id="missionMediaLabel"><?php echo $mission_img ? 'Replace photo' : 'Choose photo'; ?></span>
                     </button>
-                    <p class="text-xs text-gray-400 mt-1.5">Images ≤ 5MB. Picking a file uploads and sets it right away.</p>
+                    <p class="text-xs text-gray-400 mt-1.5" id="missionMediaHint">Any size is fine — it's automatically compressed to fit under 10MB. Picking a file uploads and sets it right away.</p>
                     <?php if ($mission_img): ?>
                         <button type="button" class="about-slot-clear text-xs text-red-500 hover:text-red-600 font-medium mt-1.5" data-slot="mission_main">
                             <i class="fas fa-trash-alt mr-1"></i> Remove photo
@@ -495,7 +495,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <button type="button" id="insetChooseBtn" class="btn-secondary flex items-center gap-2 text-sm">
                         <i class="fas fa-folder-open"></i> <span id="insetMediaLabel"><?php echo $mission_inset_img ? 'Replace photo' : 'Choose photo'; ?></span>
                     </button>
-                    <p class="text-xs text-gray-400 mt-1.5">Images ≤ 5MB. Picking a file uploads and sets it right away.</p>
+                    <p class="text-xs text-gray-400 mt-1.5" id="insetMediaHint">Any size is fine — it's automatically compressed to fit under 10MB. Picking a file uploads and sets it right away.</p>
                     <?php if ($mission_inset_img): ?>
                         <button type="button" class="about-slot-clear text-xs text-red-500 hover:text-red-600 font-medium mt-1.5" data-slot="mission_inset">
                             <i class="fas fa-trash-alt mr-1"></i> Remove photo
@@ -609,56 +609,301 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
     });
 
-    // Hero media gallery upload: clicking "Choose from Gallery" opens the OS
-    // file picker, and picking a file uploads it right away — no more empty
-    // "Upload to Gallery" submissions that show "No file selected for upload."
+    // Hero media gallery upload with automatic in-browser compression.
+    // Images are downscaled + re-encoded as JPEG; videos over 9MB are
+    // re-encoded to WebM so they fit well under the 10MB hosting limit.
     const heroMediaInput = document.getElementById('hero_media');
     const heroChooseBtn = document.getElementById('heroGalleryChooseBtn');
+
+    function formatMb(bytes) { return (bytes / (1024 * 1024)); }
+
+    function compressImage(file) {
+        return new Promise(function(resolve, reject) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                const img = new Image();
+                img.onload = function() {
+                    const maxDim = 1920;
+                    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.max(1, Math.round(img.width * scale));
+                    canvas.height = Math.max(1, Math.round(img.height * scale));
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const done = function(blob) {
+                        if (blob && blob.size > 0) {
+                            const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+                            resolve(new File([blob], name, { type: 'image/jpeg' }));
+                        } else {
+                            reject(new Error('empty'));
+                        }
+                    };
+                    if (canvas.toBlob) {
+                        canvas.toBlob(done, 'image/jpeg', 0.82);
+                    } else {
+                        reject(new Error('unsupported'));
+                    }
+                };
+                img.onerror = function() { reject(new Error('read')); };
+                img.src = reader.result;
+            };
+            reader.onerror = function() { reject(new Error('read')); };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function videoCompressionSupported() {
+        return typeof MediaRecorder !== 'undefined'
+            && typeof MediaRecorder.isTypeSupported === 'function'
+            && typeof HTMLCanvasElement !== 'undefined'
+            && typeof HTMLCanvasElement.prototype.captureStream === 'function';
+    }
+
+    function compressVideo(file, targetBytes) {
+        return new Promise(function(resolve, reject) {
+            const video = document.createElement('video');
+            video.muted = true;
+            video.playsInline = true;
+            video.preload = 'auto';
+            const objectUrl = URL.createObjectURL(file);
+            const cleanup = function() {
+                try { video.pause(); video.removeAttribute('src'); video.load(); } catch (e) {}
+                URL.revokeObjectURL(objectUrl);
+            };
+            video.onloadedmetadata = function() {
+                const w = video.videoWidth || 0;
+                const h = video.videoHeight || 0;
+                const duration = (video.duration && isFinite(video.duration)) ? video.duration : 0;
+                if (!w || !h) { cleanup(); reject(new Error('dims')); return; }
+                // 1600px keeps the background sharp on large monitors while
+                // still leaving enough bitrate budget (below) for good
+                // per-pixel quality within the size target.
+                const maxW = 1600;
+                const scale = Math.min(1, maxW / w);
+                const cw = Math.max(2, Math.round(w * scale / 2) * 2);
+                const ch = Math.max(2, Math.round(h * scale / 2) * 2);
+                const canvas = document.createElement('canvas');
+                canvas.width = cw;
+                canvas.height = ch;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+                let mime = '';
+                // Prefer VP9 first: same visual quality as VP8 at a
+                // noticeably lower bitrate (or better quality at the same
+                // bitrate), so preferring it over VP8 measurably improves
+                // output quality within the same size budget.
+                ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].forEach(function(m) {
+                    if (!mime && MediaRecorder.isTypeSupported(m)) mime = m;
+                });
+                if (!mime) { cleanup(); reject(new Error('mime')); return; }
+                const durationSec = Math.max(1, duration);
+                // Use more of the size budget (0.9 instead of 0.75) and allow
+                // a much higher ceiling — the old 4Mbps cap was throttling
+                // quality on short clips that had plenty of size budget left.
+                let targetBps = Math.floor((targetBytes * 8 * 0.9) / durationSec);
+                targetBps = Math.max(400000, Math.min(10000000, targetBps));
+                let recorder = null;
+                try {
+                    const stream = canvas.captureStream(30);
+                    recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: targetBps });
+                } catch (e) { cleanup(); reject(new Error('start')); return; }
+
+                const chunks = [];
+                recorder.ondataavailable = function(e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
+                recorder.onerror = function() { cleanup(); reject(new Error('record')); };
+                let rafId = null;
+                const stopDrawLoop = function() { if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; } };
+                recorder.onstop = function() {
+                    stopDrawLoop();
+                    const blob = new Blob(chunks, { type: mime });
+                    const name = file.name.replace(/\.[^.]+$/, '') + '.webm';
+                    cleanup();
+                    if (blob.size > 0) resolve(new File([blob], name, { type: mime }));
+                    else reject(new Error('empty'));
+                };
+
+                // Redraw every animation frame (not on 'ontimeupdate', which
+                // browsers fire only a handful of times per second) so the
+                // 30fps stream captured from the canvas actually contains
+                // 30 distinct frames per second instead of long runs of
+                // duplicated frames — that mismatch is what made compressed
+                // background videos look choppy/stuttery on the landing page.
+                const drawLoop = function() {
+                    try { ctx.drawImage(video, 0, 0, cw, ch); } catch (e) {}
+                    if (!video.paused && !video.ended) {
+                        rafId = requestAnimationFrame(drawLoop);
+                    }
+                };
+                video.onplay = function() {
+                    stopDrawLoop();
+                    rafId = requestAnimationFrame(drawLoop);
+                };
+                video.onended = function() {
+                    stopDrawLoop();
+                    try { ctx.drawImage(video, 0, 0, cw, ch); } catch (e) {}
+                    setTimeout(function() { try { recorder.stop(); } catch (e) {} }, 400);
+                };
+                recorder.start(1000);
+                video.play().catch(function() { cleanup(); reject(new Error('play')); });
+            };
+            video.onerror = function() { cleanup(); reject(new Error('load')); };
+            video.src = objectUrl;
+        });
+    }
+
+    function submitHeroMedia(file) {
+        if (typeof DataTransfer !== 'undefined') {
+            const f = document.createElement('form');
+            f.method = 'POST';
+            f.enctype = 'multipart/form-data';
+            f.action = '<?php echo BASE_URL; ?>index.php?page=settings&tab=landing';
+            const csrf = document.querySelector('input[name="csrf_token"]');
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden'; csrfInput.name = 'csrf_token'; csrfInput.value = csrf ? csrf.value : '';
+            const sub = document.createElement('input');
+            sub.type = 'hidden'; sub.name = 'sub_action'; sub.value = 'hero_gallery_upload';
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file'; fileInput.name = 'hero_media';
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            f.appendChild(csrfInput); f.appendChild(sub); f.appendChild(fileInput);
+            document.body.appendChild(f);
+            f.submit();
+        } else {
+            const fd = new FormData();
+            const csrf = document.querySelector('input[name="csrf_token"]');
+            fd.append('csrf_token', csrf ? csrf.value : '');
+            fd.append('sub_action', 'hero_gallery_upload');
+            fd.append('hero_media', file, file.name);
+            fetch('<?php echo BASE_URL; ?>index.php?page=settings&tab=landing', { method: 'POST', body: fd, credentials: 'same-origin' })
+                .then(function() { window.location.reload(); })
+                .catch(function() { window.location.reload(); });
+        }
+    }
+
     if (heroMediaInput && heroChooseBtn) {
         heroChooseBtn.addEventListener('click', function(e) {
             e.preventDefault();
             heroMediaInput.click();
         });
         heroMediaInput.addEventListener('change', function() {
-            if (heroMediaInput.files && heroMediaInput.files.length > 0) {
-                const label = document.getElementById('heroMediaLabel');
-                if (label) label.textContent = heroMediaInput.files[0].name;
-                const hint = document.getElementById('heroMediaHint');
-                if (hint) hint.textContent = 'Uploading…';
-                document.getElementById('heroGalleryUploadForm').submit();
+            if (!heroMediaInput.files || heroMediaInput.files.length === 0) return;
+            const file = heroMediaInput.files[0];
+            const label = document.getElementById('heroMediaLabel');
+            const hint = document.getElementById('heroMediaHint');
+            const isImage = file.type.indexOf('image/') === 0;
+            const isVideo = file.type.indexOf('video/') === 0;
+            if (label) label.textContent = file.name;
+
+            const fail = function(message) {
+                if (hint) { hint.textContent = message; hint.style.color = '#dc2626'; }
+                if (label) label.textContent = 'Choose from Gallery';
+                heroMediaInput.value = '';
+            };
+
+            if (isImage) {
+                if (hint) { hint.textContent = 'Compressing image…'; hint.style.color = ''; }
+                compressImage(file)
+                    .then(submitHeroMedia)
+                    .catch(function() { fail('Could not compress the image. Please try a different file.'); });
+            } else if (isVideo) {
+                // Only recompress when actually needed — the server accepts
+                // up to 9MB, so a video that already fits skips re-encoding
+                // entirely and uploads at full original quality.
+                if (formatMb(file.size) <= 9) {
+                    if (hint) { hint.textContent = 'Uploading…'; hint.style.color = ''; }
+                    submitHeroMedia(file);
+                } else if (videoCompressionSupported()) {
+                    if (hint) { hint.textContent = 'Compressing video in your browser… this can take a while for long videos. Do not close this tab.'; hint.style.color = ''; }
+                    compressVideo(file, 9 * 1024 * 1024)
+                        .then(submitHeroMedia)
+                        .catch(function() { fail('Video compression failed. Please reduce the video to under 9MB (e.g. 720p) and try again.'); });
+                } else {
+                    fail('This video is ' + formatMb(file.size).toFixed(1) + 'MB. This browser cannot compress videos — use Chrome or Edge, or reduce the video to under 9MB (720p) first.');
+                }
+            } else {
+                if (hint) { hint.textContent = 'Uploading…'; hint.style.color = ''; }
+                submitHeroMedia(file);
             }
         });
     }
 
     // About (Mission & Vision) designated photo uploads: each card has its own
     // hidden file input; picking a file uploads and assigns it to that slot.
+    // Images are compressed in-browser first (same pipeline as the hero
+    // background media above) so any photo — no matter how large — ends up
+    // safely under the 10MB hosting limit and actually saves, instead of
+    // being rejected. That saved setting is what the public landing page
+    // reads, so the new photo shows up there immediately.
     [
-        ['about_media_vision', 'visionChooseBtn', 'visionMediaLabel', 'vision_main'],
-        ['about_media_mission', 'missionChooseBtn', 'missionMediaLabel', 'mission_main'],
-        ['about_media_inset', 'insetChooseBtn', 'insetMediaLabel', 'mission_inset'],
+        ['about_media_vision', 'visionChooseBtn', 'visionMediaLabel', 'vision_main', 'visionMediaHint'],
+        ['about_media_mission', 'missionChooseBtn', 'missionMediaLabel', 'mission_main', 'missionMediaHint'],
+        ['about_media_inset', 'insetChooseBtn', 'insetMediaLabel', 'mission_inset', 'insetMediaHint'],
     ].forEach(function(cfg) {
         const input = document.getElementById(cfg[0]);
         const btn = document.getElementById(cfg[1]);
-        if (input && btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                input.click();
-            });
-            input.addEventListener('change', function() {
-                if (input.files && input.files.length > 0) {
-                    const label = document.getElementById(cfg[2]);
-                    if (label) label.textContent = input.files[0].name;
-                    const fd = new FormData();
-                    fd.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
-                    fd.append('sub_action', 'about_slot_upload');
-                    fd.append('about_slot', cfg[3]);
-                    fd.append('about_media', input.files[0]);
-                    fetch('<?php echo BASE_URL; ?>index.php?page=settings&tab=landing', { method: 'POST', body: fd })
-                        .then(function() { window.location.reload(); })
-                        .catch(function() { window.location.reload(); });
-                }
-            });
-        }
+        if (!input || !btn) return;
+
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            input.click();
+        });
+
+        input.addEventListener('change', function() {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const label = document.getElementById(cfg[2]);
+            const hint = document.getElementById(cfg[4]);
+
+            const resetHint = function() {
+                if (hint) { hint.textContent = "Any size is fine — it's automatically compressed to fit under 10MB. Picking a file uploads and sets it right away."; hint.style.color = ''; }
+            };
+            const fail = function(message) {
+                if (hint) { hint.textContent = message; hint.style.color = '#dc2626'; }
+                if (label) label.textContent = 'Choose photo';
+                input.value = '';
+            };
+            const upload = function(uploadFile) {
+                if (label) label.textContent = uploadFile.name;
+                if (hint) { hint.textContent = 'Uploading…'; hint.style.color = ''; }
+                const fd = new FormData();
+                fd.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+                fd.append('sub_action', 'about_slot_upload');
+                fd.append('about_slot', cfg[3]);
+                fd.append('about_media', uploadFile, uploadFile.name);
+                fetch('<?php echo BASE_URL; ?>index.php?page=settings&tab=landing', { method: 'POST', body: fd, credentials: 'same-origin' })
+                    .then(function() { window.location.reload(); })
+                    .catch(function() { window.location.reload(); });
+            };
+
+            if (typeof (window.File) !== 'undefined' && !(file.type && file.type.indexOf('image/') === 0)) {
+                fail('Please choose an image file (JPG, PNG, GIF, or WebP).');
+                return;
+            }
+
+            if (hint) { hint.textContent = 'Compressing image…'; hint.style.color = ''; }
+            compressImage(file)
+                .then(function(compressed) {
+                    if (formatMb(compressed.size) > 10) {
+                        fail('This image is still over 10MB after compression. Please choose a smaller photo.');
+                        return;
+                    }
+                    resetHint();
+                    upload(compressed);
+                })
+                .catch(function() {
+                    if (formatMb(file.size) > 10) {
+                        fail('Could not compress this image and it is over 10MB. Please choose a smaller photo.');
+                    } else {
+                        resetHint();
+                        upload(file);
+                    }
+                });
+        });
     });
 
     // Remove a designated about photo without a nested form.

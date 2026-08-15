@@ -43,11 +43,28 @@ define('MAX_FILE_SIZE', 5242880); // 5MB
 define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif', 'webp']);
 
 // ============================================
-// ERROR REPORTING (Development Mode)
+// APPLICATION ENVIRONMENT
+// ============================================
+// 'development' (local XAMPP/localhost) shows errors on screen.
+// 'production'  (InfinityFree / live host) logs errors but hides them.
+// Override at deploy time by defining APP_ENV in config/env.php.
+if (!defined('APP_ENV')) {
+    $appHost = $_SERVER['HTTP_HOST'] ?? '';
+    define('APP_ENV', preg_match('/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i', $appHost) ? 'development' : 'production');
+}
+
+// ============================================
+// ERROR REPORTING
 // ============================================
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+if (APP_ENV === 'development') {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+} else {
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+    ini_set('log_errors', 1);
+}
 
 // ============================================
 // REQUIRE CORE FILES

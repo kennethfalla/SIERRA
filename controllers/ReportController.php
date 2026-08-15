@@ -1235,7 +1235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'video/3gpp2' => '3g2'
         ];
         $max_photo_size = 5242880;
-        $max_video_size = 26214400;
+        $max_video_size = 10485760; // 10MB - matches the InfinityFree server file limit (10MB)
         $max_files = 3;
 
         $processFileField = function($files) use ($upload_dir, $allowed_extensions, $allowed_mimes, $max_photo_size, $max_video_size, $max_files) {

@@ -979,6 +979,29 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             }
         }
 
+        /* Floating "New Report" button (mobile only) */
+        .new-report-fab {
+            position: fixed;
+            right: 18px;
+            bottom: calc(18px + env(safe-area-inset-bottom));
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
+            color: #fff;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(16, 163, 127, 0.45);
+            z-index: 150;
+            font-size: 1.35rem;
+            text-decoration: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .new-report-fab:active {
+            transform: scale(0.9);
+            box-shadow: 0 4px 12px rgba(16, 163, 127, 0.4);
+        }
+
         /* Primary Button */
         .btn-primary {
             background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
@@ -1202,7 +1225,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <h1 class="text-2xl md:text-3xl font-bold text-gray-800"><?php echo $active_tab === 'supported' ? 'Reports I Supported' : 'My Reports'; ?></h1>
                     <p class="text-gray-500 text-sm mt-1"><?php echo $active_tab === 'supported' ? 'Track reports you have supported — see their progress and status updates.' : 'Track and manage all your environmental reports'; ?></p>
                 </div>
-                <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary inline-flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-center">
+                <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 sm:w-auto justify-center">
                     <i class="fas fa-plus-circle text-xs md:text-sm"></i> 
                     <span class="text-xs md:text-sm">New Report</span>
                 </a>
@@ -1523,7 +1546,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <?php else: ?>
                         <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg">No reports found</h3>
                         <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Try adjusting your filters</p>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                        <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
                             <i class="fas fa-plus-circle"></i> New Report
                         </a>
                     <?php endif; ?>
@@ -1564,6 +1587,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </div>
         
     </div>
+
+    <!-- Floating "New Report" button (mobile only) -->
+    <a href="<?php echo BASE_URL; ?>index.php?page=submit-report"
+       class="new-report-fab flex sm:hidden" aria-label="New Report">
+        <i class="fas fa-plus"></i>
+    </a>
 </div>
 
 <script>

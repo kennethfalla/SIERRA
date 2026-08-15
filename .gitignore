@@ -31,9 +31,13 @@ npm-debug.log
 .env
 .env.local
 .env.*.local
+config/env.php
 
 # Backup files
 *.sql
 *.sql.gz
 *.bak
 *.backup
+
+# Deployment packages
+dist/

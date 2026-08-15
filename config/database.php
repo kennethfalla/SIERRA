@@ -11,12 +11,21 @@ class Database {
     public $conn;
 
     public function __construct() {
-        // Read from environment variables (set in Render/Aiven)
-        $this->host = getenv('DB_HOST') ?: 'localhost';
-        $this->port = getenv('DB_PORT') ?: '3306';
-        $this->db_name = getenv('DB_NAME') ?: 'env_reporting_system';
-        $this->username = getenv('DB_USER') ?: 'root';
-        $this->password = getenv('DB_PASSWORD') ?: '';
+        // Deployable config, resolved in this order:
+        //   1. config/env.php   (per-deployment file, gitignored — fill in your
+        //      InfinityFree MySQL credentials there; see config/env.php.example)
+        //   2. Environment variables (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD)
+        //   3. Local XAMPP defaults (localhost / root / empty password)
+        $envFile = dirname(__DIR__) . '/config/env.php';
+        if (file_exists($envFile)) {
+            require_once $envFile;
+        }
+
+        $this->host     = defined('DB_HOST') ? DB_HOST : (getenv('DB_HOST') ?: 'localhost');
+        $this->port     = defined('DB_PORT') ? DB_PORT : (getenv('DB_PORT') ?: '3306');
+        $this->db_name  = defined('DB_NAME') ? DB_NAME : (getenv('DB_NAME') ?: 'env_reporting_system');
+        $this->username = defined('DB_USER') ? DB_USER : (getenv('DB_USER') ?: 'root');
+        $this->password = defined('DB_PASSWORD') ? DB_PASSWORD : (getenv('DB_PASSWORD') ?: '');
     }
 
     /**
