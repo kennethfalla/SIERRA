@@ -161,21 +161,33 @@ if ($action === 'create') {
         $stmt->execute([$title, $category, $content, $target_barangay_id, $user_id, $created_by_role, $is_public, $broadcast_target, $target_admin_id]);
         $announcement_id = $db->lastInsertId();
 
-        // Handle image uploads
-        if (isset($_FILES['images']) && is_array($_FILES['images']['name']) && $_FILES['images']['name'][0] !== '') {
+        // Handle image uploads - only process if files were actually selected
+        if (isset($_FILES['images']) && is_array($_FILES['images']['name'])) {
             $upload_dir = BASE_PATH . 'uploads/announcements/';
             if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-            $fileCount = count($_FILES['images']['name']);
-            for ($i = 0; $i < $fileCount && $i < 10; $i++) {
-                if ($_FILES['images']['error'][$i] === UPLOAD_ERR_OK) {
-                    $ext = strtolower(pathinfo($_FILES['images']['name'][$i], PATHINFO_EXTENSION));
-                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                        $filename = uniqid() . '.' . $ext;
-                        $target_path = $upload_dir . $filename;
-                        if (move_uploaded_file($_FILES['images']['tmp_name'][$i], $target_path)) {
-                            $stmt_img = $db->prepare("INSERT INTO announcement_images (announcement_id, image_path) VALUES (?, ?)");
-                            $stmt_img->execute([$announcement_id, 'uploads/announcements/' . $filename]);
-                        }
+            
+            // Filter out empty file entries to prevent duplication
+            $validFiles = [];
+            foreach ($_FILES['images']['name'] as $index => $name) {
+                if (!empty($name) && $_FILES['images']['error'][$index] === UPLOAD_ERR_OK) {
+                    $validFiles[] = $index;
+                }
+            }
+            
+            // Process only valid, non-empty files (limit to 10 images)
+            $processedCount = 0;
+            foreach ($validFiles as $i) {
+                if ($processedCount >= 10) break;
+                
+                $ext = strtolower(pathinfo($_FILES['images']['name'][$i], PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                    // Generate unique filename with microseconds and random bytes to prevent collisions
+                    $filename = uniqid('ann_', true) . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                    $target_path = $upload_dir . $filename;
+                    if (move_uploaded_file($_FILES['images']['tmp_name'][$i], $target_path)) {
+                        $stmt_img = $db->prepare("INSERT INTO announcement_images (announcement_id, image_path) VALUES (?, ?)");
+                        $stmt_img->execute([$announcement_id, 'uploads/announcements/' . $filename]);
+                        $processedCount++;
                     }
                 }
             }
@@ -300,21 +312,33 @@ if ($action === 'edit') {
         $stmt = $db->prepare("UPDATE announcements SET $update_sets WHERE id = ?");
         $stmt->execute($update_params);
 
-        // Handle new image uploads
-        if (isset($_FILES['images']) && is_array($_FILES['images']['name']) && $_FILES['images']['name'][0] !== '') {
+        // Handle new image uploads - only process if files were actually selected
+        if (isset($_FILES['images']) && is_array($_FILES['images']['name'])) {
             $upload_dir = BASE_PATH . 'uploads/announcements/';
             if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-            $fileCount = count($_FILES['images']['name']);
-            for ($i = 0; $i < $fileCount && $i < 10; $i++) {
-                if ($_FILES['images']['error'][$i] === UPLOAD_ERR_OK) {
-                    $ext = strtolower(pathinfo($_FILES['images']['name'][$i], PATHINFO_EXTENSION));
-                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                        $filename = uniqid() . '.' . $ext;
-                        $target_path = $upload_dir . $filename;
-                        if (move_uploaded_file($_FILES['images']['tmp_name'][$i], $target_path)) {
-                            $stmt_img = $db->prepare("INSERT INTO announcement_images (announcement_id, image_path) VALUES (?, ?)");
-                            $stmt_img->execute([$announcement_id, 'uploads/announcements/' . $filename]);
-                        }
+            
+            // Filter out empty file entries to prevent duplication
+            $validFiles = [];
+            foreach ($_FILES['images']['name'] as $index => $name) {
+                if (!empty($name) && $_FILES['images']['error'][$index] === UPLOAD_ERR_OK) {
+                    $validFiles[] = $index;
+                }
+            }
+            
+            // Process only valid, non-empty files (limit to 10 images)
+            $processedCount = 0;
+            foreach ($validFiles as $i) {
+                if ($processedCount >= 10) break;
+                
+                $ext = strtolower(pathinfo($_FILES['images']['name'][$i], PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                    // Generate unique filename with microseconds and random bytes to prevent collisions
+                    $filename = uniqid('ann_', true) . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                    $target_path = $upload_dir . $filename;
+                    if (move_uploaded_file($_FILES['images']['tmp_name'][$i], $target_path)) {
+                        $stmt_img = $db->prepare("INSERT INTO announcement_images (announcement_id, image_path) VALUES (?, ?)");
+                        $stmt_img->execute([$announcement_id, 'uploads/announcements/' . $filename]);
+                        $processedCount++;
                     }
                 }
             }
@@ -329,7 +353,7 @@ if ($action === 'edit') {
                 $stmt->execute([$img_id, $announcement_id]);
                 $img = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($img) {
-                    $file_path = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/' . $img['image_path'];
+                    $file_path = BASE_PATH . $img['image_path'];
                     if (file_exists($file_path)) unlink($file_path);
                     $stmt = $db->prepare("DELETE FROM announcement_images WHERE id = ?");
                     $stmt->execute([$img_id]);
@@ -377,7 +401,7 @@ if ($action === 'delete') {
         $stmt->execute([$announcement_id]);
         $images = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($images as $image) {
-            $file_path = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/' . $image['image_path'];
+            $file_path = BASE_PATH . $image['image_path'];
             if (file_exists($file_path)) unlink($file_path);
         }
         $stmt = $db->prepare("DELETE FROM announcement_images WHERE announcement_id = ?");

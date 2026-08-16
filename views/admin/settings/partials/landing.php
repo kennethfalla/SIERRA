@@ -78,7 +78,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <!-- ===== HERO MEDIA GALLERY ===== -->
         <?php
         // Scan the hero gallery directory for uploaded images/videos
-        $hero_gallery_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/uploads/settings/hero/';
+        $hero_gallery_dir = BASE_PATH . 'uploads/settings/hero/';
         $gallery_img_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         $gallery_vid_exts = ['mp4', 'webm', 'mov', 'm4v', 'ogg'];
         $gallery = [];

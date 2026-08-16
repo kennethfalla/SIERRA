@@ -39,6 +39,17 @@ class Database {
             $this->conn = new PDO($dsn, $this->username, $this->password);
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+            // Force the MySQL session to Manila time (+08:00) so NOW(),
+            // CURRENT_TIMESTAMP and TIMESTAMPDIFF all match the app's
+            // date_default_timezone_set('Asia/Manila'). Without this, a UTC
+            // MySQL server (e.g. InfinityFree) stores report timestamps 8h in
+            // the past and "X days ago" calculations look wrong.
+            try {
+                $this->conn->exec("SET time_zone = '+08:00'");
+            } catch(PDOException $tzException) {
+                error_log("[Database] Could not set session time_zone to +08:00: " . $tzException->getMessage());
+            }
             
             // Auto-ensure required columns exist
             $this->ensureColumns();
@@ -239,6 +250,36 @@ class Database {
             // barangay-scoped ones keep localized_public.
             if ($this->columnExists('announcements', 'broadcast_type')) {
                 $this->conn->exec("UPDATE announcements SET broadcast_type = 'global_public' WHERE is_public = 1 AND broadcast_type = 'localized_public'");
+            }
+
+            // ============================================
+            // 9. CHECK: login rate-limit tables (brute-force lockout)
+            // ============================================
+            if (!$this->tableExists('rate_limits')) {
+                $this->conn->exec("
+                    CREATE TABLE IF NOT EXISTS rate_limits (
+                        id INT(11) NOT NULL AUTO_INCREMENT,
+                        identifier VARCHAR(191) NOT NULL,
+                        action VARCHAR(50) NOT NULL DEFAULT 'login',
+                        attempted_at DATETIME NOT NULL,
+                        PRIMARY KEY (id),
+                        KEY idx_rate_identifier_time (identifier, attempted_at)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+                ");
+                error_log("[Database] Created 'rate_limits' table.");
+            }
+            if (!$this->tableExists('rate_lockouts')) {
+                $this->conn->exec("
+                    CREATE TABLE IF NOT EXISTS rate_lockouts (
+                        id INT(11) NOT NULL AUTO_INCREMENT,
+                        identifier VARCHAR(191) NOT NULL,
+                        action VARCHAR(50) NOT NULL DEFAULT 'login',
+                        locked_until DATETIME NOT NULL,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY uq_rate_identifier_action (identifier, action)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+                ");
+                error_log("[Database] Created 'rate_lockouts' table.");
             }
 
             return true;

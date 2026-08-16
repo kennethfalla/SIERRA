@@ -1,38 +1,32 @@
-# ============================================================
-# Sierra Environmental Reporting System - Apache/.htaccess
-# Tuned for InfinityFree (Apache 2.4). This app routes through
-# index.php?page=... so NO URL rewriting is needed here.
-# ============================================================
+# Sierra Environmental Reporting System - Clean URLs
+# Hides the app folder and index.php?page= from the address bar.
+# Location-independent: works at the domain root (live) and in a subfolder (local).
 
-# Disable directory listing (e.g. /uploads/)
-Options -Indexes
+RewriteEngine On
 
-# Security headers
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "DENY"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-</IfModule>
+# ------------------------------------------------------------------
+# 1) 301 redirect: old /index.php?page=X[&extra] -> clean /X[?extra]
+#    GET only - settings/forgot-password/reset-password POST forms
+#    keep working (a 301 on POST would drop the submitted data).
+# ------------------------------------------------------------------
+RewriteCond %{REQUEST_METHOD} ^GET$
+RewriteCond %{THE_REQUEST} \s/+index\.php\?page=([a-zA-Z0-9_-]+)(?:&([^\s]*))?\s [NC]
+RewriteRule ^ %1?%2 [R=301,L,NE]
 
-# Deny direct access to hidden files / dotfiles (.htaccess, .gitignore ...)
-<FilesMatch "^\.">
-    Require all denied
-</FilesMatch>
+# ------------------------------------------------------------------
+# 2) Serve existing files/directories directly (assets, uploads,
+#    controllers, views, geojson...).
+# ------------------------------------------------------------------
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
 
-# Deny direct access to deployment/dev-only files
-#  - database.sql is imported via phpMyAdmin, never served
-#  - debug_sms.php / test_reset_password.php are local dev tools
-#  - env.php holds DB passwords and is served from config/ (also blocked there)
-<FilesMatch "^(database\.sql|debug_sms\.php|test_reset_password\.php|env\.php|env\.php\.example)$">
-    Require all denied
-</FilesMatch>
+# ------------------------------------------------------------------
+# 3) Clean URLs: /login -> index.php?page=login (extra params kept)
+# ------------------------------------------------------------------
+RewriteRule ^([a-zA-Z0-9_-]+)/?$ index.php?page=$1 [L,QSA]
 
-# Deny direct web access to the geojson assignment tool (CLI/dev only)
-<FilesMatch "^assign_reports_to_barangays\.php$">
-    Require all denied
-</FilesMatch>
-
-# Gzip text-based responses for faster page loads
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml
-</IfModule>
+# ------------------------------------------------------------------
+# 4) Fallback: anything else goes to the front controller.
+# ------------------------------------------------------------------
+RewriteRule ^ index.php [L]

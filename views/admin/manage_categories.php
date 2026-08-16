@@ -1,8 +1,8 @@
 <?php
 // views/admin/manage_categories.php - WITH CONSISTENT DESIGN & RADIUS SCALE SYSTEM
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/SettingsHelper.php';
+require_once dirname(__DIR__, 2) . '/helpers/PermissionHelper.php';
 requireRole('admin');
 
 if (!PermissionHelper::userHasPermission('can_manage_system')) {
@@ -245,7 +245,7 @@ $inactive_categories = count(array_filter($all_categories, fn($cat) => $cat['is_
 <body class="bg-gradient-to-br from-[#F5FBF6] to-[#EAF7F2]">
 
 <!-- Sidebar -->
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <!-- MAIN CONTENT WITH CONSISTENT PADDING STRUCTURE -->
 <!-- ml-72 = 288px margin-left (sidebar is 256px, so 32px gap between sidebar and content) -->

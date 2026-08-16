@@ -11,9 +11,10 @@ class SettingsHelper {
      * Get a setting value by key
      * @param string $key Setting key
      * @param mixed $default Default value if key not found
+     * @param bool $raw If true, returns raw string value without JSON decoding
      * @return mixed Setting value or default
      */
-    public static function get($key, $default = null) {
+    public static function get($key, $default = null, $raw = false) {
         // Lazy load settings from database
         if (self::$settings === null) {
             self::loadAll();
@@ -21,6 +22,10 @@ class SettingsHelper {
 
         // Check if setting exists
         if (isset(self::$settings[$key])) {
+            // If raw mode requested and value is array, return it as JSON string
+            if ($raw && is_array(self::$settings[$key])) {
+                return json_encode(self::$settings[$key]);
+            }
             return self::$settings[$key];
         }
 
@@ -228,6 +233,18 @@ class SettingsHelper {
             'enable_announcements' => 1,
 
             // ========================================
+            // REPORT SUBMISSION LIMITS (anti-spam)
+            // Per-citizen rate limits for new reports.
+            // 'report_daily_limit' => max reports a user may
+            //   submit per calendar day (0 = unlimited).
+            // 'report_min_interval_minutes' => minimum wait
+            //   between two reports (0 = no interval).
+            // ========================================
+            'enable_report_limits' => 1,
+            'report_daily_limit' => 5,
+            'report_min_interval_minutes' => 10,
+
+            // ========================================
             // SEVERITY ALGORITHM
             // ========================================
             'impact_modifier_0' => 0,
@@ -281,6 +298,26 @@ class SettingsHelper {
             'iprog_api_key' => '',
             'iprog_sender_id' => '',
             'iprog_base_url' => 'https://sms.iprogtech.com/api/v1/sms_messages',
+
+            // ========================================
+            // EMAIL GATEWAY (Transactional receipts via Brevo API)
+            // InfinityFree does not support PHP mail(); Brevo is used
+            // for sending official report receipt emails to residents.
+            // ========================================
+            'enable_email_receipts' => 1,
+            'email_gateway' => 'brevo', // 'brevo' or 'mailgun'
+            
+            // Brevo (formerly Sendinblue) - FREE 300 emails/day
+            'brevo_api_key' => '',
+            'brevo_sender_email' => '',
+            'brevo_sender_name' => 'Sierra LGU',
+            
+            // Mailgun (sandbox: max 5 recipients, custom domain: unlimited)
+            'mailgun_api_key' => '',
+            'mailgun_domain' => '',
+            'mailgun_base_url' => 'https://api.mailgun.net',
+            'mailgun_sender_email' => '',
+            'mailgun_sender_name' => 'Sierra LGU',
 
             // ========================================
             // ARCHIVING SETTINGS
@@ -376,6 +413,22 @@ class SettingsHelper {
             'default_lat' => (float)(self::$settings['map_default_lat'] ?? 15.3092),
             'default_lng' => (float)(self::$settings['map_default_lng'] ?? 120.9033),
             'default_zoom' => (int)(self::$settings['map_default_zoom'] ?? 14),
+        ];
+    }
+
+    /**
+     * Get report submission rate limits (anti-spam)
+     * @return array [enabled, daily_limit, min_interval_minutes]
+     */
+    public static function getReportLimits() {
+        if (self::$settings === null) {
+            self::loadAll();
+        }
+
+        return [
+            'enabled' => (int)(self::$settings['enable_report_limits'] ?? 1),
+            'daily_limit' => (int)(self::$settings['report_daily_limit'] ?? 5),
+            'min_interval_minutes' => (int)(self::$settings['report_min_interval_minutes'] ?? 10),
         ];
     }
 
@@ -786,6 +839,307 @@ class SettingsHelper {
             'enabled' => (self::$settings['enable_sms_notifications'] ?? 0) == 1,
             'configured' => !empty(self::$settings['iprog_api_key']),
         ];
+    }
+
+    // ========================================================
+    // MAILGUN EMAIL (official report receipts)
+    // ========================================================
+    // Mailgun is used STRICTLY for sending official report receipt
+    // emails (Setup B). SMS remains the channel for login/reset
+    // OTPs. Emails are sent through the Mailgun Messages API
+    // (https://api.mailgun.net/v3/{domain}/messages) via cURL, so
+    // no SMTP/PHPMailer dependency is needed on InfinityFree.
+
+    /**
+     * Get all Email gateway settings (Brevo or Mailgun)
+     * @return array
+     */
+    public static function getEmailSettings() {
+        if (self::$settings === null) {
+            self::loadAll();
+        }
+
+        return [
+            'enable_email_receipts' => (int)(self::$settings['enable_email_receipts'] ?? 1),
+            'email_gateway' => self::$settings['email_gateway'] ?? 'brevo',
+            
+            // Brevo
+            'brevo_api_key' => self::$settings['brevo_api_key'] ?? '',
+            'brevo_sender_email' => self::$settings['brevo_sender_email'] ?? '',
+            'brevo_sender_name' => self::$settings['brevo_sender_name'] ?? 'Sierra LGU',
+            
+            // Mailgun
+            'mailgun_api_key' => self::$settings['mailgun_api_key'] ?? '',
+            'mailgun_domain' => self::$settings['mailgun_domain'] ?? '',
+            'mailgun_base_url' => self::$settings['mailgun_base_url'] ?? 'https://api.mailgun.net',
+            'mailgun_sender_email' => self::$settings['mailgun_sender_email'] ?? '',
+            'mailgun_sender_name' => self::$settings['mailgun_sender_name'] ?? 'Sierra LGU',
+        ];
+    }
+
+    /**
+     * Get active email gateway configuration (Brevo or Mailgun)
+     * Returns gateway config if properly configured and enabled, null otherwise
+     * @return array|null Active gateway config or null if not configured
+     */
+    public static function getActiveEmailGateway() {
+        $settings = self::getEmailSettings();
+
+        // Email must be enabled
+        if ($settings['enable_email_receipts'] != 1) {
+            error_log("SettingsHelper: Email is disabled (enable_email_receipts = " . $settings['enable_email_receipts'] . ")");
+            return null;
+        }
+
+        $gateway = $settings['email_gateway'] ?? 'brevo';
+
+        // Check Brevo
+        if ($gateway === 'brevo' && !empty($settings['brevo_api_key'])) {
+            error_log("SettingsHelper: Brevo gateway found. API key: " . substr($settings['brevo_api_key'], 0, 10) . "...");
+            return [
+                'gateway' => 'brevo',
+                'api_key' => $settings['brevo_api_key'],
+                'sender_email' => $settings['brevo_sender_email'] ?? '',
+                'sender_name' => $settings['brevo_sender_name'] ?? 'Sierra LGU',
+            ];
+        }
+
+        // Check Mailgun
+        if ($gateway === 'mailgun' && !empty($settings['mailgun_api_key']) && !empty($settings['mailgun_domain'])) {
+            error_log("SettingsHelper: Mailgun gateway found. API key: " . substr($settings['mailgun_api_key'], 0, 10) . "...");
+            return [
+                'gateway' => 'mailgun',
+                'api_key' => $settings['mailgun_api_key'],
+                'domain' => $settings['mailgun_domain'],
+                'base_url' => $settings['mailgun_base_url'] ?? 'https://api.mailgun.net',
+                'sender_email' => $settings['mailgun_sender_email'] ?? 'noreply@' . $settings['mailgun_domain'],
+                'sender_name' => $settings['mailgun_sender_name'] ?? 'Sierra LGU',
+            ];
+        }
+
+        error_log("SettingsHelper: No active email gateway found. Gateway: $gateway");
+        return null;
+    }
+
+    /**
+     * Check if email receipts are enabled and configured
+     * @return bool
+     */
+    public static function isEmailEnabled() {
+        $settings = self::getEmailSettings();
+        if ($settings['enable_email_receipts'] != 1) {
+            return false;
+        }
+        return self::getActiveEmailGateway() !== null;
+    }
+
+    /**
+     * Get email gateway status (for the admin settings UI)
+     * @return array
+     */
+    public static function getEmailGatewayStatus() {
+        $settings = self::getEmailSettings();
+        $gateway = $settings['email_gateway'] ?? 'brevo';
+
+        if ($gateway === 'brevo') {
+            return [
+                'gateway' => 'brevo',
+                'configured' => !empty($settings['brevo_api_key']) && !empty($settings['brevo_sender_email']),
+                'enabled' => $settings['enable_email_receipts'] == 1,
+                'sender_email' => $settings['brevo_sender_email'],
+                'sender_name' => $settings['brevo_sender_name'],
+                'api_key_set' => !empty($settings['brevo_api_key']),
+            ];
+        } else {
+            return [
+                'gateway' => 'mailgun',
+                'configured' => !empty($settings['mailgun_api_key']) && !empty($settings['mailgun_domain']),
+                'enabled' => $settings['enable_email_receipts'] == 1,
+                'sender_email' => $settings['mailgun_sender_email'],
+                'sender_name' => $settings['mailgun_sender_name'],
+                'domain' => $settings['mailgun_domain'],
+                'endpoint' => $settings['mailgun_base_url'] . '/v3/' . $settings['mailgun_domain'] . '/messages',
+                'api_key_set' => !empty($settings['mailgun_api_key']),
+            ];
+        }
+    }
+
+    /**
+     * Send a transactional email through Brevo or Mailgun API.
+     *
+     * Supports both Brevo (300 emails/day FREE, unlimited recipients)
+     * and Mailgun (sandbox or custom domain). No SMTP/PHPMailer required,
+     * so it works on InfinityFree where PHP mail() is disabled.
+     *
+     * @param string $to_email    Recipient email address
+     * @param string $to_name     Recipient display name (optional)
+     * @param string $subject     Email subject line
+     * @param string $htmlContent HTML body of the email
+     * @param array|null $gatewayOverride Optional inline credentials to test with
+     * @return bool True on success
+     */
+    public static function sendEmail($to_email, $to_name, $subject, $htmlContent, $gatewayOverride = null) {
+        // Clear cache to ensure we're using the latest settings
+        self::clearCache();
+
+        $gateway = $gatewayOverride;
+
+        if ($gateway === null) {
+            if (!self::isEmailEnabled()) {
+                error_log("Email not sent: Email receipts are not enabled or configured.");
+                return false;
+            }
+            $gateway = self::getActiveEmailGateway();
+        }
+
+        if (!$gateway) {
+            error_log("Email not sent: No active gateway found.");
+            return false;
+        }
+
+        // Validate recipient email
+        if (!filter_var($to_email, FILTER_VALIDATE_EMAIL)) {
+            error_log("Email not sent: invalid recipient email: $to_email");
+            return false;
+        }
+
+        $gatewayType = $gateway['gateway'];
+
+        // ============================================
+        // BREVO API (formerly Sendinblue)
+        // ============================================
+        if ($gatewayType === 'brevo') {
+            $apiKey = $gateway['api_key'];
+            $senderEmail = $gateway['sender_email'];
+            $senderName = $gateway['sender_name'] ?? 'Sierra LGU';
+
+            if (empty($apiKey) || empty($senderEmail)) {
+                error_log("Brevo email not sent: API key or sender email missing.");
+                return false;
+            }
+
+            if (!filter_var($senderEmail, FILTER_VALIDATE_EMAIL)) {
+                error_log("Brevo email not sent: invalid sender email.");
+                return false;
+            }
+
+            // Brevo API payload (JSON)
+            $payload = [
+                'sender' => [
+                    'name' => $senderName,
+                    'email' => $senderEmail
+                ],
+                'to' => [
+                    [
+                        'email' => $to_email,
+                        'name' => $to_name ?: $to_email
+                    ]
+                ],
+                'subject' => $subject,
+                'htmlContent' => $htmlContent
+            ];
+
+            $endpoint = 'https://api.brevo.com/v3/smtp/email';
+
+            $ch = curl_init($endpoint);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'api-key: ' . $apiKey,
+                'Content-Type: application/json',
+                'Accept: application/json'
+            ]);
+
+            $response = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            error_log("Brevo Email Request: to=" . $to_email . " subject=" . $subject);
+            error_log("Brevo Email Response: HTTP " . $http_code . " - " . substr($response, 0, 500));
+            if ($error) {
+                error_log("Brevo Email cURL Error: " . $error);
+            }
+
+            // 201 = accepted by Brevo for delivery
+            if ($http_code == 201) {
+                error_log("Brevo email sent successfully!");
+                return true;
+            }
+
+            error_log("Brevo email failed. HTTP: " . $http_code . ", Response: " . $response);
+            return false;
+        }
+
+        // ============================================
+        // MAILGUN API
+        // ============================================
+        if ($gatewayType === 'mailgun') {
+            $apiKey = $gateway['api_key'];
+            $domain = $gateway['domain'];
+            $baseUrl = $gateway['base_url'] ?? 'https://api.mailgun.net';
+            $senderEmail = $gateway['sender_email'];
+            $senderName = $gateway['sender_name'] ?? 'Sierra LGU';
+
+            if (empty($apiKey) || empty($domain)) {
+                error_log("Mailgun email not sent: API key or domain missing.");
+                return false;
+            }
+
+            if (empty($senderEmail) || !filter_var($senderEmail, FILTER_VALIDATE_EMAIL)) {
+                error_log("Mailgun email not sent: invalid sender email.");
+                return false;
+            }
+
+            // Prepare email payload for Mailgun (as form data)
+            $from = !empty($senderName) ? "$senderName <$senderEmail>" : $senderEmail;
+            $to = !empty($to_name) ? "$to_name <$to_email>" : $to_email;
+
+            $payload = [
+                'from' => $from,
+                'to' => $to,
+                'subject' => $subject,
+                'html' => $htmlContent
+            ];
+
+            // Mailgun API endpoint
+            $endpoint = $baseUrl . '/v3/' . $domain . '/messages';
+
+            $ch = curl_init($endpoint);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload)); // URL-encode for form data
+            curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+            curl_setopt($ch, CURLOPT_USERPWD, 'api:' . $apiKey);
+
+            $response  = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error     = curl_error($ch);
+            curl_close($ch);
+
+            error_log("Mailgun Email Request: to=" . $to_email . " subject=" . $subject);
+            error_log("Mailgun Email Response: HTTP " . $http_code . " - " . substr($response, 0, 500));
+            if ($error) {
+                error_log("Mailgun Email cURL Error: " . $error);
+            }
+
+            // 200 = accepted by Mailgun for delivery
+            if ($http_code == 200) {
+                error_log("Mailgun email sent successfully!");
+                return true;
+            }
+
+            error_log("Mailgun email failed. HTTP: " . $http_code . ", Response: " . $response);
+            return false;
+        }
+
+        error_log("Email not sent: Unknown gateway configured: " . $gatewayType);
+        return false;
     }
 
     // ========================================================

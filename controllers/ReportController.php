@@ -2,10 +2,10 @@
 // controllers/ReportController.php - COMPLETE WITH UNDER REVIEW STATUS
 // FIXED: All prepared statements now use only named parameters (no mixing)
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
+require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/helpers/SecurityHelper.php';
+require_once dirname(__DIR__) . '/helpers/SettingsHelper.php';
+require_once dirname(__DIR__) . '/helpers/PermissionHelper.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -57,6 +57,162 @@ function canAccessReportData($db, $report_id) {
 function recalcNearbyReports($db, $lat, $lng, $excludeId = null) {
     $reportModel = new Report($db);
     $reportModel->recalcReportsNearLocation($lat, $lng, $excludeId);
+}
+
+// ============================================
+// HELPER: Save an uploaded photo/video evidence file
+// (used by resolve_report and escalate_report so both accept
+// either a camera photo, a camera video, or a gallery pick)
+// ============================================
+function saveEvidenceUpload($file, $prefix) {
+    $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'm4v', 'avi'];
+    $allowed_mimes = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/gif'  => 'gif',
+        'image/webp' => 'webp',
+        'video/mp4'        => 'mp4',
+        'video/webm'       => 'webm',
+        'video/x-matroska' => 'webm',
+        'video/quicktime'  => 'mov',
+        'video/x-m4v'      => 'm4v',
+        'video/m4v'        => 'm4v',
+        'video/x-msvideo'  => 'avi',
+    ];
+    $max_photo_size = 5242880;   // 5MB
+    $max_video_size = 10485760;  // 10MB - matches the InfinityFree server file limit (10MB)
+
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($extension, $allowed_extensions, true)) {
+        return ['error' => 'Invalid file type. Allowed photos: JPG, PNG, GIF, WebP. Allowed videos: MP4, WebM, MOV, M4V, AVI.'];
+    }
+
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime_type = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    if (!is_string($mime_type) || $mime_type === '') $mime_type = '';
+
+    $is_video = (strpos($mime_type, 'video/') === 0);
+    if (!$is_video && !array_key_exists($mime_type, $allowed_mimes)) {
+        return ['error' => 'The file could not be verified as a valid photo or video.'];
+    }
+
+    $limit = $is_video ? $max_video_size : $max_photo_size;
+    if ($file['size'] > $limit) {
+        $limitLabel = $is_video ? '10MB' : '5MB';
+        return ['error' => "File size exceeds the $limitLabel limit for " . ($is_video ? 'videos' : 'photos') . "."];
+    }
+
+    $filename = $prefix . '_' . uniqid() . '.' . $extension;
+    $target_path = UPLOAD_DIR . $filename;
+    if (!is_dir(UPLOAD_DIR)) mkdir(UPLOAD_DIR, 0777, true);
+    if (!move_uploaded_file($file['tmp_name'], $target_path)) {
+        return ['error' => 'Failed to upload the file. Please try again.'];
+    }
+
+    return [
+        'path'     => 'uploads/reports/' . $filename,
+        'is_video' => $is_video,
+    ];
+}
+
+// ============================================
+// HELPER: Send a status-change receipt email to the resident
+// who filed the report (verified/in-progress, rejected, resolved,
+// escalated, or any other status change). Uses the same Brevo
+// gateway and templates configured in Settings > Notifications.
+// ============================================
+function sendReportStatusEmail($db, $report_id, $templateKey, $subjectLabel, $activityLog, $user_id, $extraPlaceholders = []) {
+    if (!SettingsHelper::isEmailEnabled()) {
+        return;
+    }
+
+    $reportModel = new Report($db);
+    $full = $reportModel->getReportById($report_id);
+    if (!$full) {
+        return;
+    }
+
+    $recipient_email = $full['email'] ?? '';
+    if (!$recipient_email || !filter_var($recipient_email, FILTER_VALIDATE_EMAIL)) {
+        return;
+    }
+
+    $system_name   = SettingsHelper::get('system_name', 'Sierra');
+    $tracking_link = trackStatusUrl($report_id);
+    $full_name     = trim(($full['first_name'] ?? '') . ' ' . ($full['last_name'] ?? ''));
+
+    $placeholders = array_merge([
+        '{first_name}'    => $full['first_name'] ?? '',
+        '{last_name}'     => $full['last_name'] ?? '',
+        '{full_name}'     => $full['user_name'] ?? $full_name,
+        '{email}'         => $recipient_email,
+        '{report_id}'     => $report_id,
+        '{report_title}'  => $full['title'] ?? '',
+        '{report_status}' => $full['status'] ?? '',
+        '{barangay_name}' => $full['barangay_name'] ?? '',
+        '{category_name}' => $full['category_name'] ?? '',
+        '{severity_score}' => $full['severity_score'] ?? '',
+    ], $extraPlaceholders);
+
+    $template = SettingsHelper::getTemplate($templateKey);
+    $body = SettingsHelper::parseTemplate($template, $placeholders);
+
+    $subject = $subjectLabel . " - Report #" . $report_id . " - " . $system_name;
+
+    $html = "
+    <html>
+    <head>
+        <style>
+            body { font-family: 'Manrope', Arial, sans-serif; color: #1a2e1a; margin: 0; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #10A37F; color: white; padding: 20px; text-align: center; border-radius: 12px 12px 0 0; }
+            .content { background: #f9fbfa; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px; }
+            .receipt-box { background: #ffffff; border: 1px solid #d1d5db; border-radius: 10px; padding: 20px; margin: 20px 0; }
+            .receipt-box table { width: 100%; border-collapse: collapse; }
+            .receipt-box td { padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+            .receipt-box td:first-child { color: #6b7280; width: 40%; }
+            .track-btn { display: inline-block; background: #10A37F; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; }
+            .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h2 style='margin:0;'>$system_name</h2>
+                <p style='margin:5px 0 0; opacity:0.9;'>" . htmlspecialchars($subjectLabel) . "</p>
+            </div>
+            <div class='content'>
+                <h3 style='margin-top:0;'>Hello " . htmlspecialchars($full['first_name'] ?? '') . ",</h3>
+                <div class='receipt-box'>
+                    <table>
+                        <tr><td>Report No.</td><td><strong>#" . $report_id . "</strong></td></tr>
+                        <tr><td>Category</td><td>" . htmlspecialchars($full['category_name'] ?? '') . "</td></tr>
+                        <tr><td>Barangay</td><td>" . htmlspecialchars($full['barangay_name'] ?? '') . "</td></tr>
+                        <tr><td>Status</td><td><strong>" . htmlspecialchars($full['status'] ?? '') . "</strong></td></tr>
+                        <tr><td>Updated</td><td>" . date('F j, Y, g:i a') . "</td></tr>
+                    </table>
+                </div>
+                <p>$body</p>
+                <div style='text-align:center; margin:25px 0;'>
+                    <a href='$tracking_link' class='track-btn'>Track Report Status</a>
+                </div>
+            </div>
+            <div class='footer'>
+                <p>© " . date('Y') . " $system_name - LGU San Isidro</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    ";
+
+    $email_sent = SettingsHelper::sendEmail($recipient_email, $full_name, $subject, $html);
+
+    if ($email_sent) {
+        $activityLog->log($user_id, 'Email Receipt', "Sent \"$subjectLabel\" email for report #$report_id to $recipient_email");
+    } else {
+        error_log("Report status email ($templateKey) failed for report #$report_id to $recipient_email");
+    }
 }
 
 // ============================================
@@ -516,6 +672,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
         }
         $activityLog->log($user_id, 'Verify Report', "Verified report #$report_id and moved to In Progress");
+        sendReportStatusEmail($db, $report_id, 'template_status_update', 'Report Status Update', $activityLog, $user_id);
         $_SESSION['success'] = "Report #$report_id verified and moved to IN PROGRESS.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -583,6 +740,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
         }
         $activityLog->log($user_id, 'Reject Report', "Rejected report #$report_id. Reason: $reason");
+        sendReportStatusEmail($db, $report_id, 'template_status_update', 'Report Rejected', $activityLog, $user_id, [
+            '{report_status}' => 'Rejected - ' . $reason,
+        ]);
         $_SESSION['success'] = "Report #$report_id rejected.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -640,32 +800,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!isset($_FILES['resolution_image']) || $_FILES['resolution_image']['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['error'] = "Please upload a photo as proof of resolution.";
+            $_SESSION['error'] = "Please attach a photo or video as proof of resolution.";
             header("Location: " . manageReportUrl($report_id));
             exit();
         }
-        $file = $_FILES['resolution_image'];
-        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        if (!in_array($extension, $allowed)) {
-            $_SESSION['error'] = "Invalid file type. Allowed: JPG, PNG, GIF, WebP.";
+        $upload = saveEvidenceUpload($_FILES['resolution_image'], 'resolution');
+        if (isset($upload['error'])) {
+            $_SESSION['error'] = $upload['error'];
             header("Location: " . manageReportUrl($report_id));
             exit();
         }
-        if ($file['size'] > 5242880) {
-            $_SESSION['error'] = "File size exceeds 5MB limit.";
-            header("Location: " . manageReportUrl($report_id));
-            exit();
-        }
-        $filename = 'resolution_' . uniqid() . '.' . $extension;
-        $target_path = UPLOAD_DIR . $filename;
-        if (!is_dir(UPLOAD_DIR)) mkdir(UPLOAD_DIR, 0777, true);
-        if (!move_uploaded_file($file['tmp_name'], $target_path)) {
-            $_SESSION['error'] = "Failed to upload resolution image.";
-            header("Location: " . manageReportUrl($report_id));
-            exit();
-        }
-        $image_path = 'uploads/reports/' . $filename;
+        $image_path = $upload['path'];
         $caption = trim($_POST['resolution_note'] ?? '');
         $stmt = $db->prepare("INSERT INTO resolution_evidence (report_id, image_path, uploaded_by, caption) VALUES (?, ?, ?, ?)");
         $stmt->execute([$report_id, $image_path, $user_id, $caption]);
@@ -682,6 +827,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
         }
         $activityLog->log($user_id, 'Resolve Report', "Resolved report #$report_id");
+        sendReportStatusEmail($db, $report_id, 'template_resolved', 'Report Resolved', $activityLog, $user_id);
         $_SESSION['success'] = "Report #$report_id marked as RESOLVED.";
         $redirect = ($user_role == 'admin') ? 'all-reports' : 'manage-report';
         header("Location: " . BASE_URL . "index.php?page=" . $redirect . "&id=" . IdGuard::enc($report_id));
@@ -757,8 +903,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
         }
-        $stmt = $db->prepare("INSERT INTO escalations (report_id, escalated_by, escalation_reason, escalated_at, status) VALUES (?, ?, ?, NOW(), 'pending')");
-        $stmt->execute([$report_id, $user_id, $reason]);
+        // Optional photo/video evidence attached to the escalation (camera or gallery)
+        $evidence_path = null;
+        if (isset($_FILES['escalation_evidence']) && $_FILES['escalation_evidence']['error'] === UPLOAD_ERR_OK) {
+            $evUpload = saveEvidenceUpload($_FILES['escalation_evidence'], 'escalation');
+            if (isset($evUpload['error'])) {
+                $_SESSION['error'] = $evUpload['error'];
+                header("Location: " . manageReportUrl($report_id));
+                exit();
+            }
+            $evidence_path = $evUpload['path'];
+        } elseif (isset($_FILES['escalation_evidence']) && $_FILES['escalation_evidence']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $_SESSION['error'] = "Failed to upload the evidence file. Please try again.";
+            header("Location: " . manageReportUrl($report_id));
+            exit();
+        }
+
+        $stmt = $db->prepare("INSERT INTO escalations (report_id, escalated_by, escalation_reason, evidence_path, escalated_at, status) VALUES (?, ?, ?, ?, NOW(), 'pending')");
+        $stmt->execute([$report_id, $user_id, $reason, $evidence_path]);
 
         // FIXED: All named parameters
         $stmt = $db->prepare("UPDATE reports SET status = :status WHERE id = :id");
@@ -771,6 +933,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
         }
         $activityLog->log($user_id, 'Escalate Report', "Escalated report #$report_id to MENRO. Reason: $reason");
+        sendReportStatusEmail($db, $report_id, 'template_escalated', 'Report Escalated to MENRO', $activityLog, $user_id);
         $_SESSION['success'] = "Report #$report_id escalated to MENRO.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -1115,7 +1278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $img_stmt->execute([$report_id]);
             $images = $img_stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($images as $img) {
-                $file_path = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/' . $img['image_path'];
+                $file_path = BASE_PATH . $img['image_path'];
                 if (file_exists($file_path)) {
                     unlink($file_path);
                 }
@@ -1164,6 +1327,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Only citizens can submit reports.";
             header("Location: " . BASE_URL . "index.php?page=dashboard");
             exit();
+        }
+
+        // ============================================
+        // RATE LIMITS (anti-spam) - configured in Admin > Settings > Reporting Limits
+        // Daily cap + minimum interval between reports.
+        //
+        // Time handling: created_at is a TIMESTAMP stored in MySQL's server
+        // timezone (UTC on InfinityFree, Manila on local XAMPP), so all
+        // comparisons are done with MySQL's own clock (NOW/CURDATE) to stay
+        // correct on any host. The Manila-midnight boundary is converted to
+        // the DB's wall-clock before comparing.
+        // ============================================
+        $limits = SettingsHelper::getReportLimits();
+        if ($limits['enabled']) {
+            // Daily limit: count today's non-cancelled reports for this user.
+            // "Today" = Manila midnight (matches the app's timezone), converted
+            // to whatever clock the MySQL server is running on.
+            if ($limits['daily_limit'] > 0) {
+                $manilaMidnightEpoch = strtotime(date('Y-m-d 00:00:00'));
+                $dbOffsetHours = (int)$db->query("SELECT TIMESTAMPDIFF(HOUR, UTC_TIMESTAMP(), NOW())")->fetchColumn();
+                $todayStart = gmdate('Y-m-d H:i:s', $manilaMidnightEpoch + $dbOffsetHours * 3600);
+                $countStmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE user_id = ? AND created_at >= ? AND status != ?");
+                $countStmt->execute([$user_id, $todayStart, Report::STATUS_CANCELLED]);
+                $todayCount = (int)$countStmt->fetchColumn();
+                if ($todayCount >= $limits['daily_limit']) {
+                    $_SESSION['error'] = "You have reached your daily report limit of " . $limits['daily_limit'] . " report(s). Please try again tomorrow.";
+                    header("Location: " . BASE_URL . "index.php?page=submit-report");
+                    exit();
+                }
+            }
+
+            // Interval limit: minimum minutes between two submissions.
+            // TIMESTAMPDIFF runs entirely in the DB's clock, so it is exact
+            // regardless of server timezone.
+            if ($limits['min_interval_minutes'] > 0) {
+                $minsStmt = $db->prepare("SELECT TIMESTAMPDIFF(MINUTE, MAX(created_at), NOW()) AS mins FROM reports WHERE user_id = ? AND status != ?");
+                $minsStmt->execute([$user_id, Report::STATUS_CANCELLED]);
+                $lastMins = $minsStmt->fetchColumn();
+                if ($lastMins !== null && $lastMins !== false && (int)$lastMins < $limits['min_interval_minutes']) {
+                    $wait = max(1, (int)$limits['min_interval_minutes'] - (int)$lastMins);
+                    $_SESSION['error'] = "You must wait " . $wait . " more minute(s) before submitting another report.";
+                    header("Location: " . BASE_URL . "index.php?page=submit-report");
+                    exit();
+                }
+            }
         }
 
         $errors = [];
@@ -1215,7 +1423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $risk_level = 'low';
 
         $image_paths = [];
-        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/uploads/reports/';
+        $upload_dir = BASE_PATH . 'uploads/reports/';
         if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
         $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'm4v', 'avi', '3gp', 'mkv'];
@@ -1331,6 +1539,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 recalcNearbyReports($db, $newReport['latitude'], $newReport['longitude'], $report_id);
             }
             $activityLog->log($user_id, 'Create Report', "Created report #$report_id");
+
+            // ============================================
+            // OFFICIAL REPORT RECEIPT EMAIL (Brevo)
+            // Setup B: email is strictly for report receipts.
+            // SMS remains the channel for OTP login/reset.
+            // ============================================
+            $recipient_email = $newReport['email'] ?? ($_SESSION['user_email'] ?? '');
+            if ($recipient_email && SettingsHelper::isEmailEnabled()) {
+                $system_name   = SettingsHelper::get('system_name', 'Sierra');
+                $tracking_link = trackStatusUrl($report_id);
+
+                $template = SettingsHelper::getTemplate('template_submitted');
+                $body = SettingsHelper::parseTemplate($template, [
+                    '{first_name}'    => $newReport['first_name'] ?? '',
+                    '{last_name}'     => $newReport['last_name'] ?? '',
+                    '{full_name}'     => $newReport['user_name'] ?? '',
+                    '{email}'         => $recipient_email,
+                    '{report_id}'     => $report_id,
+                    '{report_title}'  => $newReport['title'] ?? '',
+                    '{report_status}' => $newReport['status'] ?? 'Pending',
+                    '{barangay_name}' => $newReport['barangay_name'] ?? '',
+                    '{category_name}' => $newReport['category_name'] ?? '',
+                ]);
+
+                $subject = "Official Report Receipt #" . $report_id . " - " . $system_name;
+
+                $receipt_html = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: 'Manrope', Arial, sans-serif; color: #1a2e1a; margin: 0; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: #10A37F; color: white; padding: 20px; text-align: center; border-radius: 12px 12px 0 0; }
+                        .content { background: #f9fbfa; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px; }
+                        .receipt-box { background: #ffffff; border: 1px solid #d1d5db; border-radius: 10px; padding: 20px; margin: 20px 0; }
+                        .receipt-box table { width: 100%; border-collapse: collapse; }
+                        .receipt-box td { padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+                        .receipt-box td:first-child { color: #6b7280; width: 40%; }
+                        .track-btn { display: inline-block; background: #10A37F; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; }
+                        .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h2 style='margin:0;'>$system_name</h2>
+                            <p style='margin:5px 0 0; opacity:0.9;'>Official Report Receipt</p>
+                        </div>
+                        <div class='content'>
+                            <h3 style='margin-top:0;'>Hello " . htmlspecialchars($newReport['first_name'] ?? '') . ",</h3>
+                            <p>Your environmental report has been received by the LGU and is now being reviewed by your barangay officials.</p>
+                            <div class='receipt-box'>
+                                <table>
+                                    <tr><td>Receipt / Report No.</td><td><strong>#" . $report_id . "</strong></td></tr>
+                                    <tr><td>Category</td><td>" . htmlspecialchars($newReport['category_name'] ?? '') . "</td></tr>
+                                    <tr><td>Barangay</td><td>" . htmlspecialchars($newReport['barangay_name'] ?? '') . "</td></tr>
+                                    <tr><td>Status</td><td><strong>" . htmlspecialchars($newReport['status'] ?? 'Pending') . "</strong></td></tr>
+                                    <tr><td>Submitted</td><td>" . date('F j, Y, g:i a') . "</td></tr>
+                                </table>
+                            </div>
+                            <p>$body</p>
+                            <div style='text-align:center; margin:25px 0;'>
+                                <a href='$tracking_link' class='track-btn'>Track Report Status</a>
+                            </div>
+                            <p style='font-size:13px; color:#6b7280;'>Keep this email as proof of your official report submission. You can also track the status anytime by logging in to your account.</p>
+                        </div>
+                        <div class='footer'>
+                            <p>© " . date('Y') . " $system_name - LGU San Isidro</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                ";
+
+                $email_sent = SettingsHelper::sendEmail(
+                    $recipient_email,
+                    ($newReport['first_name'] ?? '') . ' ' . ($newReport['last_name'] ?? ''),
+                    $subject,
+                    $receipt_html
+                );
+
+                if ($email_sent) {
+                    $activityLog->log($user_id, 'Email Receipt', "Sent official report receipt #$report_id to $recipient_email");
+                } else {
+                    error_log("Report receipt email failed for report #$report_id to $recipient_email");
+                }
+            }
+
             $_SESSION['success'] = "Report submitted successfully with " . count($image_paths) . " photo(s)/video(s)!";
             header("Location: " . trackStatusUrl($report_id));
             exit();
@@ -1360,6 +1656,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
                 }
                 $activityLog->log($user_id, 'Update Status', "Updated report #$report_id status to $status");
+                $statusTemplateKey = ($status === Report::STATUS_RESOLVED) ? 'template_resolved' : 'template_status_update';
+                sendReportStatusEmail($db, $report_id, $statusTemplateKey, 'Report Status Update', $activityLog, $user_id);
                 $_SESSION['success'] = "Status updated successfully!";
             } else {
                 $_SESSION['error'] = "Report not found.";

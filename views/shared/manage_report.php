@@ -97,8 +97,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .note-item { background: #F5FBF6; padding: 12px; border-radius: 0.75rem; margin-bottom: 8px; border-left: 3px solid #10A37F; }
 
         /* ===== ACTION PANEL ===== */
-        .action-panel { background: white; border-radius: 1rem; border: 1px solid rgba(16,163,127,0.08); padding: 1.25rem; margin-top: 1.25rem; }
-        @media (min-width: 640px) { .action-panel { padding: 1.5rem; } }
+        .action-panel { background: white; border-radius: 1rem; border: 1px solid rgba(16,163,127,0.08); padding: 1.1rem; margin-top: 1.25rem; }
+        @media (min-width: 640px) { .action-panel { padding: 1.35rem; } }
+        @media (min-width: 1024px) { .action-panel { padding: 1.5rem; } }
 
         /* ===== INFO ROWS ===== */
         .info-label { color: #6b7280; font-size: 0.8rem; font-weight: 500; }
@@ -406,24 +407,28 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .expand-section.open { grid-template-rows: 1fr; opacity: 1; margin-top: 0.5rem; }
         .expand-section > div { overflow: hidden; min-height: 0; }
         .expand-section-inner { padding: 1rem; }
+        @media (max-width: 380px) { .expand-section-inner { padding: 0.75rem; } }
 
         /* ===== ACTION TRIGGER BUTTON ===== */
         .action-trigger.is-active { box-shadow: 0 0 0 3px rgba(16,163,127,0.25) inset; }
 
         /* ===== BUTTON LOADING STATE ===== */
-        button[type="submit"].is-loading { pointer-events: none; opacity: 0.75; position: relative; color: transparent !important; }
+        button[type="submit"].is-loading { pointer-events: none; opacity: 0.8; position: relative; color: transparent !important; transition: opacity 0.2s ease; }
         button[type="submit"].is-loading::after {
             content: ''; position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px;
-            border: 2px solid rgba(255,255,255,0.5); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+            border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%;
+            animation: btn-spin 0.65s cubic-bezier(0.4,0,0.2,1) infinite, btn-pop 0.2s ease both;
         }
-        button[type="submit"].btn-secondary.is-loading::after { border: 2px solid rgba(16,163,127,0.3); border-top-color: #10A37F; }
+        button[type="submit"].btn-secondary.is-loading::after { border-color: rgba(16,163,127,0.25); border-top-color: #10A37F; }
+        @keyframes btn-spin { to { transform: rotate(360deg); } }
+        @keyframes btn-pop  { from { transform: scale(0.5) rotate(0deg); } to { transform: scale(1) rotate(0deg); } }
 
         /* ===== FILE UPLOAD (DRAG & DROP + PREVIEW) ===== */
         .file-upload-area { position: relative; overflow: hidden; }
         .file-upload-area.drag-over { border-color: #10A37F; background: #E8F5F0; }
         .file-upload-area.has-file { border-style: solid; border-color: #10A37F; background: #F5FBF6; padding: 10px; }
         .file-upload-preview { display: none; max-height: 110px; border-radius: 0.5rem; margin: 0 auto 8px; object-fit: cover; }
-        .file-upload-area.has-file .file-upload-preview { display: block; }
+        video.file-upload-preview { max-height: 160px; width: 100%; background: #000; object-fit: contain; }
         .file-upload-area.has-file .file-upload-placeholder { display: none; }
 
         /* ===== LIGHTBOX ===== */
@@ -456,8 +461,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         /* ===== ENHANCED ACTION PANEL ===== */
         /* Status Stepper */
-        .status-stepper { display: flex; align-items: flex-start; gap: 0; padding: 0 0.25rem; overflow-x: auto; }
+        .status-stepper { display: flex; align-items: flex-start; gap: 0; padding: 0 0.25rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
         .status-step { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 68px; position: relative; }
+        @media (min-width: 640px) and (max-width: 1023px) { .status-step { min-width: 84px; } }
         .status-step .step-dot { width: 38px; height: 38px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; background: #E5E7EB; color: #9CA3AF; border: 3px solid #fff; box-shadow: 0 0 0 2px #E5E7EB; z-index: 2; transition: all 0.2s ease; flex-shrink: 0; }
         .status-step .step-label { margin-top: 8px; font-size: 0.66rem; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.03em; text-align: center; white-space: nowrap; }
         .status-step .step-date { font-size: 0.58rem; color: #C0C8D0; margin-top: 2px; text-align: center; font-weight: 500; }
@@ -472,13 +478,25 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .step-connector.done { background: linear-gradient(90deg,#10A37F,#0D8568); }
 
         /* Action Cards */
-        .action-cards { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-        @media (min-width: 768px) { .action-cards { grid-template-columns: repeat(3, 1fr); } }
-        .action-card { background: white; border: 1px solid #E5E7EB; border-radius: 1rem; padding: 1rem; transition: all 0.2s ease; }
+        .action-cards { display: grid; grid-template-columns: 1fr; gap: 0.85rem; }
+        @media (min-width: 640px) { .action-cards { grid-template-columns: repeat(2, 1fr); gap: 1rem; } }
+        @media (min-width: 1024px) { .action-cards { grid-template-columns: repeat(3, 1fr); } }
+        .action-card { background: white; border: 1px solid #E5E7EB; border-radius: 1rem; padding: 0.9rem; transition: all 0.2s ease; }
+        @media (min-width: 640px) { .action-card { padding: 1rem; } }
         .action-card:hover { border-color: #10A37F; box-shadow: 0 4px 16px -6px rgba(16,163,127,0.18); }
         .action-card .action-icon { width: 42px; height: 42px; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; }
         .action-card .action-btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; }
         .action-card .action-expand { grid-column: 1 / -1; }
+
+        /* Touch-friendly tap targets across desktop/tablet/mobile */
+        .action-card .action-btn,
+        .action-card button[type="submit"],
+        .action-card .action-trigger,
+        .expand-section-inner button { min-height: 44px; touch-action: manipulation; }
+        @media (max-width: 480px) {
+            .expand-section-inner .flex.gap-2 { flex-wrap: wrap; }
+            .expand-section-inner .flex.gap-2 button { min-width: 120px; }
+        }
         .action-expand { grid-column: 1 / -1; }
 
         /* Context Callouts */
@@ -489,11 +507,69 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .action-callout.danger { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
         .action-callout .callout-title { font-weight: 700; }
         .action-callout .callout-sub { font-size: 0.75rem; margin-top: 2px; opacity: 0.9; }
+        /* ===== EVIDENCE CAMERA MODAL (ported from submit-report) ===== */
+        .file-upload-choice { display: flex; gap: 10px; margin-bottom: 10px; }
+        .file-upload-choice button { flex: 1; min-height: 44px; padding: 9px 8px; background: #f3f4f6; border-radius: 0.75rem; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; font-weight: 500; color: #374151; cursor: pointer; transition: all 0.15s; touch-action: manipulation; }
+        .file-upload-choice button:hover { background: #e5e7eb; }
+        @media (max-width: 360px) { .file-upload-choice { flex-direction: column; } }
+
+        .camera-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 16px; flex-direction: column; }
+        .camera-modal.active { display: flex; }
+        .camera-modal .camera-wrapper { position: relative; width: 100%; max-width: 500px; border-radius: 20px; overflow: hidden; background: #000; aspect-ratio: 4/3; box-shadow: 0 25px 60px rgba(0,0,0,0.8); }
+        .camera-modal .camera-wrapper video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .camera-modal .viewfinder { position: absolute; inset: 0; pointer-events: none; border: 2px solid rgba(255,255,255,0.15); border-radius: 20px; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.05); }
+        .camera-modal .viewfinder::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 80%; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
+        .camera-modal .viewfinder .crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .camera-modal .viewfinder .crosshair::before, .camera-modal .viewfinder .crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.3); }
+        .camera-modal .viewfinder .crosshair::before { width: 2px; height: 100%; }
+        .camera-modal .viewfinder .crosshair::after { width: 100%; height: 2px; }
+        .camera-modal .viewfinder .corner { position: absolute; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.2); }
+        .camera-modal .viewfinder .corner.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+        .camera-modal .viewfinder .corner.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+        .camera-modal .viewfinder .corner.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+        .camera-modal .viewfinder .corner.br { bottom: 12px; right: 12px; border-left: none; border-top: none; }
+
+        .camera-controls { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 24px; width: 100%; max-width: 500px; padding: 0 8px; }
+        .camera-controls .ctrl-btn { width: 56px; height: 56px; border-radius: 50%; border: none; background: rgba(255,255,255,0.12); backdrop-filter: blur(4px); color: white; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; touch-action: manipulation; }
+        .camera-controls .ctrl-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
+        .camera-controls .ctrl-btn:active { transform: scale(0.92); }
+        .camera-controls .ctrl-btn.capture { width: 72px; height: 72px; background: white; color: #10A37F; font-size: 1.8rem; box-shadow: 0 0 0 4px rgba(255,255,255,0.2); }
+        .camera-controls .ctrl-btn.capture:hover { background: #f0fdf4; box-shadow: 0 0 0 6px rgba(255,255,255,0.3); }
+        .camera-controls .ctrl-btn.close-cam { background: rgba(239,68,68,0.3); color: #fca5a5; }
+        .camera-controls .ctrl-btn.close-cam:hover { background: rgba(239,68,68,0.5); }
+        .camera-controls .ctrl-btn.flash { background: rgba(255,255,255,0.08); color: #fbbf24; }
+        .camera-controls .ctrl-btn.flash.active { background: #fbbf24; color: #1f2937; }
+        .camera-controls .ctrl-btn.switch-cam { background: rgba(255,255,255,0.08); color: #93c5fd; }
+        @media (max-width: 480px) {
+            .camera-controls .ctrl-btn { width: 48px; height: 48px; font-size: 1rem; }
+            .camera-controls .ctrl-btn.capture { width: 60px; height: 60px; font-size: 1.5rem; }
+            .camera-controls { gap: 14px; }
+        }
+
+        .camera-mode-toggle { display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.12); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); border-radius: 9999px; padding: 4px; margin-bottom: 18px; }
+        .camera-mode-toggle .mode-btn { border: none; background: transparent; color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 600; padding: 8px 18px; border-radius: 9999px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; touch-action: manipulation; }
+        .camera-mode-toggle .mode-btn:hover { color: white; }
+        .camera-mode-toggle .mode-btn.mode-active { background: white; color: #10A37F; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        @media (max-width: 480px) { .camera-mode-toggle .mode-btn { padding: 7px 14px; font-size: 0.75rem; } }
+
+        .recording-indicator { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 8px 16px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 8px; z-index: 20; pointer-events: none; }
+        .recording-indicator .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: #EF4444; animation: recBlink 1s infinite; flex-shrink: 0; }
+        @keyframes recBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .recording-indicator .rec-max { font-size: 0.65rem; color: rgba(255,255,255,0.6); font-weight: 500; }
+        .camera-controls .ctrl-btn.capture.recording { background: #EF4444; color: white; box-shadow: 0 0 0 6px rgba(239,68,68,0.3); animation: recBtnPulse 1.2s infinite; }
+        @keyframes recBtnPulse { 0%, 100% { box-shadow: 0 0 0 4px rgba(239,68,68,0.3); } 50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } }
+
+        .camera-tips-overlay { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: white; padding: 10px 18px; border-radius: 30px; font-size: 0.75rem; text-align: center; max-width: 90%; z-index: 10; border: 1px solid rgba(255,255,255,0.08); pointer-events: none; transition: opacity 0.3s ease; white-space: nowrap; }
+        .camera-tips-overlay .tip-emoji { margin-right: 6px; }
+        .camera-tips-overlay .tip-text strong { color: #10A37F; }
+        .camera-tips-overlay .tip-dismiss { position: absolute; top: -8px; right: -6px; background: rgba(255,255,255,0.15); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; font-size: 10px; color: #aaa; transition: all 0.2s; }
+        .camera-tips-overlay .tip-dismiss:hover { background: rgba(255,255,255,0.3); color: white; }
+        @media (max-width: 480px) { .camera-tips-overlay { font-size: 0.65rem; padding: 8px 14px; bottom: 12px; white-space: normal; } }
     </style>
 </head>
 <body>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container">
@@ -830,6 +906,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div>
                         <p class="callout-title">Needs your attention</p>
                         <p class="callout-sub">This report is pending MENRO approval.<?php if (!empty($escalation['escalation_reason'])): ?> <strong>Justification:</strong> <?php echo htmlspecialchars($escalation['escalation_reason']); ?><?php endif; ?></p>
+                        <?php if (!empty($escalation['evidence_path'])): $esc_is_video = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $escalation['evidence_path']); ?>
+                            <a href="<?php echo BASE_URL . $escalation['evidence_path']; ?>" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 mt-2 hover:underline">
+                                <i class="fas <?php echo $esc_is_video ? 'fa-video' : 'fa-image'; ?>"></i> View escalation evidence
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php elseif ($report['status'] == 'escalated'): ?>
@@ -838,6 +919,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div>
                         <p class="callout-title">Under MENRO supervision</p>
                         <p class="callout-sub">This report has been escalated and is now being managed by MENRO.</p>
+                        <?php if (!empty($escalation['evidence_path'])): $esc_is_video = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $escalation['evidence_path']); ?>
+                            <a href="<?php echo BASE_URL . $escalation['evidence_path']; ?>" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 mt-2 hover:underline">
+                                <i class="fas <?php echo $esc_is_video ? 'fa-video' : 'fa-image'; ?>"></i> View escalation evidence
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php elseif ($report['status'] == 'resolved'): ?>
@@ -933,12 +1019,27 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <i class="fas fa-share mr-2"></i> Escalate to MENRO
                     </button>
                     <div id="escalateFormSection" class="expand-section mt-3 bg-amber-50 border-2 border-amber-200 rounded-xl"><div>
-                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" onsubmit="setLoading(this)">
+                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" enctype="multipart/form-data" class="expand-section-inner space-y-3" onsubmit="setLoading(this)">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                             <input type="hidden" name="action" value="escalate_report">
                             <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                             <label class="block text-sm font-semibold text-gray-700"><i class="fas fa-share text-amber-600 mr-1"></i> Justification for escalation</label>
                             <textarea name="escalation_reason" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Explain why this report needs to be escalated to MENRO..." required></textarea>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Supporting photo or video <span class="text-gray-400 font-normal">(optional)</span></label>
+                            <div class="file-upload-choice">
+                                <button type="button" onclick="openEvidenceCamera('escEvidence','escEvidenceArea','escEvidencePreviewImg','escEvidencePreviewVideo','escPreview')"><i class="fas fa-camera"></i><span>Take Photo</span></button>
+                                <button type="button" onclick="triggerFileInput('escEvidence','gallery')"><i class="fas fa-images"></i><span>Choose from Gallery</span></button>
+                            </div>
+                            <div class="file-upload-area" id="escEvidenceArea" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'escEvidence')">
+                                <img class="file-upload-preview" id="escEvidencePreviewImg" alt="">
+                                <video class="file-upload-preview" id="escEvidencePreviewVideo" controls muted playsinline></video>
+                                <div class="file-upload-placeholder">
+                                    <i class="fas fa-paperclip text-2xl text-gray-400 mb-1 block"></i>
+                                    <span class="text-xs text-gray-600 font-medium">or drag a photo/video here</span>
+                                </div>
+                                <input type="file" name="escalation_evidence" id="escEvidence" accept="image/*,video/*" style="display:none;" onchange="handleFilePreview(this,'escEvidenceArea','escEvidencePreviewImg','escEvidencePreviewVideo','escPreview')">
+                                <span id="escPreview" class="text-xs text-gray-500 block mt-2">Photo (Max 5MB) or video (Max 10MB)</span>
+                            </div>
                             <div class="flex gap-2">
                                 <button type="submit" class="btn-warning flex-1 px-4 py-2 text-xs"><i class="fas fa-paper-plane mr-1.5"></i> Confirm Escalation</button>
                                 <button type="button" data-target="escalateFormSection" onclick="toggleExpand(this)" class="btn-secondary px-4 py-2 text-xs">Cancel</button>
@@ -993,15 +1094,20 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                             <input type="hidden" name="action" value="resolve_report">
                             <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Resolution photo <span class="text-red-500">(required)</span></label>
-                            <div class="file-upload-area" id="resImageArea" onclick="document.getElementById('resImage').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImage')">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Resolution photo or video <span class="text-red-500">(required)</span></label>
+                            <div class="file-upload-choice">
+                                <button type="button" onclick="openEvidenceCamera('resImage','resImageArea','resImagePreviewImg','resImagePreviewVideo','resPreview')"><i class="fas fa-camera"></i><span>Take Photo</span></button>
+                                <button type="button" onclick="triggerFileInput('resImage','gallery')"><i class="fas fa-images"></i><span>Choose from Gallery</span></button>
+                            </div>
+                            <div class="file-upload-area" id="resImageArea" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImage')">
                                 <img class="file-upload-preview" id="resImagePreviewImg" alt="">
+                                <video class="file-upload-preview" id="resImagePreviewVideo" controls muted playsinline></video>
                                 <div class="file-upload-placeholder">
                                     <i class="fas fa-camera text-2xl text-gray-400 mb-1 block"></i>
-                                    <span class="text-xs text-gray-600 font-medium">Click or drag a photo here</span>
+                                    <span class="text-xs text-gray-600 font-medium">or drag a photo/video here</span>
                                 </div>
-                                <input type="file" name="resolution_image" id="resImage" accept="image/*" style="display:none;" required onchange="handleFilePreview(this,'resImageArea','resImagePreviewImg','resPreview')">
-                                <span id="resPreview" class="text-xs text-gray-500 block mt-2">JPG, PNG, GIF (Max 5MB)</span>
+                                <input type="file" name="resolution_image" id="resImage" accept="image/*,video/*" style="display:none;" required onchange="handleFilePreview(this,'resImageArea','resImagePreviewImg','resImagePreviewVideo','resPreview')">
+                                <span id="resPreview" class="text-xs text-gray-500 block mt-2">Photo (Max 5MB) or video (Max 10MB)</span>
                             </div>
                             <textarea name="resolution_note" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe the actions taken to resolve this issue..."></textarea>
                             <div class="flex gap-2">
@@ -1065,14 +1171,19 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                             <input type="hidden" name="action" value="resolve_report">
                             <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                            <div class="file-upload-area" id="resImageAdminArea" onclick="document.getElementById('resImageAdmin').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImageAdmin')">
+                            <div class="file-upload-choice">
+                                <button type="button" onclick="openEvidenceCamera('resImageAdmin','resImageAdminArea','resImageAdminPreviewImg','resImageAdminPreviewVideo','resPreviewAdmin')"><i class="fas fa-camera"></i><span>Take Photo</span></button>
+                                <button type="button" onclick="triggerFileInput('resImageAdmin','gallery')"><i class="fas fa-images"></i><span>Choose from Gallery</span></button>
+                            </div>
+                            <div class="file-upload-area" id="resImageAdminArea" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImageAdmin')">
                                 <img class="file-upload-preview" id="resImageAdminPreviewImg" alt="">
+                                <video class="file-upload-preview" id="resImageAdminPreviewVideo" controls muted playsinline></video>
                                 <div class="file-upload-placeholder">
                                     <i class="fas fa-camera text-2xl text-gray-400 mb-1 block"></i>
-                                    <span class="text-sm text-gray-500">Upload resolution photo</span>
+                                    <span class="text-sm text-gray-500">Upload resolution photo or video</span>
                                 </div>
-                                <input type="file" name="resolution_image" id="resImageAdmin" accept="image/*" style="display:none;" onchange="handleFilePreview(this,'resImageAdminArea','resImageAdminPreviewImg','resPreviewAdmin')">
-                                <span id="resPreviewAdmin" class="text-xs text-gray-400 block">JPG, PNG, GIF (Max 5MB)</span>
+                                <input type="file" name="resolution_image" id="resImageAdmin" accept="image/*,video/*" style="display:none;" onchange="handleFilePreview(this,'resImageAdminArea','resImageAdminPreviewImg','resImageAdminPreviewVideo','resPreviewAdmin')">
+                                <span id="resPreviewAdmin" class="text-xs text-gray-400 block">Photo (Max 5MB) or video (Max 10MB)</span>
                             </div>
                             <input type="text" name="resolution_note" placeholder="Optional note..." class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none">
                             <div class="flex gap-2">
@@ -1152,6 +1263,60 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <button type="button" class="btn-danger flex-1" onclick="proceedConfirmModal()">Yes, continue</button>
             <button type="button" class="btn-secondary flex-1" onclick="closeConfirmModal()">Cancel</button>
         </div>
+    </div>
+</div>
+
+<!-- ===== EVIDENCE CAMERA MODAL (ported from submit-report) ===== -->
+<div id="evidenceCameraModal" class="camera-modal">
+    <div class="camera-mode-toggle">
+        <button type="button" id="evPhotoModeBtn" class="mode-btn mode-active" data-mode="photo">
+            <i class="fas fa-camera"></i> Photo
+        </button>
+        <button type="button" id="evVideoModeBtn" class="mode-btn" data-mode="video">
+            <i class="fas fa-video"></i> Video
+        </button>
+    </div>
+
+    <div class="camera-wrapper">
+        <video id="evidenceVideo" autoplay playsinline muted></video>
+        <canvas id="evidenceCanvas" style="display: none;"></canvas>
+
+        <div class="viewfinder">
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
+            <div class="crosshair"></div>
+        </div>
+
+        <div id="evRecordingIndicator" class="recording-indicator" style="display:none;">
+            <span class="rec-dot"></span>
+            <span id="evRecTimer">00:00</span>
+            <span class="rec-max">max 30s</span>
+        </div>
+
+        <div id="evCameraTips" class="camera-tips-overlay">
+            <div class="tip-dismiss" onclick="dismissEvidenceCameraTips()">✕</div>
+            <div id="evTipContent">
+                <span class="tip-emoji">📸</span>
+                <span class="tip-text"><strong>Hold steady</strong> and ensure good lighting for clear evidence.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="camera-controls">
+        <button type="button" id="evSwitchCameraBtn" class="ctrl-btn switch-cam" title="Switch Camera">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+        <button type="button" id="evFlashToggleBtn" class="ctrl-btn flash" title="Toggle Flash">
+            <i class="fas fa-bolt"></i>
+        </button>
+        <button type="button" id="evCaptureBtn" class="ctrl-btn capture" title="Capture Photo">
+            <i class="fas fa-camera"></i>
+        </button>
+        <button type="button" id="evCloseCameraBtn" class="ctrl-btn close-cam" title="Close Camera">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
 </div>
 
@@ -1244,18 +1409,48 @@ function proceedConfirmModal() {
     }
 }
 
-// ===== FILE UPLOAD: DRAG & DROP + IMAGE PREVIEW =====
-function handleFilePreview(input, areaId, imgId, labelId) {
+// ===== GALLERY PICKER =====
+// "Take Photo" now opens the real in-page camera (see openEvidenceCamera
+// below); this just opens the normal file/gallery picker for "Choose from
+// Gallery". Kept generic (mode param) in case a plain capture-attribute
+// trigger is needed elsewhere.
+function triggerFileInput(inputId, mode) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    if (mode === 'camera') {
+        input.setAttribute('capture', 'environment');
+    } else {
+        input.removeAttribute('capture');
+    }
+    input.click();
+}
+
+function isVideoFile(file) {
+    return !!file && (file.type.indexOf('video/') === 0 || /\.(mp4|webm|mov|m4v|avi)$/i.test(file.name));
+}
+
+// ===== FILE UPLOAD: DRAG & DROP + IMAGE/VIDEO PREVIEW =====
+function handleFilePreview(input, areaId, imgId, videoId, labelId) {
     const area = document.getElementById(areaId);
     const img = document.getElementById(imgId);
+    const video = document.getElementById(videoId);
     const label = document.getElementById(labelId);
     const file = input.files[0];
     if (file) {
         area.classList.add('has-file');
-        img.src = URL.createObjectURL(file);
+        const url = URL.createObjectURL(file);
+        if (isVideoFile(file)) {
+            if (video) { video.src = url; video.style.display = 'block'; }
+            if (img) { img.removeAttribute('src'); img.style.display = 'none'; }
+        } else {
+            if (img) { img.src = url; img.style.display = 'block'; }
+            if (video) { video.pause(); video.removeAttribute('src'); video.load(); video.style.display = 'none'; }
+        }
         if (label) label.textContent = file.name + ' · ' + (file.size / 1024 / 1024).toFixed(2) + ' MB';
     } else {
         area.classList.remove('has-file');
+        if (img) img.style.display = 'none';
+        if (video) video.style.display = 'none';
         if (label) label.textContent = 'No file selected';
     }
 }
@@ -1529,6 +1724,361 @@ function handleDownloadPDF() {
         if (o) o.remove();
     }
 }
+</script>
+
+<!-- ===== EVIDENCE CAMERA (ported from submit-report's Take Photo / Choose from Gallery) ===== -->
+<script>
+(function() {
+    'use strict';
+
+    const cameraModal = document.getElementById('evidenceCameraModal');
+    const video = document.getElementById('evidenceVideo');
+    const canvas = document.getElementById('evidenceCanvas');
+    const closeCameraBtn = document.getElementById('evCloseCameraBtn');
+    const captureBtn = document.getElementById('evCaptureBtn');
+    const switchCameraBtn = document.getElementById('evSwitchCameraBtn');
+    const flashToggleBtn = document.getElementById('evFlashToggleBtn');
+    const photoModeBtn = document.getElementById('evPhotoModeBtn');
+    const videoModeBtn = document.getElementById('evVideoModeBtn');
+    const recordingIndicator = document.getElementById('evRecordingIndicator');
+    const recTimer = document.getElementById('evRecTimer');
+
+    if (!cameraModal || !video) return;
+
+    // STATE
+    let mediaStream = null;
+    let facingMode = 'environment';
+    let flashMode = false;
+    let cameraMode = 'photo';
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+    let recTimerInterval = null;
+    let recStartTime = 0;
+    let cameraTipTimer = null;
+
+    // Which form field the camera is currently capturing for
+    let target = null; // { inputId, areaId, imgId, videoId, labelId }
+
+    const MAX_VIDEO_SIZE = 10 * 1024 * 1024;   // 10MB - matches server limit
+    const MAX_VIDEO_DURATION = 30000;          // 30 seconds
+
+    function showToast(message, type) {
+        if (typeof window.showToast === 'function') { window.showToast(message, type); return; }
+        // Minimal fallback toast if the page doesn't already define one
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:' + (type === 'error' ? '#EF4444' : type === 'success' ? '#10A37F' : '#374151') + ';color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:100000;box-shadow:0 8px 24px rgba(0,0,0,0.25);';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // ============================================================
+    // CAMERA TIPS
+    // ============================================================
+    const cameraTips = [
+        { emoji: '📸', text: '<strong>Hold steady</strong> and ensure good lighting for clear evidence.' },
+        { emoji: '🎯', text: '<strong>Frame the issue</strong> clearly — show the result in context.' },
+        { emoji: '🔍', text: '<strong>Get close</strong> to capture details, then step back for the bigger picture.' }
+    ];
+    let cameraTipIndex = 0;
+
+    function rotateCameraTip() {
+        const tipContent = document.getElementById('evTipContent');
+        if (!tipContent) return;
+        cameraTipIndex = (cameraTipIndex + 1) % cameraTips.length;
+        const tip = cameraTips[cameraTipIndex];
+        tipContent.innerHTML = '<span class="tip-emoji">' + tip.emoji + '</span><span class="tip-text">' + tip.text + '</span>';
+    }
+
+    function startCameraTips() {
+        cameraTipIndex = 0;
+        const tipContent = document.getElementById('evTipContent');
+        if (tipContent) {
+            const tip = cameraTips[0];
+            tipContent.innerHTML = '<span class="tip-emoji">' + tip.emoji + '</span><span class="tip-text">' + tip.text + '</span>';
+        }
+        clearInterval(cameraTipTimer);
+        cameraTipTimer = setInterval(rotateCameraTip, 5000);
+    }
+
+    function stopCameraTips() {
+        clearInterval(cameraTipTimer);
+    }
+
+    window.dismissEvidenceCameraTips = function() {
+        const overlay = document.getElementById('evCameraTips');
+        if (overlay) overlay.style.opacity = '0';
+        stopCameraTips();
+    };
+
+    // ============================================================
+    // CAMERA LIFECYCLE
+    // ============================================================
+    function setCameraMode(mode) {
+        cameraMode = mode;
+        photoModeBtn.classList.toggle('mode-active', mode === 'photo');
+        videoModeBtn.classList.toggle('mode-active', mode === 'video');
+        captureBtn.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
+        if (mode === 'video') {
+            captureBtn.title = 'Start Recording';
+            captureBtn.innerHTML = '<i class="fas fa-video"></i>';
+        } else {
+            captureBtn.title = 'Capture Photo';
+            captureBtn.innerHTML = '<i class="fas fa-camera"></i>';
+        }
+    }
+
+    // Called from the "Take Photo" buttons on the resolve / escalate forms
+    window.openEvidenceCamera = async function(inputId, areaId, imgId, videoId, labelId) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showToast('Camera not supported on this device/browser', 'error');
+            return;
+        }
+        target = { inputId: inputId, areaId: areaId, imgId: imgId, videoId: videoId, labelId: labelId };
+        try {
+            const isVideoMode = cameraMode === 'video';
+            const constraints = {
+                video: {
+                    facingMode: facingMode,
+                    width: { ideal: isVideoMode ? 1280 : 1920 },
+                    height: { ideal: isVideoMode ? 720 : 1080 },
+                    frameRate: { ideal: 30, max: 30 }
+                },
+                audio: isVideoMode
+            };
+            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = mediaStream;
+            await video.play();
+
+            cameraModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            const tipsOverlay = document.getElementById('evCameraTips');
+            tipsOverlay.style.display = 'block';
+            tipsOverlay.style.opacity = '1';
+            startCameraTips();
+
+            flashMode = false;
+            flashToggleBtn.classList.remove('active');
+
+            setCameraMode(cameraMode);
+        } catch (error) {
+            console.error('Camera error:', error);
+            showToast('Unable to access camera. Please grant camera permission.', 'error');
+        }
+    };
+
+    function closeCamera() {
+        if (isRecording) stopRecording();
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(function(track) { track.stop(); });
+            mediaStream = null;
+        }
+        video.srcObject = null;
+        cameraModal.classList.remove('active');
+        document.body.style.overflow = '';
+        stopCameraTips();
+        captureBtn.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
+    }
+
+    // Push a captured File into the target's hidden <input type=file> and
+    // refresh its preview, reusing the page's existing handleFilePreview().
+    function applyCapturedFile(file) {
+        if (!target) return;
+        const input = document.getElementById(target.inputId);
+        if (!input) return;
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        if (typeof window.handleFilePreview === 'function') {
+            window.handleFilePreview(input, target.areaId, target.imgId, target.videoId, target.labelId);
+        }
+    }
+
+    function capturePhoto() {
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(blob) {
+            if (blob) {
+                const file = new File([blob], 'evidence_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+                applyCapturedFile(file);
+                showToast('Photo captured successfully!', 'success');
+            }
+            closeCamera();
+        }, 'image/jpeg', 0.92);
+    }
+
+    function formatRecTime(ms) {
+        const totalSec = Math.floor(ms / 1000);
+        const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+        const ss = String(totalSec % 60).padStart(2, '0');
+        return mm + ':' + ss;
+    }
+
+    function startRecording() {
+        if (!mediaStream || isRecording) return;
+        if (mediaStream.getVideoTracks().length === 0) {
+            showToast('No video track available', 'error');
+            return;
+        }
+        recordedChunks = [];
+        let mimeType = 'video/webm';
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+            mimeType = 'video/webm;codecs=vp9';
+        } else if (window.MediaRecorder && MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+            mimeType = 'video/webm;codecs=vp8';
+        } else if (window.MediaRecorder && MediaRecorder.isTypeSupported('video/mp4')) {
+            mimeType = 'video/mp4';
+        }
+        try {
+            mediaRecorder = new MediaRecorder(mediaStream, { mimeType: mimeType, videoBitsPerSecond: 1200000, audioBitsPerSecond: 128000 });
+        } catch (e) {
+            try {
+                mediaRecorder = new MediaRecorder(mediaStream, { videoBitsPerSecond: 1200000 });
+            } catch (e2) {
+                try {
+                    mediaRecorder = new MediaRecorder(mediaStream);
+                } catch (e3) {
+                    showToast('Video recording not supported on this browser', 'error');
+                    return;
+                }
+            }
+        }
+        mediaRecorder.ondataavailable = function(e) {
+            if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+        };
+        mediaRecorder.onstop = onRecordingStopped;
+        mediaRecorder.start(1000);
+        isRecording = true;
+        recStartTime = Date.now();
+        captureBtn.classList.add('recording');
+        captureBtn.title = 'Stop Recording';
+        captureBtn.innerHTML = '<i class="fas fa-stop"></i>';
+        recordingIndicator.style.display = 'flex';
+        recTimer.textContent = '00:00';
+        stopCameraTips();
+        clearInterval(recTimerInterval);
+        recTimerInterval = setInterval(function() {
+            const elapsed = Date.now() - recStartTime;
+            recTimer.textContent = formatRecTime(elapsed);
+            if (elapsed >= MAX_VIDEO_DURATION) {
+                showToast('Maximum recording time reached (30s)', 'info');
+                stopRecording();
+            }
+        }, 250);
+    }
+
+    function stopRecording() {
+        if (!isRecording) return;
+        clearInterval(recTimerInterval);
+        isRecording = false;
+        try {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            } else {
+                onRecordingStopped();
+            }
+        } catch (e) {
+            onRecordingStopped();
+        }
+    }
+
+    function onRecordingStopped() {
+        captureBtn.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
+        const rawType = recordedChunks.length > 0 && recordedChunks[0].type ? recordedChunks[0].type : 'video/webm';
+        const blobType = rawType.split(';')[0].trim() || 'video/webm';
+        const blob = new Blob(recordedChunks, { type: blobType });
+        const ext = (blobType.indexOf('mp4') !== -1) ? 'mp4' : 'webm';
+        const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+        if (blob.size < 1024) {
+            showToast('Recording was too short. Please try again.', 'warning');
+            startCameraTips();
+            return;
+        }
+        if (blob.size > MAX_VIDEO_SIZE) {
+            showToast('Video too large (' + sizeMB + 'MB). Max 10MB. Try a shorter clip.', 'error');
+            startCameraTips();
+            return;
+        }
+        const file = new File([blob], 'evidence_' + Date.now() + '.' + ext, { type: blobType });
+        applyCapturedFile(file);
+        showToast('Video recorded (' + sizeMB + 'MB)', 'success');
+        closeCamera();
+    }
+
+    async function switchCamera() {
+        if (isRecording) {
+            showToast('Stop recording before switching camera', 'warning');
+            return;
+        }
+        facingMode = (facingMode === 'environment') ? 'user' : 'environment';
+        if (mediaStream) {
+            const t = target;
+            closeCamera();
+            await new Promise(resolve => setTimeout(resolve, 300));
+            target = t;
+            await window.openEvidenceCamera(t.inputId, t.areaId, t.imgId, t.videoId, t.labelId);
+        }
+    }
+
+    function toggleFlash() {
+        if (cameraMode === 'video') return;
+        flashMode = !flashMode;
+        flashToggleBtn.classList.toggle('active', flashMode);
+        if (mediaStream) {
+            const track = mediaStream.getVideoTracks()[0];
+            if (track) {
+                const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+                if (capabilities.torch) {
+                    track.applyConstraints({ advanced: [{ torch: flashMode }] }).catch(() => {});
+                } else {
+                    showToast('Flash not supported on this device', 'info');
+                    flashToggleBtn.classList.remove('active');
+                    flashMode = false;
+                }
+            }
+        }
+    }
+
+    async function changeCameraMode(mode) {
+        if (mode === cameraMode) return;
+        if (isRecording) {
+            showToast('Stop recording before switching mode', 'warning');
+            return;
+        }
+        setCameraMode(mode);
+        if (cameraMode === 'video') {
+            flashMode = false;
+            flashToggleBtn.classList.remove('active');
+        }
+        if (mediaStream) {
+            const t = target;
+            closeCamera();
+            await new Promise(resolve => setTimeout(resolve, 300));
+            target = t;
+            await window.openEvidenceCamera(t.inputId, t.areaId, t.imgId, t.videoId, t.labelId);
+        }
+    }
+
+    closeCameraBtn.addEventListener('click', closeCamera);
+    captureBtn.addEventListener('click', function() {
+        if (cameraMode === 'video') {
+            if (isRecording) stopRecording(); else startRecording();
+        } else {
+            capturePhoto();
+        }
+    });
+    switchCameraBtn.addEventListener('click', switchCamera);
+    flashToggleBtn.addEventListener('click', toggleFlash);
+    photoModeBtn.addEventListener('click', function() { changeCameraMode('photo'); });
+    videoModeBtn.addEventListener('click', function() { changeCameraMode('video'); });
+})();
 </script>
 
 </body>

@@ -7,8 +7,8 @@
 // here (the settings shell routes ?tab=categories POSTs to this partial) and
 // redirect back to Settings > Categories.
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
+require_once BASE_PATH . 'helpers/SettingsHelper.php';
+require_once BASE_PATH . 'helpers/PermissionHelper.php';
 
 // Permission gate (super-admin bypasses via PermissionHelper).
 if (!PermissionHelper::userHasPermission('can_manage_system')) {

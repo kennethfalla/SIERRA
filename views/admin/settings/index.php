@@ -2,7 +2,7 @@
 // views/admin/settings/index.php - Unified Settings Dashboard
 // Complete with tab navigation, responsive design, and all setting types
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
+require_once dirname(__DIR__, 3) . '/config/config.php';
 require_once BASE_PATH . 'helpers/SecurityHelper.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
 requireRole('admin');
@@ -11,87 +11,107 @@ requireRole('admin');
 $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'general';
 $system_name = SettingsHelper::get('system_name', 'Sierra');
 
-// Define all setting tabs
-$tabs = [
-    'general' => [
-        'label' => 'General',
-        'icon' => 'fa-cog',
-        'description' => 'System name, logo, and contact information',
-        'file' => 'general.php'
+// Define all setting tabs organized into categories
+$navigation_groups = [
+    'General & Branding' => [
+        'general' => [
+            'label' => 'General',
+            'icon' => 'fa-cog',
+            'description' => 'System name, logo, and contact information',
+            'file' => 'general.php'
+        ],
+        'landing' => [
+            'label' => 'Landing Page',
+            'icon' => 'fa-home',
+            'description' => 'Edit all content shown on the public homepage',
+            'file' => 'landing.php'
+        ],
+        'barangays' => [
+            'label' => 'Barangays',
+            'icon' => 'fa-building',
+            'description' => 'Manage barangay information',
+            'file' => 'barangays.php'
+        ]
     ],
-    'landing' => [
-        'label' => 'Landing Page',
-        'icon' => 'fa-home',
-        'description' => 'Edit all content shown on the public homepage',
-        'file' => 'landing.php'
+    'Administration & Access Control' => [
+        'users' => [
+            'label' => 'Users',
+            'icon' => 'fa-users',
+            'description' => 'Manage citizens, barangay personnel, and MENRO staff accounts',
+            'file' => 'users.php'
+        ],
+        'permissions' => [
+            'label' => 'Permissions',
+            'icon' => 'fa-user-lock',
+            'description' => 'Role-based access control',
+            'file' => 'permissions.php'
+        ],
+        'security' => [
+            'label' => 'Security',
+            'icon' => 'fa-shield-alt',
+            'description' => 'Password policies and login security',
+            'file' => 'security.php'
+        ]
     ],
-    'security' => [
-        'label' => 'Security',
-        'icon' => 'fa-shield-alt',
-        'description' => 'Password policies and login security',
-        'file' => 'security.php'
+    'Application & Workflow Management' => [
+        'categories' => [
+            'label' => 'Categories',
+            'icon' => 'fa-tags',
+            'description' => 'Manage report categories and severity weights',
+            'file' => 'categories.php'
+        ],
+        'reporting' => [
+            'label' => 'Reporting Limits',
+            'icon' => 'fa-gauge-high',
+            'description' => 'Per-citizen report rate limits to prevent spam',
+            'file' => 'reporting.php'
+        ],
+        'algorithm' => [
+            'label' => 'Algorithm',
+            'icon' => 'fa-calculator',
+            'description' => 'Severity scoring configuration',
+            'file' => 'algorithm.php'
+        ],
+        'features' => [
+            'label' => 'Features & Kill Switches',
+            'icon' => 'fa-exclamation-triangle',
+            'description' => 'Master kill switches — turn features on/off instantly without touching code',
+            'file' => 'features.php'
+        ]
     ],
-    'features' => [
-        'label' => 'Features & Kill Switches',
-        'icon' => 'fa-exclamation-triangle',
-        'description' => 'Master kill switches — turn features on/off instantly without touching code',
-        'file' => 'features.php'
-    ],
-    'algorithm' => [
-        'label' => 'Algorithm',
-        'icon' => 'fa-calculator',
-        'description' => 'Severity scoring configuration',
-        'file' => 'algorithm.php'
-    ],
-    'kpi' => [
-        'label' => 'KPI & Insights',
-        'icon' => 'fa-chart-pie',
-        'description' => 'Key performance indicator targets for the Insight Engine',
-        'file' => 'kpi.php'
-    ],
-    'notifications' => [
-        'label' => 'Notifications',
-        'icon' => 'fa-envelope',
-        'description' => 'Email and SMS templates',
-        'file' => 'notifications.php'
-    ],
-    'map' => [
-        'label' => 'Map',
-        'icon' => 'fa-map',
-        'description' => 'Clustering radius and map settings',
-        'file' => 'map.php'
-    ],
-    'archiving' => [
-        'label' => 'Data Archiving & Retention',
-        'icon' => 'fa-archive',
-        'description' => 'Manually archive old reports, retain rejected/spam, and manage the archive',
-        'file' => 'archiving.php'
-    ],
-    'barangays' => [
-        'label' => 'Barangays',
-        'icon' => 'fa-building',
-        'description' => 'Manage barangay information',
-        'file' => 'barangays.php'
-    ],
-    'users' => [
-        'label' => 'Users',
-        'icon' => 'fa-users',
-        'description' => 'Manage citizens, barangay personnel, and MENRO staff accounts',
-        'file' => 'users.php'
-    ],
-    'categories' => [
-        'label' => 'Categories',
-        'icon' => 'fa-tags',
-        'description' => 'Manage report categories and severity weights',
-        'file' => 'categories.php'
-    ],
-    'permissions' => [
-        'label' => 'Permissions',
-        'icon' => 'fa-user-lock',
-        'description' => 'Role-based access control',
-        'file' => 'permissions.php'
+    'Data & Operations' => [
+        'map' => [
+            'label' => 'Map',
+            'icon' => 'fa-map',
+            'description' => 'Clustering radius and map settings',
+            'file' => 'map.php'
+        ],
+        'kpi' => [
+            'label' => 'KPI & Insights',
+            'icon' => 'fa-chart-pie',
+            'description' => 'Key performance indicator targets for the Insight Engine',
+            'file' => 'kpi.php'
+        ],
+        'notifications' => [
+            'label' => 'Notifications',
+            'icon' => 'fa-envelope',
+            'description' => 'Email and SMS templates',
+            'file' => 'notifications.php'
+        ],
+        'archiving' => [
+            'label' => 'Data Archiving & Retention',
+            'icon' => 'fa-archive',
+            'description' => 'Manually archive old reports, retain rejected/spam, and manage the archive',
+            'file' => 'archiving.php'
+        ]
     ]
 ];
+
+// Flatten tabs for lookup
+$tabs = [];
+foreach ($navigation_groups as $category_tabs) {
+    $tabs = array_merge($tabs, $category_tabs);
+}
 
 // Ensure the active tab exists
 if (!isset($tabs[$active_tab])) {
@@ -174,6 +194,29 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 background: #10A37F;
                 border-radius: 4px;
             }
+            .category-header {
+                display: none;
+            }
+            .category-spacer {
+                display: none;
+            }
+        }
+        
+        /* ===== CATEGORY HEADERS ===== */
+        .category-header {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            padding: 0.75rem 0.9rem 0.4rem;
+            margin-top: 0.5rem;
+        }
+        .category-header:first-child {
+            margin-top: 0;
+        }
+        .category-spacer {
+            height: 0.75rem;
         }
         
         /* ===== TAB ITEMS ===== */
@@ -489,7 +532,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 </head>
 <body>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
@@ -526,15 +569,24 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             
             <!-- ===== SIDEBAR NAVIGATION ===== -->
             <nav class="settings-sidebar" aria-label="Settings navigation">
-                <?php foreach ($tabs as $tab_key => $tab): ?>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=<?php echo $tab_key; ?>" 
-                       class="settings-tab <?php echo $active_tab === $tab_key ? 'active' : ''; ?>">
-                        <span class="tab-icon"><i class="fas <?php echo $tab['icon']; ?>"></i></span>
-                        <span class="tab-label"><?php echo $tab['label']; ?></span>
-                        <?php if ($active_tab === $tab_key): ?>
-                            <span class="tab-badge">active</span>
-                        <?php endif; ?>
-                    </a>
+                <?php foreach ($navigation_groups as $category_name => $category_tabs): ?>
+                    <!-- Category Header -->
+                    <div class="category-header">
+                        <?php echo htmlspecialchars($category_name); ?>
+                    </div>
+                    
+                    <!-- Category Links -->
+                    <?php foreach ($category_tabs as $tab_key => $tab): ?>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=<?php echo $tab_key; ?>" 
+                           class="settings-tab <?php echo $active_tab === $tab_key ? 'active' : ''; ?>"
+                           title="<?php echo htmlspecialchars($tab['description']); ?>">
+                            <span class="tab-icon"><i class="fas <?php echo $tab['icon']; ?>"></i></span>
+                            <span class="tab-label"><?php echo htmlspecialchars($tab['label']); ?></span>
+                        </a>
+                    <?php endforeach; ?>
+                    
+                    <!-- Spacing between categories -->
+                    <div class="category-spacer"></div>
                 <?php endforeach; ?>
             </nav>
 

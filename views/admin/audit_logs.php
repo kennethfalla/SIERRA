@@ -1,6 +1,6 @@
 <?php
 // views/admin/audit_logs.php - SIERRA AUDIT LOGS PAGE (READ-ONLY)
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
 requireLogin();
 
 // Audit Logs are read-only and reserved for the System Administrator.
@@ -237,7 +237,7 @@ $top_actions = $db->query("
 </head>
 <body class="bg-gradient-to-br from-[#F5FBF6] to-[#EAF7F2]">
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="p-4 md:p-8 max-w-[1600px] mx-auto">

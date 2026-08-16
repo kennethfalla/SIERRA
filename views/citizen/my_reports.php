@@ -6,7 +6,7 @@
 // UPDATED: Added stats summary cards (matching admin dashboard design)
 
 require_once dirname(dirname(__DIR__)) . '/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
+require_once dirname(dirname(__DIR__)) . '/helpers/SecurityHelper.php';
 requireLogin();
 
 $database = new Database();
@@ -869,30 +869,52 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(3px);
-            z-index: 999;
-            display: none;
+            background: rgba(245, 251, 246, 0.75);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: flex;
             align-items: center;
             justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
         }
-        .loading-overlay.active { display: flex; }
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
         .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e2e8f0;
-            border-top-color: #10A37F;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
+            width: 52px;
+            height: 52px;
+            position: relative;
             background: white;
+            border-radius: 50%;
+            box-shadow: 0 8px 32px rgba(16,163,127,0.18);
+        }
+        .loading-spinner::before,
+        .loading-spinner::after {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+        }
+        .loading-spinner::before {
+            border-top-color: #10A37F;
+            border-right-color: #10A37F;
+            animation: spin-cw 0.9s cubic-bezier(0.4,0,0.2,1) infinite;
+        }
+        .loading-spinner::after {
+            border-bottom-color: #34d399;
+            border-left-color: #34d399;
+            animation: spin-ccw 1.2s cubic-bezier(0.4,0,0.2,1) infinite;
         }
         @media (min-width: 640px) {
-            .loading-spinner {
-                width: 45px;
-                height: 45px;
-            }
+            .loading-spinner { width: 60px; height: 60px; }
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin-cw  { to { transform: rotate(360deg);  } }
+        @keyframes spin-ccw { to { transform: rotate(-360deg); } }
 
         /* Empty State */
         .empty-state {
@@ -1203,7 +1225,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 </head>
 <body>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">

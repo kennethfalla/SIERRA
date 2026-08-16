@@ -3,10 +3,10 @@
 // WITH TOOLBAR/POPOVER FILTER, PAGINATION, SORT, AND AJAX UPDATES
 // STATS DESIGN UPDATED TO MATCH ADMIN DASHBOARD (with icons)
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/SecurityHelper.php';
+require_once dirname(__DIR__, 2) . '/helpers/SettingsHelper.php';
+require_once dirname(__DIR__, 2) . '/helpers/PermissionHelper.php';
 requireRole('barangay_official');
 
 $database = new Database();
@@ -940,24 +940,49 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(3px);
-            z-index: 999;
-            display: none;
+            background: rgba(245, 251, 246, 0.75);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: flex;
             align-items: center;
             justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
         }
-        .loading-overlay.active { display: flex; }
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
         .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e2e8f0;
-            border-top-color: #10A37F;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
+            width: 52px;
+            height: 52px;
+            position: relative;
             background: white;
+            border-radius: 50%;
+            box-shadow: 0 8px 32px rgba(16,163,127,0.18);
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-spinner::before,
+        .loading-spinner::after {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+        }
+        .loading-spinner::before {
+            border-top-color: #10A37F;
+            border-right-color: #10A37F;
+            animation: spin-cw 0.9s cubic-bezier(0.4,0,0.2,1) infinite;
+        }
+        .loading-spinner::after {
+            border-bottom-color: #34d399;
+            border-left-color: #34d399;
+            animation: spin-ccw 1.2s cubic-bezier(0.4,0,0.2,1) infinite;
+        }
+        @keyframes spin-cw  { to { transform: rotate(360deg);  } }
+        @keyframes spin-ccw { to { transform: rotate(-360deg); } }
 
         /* Empty State */
         .empty-state {
@@ -1061,12 +1086,23 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             .stat-card .stat-value {
                 font-size: 1.5rem;
             }
+            /* page-header tighter on mobile */
+            .page-header { padding: 0.75rem 0 0.5rem; }
+            .page-title { font-size: 1.25rem !important; }
+            /* hide barangay location badge on mobile (saves space) */
+            .location-badge { display: none; }
+            /* notification dropdown full-width on mobile */
+            .notification-dropdown { left: 8px; right: 8px; width: auto; }
+            /* risk summary wraps cleanly */
+            .risk-summary-container { flex-wrap: wrap; gap: 4px; }
+            /* stat cards: smaller number on very small phones */
+            .bg-white .text-xl { font-size: 1.1rem; }
         }
     </style>
 </head>
 <body class="bg-[#F5FBF6]">
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
@@ -1088,7 +1124,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                     <h1 class="page-title font-bold text-gray-800">Manage Reports</h1>
                     <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Review and manage environmental reports from your barangay</p>
                 </div>
-                <span class="inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-xs text-[#10A37F] font-semibold">
+                <span class="location-badge inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-xs text-[#10A37F] font-semibold">
                     <i class="fas fa-map-marker-alt mr-1.5"></i>San Isidro, Nueva Ecija
                 </span>
             </div>

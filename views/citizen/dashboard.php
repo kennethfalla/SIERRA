@@ -67,7 +67,7 @@ $notifications[] = array(
 // submitted / status update / report solved / report escalated only.
 // No SMS is sent for these; SMS is only used for staff-account creation.
 if (!class_exists('SettingsHelper')) {
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+    require_once BASE_PATH . 'helpers/SettingsHelper.php';
 }
 
 $me_stmt = $db->prepare("SELECT first_name, last_name, email, contact_number FROM users WHERE id = :id");
@@ -228,25 +228,31 @@ $latest_announcement = $ann_stmt->fetch(PDO::FETCH_ASSOC);
 
 $display_reports = array_slice($reports, 0, 5);
 
-// ========== COMMUNITY REPORTS MAP (animates-only data, no reporter names) ==========
+// ========== COMMUNITY REPORTS MAP (includes own reports; reporter names always hidden) ==========
 $map_reports = array();
 try {
     $map_sql = "
         SELECT r.id, r.title, r.description, r.latitude, r.longitude, r.status,
-               r.created_at, c.name AS category_name, c.icon_class,
-               b.name AS barangay_name
+               r.created_at, r.severity_score,
+               c.name AS category_name, c.icon_class,
+               b.name AS barangay_name,
+               IF(r.user_id = :current_user_id, 1, 0) AS is_mine,
+               GROUP_CONCAT(ri.image_path ORDER BY ri.is_primary DESC, ri.id ASC SEPARATOR '||') AS images
         FROM reports r
         JOIN categories c ON r.category_id = c.id
         JOIN barangays b ON r.barangay_id = b.id
-        WHERE r.status NOT IN ('cancelled', 'rejected', 'resolved', 'closed')
+        LEFT JOIN report_images ri ON ri.report_id = r.id
+        WHERE r.status NOT IN ('cancelled', 'rejected')
           AND r.is_archived = 0
           AND r.latitude <> 0 AND r.longitude <> 0
-          AND r.user_id <> :current_user_id
+          AND (r.user_id = :current_user_id2 OR r.status NOT IN ('resolved', 'closed'))
+        GROUP BY r.id
         ORDER BY r.created_at DESC
-        LIMIT 250
+        LIMIT 300
     ";
     $map_stmt = $db->prepare($map_sql);
-    $map_stmt->bindValue(':current_user_id', $user_id);
+    $map_stmt->bindValue(':current_user_id',  $user_id);
+    $map_stmt->bindValue(':current_user_id2', $user_id);
     $map_stmt->execute();
     $map_reports = $map_stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
@@ -905,6 +911,172 @@ if (is_dir($barangays_dir)) {
             line-height: 1.5;
             margin-top: 4px;
         }
+        .map-popup-mine-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: linear-gradient(135deg,#10A37F,#34d399);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-bottom: 6px;
+            letter-spacing: 0.04em;
+        }
+        .map-popup-view-btn {
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+            padding: 6px 0;
+            background: linear-gradient(135deg,#10A37F,#059669);
+            color: white;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            letter-spacing: 0.03em;
+            transition: opacity 0.2s;
+        }
+        .map-popup-view-btn:hover { opacity: 0.88; }
+
+        /* ===== REPORT DETAIL MODAL ===== */
+        #reportDetailModal {
+            position: fixed;
+            inset: 0;
+            z-index: 99000;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #reportDetailModal.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .rdm-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15,20,18,0.6);
+            backdrop-filter: blur(4px);
+        }
+        .rdm-sheet {
+            position: relative;
+            background: white;
+            border-radius: 1.5rem 1.5rem 0 0;
+            width: 100%;
+            max-width: 680px;
+            max-height: 92vh;
+            overflow-y: auto;
+            transform: translateY(40px);
+            transition: transform 0.35s cubic-bezier(0.34,1.22,0.64,1);
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+        }
+        #reportDetailModal.open .rdm-sheet {
+            transform: translateY(0);
+        }
+        .rdm-handle {
+            width: 40px;
+            height: 4px;
+            background: #d1d5db;
+            border-radius: 9px;
+            margin: 0.75rem auto 1rem;
+        }
+        .rdm-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 32px;
+            height: 32px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+        }
+        .rdm-close:hover { background: #e5e7eb; }
+        .rdm-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .rdm-media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px,1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .rdm-media-grid img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 2px solid #e5e7eb;
+        }
+        .rdm-media-grid img:hover { transform: scale(1.04); border-color: #10A37F; }
+        /* Lightbox for detail modal images */
+        #rdmLightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            background: rgba(0,0,0,0.92);
+            align-items: center;
+            justify-content: center;
+        }
+        #rdmLightbox.open { display: flex; }
+        #rdmLightbox img {
+            max-width: 95vw;
+            max-height: 90vh;
+            border-radius: 12px;
+            object-fit: contain;
+        }
+        #rdmLightboxClose {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* pulsing ring for own-report markers */
+        @keyframes mine-pulse {
+            0%   { transform: scale(1);   opacity: 0.7; }
+            70%  { transform: scale(2.2); opacity: 0; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+        .mine-marker-wrap { position: relative; display: inline-block; }
+        .mine-marker-ring {
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid #10A37F;
+            animation: mine-pulse 1.8s ease-out infinite;
+        }
 
         .notification-bell { 
             cursor: pointer; 
@@ -1419,6 +1591,29 @@ if (is_dir($barangays_dir)) {
             20%, 60% { transform: rotate(12deg); } 
             40%, 80% { transform: rotate(-8deg); } 
         }
+
+        /* Floating circular "New Report" button (mobile only) */
+        .new-report-fab {
+            position: fixed;
+            right: 18px;
+            bottom: calc(18px + env(safe-area-inset-bottom));
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
+            color: #fff;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(16, 163, 127, 0.45);
+            z-index: 150;
+            font-size: 1.35rem;
+            text-decoration: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .new-report-fab:active {
+            transform: scale(0.9);
+            box-shadow: 0 4px 12px rgba(16, 163, 127, 0.4);
+        }
         
         @media (max-width: 480px) {
             .stat-card .stat-value {
@@ -1457,7 +1652,7 @@ if (is_dir($barangays_dir)) {
 </head>
 <body class="bg-[#F5FBF6]">
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
@@ -1475,6 +1670,11 @@ if (is_dir($barangays_dir)) {
                 </div>
                 
                 <div class="flex items-center gap-3">
+                    <a href="<?php echo BASE_URL; ?>index.php?page=submit-report"
+                       class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition"
+                       aria-label="New Report" title="New Report">
+                        <i class="fas fa-plus text-white"></i>
+                    </a>
                     <div class="notification-container">
                         <div class="notification-bell bg-white/20 rounded-xl w-10 h-10 flex items-center justify-center" onclick="toggleNotifications()">
                             <i class="fas fa-bell text-white text-lg"></i>
@@ -1628,8 +1828,25 @@ if (is_dir($barangays_dir)) {
 
                 <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
                     <i class="fas fa-info-circle"></i>
-                    Click a marker to view the report details — reporter identities are kept private.
+                    Click any marker to view details. <span class="inline-flex items-center gap-1 ml-1"><span class="w-2.5 h-2.5 rounded-full border-2 border-[#10A37F] bg-[#10A37F]"></span> = your report.</span>
                 </p>
+
+        <!-- ===== REPORT DETAIL MODAL ===== -->
+        <div id="reportDetailModal" role="dialog" aria-modal="true" aria-label="Report Details">
+            <div class="rdm-backdrop" onclick="closeReportDetail()"></div>
+            <div class="rdm-sheet" id="rdmSheet">
+                <div class="rdm-handle"></div>
+                <button class="rdm-close" onclick="closeReportDetail()" aria-label="Close"><i class="fas fa-times"></i></button>
+                <div id="rdmContent" class="px-5 pb-6">
+                    <!-- filled by JS -->
+                </div>
+            </div>
+        </div>
+        <!-- Lightbox -->
+        <div id="rdmLightbox">
+            <button id="rdmLightboxClose" onclick="document.getElementById('rdmLightbox').classList.remove('open')" aria-label="Close image"><i class="fas fa-times"></i></button>
+            <img id="rdmLightboxImg" src="" alt="Report photo">
+        </div>
             </div>
 
             <!-- RIGHT: Ecological CTA on top, statistics below -->
@@ -2009,8 +2226,10 @@ if (bell) {
 
 <script>
 // ============================================
-// COMMUNITY REPORTS MAP (reporter names hidden)
-// ============================================
+// COMMUNITY REPORTS MAP (includes own reports; reporter names always hidden)
+// ===========================================================================
+var BASE_URL_JS = '<?php echo BASE_URL; ?>';
+
 document.addEventListener('DOMContentLoaded', function() {
     var mapEl = document.getElementById('communityMap');
     if (!mapEl) return;
@@ -2030,87 +2249,58 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!geojson || !geojson.features) return null;
         for (var i = 0; i < geojson.features.length; i++) {
             var f = geojson.features[i];
-            if (f.geometry && f.geometry.type === 'MultiPolygon') {
-                return f.geometry.coordinates[0][0].map(function(coord) { return [coord[1], coord[0]]; });
-            }
-            if (f.geometry && f.geometry.type === 'Polygon') {
-                return f.geometry.coordinates[0].map(function(coord) { return [coord[1], coord[0]]; });
-            }
+            if (f.geometry && f.geometry.type === 'MultiPolygon')
+                return f.geometry.coordinates[0][0].map(function(c){ return [c[1],c[0]]; });
+            if (f.geometry && f.geometry.type === 'Polygon')
+                return f.geometry.coordinates[0].map(function(c){ return [c[1],c[0]]; });
         }
         return null;
     }
 
-    // San Isidro municipality outline (subtle dashed backdrop)
     if (boundaryData && boundaryData.features) {
         try {
             var coords = extractPolygonCoords(boundaryData);
-            if (coords) {
-                L.polygon(coords, {
-                    color: "#10A37F",
-                    weight: 1.2,
-                    fillColor: "#10A37F",
-                    fillOpacity: 0.03,
-                    dashArray: "6 4",
-                    smoothFactor: 1,
-                    interactive: false
-                }).addTo(communityMap);
-            }
-        } catch (e) {}
+            if (coords) L.polygon(coords, { color:'#10A37F', weight:1.2, fillColor:'#10A37F',
+                fillOpacity:0.03, dashArray:'6 4', smoothFactor:1, interactive:false }).addTo(communityMap);
+        } catch(e) {}
     }
 
-    // Barangay boundaries (hover to see the name, click to zoom in)
-    var barangayStyle = { color: "#10A37F", weight: 1.5, fillColor: "#10A37F", fillOpacity: 0.06, smoothFactor: 1 };
+    var barangayStyle = { color:'#10A37F', weight:1.5, fillColor:'#10A37F', fillOpacity:0.06, smoothFactor:1 };
     var barangayLayer = null;
     if (barangayData && barangayData.features) {
         barangayLayer = L.geoJSON(barangayData, {
             style: barangayStyle,
             onEachFeature: function(feature, layer) {
                 var name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
-                layer.bindTooltip(name, { sticky: true });
+                layer.bindTooltip(name, { sticky:true });
                 layer.on({
-                    mouseover: function() {
-                        layer.setStyle({ fillOpacity: 0.14, weight: 2.5 });
-                        layer.bringToFront();
-                    },
-                    mouseout: function() {
-                        layer.setStyle(barangayStyle);
-                    },
-                    click: function() {
-                        try { communityMap.fitBounds(layer.getBounds(), { maxZoom: 14 }); } catch (e) {}
-                    }
+                    mouseover: function() { layer.setStyle({ fillOpacity:0.14, weight:2.5 }); layer.bringToFront(); },
+                    mouseout:  function() { layer.setStyle(barangayStyle); },
+                    click:     function() { try { communityMap.fitBounds(layer.getBounds(),{maxZoom:14}); } catch(e){} }
                 });
             }
         }).addTo(communityMap);
     }
 
     var statusColors = {
-        pending: '#F59E0B',
-        under_review: '#F59E0B',
-        verified: '#3B82F6',
-        in_progress: '#8B5CF6',
-        escalated_pending: '#F97316',
-        escalated: '#EF4444',
-        resolved: '#10A37F',
-        closed: '#6B7280',
-        rejected: '#DC2626',
-        cancelled: '#9CA3AF'
+        pending:'#F59E0B', under_review:'#F59E0B', verified:'#3B82F6',
+        in_progress:'#8B5CF6', escalated_pending:'#F97316', escalated:'#EF4444',
+        resolved:'#10A37F', closed:'#6B7280', rejected:'#DC2626', cancelled:'#9CA3AF'
     };
-
     var statusLabels = {
-        pending: 'Pending',
-        under_review: 'Under Review',
-        verified: 'Verified',
-        in_progress: 'In Progress',
-        escalated_pending: 'Escalation Pending',
-        escalated: 'Escalated',
-        resolved: 'Resolved',
-        closed: 'Closed',
-        rejected: 'Rejected',
-        cancelled: 'Cancelled'
+        pending:'Pending', under_review:'Under Review', verified:'Verified',
+        in_progress:'In Progress', escalated_pending:'Escalation Pending',
+        escalated:'Escalated', resolved:'Resolved', closed:'Closed',
+        rejected:'Rejected', cancelled:'Cancelled'
+    };
+    var statusBg = {
+        pending:'#FEF3C7', under_review:'#DBEAFE', verified:'#DBEAFE',
+        in_progress:'#EDE9FE', escalated_pending:'#FFEDD5', escalated:'#FEE2E2',
+        resolved:'#D1FAE5', closed:'#F3F4F6'
     };
 
     function esc(s) {
-        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
     var mapData = <?php echo json_encode($map_reports); ?>;
@@ -2119,51 +2309,152 @@ document.addEventListener('DOMContentLoaded', function() {
     mapData.forEach(function(r) {
         var lat = parseFloat(r.latitude);
         var lng = parseFloat(r.longitude);
-        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
+        if (isNaN(lat) || isNaN(lng) || (lat===0 && lng===0)) return;
 
-        var color = statusColors[r.status] || '#10A37F';
-        var title = esc(r.title || 'Untitled Report');
-        var desc = String(r.description || '');
-        if (desc.length > 140) desc = desc.substring(0, 140) + '…';
-        desc = esc(desc);
-        var statusLabel = statusLabels[r.status] || esc(r.status);
-        var dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-
-        var html = '';
-        html += '<div class="map-popup-title">' + title + '</div>';
-        html += '<div class="map-popup-meta"><i class="fas fa-tag"></i>' + esc(r.category_name || 'General') + '</div>';
-        html += '<div class="map-popup-meta"><i class="fas fa-map-marker-alt"></i>' + esc(r.barangay_name || 'San Isidro') + '</div>';
-        html += '<div class="map-popup-meta"><i class="fas fa-circle" style="color:' + color + ';"></i>' + statusLabel + '</div>';
-        if (dateStr) html += '<div class="map-popup-meta"><i class="far fa-calendar-alt"></i>' + dateStr + '</div>';
-        if (desc) html += '<div class="map-popup-desc">' + desc + '</div>';
+        var color      = statusColors[r.status] || '#10A37F';
+        var isMine     = parseInt(r.is_mine) === 1;
+        var markerSize = isMine ? 26 : 22;
+        var markerHtml = isMine
+            ? '<div class="mine-marker-wrap"><div class="mine-marker-ring"></div>'
+              + '<div style="background:'+color+';width:'+markerSize+'px;height:'+markerSize+'px;border-radius:50%;border:3px solid #ffffff;box-shadow:0 2px 8px rgba(16,163,127,0.45);"></div></div>'
+            : '<div style="background:'+color+';width:'+markerSize+'px;height:'+markerSize+'px;border-radius:50%;border:2px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>';
 
         var icon = L.divIcon({
-            html: '<div style="background:' + color + ';width:22px;height:22px;border-radius:50%;border:2px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
-            iconSize: [22, 22],
-            iconAnchor: [11, 11],
-            className: 'community-report-marker'
+            html: markerHtml,
+            iconSize:   [markerSize, markerSize],
+            iconAnchor: [markerSize/2, markerSize/2],
+            className:  'community-report-marker'
         });
 
+        // --- Build popup ---
+        var title       = esc(r.title || 'Untitled Report');
+        var statusLabel = statusLabels[r.status] || esc(r.status);
+        var dateStr     = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+        var desc        = String(r.description || '');
+        if (desc.length > 120) desc = desc.substring(0,120)+'…';
+
+        var html = '';
+        if (isMine) html += '<div class="map-popup-mine-badge"><i class="fas fa-star" style="font-size:0.6rem;"></i> Your Report</div>';
+        html += '<div class="map-popup-title">' + title + '</div>';
+        html += '<div class="map-popup-meta"><i class="fas fa-tag"></i>' + esc(r.category_name||'General') + '</div>';
+        html += '<div class="map-popup-meta"><i class="fas fa-map-marker-alt"></i>' + esc(r.barangay_name||'San Isidro') + '</div>';
+        html += '<div class="map-popup-meta"><i class="fas fa-circle" style="color:'+color+';"></i>' + statusLabel + '</div>';
+        if (dateStr) html += '<div class="map-popup-meta"><i class="far fa-calendar-alt"></i>' + dateStr + '</div>';
+        if (desc)    html += '<div class="map-popup-desc">' + esc(desc) + '</div>';
+        html += '<button class="map-popup-view-btn" onclick="openReportDetail('+r.id+')"><i class="fas fa-expand-alt" style="margin-right:5px;"></i>View Details</button>';
+
         var marker = L.marker([lat, lng], { icon: icon })
-            .bindPopup(html, { autoPanPadding: [40, 40] });
-
-        marker.on('click', function() { this.openPopup(); });
-
+            .bindPopup(html, { autoPanPadding:[40,40], minWidth:200 });
+        marker.on('click', function(){ this.openPopup(); });
         markersLayer.addLayer(marker);
     });
 
     communityMap.addLayer(markersLayer);
 
-    // Start framed on the whole municipality so the boundaries are visible
     if (barangayLayer) {
-        try { communityMap.fitBounds(barangayLayer.getBounds(), { padding: [20, 20], maxZoom: 13 }); } catch (e) {}
+        try { communityMap.fitBounds(barangayLayer.getBounds(),{padding:[20,20],maxZoom:13}); } catch(e){}
     } else if (markersLayer.getLayers().length > 0) {
-        try { communityMap.fitBounds(markersLayer.getBounds().pad(0.12), { maxZoom: 13 }); } catch (e) {}
+        try { communityMap.fitBounds(markersLayer.getBounds().pad(0.12),{maxZoom:13}); } catch(e){}
+    }
+    setTimeout(function(){ communityMap.invalidateSize(); }, 250);
+});
+
+// ===== REPORT DETAIL MODAL =====
+var _rdmCache = {};
+
+function openReportDetail(reportId) {
+    var modal = document.getElementById('reportDetailModal');
+    var content = document.getElementById('rdmContent');
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    if (_rdmCache[reportId]) {
+        content.innerHTML = _rdmCache[reportId];
+        _bindRdmImages();
+        return;
     }
 
-    setTimeout(function() { communityMap.invalidateSize(); }, 250);
-});
+    content.innerHTML = '<div style="text-align:center;padding:2rem 0;"><div style="width:40px;height:40px;margin:0 auto 1rem;border-radius:50%;border:3px solid #e2e8f0;border-top-color:#10A37F;animation:spin-cw 0.9s linear infinite;"></div><p style="color:#9ca3af;font-size:0.85rem;">Loading details…</p></div>';
+
+    fetch(BASE_URL_JS + 'ajax/get_report_detail_public.php?id=' + reportId)
+        .then(function(res){ return res.json(); })
+        .then(function(data) {
+            if (!data.success) { content.innerHTML = '<p style="color:#ef4444;text-align:center;padding:2rem;">Could not load report details.</p>'; return; }
+            var r = data.report;
+            var color       = ({pending:'#F59E0B',under_review:'#3B82F6',verified:'#3B82F6',in_progress:'#8B5CF6',escalated_pending:'#F97316',escalated:'#EF4444',resolved:'#10A37F',closed:'#6B7280'})[r.status] || '#10A37F';
+            var bgColor     = ({pending:'#FEF3C7',under_review:'#DBEAFE',verified:'#DBEAFE',in_progress:'#EDE9FE',escalated_pending:'#FFEDD5',escalated:'#FEE2E2',resolved:'#D1FAE5',closed:'#F3F4F6'})[r.status] || '#D1FAE5';
+            var statusLabel = ({pending:'Pending',under_review:'Under Review',verified:'Verified',in_progress:'In Progress',escalated_pending:'Escalation Pending',escalated:'Escalated',resolved:'Resolved',closed:'Closed'})[r.status] || r.status;
+            var dateStr     = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'}) : 'Unknown date';
+
+            var html = '';
+            // Mine badge
+            if (parseInt(r.is_mine)===1) {
+                html += '<div style="margin-bottom:10px;"><span class="map-popup-mine-badge"><i class="fas fa-star" style="font-size:0.65rem;"></i> Your Report</span></div>';
+            }
+            // Title
+            html += '<h2 style="font-weight:800;font-size:1.1rem;color:#111827;line-height:1.3;margin-bottom:8px;padding-right:2rem;">' + _escHtml(r.title||'Untitled Report') + '</h2>';
+            // Status + Date
+            html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:14px;">';
+            html += '<span class="rdm-status-badge" style="background:'+bgColor+';color:'+color+';"><i class="fas fa-circle" style="font-size:0.5rem;"></i>' + _escHtml(statusLabel) + '</span>';
+            html += '<span style="font-size:0.72rem;color:#9ca3af;"><i class="far fa-calendar-alt" style="margin-right:4px;"></i>' + dateStr + '</span>';
+            html += '</div>';
+            // Meta row
+            html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">';
+            html += '<span style="font-size:0.72rem;color:#5b7a68;"><i class="fas fa-tag" style="color:#10A37F;margin-right:4px;"></i>' + _escHtml(r.category_name||'General') + '</span>';
+            html += '<span style="font-size:0.72rem;color:#5b7a68;"><i class="fas fa-map-marker-alt" style="color:#10A37F;margin-right:4px;"></i>' + _escHtml(r.barangay_name||'San Isidro') + '</span>';
+            if (r.severity_score) html += '<span style="font-size:0.72rem;color:#5b7a68;"><i class="fas fa-exclamation-triangle" style="color:#F59E0B;margin-right:4px;"></i>Severity: ' + _escHtml(r.severity_score) + '/10</span>';
+            html += '</div>';
+            // Description
+            if (r.description) {
+                html += '<div style="background:#f8fafc;border-radius:10px;padding:12px 14px;margin-bottom:14px;">';
+                html += '<p style="font-size:0.8rem;color:#374151;line-height:1.65;margin:0;">' + _escHtml(r.description) + '</p>';
+                html += '</div>';
+            }
+            // Photos / Videos
+            if (data.images && data.images.length > 0) {
+                html += '<div style="margin-bottom:4px;"><p style="font-size:0.72rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;"><i class="fas fa-images" style="margin-right:5px;color:#10A37F;"></i>Evidence Photos</p>';
+                html += '<div class="rdm-media-grid">';
+                data.images.forEach(function(img, idx) {
+                    html += '<img src="' + BASE_URL_JS + _escAttr(img) + '" data-rdm-src="' + BASE_URL_JS + _escAttr(img) + '" alt="Evidence photo ' + (idx+1) + '" loading="lazy">';
+                });
+                html += '</div></div>';
+            }
+
+            _rdmCache[reportId] = html;
+            content.innerHTML = html;
+            _bindRdmImages();
+        })
+        .catch(function(){
+            content.innerHTML = '<p style="color:#ef4444;text-align:center;padding:2rem;">Network error. Please try again.</p>';
+        });
+}
+
+function closeReportDetail() {
+    document.getElementById('reportDetailModal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function _escHtml(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _escAttr(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); }
+
+function _bindRdmImages() {
+    document.querySelectorAll('[data-rdm-src]').forEach(function(img){
+        img.addEventListener('click', function(){
+            var lb = document.getElementById('rdmLightbox');
+            document.getElementById('rdmLightboxImg').src = this.dataset.rdmSrc;
+            lb.classList.add('open');
+        });
+    });
+}
+// close modal on ESC
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeReportDetail(); document.getElementById('rdmLightbox').classList.remove('open'); } });
 </script>
+
+<!-- Floating circular "New Report" button (mobile only) -->
+<a href="<?php echo BASE_URL; ?>index.php?page=submit-report"
+   class="new-report-fab flex sm:hidden" aria-label="New Report">
+    <i class="fas fa-plus"></i>
+</a>
 
 </body>
 </html>

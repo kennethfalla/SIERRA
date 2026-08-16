@@ -3,8 +3,8 @@
 // Features: Registration with SMS OTP, Login (2-Step for staff), Logout,
 // SMS OTP Forgot Password, Duplicate Check, Session Management
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
+require_once dirname(__DIR__) . '/config/config.php';
+require_once dirname(__DIR__) . '/helpers/SecurityHelper.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
 
 // ============================================
@@ -84,6 +84,101 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 }
 
 // ============================================
+// HELPER: Check that an email's domain can actually
+// receive mail (has an MX record, or at least an A/AAAA
+// record that could accept mail as a fallback). This is a
+// DNS lookup only — no SMTP connection is made — so it
+// works fine on InfinityFree's outbound restrictions and
+// costs nothing. It catches typo'd/fake domains like
+// "gmial.com" without requiring a confirmation email.
+// Phone SMS OTP remains the real identity verification;
+// this just keeps the email delivery channel usable.
+// ============================================
+function isEmailDomainValid($email) {
+    $atPos = strrpos($email, '@');
+    if ($atPos === false) {
+        return false;
+    }
+    $domain = substr($email, $atPos + 1);
+    if ($domain === '') {
+        return false;
+    }
+    // idn_to_ascii handles internationalized domains gracefully if the
+    // extension is available; otherwise fall back to the raw domain.
+    if (function_exists('idn_to_ascii')) {
+        $ascii = @idn_to_ascii($domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+        if ($ascii) {
+            $domain = $ascii;
+        }
+    }
+    // MX record = domain explicitly accepts mail. Some domains (rare) omit
+    // MX but still accept mail via an A/AAAA record, so check those too.
+    if (!function_exists('checkdnsrr')) {
+        // DNS lookups unavailable on this host — don't block registration,
+        // just skip the check (phone OTP still verifies the person).
+        return true;
+    }
+    return checkdnsrr($domain, 'MX') || checkdnsrr($domain, 'A') || checkdnsrr($domain, 'AAAA');
+}
+
+// ============================================
+// HELPER: Damerau-Levenshtein distance (restricted/OSA variant) —
+// like PHP's built-in levenshtein(), but also counts an adjacent
+// transposition (e.g. "ia" -> "ai") as a single edit instead of two.
+// PHP's native levenshtein() does NOT count transpositions as one
+// edit, so a typo like "gmial.com" (a transposed "gmail.com") comes
+// out to a distance of 2 under plain Levenshtein, not 1 — meaning
+// the exact typo this feature is built to catch would silently fail
+// to suggest a fix. This function fixes that.
+// ============================================
+function damerauLevenshtein($a, $b) {
+    $lenA = strlen($a);
+    $lenB = strlen($b);
+    $d = [];
+    for ($i = 0; $i <= $lenA; $i++) $d[$i][0] = $i;
+    for ($j = 0; $j <= $lenB; $j++) $d[0][$j] = $j;
+    for ($i = 1; $i <= $lenA; $i++) {
+        for ($j = 1; $j <= $lenB; $j++) {
+            $cost = ($a[$i - 1] === $b[$j - 1]) ? 0 : 1;
+            $d[$i][$j] = min(
+                $d[$i - 1][$j] + 1,       // deletion
+                $d[$i][$j - 1] + 1,       // insertion
+                $d[$i - 1][$j - 1] + $cost // substitution
+            );
+            if ($i > 1 && $j > 1 && $a[$i - 1] === $b[$j - 2] && $a[$i - 2] === $b[$j - 1]) {
+                $d[$i][$j] = min($d[$i][$j], $d[$i - 2][$j - 2] + 1); // transposition
+            }
+        }
+    }
+    return $d[$lenA][$lenB];
+}
+
+// ============================================
+// HELPER: Suggest a fix for common email domain typos
+// (e.g. "gmial.com" -> "gmail.com"). Returns null if no
+// close match is found. Purely a UX nicety, not a security check.
+// ============================================
+function suggestEmailDomainFix($email) {
+    $atPos = strrpos($email, '@');
+    if ($atPos === false) {
+        return null;
+    }
+    $local = substr($email, 0, $atPos);
+    $domain = strtolower(substr($email, $atPos + 1));
+
+    $commonDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com'];
+    foreach ($commonDomains as $candidate) {
+        if ($domain === $candidate) {
+            return null; // already correct
+        }
+        if (damerauLevenshtein($domain, $candidate) === 1) {
+            return $local . '@' . $candidate;
+        }
+    }
+    return null;
+}
+
+// ============================================
 // HANDLE POST REQUESTS
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -98,10 +193,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors = [];
 
         if (!empty($email)) {
-            $checkEmail = $db->prepare("SELECT id FROM users WHERE email = :email AND is_active = 1");
-            $checkEmail->execute([':email' => $email]);
-            if ($checkEmail->rowCount() > 0) {
-                $errors[] = "This email address is already registered. Please use a different email or login.";
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = "Please enter a valid email address.";
+            } elseif (!isEmailDomainValid($email)) {
+                $suggestion = suggestEmailDomainFix($email);
+                if ($suggestion) {
+                    $errors[] = "We couldn't verify that email domain. Did you mean $suggestion?";
+                } else {
+                    $errors[] = "We couldn't verify that email's domain. Please double-check for typos.";
+                }
+            } else {
+                $checkEmail = $db->prepare("SELECT id FROM users WHERE email = :email AND is_active = 1");
+                $checkEmail->execute([':email' => $email]);
+                if ($checkEmail->rowCount() > 0) {
+                    $errors[] = "This email address is already registered. Please use a different email or login.";
+                }
             }
         }
 
@@ -150,7 +256,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (strlen($first_name) < 2) $errors[] = "First name must be at least 2 characters";
         if (strlen($last_name) < 2) $errors[] = "Last name must be at least 2 characters";
         if (!$contact_number) $errors[] = "Please enter a valid 11-digit mobile number starting with 09";
-        if (!$email) $errors[] = "Please enter a valid email address";
+        if (!$email) {
+            $errors[] = "Please enter a valid email address";
+        } elseif (!isEmailDomainValid($email)) {
+            $suggestion = suggestEmailDomainFix($email);
+            $errors[] = $suggestion
+                ? "We couldn't verify that email domain. Did you mean $suggestion?"
+                : "We couldn't verify that email's domain. Please double-check for typos.";
+        }
 
         $passwordErrors = InputSanitizer::validatePassword($password);
         $errors = array_merge($errors, $passwordErrors);
@@ -462,6 +575,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
 
+        // Brute-force lockout (Security settings: max attempts + lockout duration).
+        // Every rejected login below is counted against the identifier used.
+        $rateLimiter = new RateLimiter($db);
+        $identifier = substr('raw:' . strtolower(trim($loginInput)), 0, 191);
+
         // Normalize login input (detect if mobile or email)
         $login = $loginInput;
         $is_mobile = false;
@@ -471,6 +589,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (strlen($login) === 10) $login = '0' . $login;
 
             if (!(strlen($login) === 11 && preg_match('/^09/', $login))) {
+                try { $rateLimiter->checkRateLimit($identifier); }
+                catch (Exception $e) {
+                    $_SESSION['login_lockout_until'] = time() + $rateLimiter->getLockoutSecondsRemaining($identifier);
+                    $_SESSION['error'] = $e->getMessage();
+                    header("Location: " . BASE_URL . "index.php?page=login");
+                    exit();
+                }
+                try { $rateLimiter->recordFailedAttempt($identifier); }
+                catch (Exception $e) { error_log('[Auth] record failed attempt: ' . $e->getMessage()); }
                 $_SESSION['error'] = "Invalid email or password.";
                 header("Location: " . BASE_URL . "index.php?page=login");
                 exit();
@@ -479,10 +606,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $login = filter_var(trim($login), FILTER_SANITIZE_EMAIL);
             if (!filter_var($login, FILTER_VALIDATE_EMAIL)) {
+                try { $rateLimiter->checkRateLimit($identifier); }
+                catch (Exception $e) {
+                    $_SESSION['login_lockout_until'] = time() + $rateLimiter->getLockoutSecondsRemaining($identifier);
+                    $_SESSION['error'] = $e->getMessage();
+                    header("Location: " . BASE_URL . "index.php?page=login");
+                    exit();
+                }
+                try { $rateLimiter->recordFailedAttempt($identifier); }
+                catch (Exception $e) { error_log('[Auth] record failed attempt: ' . $e->getMessage()); }
                 $_SESSION['error'] = "Invalid email or password.";
                 header("Location: " . BASE_URL . "index.php?page=login");
                 exit();
             }
+        }
+
+        // Precise identifier now that the format is known
+        $identifier = substr(($is_mobile ? 'phone:' : 'email:') . strtolower($login), 0, 191);
+
+        // Lockout check before any DB work: a locked identifier is rejected
+        // up-front so the "account locked" message always appears.
+        try {
+            $rateLimiter->checkRateLimit($identifier);
+        } catch (Exception $e) {
+            $_SESSION['login_lockout_until'] = time() + $rateLimiter->getLockoutSecondsRemaining($identifier);
+            $_SESSION['error'] = $e->getMessage();
+            header("Location: " . BASE_URL . "index.php?page=login");
+            exit();
         }
 
         // Query user
@@ -501,6 +651,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Verify password
             if (password_verify($password, $row['password_hash'])) {
+
+                // Correct credentials - clear any prior failed attempts/lockout
+                try { $rateLimiter->resetOnSuccess($identifier); }
+                catch (Exception $e) { error_log('[Auth] reset failed attempts: ' . $e->getMessage()); }
+                unset($_SESSION['login_lockout_until']);
 
                 // ========================================
                 // AUTO-VERIFY FOR DEMO ACCOUNTS
@@ -637,6 +792,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             } else {
                 // Password incorrect
+                try { $rateLimiter->recordFailedAttempt($identifier); }
+                catch (Exception $e) { error_log('[Auth] record failed attempt: ' . $e->getMessage()); }
                 if ($activityLog) {
                     $activityLog->log($row['id'], 'Login', "Failed login attempt - incorrect password for {$login}", null, 'Auth', 'FAILED');
                 }
@@ -645,7 +802,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
         } else {
-            // User not found - check if exists but inactive
+            // User not found - record the failure (guessing a non-existent account)
+            try { $rateLimiter->recordFailedAttempt($identifier); }
+            catch (Exception $e) { error_log('[Auth] record failed attempt: ' . $e->getMessage()); }
+            // Check if exists but inactive
             if ($is_mobile) {
                 $query2 = "SELECT id, is_active FROM users WHERE contact_number = :login";
             } else {

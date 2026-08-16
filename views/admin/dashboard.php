@@ -3,7 +3,7 @@
 // Algorithmic KPIs, Heatmap with Clustering, Drill-Down Panel, Trend Charts
 // Updated: Export Analytics (CSV/PDF), Enhanced Cluster Drill-Down with Photos
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
 requireRole('admin');
 
 $database = new Database();
@@ -525,7 +525,7 @@ function getRecommendation($score) {
 }
 
 // Load San Isidro boundary GeoJSON for map
-$geojson_file = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/sanisidro.geojson';
+$geojson_file = BASE_PATH . 'geojson/sanisidro.geojson';
 $boundary_data = null;
 if (file_exists($geojson_file)) {
     $boundary_data = json_decode(file_get_contents($geojson_file), true);
@@ -533,7 +533,7 @@ if (file_exists($geojson_file)) {
 
 // Load every barangay boundary GeoJSON and merge them into a single
 // FeatureCollection so the map can draw one polygon per barangay.
-$barangays_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/barangay';
+$barangays_dir = BASE_PATH . 'geojson/barangay';
 $barangay_data = null;
 if (is_dir($barangays_dir)) {
     $barangay_features = [];
@@ -979,7 +979,7 @@ function getDecisionBadge($classification) {
 </head>
 <body>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">

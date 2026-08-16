@@ -1,6 +1,6 @@
 <?php
 // views/barangay/dashboard.php - WITH CONSISTENT DESIGN SYSTEM + ALGORITHMIC DECISION-SUPPORT WIDGETS
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
 
 // Check if user is logged in
 if(!isLoggedIn()) {
@@ -38,7 +38,7 @@ $user_name = $_SESSION['user_name'] ?? 'Barangay Official';
 $barangay_boundary = null;
 $barangay_name_key = strtolower(preg_replace('/[^a-z0-9]+/', '', $barangay_info['name'] ?? ''));
 if ($barangay_name_key !== '') {
-    $barangays_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/barangay';
+    $barangays_dir = BASE_PATH . 'geojson/barangay';
     if (is_dir($barangays_dir)) {
         foreach (glob($barangays_dir . '/*.geojson') as $barangay_file) {
             $barangay_base = basename($barangay_file);
@@ -250,7 +250,7 @@ while ($tpl_report = $tpl_reports_stmt->fetch(PDO::FETCH_ASSOC)) {
     $event = $tpl_event_for_status[$tpl_report['status']] ?? null;
     if ($event === null) continue;
     if (!class_exists('SettingsHelper')) {
-        require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+        require_once BASE_PATH . 'helpers/SettingsHelper.php';
     }
     $tpl_text = SettingsHelper::getTemplate($tpl_type_key[$event]);
     $status_label = ucwords(str_replace('_', ' ', $tpl_report['status']));
@@ -561,12 +561,13 @@ function getSeverityTierPHP($score) {
 // ========== GET RECENT REPORTS (kept - powers the Recent Reports table) ==========
 $recent_reports = $reportModel->getAllReports($barangay_id);
 $recent_reports->execute();
+$recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Barangay Dashboard - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -970,16 +971,65 @@ $recent_reports->execute();
         
         @media (max-width: 768px) {
             .ml-72 { margin-left: 0; }
-            .notification-dropdown { right: 16px; left: 16px; width: auto; }
-            #drillPanel { width: 100%; right: -100%; }
+            .notification-dropdown { right: 8px; left: 8px; width: auto; max-width: none; }
+            #drillPanel { width: 100%; right: -100%; padding: 1rem; }
             .kpi-card .kpi-value { font-size: 1.5rem; }
+            .map-toggle { flex-wrap: wrap; }
             .map-toggle button { padding: 0.3rem 0.8rem; font-size: 0.7rem; }
+            /* greeting: hide clock on tiny screens */
+            .time-card { display: none; }
+            /* chart grids: single column stacks */
+            .chart-canvas-container { height: 180px; }
+            /* reports card view (replaces horizontal table scroll on mobile) */
+            .mobile-report-card { display: block; }
+            .desktop-reports-table { display: none; }
+            /* category filter full-width */
+            #categoryFilterWrap { width: 100%; }
+            #categoryFilterBtn { width: 100%; justify-content: space-between; }
+            #categoryFilterMenu { width: 100%; left: 0; }
+            /* section title shrink */
+            .section-title { font-size: 0.9rem; }
+        }
+        @media (min-width: 769px) {
+            .mobile-report-card { display: none; }
+            .desktop-reports-table { display: block; }
+        }
+        /* Mobile report card styles */
+        .mob-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid rgba(16,163,127,0.1);
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            transition: box-shadow 0.2s;
+        }
+        .mob-card:hover { box-shadow: 0 4px 12px rgba(16,163,127,0.08); }
+        .mob-card-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+        .mob-card-meta {
+            font-size: 0.72rem;
+            color: #6b7280;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+            margin-bottom: 8px;
+        }
+        .mob-card-meta span { display: flex; align-items: center; gap: 3px; }
+        .mob-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 6px;
         }
     </style>
 </head>
 <body>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container">
@@ -1336,13 +1386,15 @@ $recent_reports->execute();
         <!-- Recent Reports Table -->
         <div class="chart-card">
             <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
-                <div class="chart-title mb-0"><i class="fas fa-list text-[#10A37F] mr-2"></i>Recent Reports</div>
+                    <div class="chart-title mb-0"><i class="fas fa-list text-[#10A37F] mr-2"></i>Recent Reports</div>
                 <span class="text-xs text-gray-400">Latest reports submitted in your barangay</span>
                 <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" class="text-sm text-[#10A37F] hover:text-[#0D8568] font-bold">
                     View All <i class="fas fa-arrow-right text-xs"></i>
                 </a>
             </div>
-            <div class="reports-table overflow-x-auto">
+
+            <!-- ===== DESKTOP TABLE ===== -->
+            <div class="desktop-reports-table reports-table overflow-x-auto">
                 <table class="w-full min-w-[800px] text-sm">
                     <thead>
                         <tr class="text-left text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
@@ -1358,9 +1410,7 @@ $recent_reports->execute();
                     </thead>
                     <tbody>
                         <?php 
-                        $counter = 0;
-                        while($row = $recent_reports->fetch(PDO::FETCH_ASSOC)): 
-                            if($counter++ >= 10) break;
+                        foreach(array_slice($recent_reports_rows, 0, 10) as $row):
                             $risk_level = $row['risk_level'] ?? 'low';
                             $risk_badge = '';
                             if($risk_level == 'low') $risk_badge = 'bg-[#D1FAE5] text-[#065F46]';
@@ -1403,8 +1453,8 @@ $recent_reports->execute();
                                 </a>
                             </td>
                         </tr>
-                        <?php endwhile; ?>
-                        <?php if($counter == 0): ?>
+                        <?php endforeach; ?>
+                        <?php if(empty($recent_reports_rows)): ?>
                         <tr>
                             <td colspan="8" class="px-4 py-12 text-center">
                                 <i class="fas fa-inbox text-5xl text-gray-300 mb-3 block"></i>
@@ -1415,13 +1465,56 @@ $recent_reports->execute();
                     </tbody>
                 </table>
             </div>
+
+            <!-- ===== MOBILE CARDS ===== -->
+            <div class="mobile-report-card">
+                <?php if(empty($recent_reports_rows)): ?>
+                <div class="text-center py-10">
+                    <i class="fas fa-inbox text-4xl text-gray-300 mb-2 block"></i>
+                    <p class="text-gray-400 text-sm font-medium">No reports found in your barangay</p>
+                </div>
+                <?php else: ?>
+                <?php foreach(array_slice($recent_reports_rows, 0, 10) as $row):
+                    $risk_level = $row['risk_level'] ?? 'low';
+                    $risk_badge_mob = '';
+                    $risk_color = '#10B981';
+                    if($risk_level == 'low')      { $risk_badge_mob = 'bg-[#D1FAE5] text-[#065F46]';  $risk_color = '#10B981'; }
+                    elseif($risk_level == 'medium'){ $risk_badge_mob = 'bg-[#FEF3C7] text-[#92400E]'; $risk_color = '#F59E0B'; }
+                    elseif($risk_level == 'high')  { $risk_badge_mob = 'bg-[#FFEDD5] text-[#9A3412]'; $risk_color = '#F97316'; }
+                    else                           { $risk_badge_mob = 'bg-[#FEE2E2] text-[#991B1B]'; $risk_color = '#EF4444'; }
+                    $display_status_mob = $row['status'];
+                    if($display_status_mob == 'escalated_pending' || $display_status_mob == 'escalated') $display_status_mob = 'escalated';
+                    if($display_status_mob == 'rejected') $display_status_mob = 'declined';
+                ?>
+                <div class="mob-card">
+                    <div class="flex justify-between items-start gap-2 mb-1">
+                        <div class="mob-card-title flex-1"><?php echo htmlspecialchars($row['title']); ?></div>
+                        <span class="px-2 py-0.5 text-xs rounded-full font-bold <?php echo $risk_badge_mob; ?> flex-shrink-0"><?php echo ucfirst($risk_level); ?></span>
+                    </div>
+                    <div class="mob-card-meta">
+                        <span><i class="fas fa-user text-[#10A37F]"></i><?php echo htmlspecialchars($row['full_name']); ?></span>
+                        <span><i class="fas fa-tag text-[#10A37F]"></i><?php echo htmlspecialchars($row['category_name']); ?></span>
+                        <span><i class="far fa-calendar text-[#10A37F]"></i><?php echo date('M d, Y', strtotime($row['created_at'])); ?></span>
+                    </div>
+                    <div class="mob-card-footer">
+                        <span class="status-badge status-<?php echo $row['status'] == 'rejected' ? 'rejected' : $row['status']; ?>">
+                            <?php echo $display_status_mob == 'escalated' ? 'Escalated' : ($display_status_mob == 'declined' ? 'Declined' : ($display_status_mob == 'in_progress' ? 'In Progress' : ucfirst($display_status_mob))); ?>
+                        </span>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=<?php echo IdGuard::enc((int)$row['id']); ?>" 
+                           class="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#10A37F] hover:bg-[#0D8568] px-3 py-1.5 rounded-lg transition">
+                            <i class="fas fa-arrow-right text-[0.6rem]"></i> Manage
+                        </a>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
         
     </div>
 </div>
 
 <script>
-// ========== NOTIFICATION FUNCTIONS ==========
 let isDropdownOpen = false;
 
 function toggleNotifications() {
@@ -1917,5 +2010,22 @@ updateClock();
 
 document.addEventListener('DOMContentLoaded', initMap);
 </script>
+
+<!-- Mobile FAB: quick access to Verify Reports (mobile only) -->
+<a href="<?php echo BASE_URL; ?>index.php?page=verify-reports"
+   class="flex lg:hidden"
+   style="position:fixed;bottom:1.5rem;right:1.25rem;z-index:9000;
+          width:56px;height:56px;border-radius:50%;
+          background:linear-gradient(135deg,#10A37F,#059669);
+          color:white;font-size:1.3rem;
+          align-items:center;justify-content:center;
+          box-shadow:0 6px 20px rgba(16,163,127,0.4);
+          transition:transform 0.2s,box-shadow 0.2s;"
+   aria-label="Verify Reports"
+   onmouseover="this.style.transform='scale(1.08)'"
+   onmouseout="this.style.transform='scale(1)'">
+    <i class="fas fa-clipboard-check"></i>
+</a>
+
 </body>
 </html>

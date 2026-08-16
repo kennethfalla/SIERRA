@@ -4,10 +4,10 @@
 // Full CRUD operations with role-based access control
 // Features: Create Staff with Temp Password, View Profile, Activate/Suspend, Delete
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/SecurityHelper.php';
+require_once dirname(__DIR__, 2) . '/helpers/SettingsHelper.php';
+require_once dirname(__DIR__, 2) . '/helpers/PermissionHelper.php';
 requireRole('admin');
 
 $database = new Database();
@@ -225,7 +225,7 @@ while($brgy = $barangays->fetch(PDO::FETCH_ASSOC)) {
 // ============================================================
 // GET ROLES FOR THE "Role" DROPDOWN (Create Role feature)
 // ============================================================
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once BASE_PATH . 'helpers/SettingsHelper.php';
 $role_list = SettingsHelper::getAllRoles(); // [{id, title, description, is_system}, ...]
 
 // ============================================================
@@ -706,7 +706,7 @@ function getRoleBadge($user_type, $job_title = '') {
 </head>
 <body>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">

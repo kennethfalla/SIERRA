@@ -20,6 +20,13 @@ $iprog_api = SettingsHelper::get('iprog_api_key', '');
 $iprog_sender = SettingsHelper::get('iprog_sender_id', '');
 $iprog_base_url = SettingsHelper::get('iprog_base_url', 'https://sms.iprogtech.com/api/v1/sms_messages');
 
+// Brevo Email Settings (report receipts). InfinityFree free-tier domains
+// aren't compatible with Mailgun, so Brevo is the only supported gateway.
+$enable_email = SettingsHelper::get('enable_email_receipts', 1);
+$brevo_api = SettingsHelper::get('brevo_api_key', '');
+$brevo_sender_email = SettingsHelper::get('brevo_sender_email', 'menro@sanisidro.gov.ph');
+$brevo_sender_name = SettingsHelper::get('brevo_sender_name', 'Sierra LGU');
+
 // Generate CSRF token
 $csrf_token = InputSanitizer::generateCsrfToken();
 
@@ -410,7 +417,160 @@ $placeholders = [
     </div>
     
     <!-- ============================================================ -->
-    <!-- SECTION 3: SMS GATEWAY SETTINGS (iProg Only) -->
+    <!-- SECTION 3: Brevo EMAIL SETTINGS (Official Report Receipts) -->
+    <!-- ============================================================ -->
+    <div class="mb-6 border-t border-gray-200 pt-6">
+        <input type="hidden" name="email_gateway" value="brevo">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-envelope-open-text text-[#10A37F]"></i>
+            Brevo Email (Report Receipts)
+        </h3>
+        <p class="text-sm text-gray-500 mb-4">
+            InfinityFree does not support PHP <code>mail()</code>, so official report receipt emails are sent through the
+            <a href="https://www.brevo.com" target="_blank" rel="noopener" class="text-[#10A37F] font-medium">Brevo</a> API (free tier: 300 emails/day, no custom domain required).
+            Email is used <strong>only</strong> for official report receipts — SMS remains the channel for OTP login/reset.
+        </p>
+
+        <!-- Enable Email Receipts Toggle -->
+        <div class="sms-gateway-card">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div class="gateway-title">
+                        <i class="fas fa-toggle-on text-[#10A37F]"></i>
+                        Enable Email Receipts
+                        <span class="badge <?php echo $enable_email ? 'badge-active' : 'badge-inactive'; ?>">
+                            <?php echo $enable_email ? 'Active' : 'Disabled'; ?>
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500">When enabled, a receipt email is sent to citizens when they submit a report, and again whenever its status changes (verified, resolved, rejected, or escalated).</p>
+                </div>
+                <div class="toggle-switch">
+                    <input type="checkbox" name="enable_email_receipts" id="enable_email" value="1" <?php echo $enable_email ? 'checked' : ''; ?> onchange="toggleEmailFields()">
+                    <label class="toggle-slider" for="enable_email"></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Brevo Settings -->
+        <div class="sms-gateway-card <?php echo $brevo_api ? 'border-green-200 bg-green-50/30' : 'border-gray-200'; ?>">
+            <div class="gateway-title">
+                <i class="fas fa-paper-plane text-blue-500"></i>
+                Brevo
+                <span class="badge <?php echo $brevo_api ? 'badge-active' : 'badge-inactive'; ?>">
+                    <?php echo $brevo_api ? 'Configured' : 'Not Configured'; ?>
+                </span>
+            </div>
+            <p class="text-sm text-gray-500 mb-3">Get your API key from <a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener" class="text-[#10A37F] font-medium">Brevo &rarr; SMTP &amp; API &rarr; API Keys</a> (free plan, no credit card, no custom domain needed).</p>
+
+            <div class="form-group">
+                <label for="brevo_api_key">Brevo API Key <span class="text-red-500">*</span></label>
+                <input type="text" name="brevo_api_key" id="brevo_api_key" class="form-input"
+                       value="<?php echo htmlspecialchars($brevo_api); ?>"
+                       placeholder="xkeysib-...">
+                <div class="help-text">Your Brevo API key (starts with <code>xkeysib-</code>). Keep this secure.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="brevo_sender_email">Sender Email <span class="text-red-500">*</span></label>
+                <input type="email" name="brevo_sender_email" id="brevo_sender_email" class="form-input"
+                       value="<?php echo htmlspecialchars($brevo_sender_email); ?>"
+                       placeholder="noreply@yourdomain.com">
+                <div class="help-text">Must be a verified sender in Brevo (Senders, Domains &amp; Dedicated IPs &rarr; Senders). A plain email address works — no domain verification required on Brevo's free tier.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="brevo_sender_name">Sender Name</label>
+                <input type="text" name="brevo_sender_name" id="brevo_sender_name" class="form-input"
+                       value="<?php echo htmlspecialchars($brevo_sender_name); ?>"
+                       placeholder="Sierra LGU">
+                <div class="help-text">Shown as the sender display name on receipts (e.g., "Sierra LGU").</div>
+            </div>
+        </div>
+
+        <!-- Email Gateway Status -->
+        <div class="sms-gateway-card">
+            <div class="gateway-title">
+                <i class="fas fa-info-circle text-blue-500"></i>
+                Brevo Gateway Status
+            </div>
+            <?php if ($brevo_api && $brevo_sender_email && $enable_email): ?>
+                <div class="p-3 rounded-lg border border-green-200 bg-green-50">
+                    <p class="font-semibold text-sm text-green-700">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        Brevo is configured and ready to send report receipts.
+                    </p>
+                    <p class="text-xs text-green-600 mt-1">
+                        API Key: <?php echo substr($brevo_api, 0, 10); ?>... (masked)
+                    </p>
+                    <p class="text-xs text-green-600">
+                        Sender: <?php echo htmlspecialchars($brevo_sender_name . ' <' . $brevo_sender_email . '>'); ?>
+                    </p>
+                </div>
+            <?php else: ?>
+                <div class="p-3 rounded-lg border border-yellow-200 bg-yellow-50">
+                    <p class="font-semibold text-sm text-yellow-700">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        Brevo is not configured or email receipts are disabled.
+                    </p>
+                    <ul class="text-xs text-yellow-600 mt-1 list-disc list-inside">
+                        <?php if (!$enable_email): ?>
+                        <li>Email receipts are disabled. Enable the toggle above.</li>
+                        <?php endif; ?>
+                        <?php if (empty($brevo_api)): ?>
+                        <li>API Key is missing. Enter your Brevo API key.</li>
+                        <?php endif; ?>
+                        <?php if (empty($brevo_sender_email)): ?>
+                        <li>Sender email is missing. Enter and verify a sender email in Brevo.</li>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 3b: TEST EMAIL (Brevo) -->
+    <!-- ============================================================ -->
+    <div class="mb-6 border-t border-gray-200 pt-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-vial text-[#10A37F]"></i>
+            Test Email
+        </h3>
+        <p class="text-sm text-gray-500 mb-4">Send a test email to verify your Brevo configuration.</p>
+
+        <div class="sms-gateway-card">
+            <div class="flex flex-wrap items-end gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <label for="test_email_to" class="font-semibold text-sm text-gray-700 block mb-1">Test Email Address</label>
+                    <input type="email" name="test_email_to" id="test_email_to" class="form-input"
+                           placeholder="you@example.com">
+                </div>
+                <button type="button" onclick="sendTestEmail()" class="btn-primary px-6 py-2.5 text-white font-semibold rounded-xl" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
+                    <i class="fas fa-paper-plane mr-2"></i>Send Test Email
+                </button>
+            </div>
+            <div id="testEmailResult" class="mt-3" style="display: none;"></div>
+
+            <?php if ($brevo_api): ?>
+            <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-sm text-blue-700">
+                    <i class="fas fa-check-circle mr-1"></i>
+                    Brevo is configured. Click "Send Test Email" to verify.
+                </p>
+            </div>
+            <?php else: ?>
+            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p class="text-sm text-yellow-700">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Please configure Brevo (API key and sender email) above before testing.
+                </p>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 4: SMS GATEWAY SETTINGS (iProg Only) -->
     <!-- ============================================================ -->
     <div class="mb-6 border-t border-gray-200 pt-6">
         <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -526,7 +686,7 @@ $placeholders = [
     </div>
     
     <!-- ============================================================ -->
-    <!-- SECTION 4: TEST SMS -->
+    <!-- SECTION 5: TEST SMS -->
     <!-- ============================================================ -->
     <div class="mb-6 border-t border-gray-200 pt-6">
         <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -596,6 +756,7 @@ $placeholders = [
     // ============================================
     const form = document.getElementById('notificationsForm');
     const enableSms = document.getElementById('enable_sms');
+    const enableEmail = document.getElementById('enable_email');
     
     // ============================================
     // CHAR COUNTER
@@ -662,7 +823,8 @@ $placeholders = [
         const isEnabled = enableSms.checked;
         const inputs = document.querySelectorAll('.sms-gateway-card input, .sms-gateway-card select, .sms-gateway-card textarea');
         inputs.forEach(function(input) {
-            if (input.id !== 'enable_sms') {
+            // Skip the master toggle and all Brevo email fields
+            if (input.id !== 'enable_sms' && input.id.indexOf('brevo_') !== 0 && input.id !== 'test_email_to') {
                 input.disabled = !isEnabled;
                 input.style.opacity = isEnabled ? '1' : '0.5';
             }
@@ -675,9 +837,31 @@ $placeholders = [
             testBtn.style.opacity = isEnabled ? '1' : '0.5';
         }
     };
+
+    // ============================================
+    // TOGGLE Brevo EMAIL FIELDS
+    // ============================================
+    window.toggleEmailFields = function() {
+        const isEnabled = enableEmail.checked;
+        const inputs = document.querySelectorAll('.sms-gateway-card input, .sms-gateway-card select, .sms-gateway-card textarea');
+        inputs.forEach(function(input) {
+            if (input.id.indexOf('brevo_') === 0 || input.id === 'test_email_to') {
+                input.disabled = !isEnabled;
+                input.style.opacity = isEnabled ? '1' : '0.5';
+            }
+        });
+        
+        // Also toggle the test email button
+        const testBtn = document.querySelector('[onclick="sendTestEmail()"]');
+        if (testBtn) {
+            testBtn.disabled = !isEnabled;
+            testBtn.style.opacity = isEnabled ? '1' : '0.5';
+        }
+    };
     
     // Initial state
     toggleSMSFields();
+    toggleEmailFields();
     
     // ============================================
     // SEND TEST SMS
@@ -750,6 +934,67 @@ $placeholders = [
         });
     };
     
+    // ============================================
+    // SEND TEST EMAIL (Brevo)
+    // ============================================
+    window.sendTestEmail = function() {
+        const toEmail = document.getElementById('test_email_to').value.trim();
+        const resultDiv = document.getElementById('testEmailResult');
+        const testBtn = document.querySelector('[onclick="sendTestEmail()"]');
+
+        if (!toEmail) {
+            resultDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm"><i class="fas fa-exclamation-circle mr-2"></i>Please enter a test email address.</div>';
+            resultDiv.style.display = 'block';
+            return;
+        }
+
+        // Disable button and show loading
+        testBtn.disabled = true;
+        testBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+        resultDiv.innerHTML = '<div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-700 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Sending test email...</div>';
+        resultDiv.style.display = 'block';
+
+        // Send AJAX request
+        const formData = new FormData();
+        formData.append('action', 'send_test_email');
+        formData.append('to_email', toEmail);
+        formData.append('csrf_token', '<?php echo $csrf_token; ?>');
+
+        // Include whatever is currently typed into the Brevo fields (even if
+        // "Save Settings" hasn't been clicked yet) so the test reflects the
+        // key the admin just entered, not a stale one.
+        formData.append('brevo_api_key', document.getElementById('brevo_api_key').value.trim());
+        formData.append('brevo_sender_email', document.getElementById('brevo_sender_email').value.trim());
+        formData.append('brevo_sender_name', document.getElementById('brevo_sender_name').value.trim());
+
+        fetch('<?php echo BASE_URL; ?>controllers/SettingsController.php', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                resultDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-3 text-green-700 text-sm"><i class="fas fa-check-circle mr-2"></i>' + data.message + '</div>';
+            } else {
+                let errorMsg = data.message;
+                if (data.diagnostic) {
+                    errorMsg += '<br><br><small>Diagnostic: configured? ' + (data.diagnostic.configured ? 'Yes' : 'No') + ' | enabled? ' + (data.diagnostic.enabled ? 'Yes' : 'No') + '</small>';
+                }
+                resultDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm"><i class="fas fa-exclamation-circle mr-2"></i>' + errorMsg + '</div>';
+            }
+        })
+        .catch(function(error) {
+            resultDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm"><i class="fas fa-exclamation-circle mr-2"></i>Error sending test email: ' + error.message + '</div>';
+        })
+        .finally(function() {
+            testBtn.disabled = false;
+            testBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Test Email';
+        });
+    };
+
     // ============================================
     // RESET FORM
     // ============================================

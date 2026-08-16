@@ -6,9 +6,9 @@ ob_start(); // Prevent "headers already sent" errors
 // after they successfully log in with their temporary password.
 // COMPLETE: Password strength meter, live validation, CSRF protection, redirect to dashboard
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/SecurityHelper.php';
+require_once dirname(__DIR__, 2) . '/helpers/SettingsHelper.php';
 
 // ============================================
 // SECURITY CHECKS

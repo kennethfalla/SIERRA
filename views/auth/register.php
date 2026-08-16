@@ -1,7 +1,7 @@
 <?php
 // views/auth/register.php - 3-STEP REGISTRATION WIZARD WITH REAL OTP & DYNAMIC PASSWORD RULES
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/SecurityHelper.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
 
 if (isLoggedIn()) {
@@ -794,8 +794,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                 </div>
                                 <div class="input-group">
                                     <i class="fas fa-envelope input-icon"></i>
-                                    <input type="email" name="email" id="email" required class="input-field" placeholder=" ">
+                                    <input type="email" name="email" id="email" required class="input-field" placeholder=" " autocomplete="email">
                                     <label for="email" class="floating-label">Email Address <span class="text-red-400">*</span></label>
+                                    <span class="text-xs mt-1 flex items-center gap-1 text-gray-400 hidden" id="emailChecking"><i class="fas fa-spinner fa-spin"></i> Checking email...</span>
+                                    <span class="text-red-500 text-xs mt-1 hidden" id="emailError"></span>
+                                    <span class="text-[#10A37F] text-xs mt-1 hidden" id="emailSuccess"><i class="fas fa-check-circle mr-0.5"></i>Email looks good</span>
                                 </div>
                             </div>
                             <p class="text-[10px] text-gray-400 mt-[-8px] ml-2 mb-2">Enter 11-digit number starting with 09 (e.g., 09123456789)</p>
@@ -979,9 +982,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                             <h3 class="text-xl font-bold text-gray-800">Verify Your Account</h3>
                             <p class="text-gray-500 text-sm mt-1">Enter the 6-digit code sent to your mobile number</p>
                             <p class="text-sm font-medium text-[#10A37F] mt-2" id="otpPhoneDisplay">+63 912 345 6789</p>
-                            <p class="text-xs text-amber-600 mt-1 bg-amber-50 inline-block px-3 py-1 rounded-full">
-                                <i class="fas fa-info-circle mr-1"></i> Demo: Any 6-digit code works
-                            </p>
+
                         </div>
                         
                         <div class="otp-container" id="otpContainer">
@@ -1437,7 +1438,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Checking...';
         btn.disabled = true;
         
-        fetch('/environmental-reporting-app/controllers/AuthController.php', {
+        fetch('<?php echo BASE_URL; ?>controllers/AuthController.php', {
             method: 'POST',
             body: formData,
             headers: {
@@ -1483,7 +1484,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending OTP...';
         btn.disabled = true;
         
-        fetch('/environmental-reporting-app/controllers/AuthController.php', {
+        fetch('<?php echo BASE_URL; ?>controllers/AuthController.php', {
             method: 'POST',
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1616,7 +1617,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         formData.append('otp', entered);
         formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
         
-        fetch('/environmental-reporting-app/controllers/AuthController.php', {
+        fetch('<?php echo BASE_URL; ?>controllers/AuthController.php', {
             method: 'POST',
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1674,7 +1675,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         document.getElementById('verifyBtnText').classList.add('hidden');
         document.getElementById('verifySpinner').classList.remove('hidden');
         
-        fetch('/environmental-reporting-app/controllers/AuthController.php', {
+        fetch('<?php echo BASE_URL; ?>controllers/AuthController.php', {
             method: 'POST',
             body: formData,
             headers: {
@@ -1753,7 +1754,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         formData.append('action', 'send_registration_otp');
         formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
         
-        fetch('/environmental-reporting-app/controllers/AuthController.php', {
+        fetch('<?php echo BASE_URL; ?>controllers/AuthController.php', {
             method: 'POST',
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -1922,6 +1923,119 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         }
     });
     
+    // ============================================
+    // EMAIL DOMAIN VALIDATION (LIVE, BEFORE SUBMIT)
+    // Runs on blur (immediately) and while typing (debounced),
+    // so the MX-check feedback shows before the user ever
+    // reaches the "Continue" button — not just on submit.
+    // ============================================
+    let emailCheckTimer = null;
+    let emailCheckController = null;
+    let emailCheckedValue = null;   // last value we successfully validated
+
+    function resetEmailFeedback() {
+        document.getElementById('emailChecking').classList.add('hidden');
+        document.getElementById('emailError').classList.add('hidden');
+        document.getElementById('emailError').innerHTML = '';
+        document.getElementById('emailSuccess').classList.add('hidden');
+        document.getElementById('email').classList.remove('error', 'valid');
+    }
+
+    function checkEmailLive(email) {
+        // Only bother hitting the server once it's a plausible email
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            resetEmailFeedback();
+            return;
+        }
+        if (email === emailCheckedValue) {
+            // Already validated this exact value (e.g. user edited away and
+            // back again) - restore the success state instead of re-checking.
+            document.getElementById('emailChecking').classList.add('hidden');
+            document.getElementById('emailError').classList.add('hidden');
+            document.getElementById('emailSuccess').classList.remove('hidden');
+            document.getElementById('email').classList.add('valid');
+            document.getElementById('email').classList.remove('error');
+            return;
+        }
+
+        if (emailCheckController) emailCheckController.abort();
+        emailCheckController = new AbortController();
+
+        document.getElementById('emailError').classList.add('hidden');
+        document.getElementById('emailSuccess').classList.add('hidden');
+        document.getElementById('emailChecking').classList.remove('hidden');
+
+        const formData = new FormData();
+        formData.append('action', 'check_duplicate');
+        formData.append('email', email);
+
+        fetch('<?php echo BASE_URL; ?>controllers/AuthController.php', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            signal: emailCheckController.signal
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Ignore stale responses if the field has changed since this request went out
+            if (document.getElementById('email').value.trim() !== email) return;
+
+            document.getElementById('emailChecking').classList.add('hidden');
+
+            if (data.error) {
+                emailCheckedValue = null;
+                const emailError = document.getElementById('emailError');
+                const suggestionMatch = data.error.match(/Did you mean ([^\?]+)\?/);
+                if (suggestionMatch) {
+                    const suggestion = suggestionMatch[1].trim();
+                    const before = data.error.substring(0, suggestionMatch.index);
+                    emailError.innerHTML = '<i class="fas fa-exclamation-circle mr-0.5"></i>' + before +
+                        'Did you mean <button type="button" class="underline font-semibold text-[#10A37F] hover:text-[#0d8c69]" onmousedown="event.preventDefault()" onclick="applyEmailSuggestion(\'' + suggestion.replace(/'/g, "\\'") + '\')">' + suggestion + '</button>?';
+                } else {
+                    emailError.innerHTML = '<i class="fas fa-exclamation-circle mr-0.5"></i>' + data.error;
+                }
+                emailError.classList.remove('hidden');
+                document.getElementById('email').classList.add('error');
+                document.getElementById('email').classList.remove('valid');
+            } else {
+                emailCheckedValue = email;
+                document.getElementById('emailSuccess').classList.remove('hidden');
+                document.getElementById('email').classList.add('valid');
+                document.getElementById('email').classList.remove('error');
+            }
+        })
+        .catch(error => {
+            if (error.name === 'AbortError') return;
+            document.getElementById('emailChecking').classList.add('hidden');
+        });
+    }
+
+    function applyEmailSuggestion(suggestion) {
+        const emailField = document.getElementById('email');
+        emailField.value = suggestion;
+        emailField.dispatchEvent(new Event('input'));
+        emailField.focus();
+        clearTimeout(emailCheckTimer);
+        checkEmailLive(suggestion);
+    }
+
+    document.getElementById('email').addEventListener('input', function(e) {
+        const email = e.target.value.trim();
+        resetEmailFeedback();
+        clearTimeout(emailCheckTimer);
+        if (email.length === 0) return;
+        // Debounce while the user is still typing so we're not firing a
+        // DNS lookup on every keystroke.
+        emailCheckTimer = setTimeout(() => checkEmailLive(email), 600);
+    });
+
+    document.getElementById('email').addEventListener('blur', function(e) {
+        const email = e.target.value.trim();
+        if (email.length === 0) return;
+        clearTimeout(emailCheckTimer);
+        checkEmailLive(email);
+    });
+
     // ============================================
     // PASSWORD TOGGLE
     // ============================================

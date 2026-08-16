@@ -37,11 +37,17 @@ class Report {
     // CREATE
     // ============================================
     public function create($data) {
+        // created_at is written explicitly from PHP (Asia/Manila) so a report's
+        // timestamp is always correct even if the MySQL server clock/timezone
+        // is off (e.g. InfinityFree storing UTC). The session time_zone set in
+        // Database::getConnection() keeps NOW() consistent with this value.
+        $created_at = date('Y-m-d H:i:s');
+
         $query = "INSERT INTO " . $this->table . " 
                 SET user_id=:user_id, category_id=:category_id, barangay_id=:barangay_id,
                     title=:title, description=:description, latitude=:latitude, 
                     longitude=:longitude, location_address=:location_address,
-                    risk_level=:risk_level, impact_modifier=:impact_modifier";
+                    risk_level=:risk_level, impact_modifier=:impact_modifier, created_at=:created_at";
         
         $stmt = $this->conn->prepare($query);
         
@@ -55,6 +61,7 @@ class Report {
         $stmt->bindParam(":location_address", $data['location_address']);
         $stmt->bindParam(":risk_level", $data['risk_level']);
         $stmt->bindParam(":impact_modifier", $data['impact_modifier']);
+        $stmt->bindParam(":created_at", $created_at);
         
         if($stmt->execute()) {
             return $this->conn->lastInsertId();

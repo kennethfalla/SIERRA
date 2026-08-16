@@ -22,6 +22,10 @@ if (session_status() === PHP_SESSION_NONE) {
 $csrf_token = InputSanitizer::generateCsrfToken();
 $csrf_expiry = time() + 1800;
 
+// Lockout countdown target (unix seconds). Set by AuthController when a login
+// is rejected for too many failed attempts; drives the live MM:SS countdown.
+$login_lockout_until = (int)($_SESSION['login_lockout_until'] ?? 0);
+
 $database = new Database();
 $db = $database->getConnection();
 
@@ -339,6 +343,15 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                     </div>
                 <?php endif; ?>
 
+                <?php if ($login_lockout_until > 0): ?>
+                    <div id="lockoutBanner" class="flash-message error rounded-lg p-3 text-sm mb-4" style="display: none;" role="alert" aria-live="polite">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-clock" aria-hidden="true"></i>
+                            <span>Too many failed attempts. Please try again in <strong id="lockoutCountdown" class="tabular-nums">--:--</strong>.</span>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <?php if (isset($_SESSION['info'])): ?>
                     <div class="flash-message info rounded-lg p-3 text-sm mb-4" role="alert">
                         <div class="flex items-center gap-2">
@@ -351,7 +364,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                 <!-- ============================================ -->
                 <!-- LOGIN FORM -->
                 <!-- ============================================ -->
-                <form action="/environmental-reporting-app/controllers/AuthController.php" method="POST" id="loginForm" novalidate>
+                <form action="<?php echo BASE_URL; ?>controllers/AuthController.php" method="POST" id="loginForm" novalidate>
                     <input type="hidden" name="action" value="login">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                     <input type="hidden" name="csrf_expiry" value="<?php echo $csrf_expiry; ?>" id="csrfExpiry">
@@ -545,6 +558,31 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
     const fieldError = document.getElementById('fieldError');
     const fieldErrorMessage = document.getElementById('fieldErrorMessage');
     const toggleBtn = document.getElementById('togglePassword');
+
+    // ============================================
+    // LOCKOUT COUNTDOWN
+    // ============================================
+    const lockoutBanner = document.getElementById('lockoutBanner');
+    const lockoutCountdown = document.getElementById('lockoutCountdown');
+    const lockoutUntil = <?php echo (int)$login_lockout_until; ?> * 1000;
+
+    if (lockoutBanner && lockoutCountdown && lockoutUntil > 0) {
+        function renderLockout() {
+            const remaining = Math.floor((lockoutUntil - Date.now()) / 1000);
+            if (remaining <= 0) {
+                lockoutBanner.style.display = 'none';
+                submitBtn.disabled = false;
+                return;
+            }
+            const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+            const secs = String(remaining % 60).padStart(2, '0');
+            lockoutCountdown.textContent = mins + ':' + secs;
+            lockoutBanner.style.display = 'block';
+            submitBtn.disabled = true;
+        }
+        renderLockout();
+        setInterval(renderLockout, 1000);
+    }
 
     // ============================================
     // FIELD ERROR HANDLING

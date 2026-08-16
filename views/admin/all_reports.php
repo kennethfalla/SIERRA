@@ -5,9 +5,9 @@
 // UPDATED: Page header design matches my_reports.php branding
 // UPDATED: Added stats summary cards
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/SettingsHelper.php';
+require_once dirname(__DIR__, 2) . '/helpers/PermissionHelper.php';
 requireRole('admin');
 
 $database = new Database();
@@ -666,7 +666,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
 </head>
 <body>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">

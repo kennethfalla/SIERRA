@@ -3,8 +3,8 @@
 // UPDATED: Support/Verification feature with ownership check – can only support others' reports
 // ENHANCED: Unified header for both own and supported reports, consistent with my_reports.php
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/SecurityHelper.php';
 requireLogin();
 
 $database = new Database();
@@ -135,7 +135,7 @@ $notes_stmt->execute();
 $notes = $notes_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Load San Isidro boundary for map
-$geojson_file = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/sanisidro.geojson';
+$geojson_file = BASE_PATH . 'geojson/sanisidro.geojson';
 $boundary_data = null;
 if (file_exists($geojson_file)) {
     $geojson_content = file_get_contents($geojson_file);
@@ -150,7 +150,7 @@ foreach ($db->query("SELECT id, name FROM barangays") as $barangay_row) {
     $barangay_ids[strtolower(preg_replace('/[^a-z0-9]+/', '', $barangay_row['name']))] = (int)$barangay_row['id'];
 }
 
-$barangays_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/barangay';
+$barangays_dir = BASE_PATH . 'geojson/barangay';
 $barangay_data = null;
 if (is_dir($barangays_dir)) {
     $barangay_features = [];
@@ -830,7 +830,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 </head>
 <body class="bg-[#F5FBF6] <?php echo $can_confirm_resolution ? 'resolution-active' : ''; ?>">
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">

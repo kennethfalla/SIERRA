@@ -141,6 +141,7 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -342,9 +343,110 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
                 max-height: 60px;
             }
         }
+
+        /* ============================================ */
+        /* INTRO SPLASH — logo drops from top, zooms,   */
+        /* then the landing page fades in               */
+        /* ============================================ */
+        body.splash-lock { overflow: hidden; }
+
+        #intro-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            contain: layout style paint;
+        }
+        #intro-splash .intro-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+        #intro-splash .intro-logo {
+            max-height: 120px;
+            width: auto;
+            object-fit: contain;
+        }
+        #intro-splash .intro-logo-fallback {
+            width: 112px;
+            height: 112px;
+            border-radius: 1.5rem;
+            background: linear-gradient(135deg, #065f46 0%, #10A37F 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 2.8rem;
+            box-shadow: 0 20px 40px -12px rgba(16,163,127,.45);
+        }
+        #intro-splash .tw-droplet {
+            position: absolute;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, rgba(20,184,166,.95) 0%, #0d5c46 70%);
+            filter: blur(24px);
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+        #intro-splash .intro-title {
+            font-family: 'Manrope', sans-serif;
+            font-size: clamp(2.6rem, 7vw, 4rem);
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-indent: .12em;
+            text-align: center;
+            position: relative;
+        }
+        #intro-splash .tw-char {
+            font-family: inherit;
+            font-size: inherit;
+            letter-spacing: inherit;
+            background: linear-gradient(135deg, #064e3b 0%, #10A37F 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: #065f46;
+            opacity: 0;
+            filter: blur(18px);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #intro-splash { display: none; }
+        }
     </style>
 </head>
-<body class="bg-[#F5FBF6]">
+<body class="bg-[#F5FBF6] splash-lock">
+
+<!-- ============================================ -->
+<!-- INTRO SPLASH — logo drops from top, zooms,   -->
+<!-- then the landing page fades in               -->
+<!-- ============================================ -->
+<div id="intro-splash" aria-hidden="true">
+    <div class="intro-brand">
+        <?php if ($logo_url): ?>
+            <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="" class="intro-logo">
+        <?php else: ?>
+            <div class="intro-logo-fallback"><i class="fas fa-leaf"></i></div>
+        <?php endif; ?>
+        <span class="tw-droplet" aria-hidden="true"></span>
+        <span class="tw-droplet" aria-hidden="true"></span>
+        <span class="tw-droplet" aria-hidden="true"></span>
+        <span class="tw-droplet" aria-hidden="true"></span>
+        <span class="tw-droplet" aria-hidden="true"></span>
+        <span class="tw-droplet" aria-hidden="true"></span>
+        <span class="intro-title" aria-label="SIERRA">
+            <span class="tw-char">S</span><span class="tw-char">I</span><span class="tw-char">E</span><span class="tw-char">R</span><span class="tw-char">R</span><span class="tw-char">A</span>
+        </span>
+    </div>
+</div>
+<!-- /INTRO SPLASH -->
 
 <!-- ============================================ -->
 <!-- NAVIGATION -->
@@ -1107,6 +1209,91 @@ if (resolutionBar) {
     observer.observe(resolutionBar);
 }
 
+// ============================================
+// INTRO SPLASH — GSAP timeline (drop → SIERRA → zoom)
+// ============================================
+(function () {
+    var splash = document.getElementById('intro-splash');
+    if (!splash) return;
+
+    var seenKey = 'sierra_intro_seen';
+
+    var cleaned = false;
+    function cleanup() {
+        if (cleaned) return;
+        cleaned = true;
+        if (splash.parentNode) splash.parentNode.removeChild(splash);
+        document.body.classList.remove('splash-lock');
+    }
+
+    // Show the intro only once per browser session
+    try {
+        if (sessionStorage.getItem(seenKey)) {
+            cleanup();
+            return;
+        }
+    } catch (e) {}
+
+    function run() {
+        try { sessionStorage.setItem(seenKey, '1'); } catch (e) {}
+        var brand = splash.querySelector('.intro-brand');
+        var logo = splash.querySelector('.intro-logo, .intro-logo-fallback');
+        var chars = splash.querySelectorAll('.tw-char');
+        var droplets = splash.querySelectorAll('.tw-droplet');
+        if (!brand || !logo || chars.length === 0 || droplets.length === 0) { cleanup(); return; }
+
+        if (!window.gsap) {
+            splash.style.transition = 'opacity .5s ease';
+            splash.style.opacity = '0';
+            setTimeout(cleanup, 550);
+            return;
+        }
+
+        gsap.set(brand, { opacity: 0, y: -window.innerHeight, scale: .82 });
+
+        var br = brand.getBoundingClientRect();
+        var logoRect = logo.getBoundingClientRect();
+        var startX = logoRect.left + logoRect.width / 2 - br.left;
+        var startY = logoRect.top + logoRect.height / 2 - br.top;
+
+        var targets = [];
+        chars.forEach(function (c) {
+            var r = c.getBoundingClientRect();
+            targets.push({
+                x: r.left + r.width / 2 - br.left - startX,
+                y: r.top + r.height / 2 - br.top - startY
+            });
+        });
+
+        droplets.forEach(function (d, i) {
+            gsap.set(d, { left: startX, top: startY, xPercent: -50, yPercent: -50 });
+        });
+
+        var tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+        tl.to(brand, { opacity: 1, y: 0, scale: 1, duration: .55, ease: 'expo.out' }, 0)
+          .fromTo(droplets, { opacity: 0, scale: .8 }, { opacity: .95, scale: 1.15, duration: .14, stagger: { each: .12 } }, .5)
+          .to(droplets, { x: function (i) { return targets[i].x; }, y: function (i) { return targets[i].y; }, duration: .8, ease: 'elastic.out(1, .45)', stagger: { each: .12 } }, .64)
+          .to(droplets, { scale: 0, opacity: 0, duration: .24, ease: 'power2.in', stagger: { each: .12 } }, 1.28)
+          .fromTo(chars, { opacity: 0, filter: 'blur(18px)' }, { opacity: 1, filter: 'blur(0px)', duration: .3, stagger: { each: .12, from: 'start' }, ease: 'power2.inOut' }, .64)
+          .to(brand, { scale: 6.8, opacity: 0, duration: 1.05, ease: 'power4.inOut' }, 2.85)
+          .to(splash, { opacity: 0, duration: .5, ease: 'power2.inOut' }, 3.35);
+        tl.eventCallback('onComplete', cleanup);
+    }
+
+    var img = splash.querySelector('img');
+    if (img) {
+        if (img.complete && img.naturalWidth > 0) {
+            run();
+        } else {
+            img.addEventListener('load', run, { once: true });
+            img.addEventListener('error', run, { once: true });
+        }
+    } else {
+        run();
+    }
+
+    setTimeout(cleanup, 4400);
+})();
 </script>
 
 </body>

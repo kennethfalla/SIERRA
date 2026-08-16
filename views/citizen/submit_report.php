@@ -8,9 +8,9 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/SecurityHelper.php';
+require_once dirname(__DIR__, 2) . '/helpers/SettingsHelper.php';
 
 if (!isLoggedIn()) {
     header("Location: " . BASE_URL . "views/auth/login.php");
@@ -26,7 +26,7 @@ $db = $database->getConnection();
 $categories = $db->query("SELECT * FROM categories WHERE is_active = 1 ORDER BY name");
 
 // Load San Isidro boundary from GeoJSON
-$geojson_file = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/sanisidro.geojson';
+$geojson_file = BASE_PATH . 'geojson/sanisidro.geojson';
 $boundary_data = null;
 if (file_exists($geojson_file)) {
     $geojson_content = file_get_contents($geojson_file);
@@ -41,7 +41,7 @@ foreach ($db->query("SELECT id, name FROM barangays") as $barangay_row) {
     $barangay_ids[strtolower(preg_replace('/[^a-z0-9]+/', '', $barangay_row['name']))] = (int)$barangay_row['id'];
 }
 
-$barangays_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/barangay';
+$barangays_dir = BASE_PATH . 'geojson/barangay';
 $barangay_data = null;
 if (is_dir($barangays_dir)) {
     $barangay_features = [];
@@ -425,32 +425,203 @@ if (is_dir($barangays_dir)) {
             }
         }
 
-        /* ===== DUPLICATE MODAL ===== */
+        /* ===== DUPLICATE / SMART SUGGESTION MODAL ===== */
         #duplicateModal {
             z-index: 1000;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0;
         }
         #duplicateModal .modal-card {
-            max-height: 90vh;
-            overflow-y: auto;
+            max-height: 88vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            border-radius: 1.5rem 1.5rem 0 0;
+            transform: translateY(100%);
+            animation: dupSheetUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        #duplicateReportList .report-item {
-            transition: all 0.15s ease;
+        #duplicateModal .dup-handle {
+            display: block;
+            width: 44px;
+            height: 5px;
+            border-radius: 9999px;
+            background: #e2e8f0;
+            margin: 10px auto 4px;
+            flex-shrink: 0;
+        }
+        #duplicateModal .dup-head {
+            padding: 0.75rem 1.25rem 0.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        #duplicateModal .dup-close {
+            margin-left: auto;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 0.85rem;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
         }
-        #duplicateReportList .report-item:hover {
-            background: #f9fafb;
+        #duplicateModal .dup-close:hover { background: #e2e8f0; color: #334155; }
+        #duplicateModal .dup-list {
+            overflow-y: auto;
+            padding: 0.75rem 1.25rem;
+            flex: 1;
+            min-height: 0;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
-        #duplicateReportList .report-item.selected {
-            border-color: #10A37F !important;
-            background: #f0fdf4 !important;
+        #duplicateModal .dup-foot {
+            padding: 0.75rem 1.25rem calc(0.9rem + env(safe-area-inset-bottom));
+            border-top: 1px solid #f1f5f9;
+            background: #fff;
+            flex-shrink: 0;
         }
-        .report-item .distance-badge {
-            background: #e5e7eb;
-            color: #4b5563;
-            font-size: 0.65rem;
-            padding: 0.1rem 0.5rem;
+        #duplicateModal .dup-note {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 0.6rem;
+        }
+
+        /* Nearby report cards */
+        .dup-card {
+            display: flex;
+            gap: 0.7rem;
+            align-items: flex-start;
+            border: 1.5px solid #edf2ef;
+            border-radius: 0.9rem;
+            padding: 0.7rem;
+            margin-bottom: 0.6rem;
+            background: #fff;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+        }
+        .dup-card:active { transform: scale(0.985); }
+        .dup-card:hover { border-color: #d3e4dd; background: #fafcfb; }
+        .dup-card.selected {
+            border-color: #10A37F;
+            background: #f0fdf9;
+            box-shadow: 0 2px 12px rgba(16, 163, 127, 0.10);
+        }
+        .dup-radio {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .dup-card.selected .dup-radio { border-color: #10A37F; background: #10A37F; }
+        .dup-card.selected .dup-radio::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fff;
+        }
+        .dup-body { flex: 1; min-width: 0; }
+        .dup-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .dup-meta { font-size: 0.7rem; color: #6b7280; margin-top: 2px; }
+        .dup-desc {
+            font-size: 0.74rem;
+            color: #9ca3af;
+            margin-top: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .dup-distance {
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 0.62rem;
+            font-weight: 600;
+            padding: 0.1rem 0.45rem;
             border-radius: 9999px;
             white-space: nowrap;
+        }
+        .dup-view {
+            font-size: 0.72rem;
+            color: #10A37F;
+            font-weight: 600;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        .dup-view:hover { text-decoration: underline; }
+        .dup-thumb-wrap { flex-shrink: 0; position: relative; }
+        .dup-thumb {
+            width: 46px;
+            height: 46px;
+            border-radius: 0.65rem;
+            object-fit: cover;
+            background: #f3f4f6;
+            display: block;
+        }
+        .dup-thumb-count {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            border-radius: 9999px;
+            background: #10A37F;
+            color: #fff;
+            font-size: 0.6rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #fff;
+        }
+
+        /* Desktop: centered pop */
+        @media (min-width: 641px) {
+            #duplicateModal { align-items: center; }
+            #duplicateModal .modal-card {
+                width: 28rem;
+                max-width: 92vw;
+                border-radius: 1.25rem;
+                transform: translateY(0) scale(0.95);
+                animation: dupPopIn 0.22s ease forwards;
+            }
+            #duplicateModal .dup-handle { display: none; }
+        }
+        @keyframes dupSheetUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes dupPopIn {
+            from { opacity: 0; transform: translateY(8px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         /* ===== DETAILS SUB-MODAL ===== */
@@ -883,7 +1054,7 @@ if (is_dir($barangays_dir)) {
 </head>
 <body class="bg-[#F5FBF6]">
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <!-- ===== CONTAINER ===== -->
 <div class="lg:ml-72 min-h-screen">
@@ -1157,31 +1328,35 @@ if (is_dir($barangays_dir)) {
     </div>
 </div>
 
-<!-- ===== DUPLICATE REPORT MODAL ===== -->
-<div id="duplicateModal" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm" style="display:none;">
-    <div class="modal-card bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden transform transition-all scale-95">
-        <div class="p-6">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-xl"></i>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800">It looks like this was already reported</h3>
+<!-- ===== DUPLICATE REPORT MODAL (smart suggestion) ===== -->
+<div id="duplicateModal" class="fixed inset-0 z-[1000] flex bg-black/60 backdrop-blur-sm" style="display:none;">
+    <div class="modal-card bg-white shadow-2xl">
+        <div class="dup-handle"></div>
+        <div class="dup-head">
+            <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-lg"></i>
             </div>
-            <p class="text-sm text-gray-600 mb-4">
-                Someone nearby reported a similar issue. Are you reporting the same incident?
-            </p>
-            <div id="duplicateReportList" class="space-y-3 mb-5 max-h-60 overflow-y-auto">
-                <!-- Will be populated by JavaScript -->
+            <div class="min-w-0">
+                <h3 class="text-base sm:text-lg font-bold text-gray-800 leading-tight">It looks like this was already reported</h3>
+                <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Someone nearby reported a similar issue. Are you reporting the same incident?</p>
             </div>
-            <div class="flex flex-col sm:flex-row gap-3">
-                <button id="dupYesBtn" class="flex-1 bg-[#10A37F] hover:bg-[#0D8568] text-white font-semibold py-2.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="button" class="dup-close" onclick="closeDuplicateModal()" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="duplicateReportList" class="dup-list">
+            <!-- Will be populated by JavaScript -->
+        </div>
+        <div class="dup-foot">
+            <div class="flex gap-3">
+                <button id="dupYesBtn" class="flex-1 bg-[#10A37F] hover:bg-[#0D8568] text-white font-semibold py-3 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                     <i class="fas fa-check mr-2"></i>Yes, it's the same
                 </button>
-                <button id="dupNoBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="dupNoBtn" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                     <i class="fas fa-times mr-2"></i>No, different issue
                 </button>
             </div>
-            <p class="text-xs text-gray-400 mt-4 text-center">
+            <p class="dup-note">
                 <i class="fas fa-shield-alt mr-1"></i>Your verification helps prioritize real issues.
             </p>
         </div>
@@ -2108,16 +2283,15 @@ if (is_dir($barangays_dir)) {
         }
     }
 
-    // Render small evidence thumbnails for a nearby report card
-    function renderNearbyThumbnails(r) {
+    // Render a compact evidence thumbnail for a nearby report card
+    function renderNearbyThumbnail(r) {
         if (!r.images || !r.images.length) return '';
-        const thumbs = r.images.map(function(img) {
-            if (img.is_video) {
-                return `<video src="${img.image_path}" muted playsinline preload="metadata" class="w-16 h-14 object-cover rounded-lg border border-gray-100" onclick="event.stopPropagation()"></video>`;
-            }
-            return `<img src="${img.image_path}" alt="Evidence photo" class="w-16 h-14 object-cover rounded-lg border border-gray-100" onclick="event.stopPropagation()">`;
-        }).join('');
-        return `<div class="flex gap-2 mt-2">${thumbs}</div>`;
+        const first = r.images[0];
+        const media = first.is_video
+            ? `<video src="${first.image_path}" muted playsinline preload="metadata" class="dup-thumb"></video>`
+            : `<img src="${first.image_path}" alt="Evidence photo" class="dup-thumb" loading="lazy">`;
+        const count = r.images.length > 1 ? `<span class="dup-thumb-count">${r.images.length}</span>` : '';
+        return `<div class="dup-thumb-wrap">${media}${count}</div>`;
     }
 
     function showDuplicateModal(reports) {
@@ -2132,29 +2306,30 @@ if (is_dir($barangays_dir)) {
             const distance = r.distance_km ? (r.distance_km * 1000).toFixed(0) + 'm' : 'nearby';
             
             const div = document.createElement('div');
-            div.className = 'report-item border border-gray-200 rounded-xl p-3 hover:bg-gray-50 transition cursor-pointer' + (index === 0 ? ' selected' : '');
+            div.className = 'dup-card' + (index === 0 ? ' selected' : '');
             div.dataset.reportId = r.id;
             div.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div class="flex-1 min-w-0">
-                        <p class="font-semibold text-sm text-gray-800 truncate">${escapeHtml(r.title)}</p>
-                        <p class="text-xs text-gray-500">${escapeHtml(r.category_name)} • ${timeAgo}</p>
-                        <p class="text-xs text-gray-400 mt-1 line-clamp-2">${escapeHtml(r.description || 'No description provided')}</p>
+                <div class="dup-radio"></div>
+                <div class="dup-body">
+                    <div class="dup-title">
+                        <span class="truncate">${escapeHtml(r.title)}</span>
+                        <span class="dup-distance">${distance}</span>
                     </div>
-                    <span class="distance-badge flex-shrink-0 ml-2">${distance}</span>
+                    <div class="dup-meta">${escapeHtml(r.category_name)} • ${timeAgo}</div>
+                    <p class="dup-desc">${escapeHtml(r.description || 'No description provided')}</p>
+                    <div class="mt-1.5">
+                        <button class="dup-view view-details-btn" data-report-id="${r.id}">
+                            <i class="fas fa-eye mr-1"></i>View Details
+                        </button>
+                    </div>
                 </div>
-                ${renderNearbyThumbnails(r)}
-                <div class="mt-2 flex justify-end">
-                    <button class="text-xs text-[#10A37F] font-medium hover:underline view-details-btn" data-report-id="${r.id}">
-                        <i class="fas fa-eye mr-1"></i>View Details
-                    </button>
-                </div>
+                ${renderNearbyThumbnail(r)}
             `;
             
             // Click on the card itself selects it for support
             div.addEventListener('click', function(e) {
                 if (e.target.closest('.view-details-btn')) return;
-                duplicateReportList.querySelectorAll('.report-item').forEach(el => el.classList.remove('selected'));
+                duplicateReportList.querySelectorAll('.dup-card').forEach(el => el.classList.remove('selected'));
                 this.classList.add('selected');
                 duplicateReportId = parseInt(this.dataset.reportId, 10);
             });
@@ -2177,7 +2352,7 @@ if (is_dir($barangays_dir)) {
             duplicateReportList.appendChild(div);
         });
         
-        const first = duplicateReportList.querySelector('.report-item');
+        const first = duplicateReportList.querySelector('.dup-card');
         if (first) {
             duplicateReportId = parseInt(first.dataset.reportId, 10);
         }

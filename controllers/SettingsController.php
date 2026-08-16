@@ -81,11 +81,11 @@ class SettingsController {
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             if (in_array($ext, $allowed) && $file['size'] <= 5242880) {
-                $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/uploads/settings/';
+                $upload_dir = BASE_PATH . 'uploads/settings/';
                 if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
                 $old_logo = SettingsHelper::get('lgu_logo');
-                if ($old_logo && file_exists($_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/' . $old_logo)) {
-                    unlink($_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/' . $old_logo);
+                if ($old_logo && file_exists(BASE_PATH . $old_logo)) {
+                    unlink(BASE_PATH . $old_logo);
                 }
                 $new_filename = 'logo_' . time() . '.' . $ext;
                 $target_path = $upload_dir . $new_filename;
@@ -292,7 +292,7 @@ class SettingsController {
      * @return string
      */
     private function heroGalleryDir() {
-        $dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/uploads/settings/hero/';
+        $dir = BASE_PATH . 'uploads/settings/hero/';
         if (!is_dir($dir)) {
             @mkdir($dir, 0777, true);
         }
@@ -541,7 +541,7 @@ class SettingsController {
      * @return string
      */
     private function aboutGalleryDir() {
-        $dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/uploads/settings/about/';
+        $dir = BASE_PATH . 'uploads/settings/about/';
         if (!is_dir($dir)) {
             @mkdir($dir, 0777, true);
         }
@@ -999,7 +999,7 @@ class SettingsController {
     }
 
     // ================================================================
-    // 6. NOTIFICATION TEMPLATES + SMS GATEWAY SETTINGS (iProg Only)
+    // 6. NOTIFICATION TEMPLATES + SMS/EMAIL GATEWAY SETTINGS
     // ================================================================
     private function updateNotifications() {
         // ============================================
@@ -1019,7 +1019,48 @@ class SettingsController {
         }
 
         // ============================================
-        // 6b. SMS GATEWAY SETTINGS (iProg Only)
+        // 6b. EMAIL GATEWAY SETTINGS (Brevo or Mailgun)
+        // ============================================
+        $email_gateway = $_POST['email_gateway'] ?? 'brevo';
+        if (!in_array($email_gateway, ['brevo', 'mailgun'])) {
+            $email_gateway = 'brevo';
+        }
+
+        $email_settings = [
+            'enable_email_receipts' => isset($_POST['enable_email_receipts']) ? 1 : 0,
+            'email_gateway' => $email_gateway,
+            
+            // Brevo settings
+            'brevo_api_key' => trim($_POST['brevo_api_key'] ?? ''),
+            'brevo_sender_email' => InputSanitizer::sanitizeEmail($_POST['brevo_sender_email'] ?? ''),
+            'brevo_sender_name' => InputSanitizer::sanitizeString($_POST['brevo_sender_name'] ?? 'Sierra LGU', 120),
+            
+            // Mailgun settings
+            'mailgun_api_key' => trim($_POST['mailgun_api_key'] ?? ''),
+            'mailgun_domain' => trim($_POST['mailgun_domain'] ?? ''),
+            'mailgun_base_url' => trim($_POST['mailgun_base_url'] ?? 'https://api.mailgun.net'),
+            'mailgun_sender_email' => InputSanitizer::sanitizeEmail($_POST['mailgun_sender_email'] ?? ''),
+            'mailgun_sender_name' => InputSanitizer::sanitizeString($_POST['mailgun_sender_name'] ?? 'Sierra LGU', 120),
+        ];
+
+        // Validate sender emails if provided
+        if (!empty($email_settings['brevo_sender_email']) && !filter_var($email_settings['brevo_sender_email'], FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = "Please enter a valid Brevo sender email address.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=notifications");
+            exit();
+        }
+        if (!empty($email_settings['mailgun_sender_email']) && !filter_var($email_settings['mailgun_sender_email'], FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = "Please enter a valid Mailgun sender email address.";
+            header("Location: " . BASE_URL . "index.php?page=settings&tab=notifications");
+            exit();
+        }
+
+        foreach ($email_settings as $key => $value) {
+            SettingsHelper::set($key, $value);
+        }
+
+        // ============================================
+        // 6c. SMS GATEWAY SETTINGS (iProg Only)
         // ============================================
         $sms_settings = [
             'enable_sms_notifications' => isset($_POST['enable_sms_notifications']) ? 1 : 0,
@@ -1035,9 +1076,32 @@ class SettingsController {
 
         SettingsHelper::clearCache();
 
-        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated notification templates and SMS gateway settings", null, 'Settings');
-        $_SESSION['success'] = "Notification templates and SMS settings saved successfully!";
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated notification templates, email gateway ($email_gateway), and SMS gateway settings", null, 'Settings');
+        $_SESSION['success'] = "Notification templates and gateway settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=notifications");
+        exit();
+    }
+
+    // ================================================================
+    // 6d. REPORT SUBMISSION LIMITS (anti-spam)
+    // ================================================================
+    private function updateReporting() {
+        $enabled = isset($_POST['enable_report_limits']) ? 1 : 0;
+
+        $daily_limit = (int)($_POST['report_daily_limit'] ?? 5);
+        $daily_limit = max(0, min(100, $daily_limit)); // 0 = unlimited
+
+        $interval = (int)($_POST['report_min_interval_minutes'] ?? 10);
+        $interval = max(0, min(1440, $interval)); // 0 = no wait
+
+        SettingsHelper::set('enable_report_limits', $enabled);
+        SettingsHelper::set('report_daily_limit', $daily_limit);
+        SettingsHelper::set('report_min_interval_minutes', $interval);
+
+        SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated report submission limits (daily_limit=$daily_limit, interval=${interval}min, enabled=$enabled)", null, 'Settings');
+        $_SESSION['success'] = "Report submission limits saved successfully!";
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=reporting");
         exit();
     }
 
@@ -1856,6 +1920,111 @@ class SettingsController {
         }
         exit();
     }
+
+    // ================================================================
+    // 11b. SEND TEST EMAIL (AJAX endpoint - Brevo)
+    // ================================================================
+    public function sendTestEmail() {
+        // Ensure JSON response
+        header('Content-Type: application/json; charset=utf-8');
+
+        // CSRF validation
+        if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
+            echo json_encode(['success' => false, 'message' => 'Invalid security token.']);
+            exit();
+        }
+
+        $to_email = InputSanitizer::sanitizeEmail($_POST['to_email'] ?? '');
+        if (!filter_var($to_email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => 'Please enter a valid test email address.']);
+            exit();
+        }
+
+        // If the admin has entered credentials in the form, save them and test with them.
+        $gatewayOverride = null;
+        if (isset($_POST['brevo_api_key'])) {
+            $apiKey = trim($_POST['brevo_api_key']);
+
+            if ($apiKey === '') {
+                echo json_encode(['success' => false, 'message' => 'Please enter your Brevo API key before testing.']);
+                exit();
+            }
+
+            $senderEmail = InputSanitizer::sanitizeEmail($_POST['brevo_sender_email'] ?? '');
+            $senderName = InputSanitizer::sanitizeString($_POST['brevo_sender_name'] ?? 'Sierra LGU', 120);
+
+            if (!filter_var($senderEmail, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['success' => false, 'message' => 'Please enter a valid Brevo sender email address.']);
+                exit();
+            }
+
+            // Persist immediately
+            SettingsHelper::set('email_gateway', 'brevo');
+            SettingsHelper::set('brevo_api_key', $apiKey);
+            SettingsHelper::set('brevo_sender_email', $senderEmail);
+            SettingsHelper::set('brevo_sender_name', $senderName);
+            SettingsHelper::clearCache();
+
+            $gatewayOverride = [
+                'gateway' => 'brevo',
+                'api_key' => $apiKey,
+                'sender_email' => $senderEmail,
+                'sender_name' => $senderName,
+            ];
+        } else {
+            // Not a fresh test — use saved config
+            if (!SettingsHelper::isEmailEnabled()) {
+                echo json_encode(['success' => false, 'message' => 'Brevo email is not configured or is disabled. Enter your API key and sender email, then save.' , 'diagnostic' => SettingsHelper::getEmailGatewayStatus()]);
+                exit();
+            }
+        }
+
+        $system_name = SettingsHelper::get('system_name', 'Sierra');
+        $subject = "Test Email from $system_name";
+        $html = "
+        <html>
+        <head>
+            <style>
+                body { font-family: 'Manrope', Arial, sans-serif; color: #1a2e1a; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #10A37F; color: white; padding: 20px; text-align: center; border-radius: 12px 12px 0 0; }
+                .content { background: #f9fbfa; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px; }
+                .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h2 style='margin:0;'>$system_name</h2>
+                    <p style='margin:5px 0 0; opacity:0.9;'>Brevo Email Test</p>
+                </div>
+                <div class='content'>
+                    <h3 style='margin-top:0;'>Your Brevo email configuration is working!</h3>
+                    <p>This test email confirms that the $system_name system can send official report receipt emails through Brevo.</p>
+                </div>
+                <div class='footer'>
+                    <p>© " . date('Y') . " $system_name - LGU San Isidro</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+
+        $result = SettingsHelper::sendEmail($to_email, '', $subject, $html, $gatewayOverride);
+        $savedNote = $gatewayOverride ? ' Your credentials were saved.' : '';
+
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Test email sent successfully to ' . $to_email . '!' . $savedNote]);
+        } else {
+            $status = SettingsHelper::getEmailGatewayStatus();
+            echo json_encode([
+                'success' => false,
+                'message' => 'The test email failed. Verify your Brevo API key, and that your sender email is a verified sender in Brevo.' . $savedNote,
+                'diagnostic' => $status,
+            ]);
+        }
+        exit();
+    }
     
     // ================================================================
     // 12. GET BARANGAYS (AJAX endpoint)
@@ -1879,6 +2048,13 @@ class SettingsController {
 if (isset($_POST['action']) && $_POST['action'] === 'send_test_sms') {
     $controller = new SettingsController($db, $user_id);
     $controller->sendTestSMS();
+    exit();
+}
+
+// Check if this is a test email AJAX request (Brevo)
+if (isset($_POST['action']) && $_POST['action'] === 'send_test_email') {
+    $controller = new SettingsController($db, $user_id);
+    $controller->sendTestEmail();
     exit();
 }
 

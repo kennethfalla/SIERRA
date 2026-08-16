@@ -10,8 +10,8 @@
 // NOTE: `subtab` (not `tab`) holds the inner Citizens/Barangay/MENRO tab,
 // because `tab` is the settings tab itself.
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/PermissionHelper.php';
+require_once BASE_PATH . 'helpers/SettingsHelper.php';
+require_once BASE_PATH . 'helpers/PermissionHelper.php';
 
 $database = new Database();
 $db = $database->getConnection();

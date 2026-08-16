@@ -1,6 +1,6 @@
 <?php
 // ajax/get_user_profile.php - Fetch user details for profile modal
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
+require_once dirname(__DIR__) . '/config/config.php';
 requireRole('admin');
 
 header('Content-Type: application/json');

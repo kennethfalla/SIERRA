@@ -3,8 +3,8 @@
 // Fully responsive, matching my_reports/verify_reports design.
 // Statistics are hidden for citizens (read‑only users).
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SecurityHelper.php';
+require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/SecurityHelper.php';
 
 if(!isLoggedIn()) {
     header("Location: " . BASE_URL . "views/auth/login.php");
@@ -675,7 +675,7 @@ if ($date_to != '') $active_filters++;
 </head>
 <body>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
@@ -1605,16 +1605,28 @@ function updateFileInput() {
 
 function addPhotos(files) {
     for(var i = 0; i < files.length; i++) {
+        if(selectedPhotos.length >= MAX_PHOTOS) { 
+            alert('Maximum ' + MAX_PHOTOS + ' photos allowed'); 
+            break; 
+        }
         var file = files[i];
-        if(selectedPhotos.length >= MAX_PHOTOS) { alert('Maximum ' + MAX_PHOTOS + ' photos allowed'); break; }
-        if(file.type && file.type.startsWith('image/')) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                selectedPhotos.push({ data: e.target.result, file: file });
-                updatePhotoPreviews();
-                updateFileInput();
-            };
-            reader.readAsDataURL(file);
+        if(file && file.type && file.type.startsWith('image/')) {
+            // Use immediately-invoked function expression (IIFE) to capture correct file reference
+            (function(capturedFile, index) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    // Check again to prevent exceeding limit during async operations
+                    if(selectedPhotos.length < MAX_PHOTOS) {
+                        selectedPhotos.push({ data: e.target.result, file: capturedFile });
+                        updatePhotoPreviews();
+                        updateFileInput();
+                    }
+                };
+                reader.onerror = function() {
+                    console.error('Failed to read file:', capturedFile.name);
+                };
+                reader.readAsDataURL(capturedFile);
+            })(file, i);
         }
     }
 }
@@ -1655,16 +1667,29 @@ function updateEditFileInput() {
 function addEditPhotos(files) {
     var currentTotal = editCurrentImages.length + editSelectedPhotos.length;
     for(var i = 0; i < files.length; i++) {
+        if(currentTotal + editSelectedPhotos.length >= MAX_PHOTOS) { 
+            alert('Maximum ' + MAX_PHOTOS + ' photos allowed'); 
+            break; 
+        }
         var file = files[i];
-        if(currentTotal + editSelectedPhotos.length >= MAX_PHOTOS) { alert('Maximum ' + MAX_PHOTOS + ' photos allowed'); break; }
-        if(file.type && file.type.startsWith('image/')) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                editSelectedPhotos.push({ data: e.target.result, file: file });
-                updateEditPhotoPreviews();
-                updateEditFileInput();
-            };
-            reader.readAsDataURL(file);
+        if(file && file.type && file.type.startsWith('image/')) {
+            // Use immediately-invoked function expression (IIFE) to capture correct file reference
+            (function(capturedFile, index) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var total = editCurrentImages.length + editSelectedPhotos.length;
+                    // Check again to prevent exceeding limit during async operations
+                    if(total < MAX_PHOTOS) {
+                        editSelectedPhotos.push({ data: e.target.result, file: capturedFile });
+                        updateEditPhotoPreviews();
+                        updateEditFileInput();
+                    }
+                };
+                reader.onerror = function() {
+                    console.error('Failed to read file:', capturedFile.name);
+                };
+                reader.readAsDataURL(capturedFile);
+            })(file, i);
         }
     }
 }
