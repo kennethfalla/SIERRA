@@ -80,6 +80,9 @@ if (is_dir($barangays_dir)) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
@@ -89,6 +92,7 @@ if (is_dir($barangays_dir)) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -432,6 +436,13 @@ if (is_dir($barangays_dir)) {
             justify-content: center;
             padding: 0;
         }
+        
+        /* When map is in fullscreen, increase modal z-index */
+        .custom-map-container.fullscreen ~ * #duplicateModal,
+        body.map-fullscreen #duplicateModal {
+            z-index: 10000 !important;
+        }
+        
         #duplicateModal .modal-card {
             max-height: 88vh;
             overflow: hidden;
@@ -444,6 +455,12 @@ if (is_dir($barangays_dir)) {
             transform: translateY(100%);
             animation: dupSheetUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
+        
+        /* Fullscreen mode: slightly smaller modal for better map visibility */
+        body.map-fullscreen #duplicateModal .modal-card {
+            max-height: 75vh;
+        }
+        
         #duplicateModal .dup-handle {
             display: block;
             width: 44px;
@@ -495,6 +512,278 @@ if (is_dir($barangays_dir)) {
             color: #94a3b8;
             text-align: center;
             margin-top: 0.6rem;
+        }
+
+        /* ===== FULLSCREEN MAP BUTTON ===== */
+        #mapFullscreenBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            font-size: 18px;
+            color: #334155;
+        }
+        #mapFullscreenBtn:hover {
+            background: #f8fafc;
+            border-color: #10A37F;
+            color: #10A37F;
+            transform: scale(1.05);
+        }
+        #mapFullscreenBtn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Fullscreen map container */
+        .custom-map-container.fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+        }
+        .custom-map-container.fullscreen #map {
+            height: 100vh !important;
+            border-radius: 0 !important;
+        }
+        .custom-map-container.fullscreen #mapFullscreenBtn {
+            top: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Hide map tip in fullscreen */
+        .custom-map-container.fullscreen #mapTipTooltip {
+            bottom: 40px !important;
+        }
+        
+        /* Tablet responsive */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            #mapFullscreenBtn {
+                width: 42px;
+                height: 42px;
+                font-size: 18px;
+            }
+            .custom-map-container.fullscreen #mapFullscreenBtn {
+                width: 50px;
+                height: 50px;
+                font-size: 22px;
+                top: 18px;
+                right: 18px;
+            }
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            #mapFullscreenBtn {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+                top: 8px;
+                right: 8px;
+            }
+            .custom-map-container.fullscreen #mapFullscreenBtn {
+                top: 16px;
+                right: 16px;
+                width: 44px;
+                height: 44px;
+                font-size: 18px;
+            }
+        }
+        
+        /* Extra small mobile */
+        @media (max-width: 480px) {
+            #mapFullscreenBtn {
+                width: 34px;
+                height: 34px;
+                font-size: 14px;
+                top: 6px;
+                right: 6px;
+            }
+            .custom-map-container.fullscreen #mapFullscreenBtn {
+                top: 12px;
+                right: 12px;
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+        }
+
+        /* ===== NEARBY REPORT MARKERS ===== */
+        .nearby-marker-wrapper {
+            background: transparent !important;
+            border: none !important;
+        }
+        .nearby-marker-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border: 3px solid white;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            box-shadow: 0 3px 12px rgba(245, 158, 11, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: markerBounce 0.6s ease;
+        }
+        .nearby-marker-icon i {
+            transform: rotate(45deg);
+            color: white;
+            font-size: 18px;
+        }
+        
+        @keyframes markerBounce {
+            0%, 100% { transform: rotate(-45deg) translateY(0); }
+            50% { transform: rotate(-45deg) translateY(-10px); }
+        }
+        
+        /* Nearby report popup styling */
+        .nearby-report-popup .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 0;
+            overflow: hidden;
+        }
+        .nearby-report-popup .leaflet-popup-content {
+            margin: 0;
+            width: 280px !important;
+        }
+        .nearby-popup {
+            padding: 12px;
+        }
+        .nearby-popup-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .nearby-popup-header h4 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+            flex: 1;
+            line-height: 1.3;
+        }
+        .nearby-popup-distance {
+            background: #f59e0b;
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .nearby-popup-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .nearby-popup-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .nearby-popup-meta i {
+            font-size: 10px;
+        }
+        .nearby-popup-desc {
+            font-size: 12px;
+            color: #4b5563;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .nearby-popup-stats {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #10A37F;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .nearby-popup-stats i {
+            font-size: 10px;
+        }
+        .nearby-popup-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .nearby-popup-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .nearby-popup-btn:hover {
+            background: linear-gradient(135deg, #0D8568 0%, #0a6b52 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(16, 163, 127, 0.3);
+        }
+        .nearby-popup-btn:active {
+            transform: translateY(0);
+        }
+        .nearby-popup-btn i {
+            font-size: 11px;
+        }
+        
+        /* Mobile responsive for popup */
+        @media (max-width: 480px) {
+            .nearby-report-popup .leaflet-popup-content {
+                width: 260px !important;
+            }
+            .nearby-popup {
+                padding: 10px;
+            }
+            .nearby-popup-header h4 {
+                font-size: 13px;
+            }
+            .nearby-popup-distance {
+                font-size: 9px;
+                padding: 2px 6px;
+            }
+            .nearby-popup-btn {
+                padding: 7px 10px;
+                font-size: 11px;
+            }
         }
 
         /* Nearby report cards */
@@ -1226,8 +1515,13 @@ if (is_dir($barangays_dir)) {
                             </span>
                         </div>
 
-                        <div class="custom-map-container relative">
+                        <div class="custom-map-container relative" id="mapContainer">
                             <div id="map"></div>
+                            
+                            <!-- Fullscreen Button -->
+                            <button type="button" id="mapFullscreenBtn" onclick="toggleMapFullscreen()" title="Toggle Fullscreen">
+                                <i class="fas fa-expand" id="fullscreenIcon"></i>
+                            </button>
 
                             <!-- Map Smart Tip Tooltip -->
                             <div id="mapTipTooltip" class="map-tip-tooltip">
@@ -1702,6 +1996,61 @@ if (is_dir($barangays_dir)) {
         document.getElementById('mapTipTooltip').classList.remove('show');
         clearTimeout(mapTipTimer);
     }
+    
+    // ============================================================
+    // MAP FULLSCREEN TOGGLE
+    // ============================================================
+    window.toggleMapFullscreen = function() {
+        const mapContainer = document.getElementById('mapContainer');
+        const fullscreenIcon = document.getElementById('fullscreenIcon');
+        const isFullscreen = mapContainer.classList.contains('fullscreen');
+        
+        if (isFullscreen) {
+            // Exit fullscreen
+            mapContainer.classList.remove('fullscreen');
+            fullscreenIcon.className = 'fas fa-expand';
+            document.body.classList.remove('map-fullscreen');
+            document.body.style.overflow = ''; // Restore body scroll
+            
+            // Clear nearby markers when exiting fullscreen
+            clearNearbyMarkers();
+            
+            // Reset duplicate check flag
+            isDuplicateCheckDone = false;
+        } else {
+            // Enter fullscreen
+            mapContainer.classList.add('fullscreen');
+            fullscreenIcon.className = 'fas fa-compress';
+            document.body.classList.add('map-fullscreen');
+            document.body.style.overflow = 'hidden'; // Prevent body scroll
+            
+            // Close map tip if open
+            closeMapTip();
+            
+            // Close duplicate modal if open
+            closeDuplicateModal();
+            
+            // Show instruction toast
+            showToast('Click on the map to pin a location. Nearby reports will appear as markers.', 'info');
+        }
+        
+        // Invalidate map size to fix rendering issues
+        if (typeof map !== 'undefined' && map) {
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
+        }
+    };
+    
+    // ESC key to exit fullscreen
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const mapContainer = document.getElementById('mapContainer');
+            if (mapContainer && mapContainer.classList.contains('fullscreen')) {
+                toggleMapFullscreen();
+            }
+        }
+    });
 
     // ============================================================
     // CATEGORY SUGGESTIONS
@@ -2264,9 +2613,14 @@ if (is_dir($barangays_dir)) {
     // ============================================================
     // DUPLICATE DETECTION (UPDATED with category filter)
     // ============================================================
+    let nearbyMarkers = [];
+    
     async function checkNearbyReports(lat, lng) {
         if (isDuplicateCheckDone) return;
         const categoryId = document.getElementById('category_id').value || 0;
+        const mapContainer = document.getElementById('mapContainer');
+        const isFullscreen = mapContainer && mapContainer.classList.contains('fullscreen');
+        
         try {
             const url = '<?php echo BASE_URL; ?>controllers/ReportController.php?action=check_nearby_reports&lat=' + lat + '&lng=' + lng + '&category_id=' + categoryId;
             const response = await fetch(url, {
@@ -2275,13 +2629,133 @@ if (is_dir($barangays_dir)) {
             const data = await response.json();
             
             if (data.success && data.reports && data.reports.length > 0) {
-                showDuplicateModal(data.reports);
-                isDuplicateCheckDone = true;
+                // If in fullscreen mode, show markers on map
+                if (isFullscreen) {
+                    showNearbyMarkersOnMap(data.reports, lat, lng);
+                    isDuplicateCheckDone = true;
+                } else {
+                    // Normal mode: show modal
+                    showDuplicateModal(data.reports);
+                    isDuplicateCheckDone = true;
+                }
             }
         } catch (error) {
             console.error('Duplicate check error:', error);
         }
     }
+    
+    // Clear nearby markers from map
+    function clearNearbyMarkers() {
+        nearbyMarkers.forEach(function(marker) {
+            if (map.hasLayer(marker)) {
+                map.removeLayer(marker);
+            }
+        });
+        nearbyMarkers = [];
+    }
+    
+    // Show nearby reports as markers on the fullscreen map
+    function showNearbyMarkersOnMap(reports, selectedLat, selectedLng) {
+        // Clear any existing nearby markers
+        clearNearbyMarkers();
+        
+        // Create a custom icon for nearby reports
+        const nearbyIcon = L.divIcon({
+            html: '<div class="nearby-marker-icon"><i class="fas fa-exclamation-triangle"></i></div>',
+            className: 'nearby-marker-wrapper',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+        });
+        
+        // Add marker for each nearby report
+        reports.forEach(function(report) {
+            const marker = L.marker([report.latitude, report.longitude], {
+                icon: nearbyIcon,
+                zIndexOffset: 100
+            });
+            
+            // Create popup with report info
+            const distance = report.distance_km ? (report.distance_km * 1000).toFixed(0) + 'm away' : 'nearby';
+            const timeAgo = timeSince(new Date(report.created_at));
+            const verifications = report.verification_count || 0;
+            
+            const popupContent = `
+                <div class="nearby-popup">
+                    <div class="nearby-popup-header">
+                        <h4>${escapeHtml(report.title)}</h4>
+                        <span class="nearby-popup-distance">${distance}</span>
+                    </div>
+                    <div class="nearby-popup-meta">
+                        <span><i class="fas fa-layer-group"></i> ${escapeHtml(report.category_name)}</span>
+                        <span><i class="fas fa-clock"></i> ${timeAgo}</span>
+                    </div>
+                    <p class="nearby-popup-desc">${escapeHtml(report.description || 'No description')}</p>
+                    <div class="nearby-popup-stats">
+                        <span><i class="fas fa-thumbs-up"></i> ${verifications} support${verifications !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="nearby-popup-actions">
+                        <button class="nearby-popup-btn" onclick="supportReportFromMap(${report.id})">
+                            <i class="fas fa-thumbs-up"></i> Support This Report
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent, {
+                maxWidth: 300,
+                className: 'nearby-report-popup'
+            });
+            
+            marker.addTo(map);
+            nearbyMarkers.push(marker);
+        });
+        
+        // Show notification about nearby reports
+        showToast(`Found ${reports.length} nearby report${reports.length !== 1 ? 's' : ''}! Check the map markers.`, 'info');
+        
+        // Adjust map view to show all markers
+        if (reports.length > 0) {
+            const allLatLngs = reports.map(r => [r.latitude, r.longitude]);
+            allLatLngs.push([selectedLat, selectedLng]);
+            const bounds = L.latLngBounds(allLatLngs);
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+        }
+    }
+    
+    // Support report directly from map popup
+    window.supportReportFromMap = function(reportId) {
+        if (!reportId) return;
+        
+        if (!confirm('Do you want to support this existing report instead of creating a new one?')) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('action', 'upvote_report');
+        formData.append('report_id', reportId);
+        formData.append('csrf_token', getCsrfToken());
+        
+        fetch('<?php echo BASE_URL; ?>controllers/ReportController.php', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message || 'Thank you for supporting this report!', 'success');
+                setTimeout(() => {
+                    window.location.href = '<?php echo BASE_URL; ?>index.php?page=my-reports';
+                }, 1000);
+            } else {
+                showToast(data.message || 'Failed to support report.', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error: ' + error.message, 'error');
+        });
+    };
 
     // Render a compact evidence thumbnail for a nearby report card
     function renderNearbyThumbnail(r) {
@@ -3149,10 +3623,7 @@ if (is_dir($barangays_dir)) {
 
     function initMap() {
         map = L.map('map').setView([MAP_DEFAULT_LAT, MAP_DEFAULT_LNG], MAP_DEFAULT_ZOOM);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; CartoDB',
-            subdomains: 'abcd', maxZoom: 20
-        }).addTo(map);
+        MapLayers.addControl(map);
         addBoundaryToMap();
         map.on('click', function(e) { 
             setLocation(e.latlng.lat, e.latlng.lng, true); 

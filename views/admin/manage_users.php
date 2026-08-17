@@ -252,6 +252,9 @@ function getRoleBadge($user_type, $job_title = '') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Manage Users - Sierra</title>

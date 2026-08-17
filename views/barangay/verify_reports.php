@@ -175,6 +175,9 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Manage Reports - Sierra</title>

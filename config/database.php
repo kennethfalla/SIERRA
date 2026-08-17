@@ -246,6 +246,10 @@ class Database {
                 $this->conn->exec("ALTER TABLE announcements ADD COLUMN target_admin_id INT(11) DEFAULT NULL COMMENT 'Specific barangay admin targeted by internal_direct' AFTER barangay_id");
                 error_log("[Database] Added 'target_admin_id' column to announcements table.");
             }
+            if (!$this->columnExists('announcements', 'expires_at')) {
+                $this->conn->exec("ALTER TABLE announcements ADD COLUMN expires_at DATETIME DEFAULT NULL COMMENT 'When this announcement stops showing (auto-archived by the archiving job)' AFTER archived_at");
+                error_log("[Database] Added 'expires_at' column to announcements table.");
+            }
             // Backfill legacy rows: old "Public" announcements map to global_public;
             // barangay-scoped ones keep localized_public.
             if ($this->columnExists('announcements', 'broadcast_type')) {
@@ -280,6 +284,42 @@ class Database {
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
                 ");
                 error_log("[Database] Created 'rate_lockouts' table.");
+            }
+
+            // ============================================
+            // 10. CHECK: notifications table (in-app notification bell)
+            // ============================================
+            if (!$this->tableExists('notifications')) {
+                $this->conn->exec("
+                    CREATE TABLE IF NOT EXISTS notifications (
+                        id INT(11) NOT NULL AUTO_INCREMENT,
+                        user_id INT(11) NOT NULL,
+                        report_id INT(11) DEFAULT NULL,
+                        title VARCHAR(200) NOT NULL,
+                        message TEXT NOT NULL,
+                        type VARCHAR(50) DEFAULT 'info',
+                        icon VARCHAR(50) DEFAULT 'fa-bell',
+                        color VARCHAR(20) DEFAULT '#10A37F',
+                        link VARCHAR(255) DEFAULT '',
+                        is_read TINYINT(1) NOT NULL DEFAULT 0,
+                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        KEY idx_notif_user (user_id, is_read, created_at),
+                        KEY idx_notif_report (report_id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+                ");
+                error_log("[Database] Created 'notifications' table.");
+            } else {
+                // Legacy table from database.sql may be missing the richer columns.
+                if (!$this->columnExists('notifications', 'icon')) {
+                    $this->conn->exec("ALTER TABLE notifications ADD COLUMN icon VARCHAR(50) DEFAULT 'fa-bell' AFTER type");
+                }
+                if (!$this->columnExists('notifications', 'color')) {
+                    $this->conn->exec("ALTER TABLE notifications ADD COLUMN color VARCHAR(20) DEFAULT '#10A37F' AFTER icon");
+                }
+                if (!$this->columnExists('notifications', 'link')) {
+                    $this->conn->exec("ALTER TABLE notifications ADD COLUMN link VARCHAR(255) DEFAULT '' AFTER color");
+                }
             }
 
             return true;

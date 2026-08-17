@@ -287,6 +287,7 @@ class SettingsHelper {
             // STAFF ACCOUNT CREATION TEMPLATE
             // ========================================
             'template_staff_account_created' => 'Sierra LGU: Your {role} account is ready! Login: {login_url} Username: {email} Password: {temp_password} (Change on first login)',
+            'template_account_created' => 'Welcome to {system_name}! Your account has been created successfully. You can now login with your registered email or mobile number.',
 
             // ========================================
             // SMS GATEWAY SETTINGS (iProg Only)
@@ -447,6 +448,7 @@ class SettingsHelper {
             'template_resolved' => self::$settings['template_resolved'] ?? '',
             'template_escalated' => self::$settings['template_escalated'] ?? '',
             'template_staff_account_created' => self::$settings['template_staff_account_created'] ?? '',
+            'template_account_created' => self::$settings['template_account_created'] ?? '',
         ];
     }
 
@@ -462,6 +464,7 @@ class SettingsHelper {
             'template_resolved' => 'Your report #{report_id} has been resolved. Thank you for helping keep San Isidro clean!',
             'template_escalated' => 'Your report #{report_id} has been escalated to MENRO. They are now handling your concern.',
             'template_staff_account_created' => 'Sierra LGU: Your {role} account is ready! Login: {login_url} Username: {email} Password: {temp_password} (Change on first login)',
+            'template_account_created' => 'Welcome to {system_name}! Your account has been created successfully. You can now login with your registered email or mobile number.',
         ];
 
         $value = self::get($key);

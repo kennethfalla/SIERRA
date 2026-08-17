@@ -266,6 +266,19 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 <?php endif; ?>
             </a>
             
+            <!-- Notifications -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium">Notifications</span>
+                <?php if($current_page == 'notifications'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
             <!-- Submit Report -->
             <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'submit-report' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -322,6 +335,19 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 <?php endif; ?>
             </a>
             
+            <!-- Notifications -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium">Notifications</span>
+                <?php if($current_page == 'notifications'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
             <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'verify-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'verify-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
@@ -359,6 +385,19 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 </div>
                 <span class="ml-3 text-sm font-medium">Announcements</span>
                 <?php if($current_page == 'announcements'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
+            <!-- Notifications -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium">Notifications</span>
+                <?php if($current_page == 'notifications'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
@@ -490,6 +529,13 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
     #showSidebarBtn {
         display: flex !important;
         z-index: 51;
+    }
+    
+    /* Hide the burger while the sidebar overlay is open (mobile only) */
+    @media (max-width: 1023px) {
+        body.sidebar-open #showSidebarBtn {
+            display: none !important;
+        }
     }
     
     /* Desktop: sidebar always visible */
@@ -641,4 +687,183 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
             });
         }
     });
+</script>
+
+<!-- ===== GLOBAL LIVE REFRESH (Messenger-style silent sync) ===== -->
+<script>
+(function () {
+    'use strict';
+    var LIVE_URL = '<?php echo BASE_URL; ?>controllers/LiveSyncController.php';
+    var POLL_MS = 10000;          // check for updates every 10 seconds
+    var AUTO_RELOAD_MS = 6000;    // auto-refresh delay once a new update is found
+    var IDLE_WINDOW_MS = 4000;    // cancel auto-refresh if the user is active
+
+    var baselineVersion = null;
+    var baselineSeq = null;
+    var lastUnread = -1;
+    var pillActive = false;
+    var pillDismissed = false;
+    var autoReloadTimer = null;
+    var countdownTimer = null;
+    var pageVisible = true;
+    var lastActivity = Date.now();
+    var polling = false;
+
+    function markActivity() { lastActivity = Date.now(); }
+
+    function timeAgo(ts) {
+        var d = new Date(String(ts).replace(/-/g, '/').replace(/\.\d+/, ''));
+        if (isNaN(d.getTime())) return '';
+        var s = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (s < 60) return 'just now';
+        var m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
+        var h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
+        var dd = Math.floor(h / 24); return dd + 'd ago';
+    }
+
+    function updateBadge(unread) {
+        var badge = document.getElementById('notificationBadge');
+        if (unread > 0) {
+            if (!badge) {
+                var bell = document.querySelector('.notification-bell');
+                if (!bell) return;
+                badge = document.createElement('span');
+                badge.id = 'notificationBadge';
+                badge.className = 'notification-badge';
+                bell.appendChild(badge);
+            }
+            badge.textContent = unread > 9 ? '9+' : unread;
+            badge.style.display = '';
+        } else if (badge) {
+            badge.style.display = 'none';
+        }
+    }
+
+    function hidePill() {
+        clearTimeout(autoReloadTimer);
+        clearInterval(countdownTimer);
+        var p = document.getElementById('liveSyncPill');
+        if (p) p.remove();
+        pillActive = false;
+    }
+
+    function showPill() {
+        if (pillActive || pillDismissed) return;
+        pillActive = true;
+
+        var pill = document.createElement('div');
+        pill.id = 'liveSyncPill';
+        pill.style.cssText = 'position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;align-items:center;gap:10px;background:#ffffff;border:1px solid #10A37F;box-shadow:0 8px 24px rgba(16,163,127,.25);border-radius:12px;padding:10px 14px;font-family:inherit;font-size:13px;color:#111827;';
+
+        var icon = document.createElement('i');
+        icon.className = 'fas fa-bolt';
+        icon.style.color = '#10A37F';
+
+        var label = document.createElement('span');
+        label.id = 'liveSyncPillLabel';
+        label.textContent = 'New update';
+
+        var refreshBtn = document.createElement('button');
+        refreshBtn.textContent = 'Refresh now';
+        refreshBtn.style.cssText = 'border:none;background:#10A37F;color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;';
+        refreshBtn.addEventListener('click', function () { window.location.reload(); });
+
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = '\u00d7';
+        closeBtn.style.cssText = 'border:none;background:transparent;color:#9CA3AF;font-size:18px;cursor:pointer;padding:0 2px;';
+        closeBtn.addEventListener('click', function () { pillDismissed = true; hidePill(); });
+
+        pill.appendChild(icon);
+        pill.appendChild(label);
+        pill.appendChild(refreshBtn);
+        pill.appendChild(closeBtn);
+        document.body.appendChild(pill);
+
+        var remaining = Math.ceil(AUTO_RELOAD_MS / 1000);
+        label.textContent = 'New update \u00b7 refreshing in ' + remaining + 's';
+        countdownTimer = setInterval(function () {
+            remaining -= 1;
+            if (remaining < 0) remaining = 0;
+            label.textContent = 'New update \u00b7 refreshing in ' + remaining + 's';
+        }, 1000);
+
+        autoReloadTimer = setTimeout(function () {
+            if (!pageVisible) { hidePill(); return; }
+            if (Date.now() - lastActivity < IDLE_WINDOW_MS) { hidePill(); showPill(); return; }
+            var active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable)) { hidePill(); return; }
+            window.location.reload();
+        }, AUTO_RELOAD_MS);
+    }
+
+    function showToast(latest) {
+        if (!latest || !latest.title) return;
+        var toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;bottom:18px;left:18px;z-index:9999;max-width:300px;background:#ffffff;border-left:4px solid #10A37F;box-shadow:0 8px 24px rgba(0,0,0,.15);border-radius:10px;padding:12px 14px;font-family:inherit;cursor:pointer;';
+        var t = document.createElement('div');
+        t.style.cssText = 'font-weight:600;font-size:13px;color:#111827;margin-bottom:2px;';
+        t.textContent = latest.title;
+        var m = document.createElement('div');
+        m.style.cssText = 'font-size:12px;color:#6B7280;line-height:1.35;';
+        m.textContent = latest.message;
+        var meta = document.createElement('div');
+        meta.style.cssText = 'font-size:11px;color:#9CA3AF;margin-top:6px;';
+        meta.textContent = timeAgo(latest.created_at);
+        toast.appendChild(t);
+        toast.appendChild(m);
+        toast.appendChild(meta);
+        if (latest.link) {
+            toast.addEventListener('click', function () { window.location.href = latest.link; });
+        }
+        document.body.appendChild(toast);
+        setTimeout(function () { if (toast.parentNode) toast.remove(); }, 5000);
+    }
+
+    function tick() {
+        if (!pageVisible || polling) return;
+        polling = true;
+        fetch(LIVE_URL, { method: 'GET', credentials: 'same-origin', cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || data.success !== true) return;
+                var unread = parseInt(data.unread, 10) || 0;
+                updateBadge(unread);
+                if (baselineVersion === null) {
+                    baselineVersion = data.data_version;
+                    baselineSeq = data.notif_seq;
+                    lastUnread = unread;
+                    return;
+                }
+                if (unread > lastUnread && data.latest) {
+                    showToast(data.latest);
+                }
+                lastUnread = unread;
+                var changed = (data.data_version && baselineVersion && data.data_version !== baselineVersion) ||
+                              (typeof data.notif_seq === 'number' && typeof baselineSeq === 'number' && data.notif_seq !== baselineSeq);
+                if (changed) {
+                    baselineVersion = data.data_version;
+                    baselineSeq = data.notif_seq;
+                    showPill();
+                }
+            })
+            .catch(function () {})
+            .then(function () { polling = false; });
+    }
+
+    ['click', 'keydown', 'scroll', 'wheel', 'touchstart'].forEach(function (ev) {
+        window.addEventListener(ev, markActivity, { passive: true });
+    });
+
+    document.addEventListener('visibilitychange', function () {
+        pageVisible = !document.hidden;
+        if (pageVisible) tick();
+    });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { setTimeout(tick, 2500); });
+    } else {
+        setTimeout(tick, 2500);
+    }
+    setInterval(tick, POLL_MS);
+})();
 </script>

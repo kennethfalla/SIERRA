@@ -146,6 +146,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Create Account - <?php echo htmlspecialchars($system_name); ?></title>
@@ -799,6 +802,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                     <span class="text-xs mt-1 flex items-center gap-1 text-gray-400 hidden" id="emailChecking"><i class="fas fa-spinner fa-spin"></i> Checking email...</span>
                                     <span class="text-red-500 text-xs mt-1 hidden" id="emailError"></span>
                                     <span class="text-[#10A37F] text-xs mt-1 hidden" id="emailSuccess"><i class="fas fa-check-circle mr-0.5"></i>Email looks good</span>
+                                    <span class="text-xs mt-1 flex items-center gap-1 text-gray-400 hidden" id="emailProvider"><i class="fas fa-at mr-0.5"></i>Provider: <span id="emailProviderName"></span></span>
                                 </div>
                             </div>
                             <p class="text-[10px] text-gray-400 mt-[-8px] ml-2 mb-2">Enter 11-digit number starting with 09 (e.g., 09123456789)</p>
@@ -956,12 +960,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                             </div>
                             
                             <!-- Terms -->
-                            <div class="flex items-start gap-2 mt-6">
-                                <input type="checkbox" id="terms" required class="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10A37F] focus:ring-[#10A37F]">
-                                <label for="terms" class="text-xs text-gray-600 leading-relaxed">
-                                    I agree to the <a href="#" class="text-[#10A37F] hover:underline font-medium">Terms of Service</a> and 
-                                    <a href="#" class="text-[#10A37F] hover:underline font-medium">Privacy Policy</a>.
-                                </label>
+                            <div class="mt-6" id="termsWrapper">
+                                <div class="flex items-start gap-2">
+                                    <input type="checkbox" id="terms" required class="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10A37F] focus:ring-[#10A37F]">
+                                    <label for="terms" class="text-xs text-gray-600 leading-relaxed">
+                                        I agree to the <a href="javascript:void(0)" onclick="openTermsModal()" class="text-[#10A37F] hover:underline font-medium">Terms of Service</a> and 
+                                        <a href="javascript:void(0)" onclick="openPrivacyModal()" class="text-[#10A37F] hover:underline font-medium">Privacy Policy</a>.
+                                    </label>
+                                </div>
+                                <p class="text-red-500 text-xs mt-1.5 hidden items-center gap-1" id="termsError"><i class="fas fa-exclamation-circle mr-0.5"></i>Please agree to the Terms of Service and Privacy Policy to continue.</p>
                             </div>
                             
                             <!-- Next Button -->
@@ -1049,16 +1056,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                     <div>
                                         <p class="text-sm font-semibold text-gray-800">Registration Complete</p>
                                         <p class="text-xs text-gray-500">Your account has been successfully created.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-yellow-50 rounded-xl p-4 mb-6 text-left border border-yellow-200">
-                                <div class="flex items-start gap-3">
-                                    <i class="fas fa-info-circle text-yellow-600 mt-0.5"></i>
-                                    <div>
-                                        <p class="text-sm font-semibold text-yellow-800">Demo Mode</p>
-                                        <p class="text-xs text-yellow-700">Your account is automatically verified. In production, you will need to verify your mobile number.</p>
                                     </div>
                                 </div>
                             </div>
@@ -1421,7 +1418,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         }
         
         if (!document.getElementById('terms').checked) {
-            alert('Please agree to the Terms of Service and Privacy Policy.');
+            document.getElementById('termsError').classList.remove('hidden');
+            document.getElementById('termsError').classList.add('flex');
+            document.getElementById('termsWrapper').scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
         
@@ -1933,6 +1932,104 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     let emailCheckController = null;
     let emailCheckedValue = null;   // last value we successfully validated
 
+    // ============================================
+    // REAL-TIME EMAIL PROVIDER DETECTION
+    // Shows Gmail / Yahoo / Outlook etc. (or the
+    // custom domain) the moment the user types it.
+    // ============================================
+    const PROVIDER_MAP = {
+        'gmail.com': 'Gmail',
+        'googlemail.com': 'Gmail',
+        'yahoo.com': 'Yahoo',
+        'yahoo.com.ph': 'Yahoo',
+        'ymail.com': 'Yahoo',
+        'rocketmail.com': 'Yahoo',
+        'outlook.com': 'Outlook',
+        'hotmail.com': 'Hotmail',
+        'live.com': 'Outlook',
+        'msn.com': 'Outlook',
+        'icloud.com': 'iCloud',
+        'me.com': 'iCloud',
+        'mac.com': 'iCloud',
+        'aol.com': 'AOL',
+        'protonmail.com': 'Proton Mail',
+        'proton.me': 'Proton Mail'
+    };
+
+    let domainCheckTimer = null;
+    let domainCheckController = null;
+    let domainCheckedValue = null;  // last domain we got a DNS result for
+
+    function checkDomainLive(email) {
+        const match = email.match(/^[^@\s]+@([^\s@]+)$/);
+        if (!match || !match[1].includes('.')) return;
+        const domain = match[1].toLowerCase().replace(/\.$/, '');
+
+        if (domain === domainCheckedValue) return;
+
+        if (domainCheckController) domainCheckController.abort();
+        domainCheckController = new AbortController();
+
+        const providerEl = document.getElementById('emailProvider');
+        const nameEl = document.getElementById('emailProviderName');
+
+        providerEl.className = 'text-xs mt-1 flex items-center gap-1 text-gray-400';
+        nameEl.textContent = PROVIDER_MAP[domain] || domain;
+        providerEl.querySelector('i').className = 'fas fa-at mr-0.5';
+
+        const formData = new FormData();
+        formData.append('action', 'check_domain');
+        formData.append('email', email);
+
+        fetch('<?php echo BASE_URL; ?>controllers/AuthController.php', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            signal: domainCheckController.signal
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Ignore stale responses if the field changed since the request went out
+            const current = document.getElementById('email').value.trim().toLowerCase();
+            const at = current.lastIndexOf('@');
+            const currentDomain = at !== -1 ? current.substring(at + 1).replace(/\.$/, '') : '';
+            if (currentDomain !== data.domain) return;
+
+            domainCheckedValue = data.domain;
+            nameEl.textContent = PROVIDER_MAP[data.domain] || data.domain;
+            const icon = providerEl.querySelector('i');
+            if (data.valid) {
+                icon.className = 'fas fa-check-circle mr-0.5';
+                providerEl.className = 'text-xs mt-1 flex items-center gap-1 text-[#10A37F]';
+            } else {
+                icon.className = 'fas fa-exclamation-circle mr-0.5';
+                providerEl.className = 'text-xs mt-1 flex items-center gap-1 text-red-500';
+            }
+        })
+        .catch(error => {
+            if (error.name === 'AbortError') return;
+        });
+    }
+
+    function updateEmailProvider(value) {
+        const providerEl = document.getElementById('emailProvider');
+        const nameEl = document.getElementById('emailProviderName');
+        const match = value.match(/^[^@\s]+@([^\s@]+)$/);
+        if (!match || !match[1].includes('.')) {
+            providerEl.classList.add('hidden');
+            domainCheckedValue = null;
+            return;
+        }
+        const domain = match[1].toLowerCase().replace(/\.$/, '');
+        nameEl.textContent = PROVIDER_MAP[domain] || domain;
+        providerEl.className = 'text-xs mt-1 flex items-center gap-1 text-gray-400';
+        providerEl.querySelector('i').className = 'fas fa-at mr-0.5';
+        providerEl.classList.remove('hidden');
+
+        clearTimeout(domainCheckTimer);
+        domainCheckTimer = setTimeout(() => checkDomainLive(value), 500);
+    }
+
     function resetEmailFeedback() {
         document.getElementById('emailChecking').classList.add('hidden');
         document.getElementById('emailError').classList.add('hidden');
@@ -2023,6 +2120,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         const email = e.target.value.trim();
         resetEmailFeedback();
         clearTimeout(emailCheckTimer);
+        updateEmailProvider(email);
         if (email.length === 0) return;
         // Debounce while the user is still typing so we're not firing a
         // DNS lookup on every keystroke.
@@ -2053,6 +2151,16 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     document.querySelectorAll('.input-field').forEach(input => {
         if (input.value) input.dispatchEvent(new Event('input'));
     });
+
+    // ============================================
+    // TERMS ERROR - clear once checked
+    // ============================================
+    document.getElementById('terms').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('termsError').classList.add('hidden');
+            document.getElementById('termsError').classList.remove('flex');
+        }
+    });
     
     // ============================================
     // KEYBOARD SHORTCUTS
@@ -2067,6 +2175,203 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             }
         }
     });
+
+    // ============================================
+    // TERMS OF SERVICE MODAL
+    // ============================================
+    function openTermsModal() {
+        const modal = document.getElementById('termsModal');
+        modal.style.display = 'flex';
+        modal.querySelector('.terms-content').scrollTop = 0;
+        document.body.style.overflow = 'hidden';
+    }
+    function closeTermsModal() {
+        document.getElementById('termsModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    function agreeTerms() {
+        document.getElementById('terms').checked = true;
+        closeTermsModal();
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('termsModal').style.display === 'flex') {
+            closeTermsModal();
+        }
+    });
+
+    // ============================================
+    // PRIVACY POLICY MODAL
+    // ============================================
+    function openPrivacyModal() {
+        const modal = document.getElementById('privacyModal');
+        modal.style.display = 'flex';
+        modal.querySelector('.privacy-content').scrollTop = 0;
+        document.body.style.overflow = 'hidden';
+    }
+    function closePrivacyModal() {
+        document.getElementById('privacyModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    function agreePrivacy() {
+        document.getElementById('terms').checked = true;
+        closePrivacyModal();
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('privacyModal').style.display === 'flex') {
+            closePrivacyModal();
+        }
+    });
     </script>
+
+    <!-- ============================================ -->
+    <!-- TERMS OF SERVICE MODAL -->
+    <!-- ============================================ -->
+    <div id="termsModal" class="fixed inset-0 z-[9999] items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-black/50" onclick="closeTermsModal()"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800">Terms of Service</h3>
+                <button type="button" onclick="closeTermsModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="terms-content px-6 py-5 overflow-y-auto text-sm text-gray-600 leading-relaxed space-y-4">
+                <p>Welcome to SIERRA (Web-Based Environmental Reporting Application). By registering an account and using this platform, you agree to comply with and be bound by the following Terms of Service. If you do not agree to these terms, please do not use the application.</p>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">1. Description of Service</h4>
+                    <p>SIERRA is a civic technology platform designed to facilitate the reporting, tracking, and management of environmental hazards within the Municipality of San Isidro. The system allows users to submit geotagged reports and photographic evidence to the relevant Barangay and the Municipal Environment and Natural Resources Office (MENRO) for appropriate action.</p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">2. User Accounts and Security</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>Eligibility:</strong> You must be at least 18 years old to register. The platform is open to both residents and non-residents of San Isidro.</li>
+                        <li><strong>Verification:</strong> Upon registration, you are required to verify your identity via a One-Time Password (OTP) sent to your registered mobile number.</li>
+                        <li><strong>Accountability:</strong> You are entirely responsible for maintaining the confidentiality of your login credentials. You agree to notify the administrators immediately of any unauthorized use of your account.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">3. Acceptable Use and User Conduct</h4>
+                    <p>By using SIERRA, you agree that you will NOT:</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Submit false, misleading, or malicious environmental reports.</li>
+                        <li>Upload photos or content that are unlawful, defamatory, obscene, or completely unrelated to environmental hazards.</li>
+                        <li>Attempt to bypass system security, manipulate GPS coordinates (location spoofing), or disrupt the normal operations of the platform.</li>
+                        <li>Use the application for any commercial or non-civic purposes.</li>
+                    </ul>
+                    <p class="mt-2">The administrators reserve the right to suspend or permanently ban accounts found to be submitting spam, fraudulent reports, or violating any of these terms.</p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">4. Content Ownership and Licensing</h4>
+                    <p>By uploading photographic evidence and submitting text descriptions to SIERRA, you grant the Municipality of San Isidro, the respective Barangays, and MENRO a perpetual, non-exclusive, royalty-free license to use, reproduce, and distribute the content for the purpose of environmental monitoring, investigation, analytics, and public records.</p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">5. Limitation of Liability</h4>
+                    <p>The SIERRA platform is provided "as is." While the system ensures that reports are routed to the proper local government authorities, the developers and the Municipality of San Isidro do not guarantee immediate physical resolution of every submitted report. The system is not a substitute for emergency services (such as 911 or the local fire department) in the event of immediate threats to life or property.</p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">6. Governing Law</h4>
+                    <p>These Terms shall be governed by and construed in accordance with the laws of the Republic of the Philippines.</p>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-gray-200 flex items-center gap-3">
+                <button type="button" onclick="agreeTerms()" class="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:scale-[0.98]" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
+                    <i class="fas fa-check mr-1"></i> I Agree
+                </button>
+                <button type="button" onclick="closeTermsModal()" class="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- PRIVACY POLICY MODAL -->
+    <!-- ============================================ -->
+    <div id="privacyModal" class="fixed inset-0 z-[9999] items-center justify-center p-4" style="display:none;">
+        <div class="absolute inset-0 bg-black/50" onclick="closePrivacyModal()"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-800">Privacy Policy</h3>
+                <button type="button" onclick="closePrivacyModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="privacy-content px-6 py-5 overflow-y-auto text-sm text-gray-600 leading-relaxed space-y-4">
+                <p><strong>Effective Date:</strong> [Insert Date]</p>
+                <p>Your privacy is critically important to us. This Privacy Policy outlines how the SIERRA Platform collects, uses, protects, and shares your personal information in strict compliance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">1. Information We Collect</h4>
+                    <p>To provide a secure and functional reporting environment, we collect the following data:</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>Personal Identification Data:</strong> Full name, email address, and mobile number (collected during registration).</li>
+                        <li><strong>Geospatial Data:</strong> Exact GPS coordinates (latitude and longitude) captured via your device when submitting an environmental report.</li>
+                        <li><strong>Multimedia Data:</strong> Photographic evidence uploaded to support your environmental report.</li>
+                        <li><strong>System Data:</strong> IP addresses, browser types, and timestamp logs for audit and security purposes.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">2. How We Use Your Information</h4>
+                    <p>We use your data exclusively for civic and administrative purposes, specifically to:</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Verify your identity and secure your account using mobile OTP.</li>
+                        <li>Process, validate, and route your environmental reports to the designated Barangay and MENRO officials.</li>
+                        <li>Communicate with you regarding the status of your reports (via email notifications) or system announcements.</li>
+                        <li>Generate municipal-level analytics, trend statistics, and spatial heatmaps (Note: Personal names are stripped from datasets used for municipal analytics to ensure reporter anonymity in public reports).</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">3. How We Share Your Information</h4>
+                    <p>Your data is treated with strict confidentiality. We do not sell or rent your personal information. We only share data with:</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>Authorized LGU Personnel:</strong> Barangay officials and MENRO administrators handling your specific report.</li>
+                        <li><strong>Third-Party Service Providers:</strong> We utilize secure APIs to maintain system functionality. Your mobile number is processed by our SMS gateway provider solely for OTP delivery, and your email address is processed by our email service provider strictly for routing automated system notifications.</li>
+                        <li><strong>Legal Compliance:</strong> We may disclose information if mandated by Philippine law or a valid court order.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">4. Data Security and Retention</h4>
+                    <p>SIERRA implements industry-standard security measures, including encrypted passwords and secure database architecture, to protect your data against unauthorized access. Personal data will be retained only for as long as necessary to fulfill the purposes outlined in this policy or to comply with LGU archival regulations, after which it will be securely anonymized or deleted.</p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">5. Your Rights as a Data Subject</h4>
+                    <p>Under R.A. 10173, you have the right to:</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Be informed about how your data is processed.</li>
+                        <li>Access the personal information you have provided to us.</li>
+                        <li>Update or correct inaccuracies in your profile.</li>
+                        <li>Request the suspension, withdrawal, or removal of your personal data from our active databases, subject to LGU record-keeping laws.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-1">6. Contact Us</h4>
+                    <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact the SIERRA System Administrator or the designated Data Protection Officer (DPO) of the Municipality of San Isidro.</p>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-gray-200 flex items-center gap-3">
+                <button type="button" onclick="agreePrivacy()" class="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:scale-[0.98]" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
+                    <i class="fas fa-check mr-1"></i> I Agree
+                </button>
+                <button type="button" onclick="closePrivacyModal()" class="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

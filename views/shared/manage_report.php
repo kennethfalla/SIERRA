@@ -30,6 +30,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Manage Report - Sierra</title>
@@ -38,6 +41,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; overflow-x: hidden; }
@@ -1328,11 +1332,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 // Initialize map
 <?php if ($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
     var map = L.map('map').setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(map);
+    MapLayers.addControl(map);
     L.marker([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], {
         icon: L.divIcon({
             html: '<div style="background:#10A37F;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"><i class="fas fa-map-pin" style="color:white;font-size:14px;"></i></div>',

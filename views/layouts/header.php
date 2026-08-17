@@ -12,6 +12,9 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <?php if ($logo_url): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($logo_url); ?>">
+    <?php endif; ?>
     <title><?php echo htmlspecialchars($system_name); ?> - Environmental Reporting System</title>
     
     <!-- Fonts -->

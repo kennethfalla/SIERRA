@@ -8,7 +8,8 @@ $templates = [
     'template_status_update' => SettingsHelper::get('template_status_update', ''),
     'template_resolved' => SettingsHelper::get('template_resolved', ''),
     'template_escalated' => SettingsHelper::get('template_escalated', ''),
-    'template_staff_account_created' => SettingsHelper::get('template_staff_account_created', '')
+    'template_staff_account_created' => SettingsHelper::get('template_staff_account_created', ''),
+    'template_account_created' => SettingsHelper::get('template_account_created', '')
 ];
 
 // SMS Settings
@@ -339,6 +340,25 @@ $placeholders = [
             </div>
         </div>
         
+        <!-- Account Created Template -->
+        <div class="template-card" id="template-account-created">
+            <div class="flex justify-between items-start">
+                <div>
+                    <div class="template-label">
+                        <i class="fas fa-user-check text-[#10A37F] mr-2"></i>
+                        Account Created (Citizen)
+                    </div>
+                    <div class="template-desc">Sent to a citizen when they successfully register and verify their account.</div>
+                </div>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Optional</span>
+            </div>
+            <textarea name="template_account_created" id="template_account_created" rows="3" 
+                      oninput="updateCharCount(this)"><?php echo htmlspecialchars($templates['template_account_created']); ?></textarea>
+            <div class="char-count">
+                <span id="account_created_count">0</span> characters
+            </div>
+        </div>
+
         <!-- Report Submitted Template -->
         <div class="template-card">
             <div class="flex justify-between items-start">

@@ -75,6 +75,24 @@ if ($action === 'create') {
         exit();
     }
 
+    // Expiration (optional). Accepts "YYYY-MM-DDTHH:MM" from a datetime-local input.
+    $expires_at = null;
+    if (isset($_POST['expires_at']) && trim($_POST['expires_at']) !== '') {
+        $expires_raw = str_replace('T', ' ', trim($_POST['expires_at']));
+        $expires_ts = strtotime($expires_raw);
+        if ($expires_ts === false) {
+            $_SESSION['error'] = "Invalid expiration date/time format.";
+            header("Location: " . BASE_URL . "index.php?page=announcements");
+            exit();
+        }
+        if ($expires_ts <= time()) {
+            $_SESSION['error'] = "Expiration must be a future date and time.";
+            header("Location: " . BASE_URL . "index.php?page=announcements");
+            exit();
+        }
+        $expires_at = date('Y-m-d H:i:s', $expires_ts);
+    }
+
     // ============================================
     // Broadcast targeting
     //   global_public     -> pushed to the global feed (every resident + every barangay admin)
@@ -157,8 +175,8 @@ if ($action === 'create') {
     $created_by_role = ($user_role === 'admin') ? 'menro' : 'barangay';
 
     try {
-        $stmt = $db->prepare("INSERT INTO announcements (title, category, content, barangay_id, created_by, created_by_role, is_public, broadcast_type, target_admin_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())");
-        $stmt->execute([$title, $category, $content, $target_barangay_id, $user_id, $created_by_role, $is_public, $broadcast_target, $target_admin_id]);
+        $stmt = $db->prepare("INSERT INTO announcements (title, category, content, barangay_id, created_by, created_by_role, is_public, broadcast_type, target_admin_id, expires_at, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())");
+        $stmt->execute([$title, $category, $content, $target_barangay_id, $user_id, $created_by_role, $is_public, $broadcast_target, $target_admin_id, $expires_at]);
         $announcement_id = $db->lastInsertId();
 
         // Handle image uploads - only process if files were actually selected
@@ -191,6 +209,51 @@ if ($action === 'create') {
                     }
                 }
             }
+        }
+
+        // ============================================
+        // IN-APP NOTIFICATIONS (notification bell)
+        // Only push to the users this announcement targets.
+        // ============================================
+        try {
+            $notif = new Notification($db);
+            $targetIds = [];
+            switch ($broadcast_target) {
+                case 'global_public':
+                    $s = $db->query("SELECT id FROM users WHERE is_active = 1");
+                    $targetIds = $s->fetchAll(PDO::FETCH_COLUMN);
+                    break;
+
+                case 'localized_public':
+                    if ($target_barangay_id) {
+                        $s = $db->prepare("SELECT id FROM users WHERE is_active = 1 AND barangay_id = ?");
+                        $s->execute([$target_barangay_id]);
+                        $targetIds = $s->fetchAll(PDO::FETCH_COLUMN);
+                    }
+                    break;
+
+                case 'internal_global':
+                    $s = $db->query("SELECT id FROM users WHERE is_active = 1 AND user_type IN ('barangay_personnel', 'menro_staff', 'admin')");
+                    $targetIds = $s->fetchAll(PDO::FETCH_COLUMN);
+                    break;
+
+                case 'internal_direct':
+                    if ($target_admin_id) {
+                        $targetIds = [$target_admin_id];
+                    }
+                    break;
+            }
+            $notif->createForMany(
+                $targetIds,
+                'New Announcement',
+                $title,
+                'announcement',
+                'fa-bullhorn',
+                '#8B5CF6',
+                BASE_URL . 'index.php?page=announcements'
+            );
+        } catch (Exception $e) {
+            error_log("Announcement notification creation failed: " . $e->getMessage());
         }
 
         $_SESSION['success'] = "Announcement posted successfully!";
@@ -235,6 +298,24 @@ if ($action === 'edit') {
         $_SESSION['error'] = "Title and content are required.";
         header("Location: " . BASE_URL . "index.php?page=announcements");
         exit();
+    }
+
+    // Expiration (optional). Empty value clears any existing expiration.
+    $expires_at = null;
+    if (isset($_POST['expires_at']) && trim($_POST['expires_at']) !== '') {
+        $expires_raw = str_replace('T', ' ', trim($_POST['expires_at']));
+        $expires_ts = strtotime($expires_raw);
+        if ($expires_ts === false) {
+            $_SESSION['error'] = "Invalid expiration date/time format.";
+            header("Location: " . BASE_URL . "index.php?page=announcements");
+            exit();
+        }
+        if ($expires_ts <= time()) {
+            $_SESSION['error'] = "Expiration must be a future date and time.";
+            header("Location: " . BASE_URL . "index.php?page=announcements");
+            exit();
+        }
+        $expires_at = date('Y-m-d H:i:s', $expires_ts);
     }
 
     // Admin may re-target an announcement on edit; barangay officials keep their
@@ -302,8 +383,8 @@ if ($action === 'edit') {
 
     try {
         // Update announcement
-        $update_sets = "title = ?, category = ?, content = ?";
-        $update_params = [$title, $category, $content];
+        $update_sets = "title = ?, category = ?, content = ?, expires_at = ?";
+        $update_params = [$title, $category, $content, $expires_at];
         if ($broadcast_sets) {
             $update_sets .= ", " . implode(", ", $broadcast_sets);
             $update_params = array_merge($update_params, $broadcast_values);

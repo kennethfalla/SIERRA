@@ -216,6 +216,52 @@ function sendReportStatusEmail($db, $report_id, $templateKey, $subjectLabel, $ac
 }
 
 // ============================================
+// HELPER: Create an in-app notification for the report owner
+// (feeds the citizen notification bell / notifications page)
+// ============================================
+function notifyReportOwner($db, $report_id, $title, $message, $icon = 'fa-bell', $color = '#10A37F') {
+    try {
+        $stmt = $db->prepare("SELECT user_id FROM reports WHERE id = ?");
+        $stmt->execute([(int)$report_id]);
+        $owner = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($owner && !empty($owner['user_id'])) {
+            $notif = new Notification($db);
+            $notif->create(
+                (int)$owner['user_id'],
+                $title,
+                $message,
+                'report',
+                $icon,
+                $color,
+                trackStatusUrl($report_id),
+                (int)$report_id
+            );
+        }
+    } catch (Exception $e) {
+        error_log("Notification creation failed for report #$report_id: " . $e->getMessage());
+    }
+}
+
+// ============================================
+// HELPER: Create an in-app notification for every active official of a barangay
+// (feeds the barangay notification bell / notifications page)
+// ============================================
+function notifyBarangayOfficials($db, $barangay_id, $title, $message, $icon = 'fa-bell', $color = '#10A37F', $link = '') {
+    try {
+        if (empty($barangay_id)) return;
+        $stmt = $db->prepare("SELECT id FROM users WHERE is_active = 1 AND user_type = 'barangay_personnel' AND barangay_id = ?");
+        $stmt->execute([(int)$barangay_id]);
+        $official_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        if (!empty($official_ids)) {
+            $notif = new Notification($db);
+            $notif->createForMany($official_ids, $title, $message, 'report', $icon, $color, $link);
+        }
+    } catch (Exception $e) {
+        error_log("Barangay notification creation failed for barangay #$barangay_id: " . $e->getMessage());
+    }
+}
+
+// ============================================
 // MANAGE REPORT PAGE - Full page view (GET request)
 // ============================================
 if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
@@ -673,6 +719,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $activityLog->log($user_id, 'Verify Report', "Verified report #$report_id and moved to In Progress");
         sendReportStatusEmail($db, $report_id, 'template_status_update', 'Report Status Update', $activityLog, $user_id);
+        notifyReportOwner($db, $report_id, 'Report Verified', 'Your report #' . $report_id . ' has been verified and is now in progress.', 'fa-check-circle', '#3B82F6');
         $_SESSION['success'] = "Report #$report_id verified and moved to IN PROGRESS.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -743,6 +790,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         sendReportStatusEmail($db, $report_id, 'template_status_update', 'Report Rejected', $activityLog, $user_id, [
             '{report_status}' => 'Rejected - ' . $reason,
         ]);
+        notifyReportOwner($db, $report_id, 'Report Rejected', 'Your report #' . $report_id . ' was rejected. Reason: ' . $reason, 'fa-times-circle', '#EF4444');
         $_SESSION['success'] = "Report #$report_id rejected.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -828,6 +876,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $activityLog->log($user_id, 'Resolve Report', "Resolved report #$report_id");
         sendReportStatusEmail($db, $report_id, 'template_resolved', 'Report Resolved', $activityLog, $user_id);
+        notifyReportOwner($db, $report_id, 'Issue Resolved!', 'Your report #' . $report_id . ' has been resolved. Thank you for helping keep San Isidro clean!', 'fa-check-double', '#10A37F');
         $_SESSION['success'] = "Report #$report_id marked as RESOLVED.";
         $redirect = ($user_role == 'admin') ? 'all-reports' : 'manage-report';
         header("Location: " . BASE_URL . "index.php?page=" . $redirect . "&id=" . IdGuard::enc($report_id));
@@ -934,6 +983,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $activityLog->log($user_id, 'Escalate Report', "Escalated report #$report_id to MENRO. Reason: $reason");
         sendReportStatusEmail($db, $report_id, 'template_escalated', 'Report Escalated to MENRO', $activityLog, $user_id);
+        notifyReportOwner($db, $report_id, 'Escalated to MENRO', 'Your report #' . $report_id . ' has been escalated to MENRO for further action.', 'fa-shield-alt', '#EF4444');
         $_SESSION['success'] = "Report #$report_id escalated to MENRO.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -991,6 +1041,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
         }
         $activityLog->log($user_id, 'Approve Escalation', "Approved escalation for report #$report_id");
+        notifyReportOwner($db, $report_id, 'Escalated to MENRO', 'Your report #' . $report_id . ' has been accepted by MENRO and is now under their supervision.', 'fa-shield-alt', '#EF4444');
         $_SESSION['success'] = "Escalation approved. Report is now under MENRO supervision.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -1054,6 +1105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
         }
         $activityLog->log($user_id, 'Reject Escalation', "Rejected escalation for report #$report_id. Reason: $reason");
+        notifyReportOwner($db, $report_id, 'Escalation Returned', 'Your report #' . $report_id . ' was returned to the barangay for continued handling.', 'fa-undo', '#F59E0B');
         $_SESSION['success'] = "Escalation rejected. Report returned to barangay.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -1627,6 +1679,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            // ============================================
+            // IN-APP NOTIFICATION (notification bell)
+            // ============================================
+            notifyReportOwner($db, $report_id, 'Report Submitted', 'Your report "' . ($newReport['title'] ?? 'Report #' . $report_id) . '" has been received and is now pending review.', 'fa-paper-plane', '#10A37F');
+
+            // Notify this barangay's officials that a new report awaits verification.
+            notifyBarangayOfficials(
+                $db,
+                $barangay_id,
+                'New Report Submitted',
+                'A new report "' . ($newReport['title'] ?? 'Report #' . $report_id) . '" (#'.$report_id.') was submitted and is awaiting verification.',
+                'fa-clock',
+                '#F59E0B',
+                BASE_URL . 'index.php?page=verify-reports'
+            );
+
             $_SESSION['success'] = "Report submitted successfully with " . count($image_paths) . " photo(s)/video(s)!";
             header("Location: " . trackStatusUrl($report_id));
             exit();
@@ -1658,6 +1726,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $activityLog->log($user_id, 'Update Status', "Updated report #$report_id status to $status");
                 $statusTemplateKey = ($status === Report::STATUS_RESOLVED) ? 'template_resolved' : 'template_status_update';
                 sendReportStatusEmail($db, $report_id, $statusTemplateKey, 'Report Status Update', $activityLog, $user_id);
+                $notifIcon  = $status === 'resolved' ? 'fa-check-double' : 'fa-sync-alt';
+                $notifColor = $status === 'resolved' ? '#10A37F' : '#F59E0B';
+                $notifTitle = $status === 'resolved' ? 'Issue Resolved!' : 'Report Status Update';
+                notifyReportOwner($db, $report_id, $notifTitle, 'Your report #' . $report_id . ' status has been updated to ' . ucfirst(str_replace('_', ' ', $status)) . '.', $notifIcon, $notifColor);
                 $_SESSION['success'] = "Status updated successfully!";
             } else {
                 $_SESSION['error'] = "Report not found.";

@@ -321,6 +321,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
@@ -330,6 +333,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -1833,11 +1837,7 @@ document.addEventListener('DOMContentLoaded', function() {
         scrollWheelZoom: !isMobileViewport,
         touchZoom: !isMobileViewport
     }).setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(map);
+    MapLayers.addControl(map);
     
     if (sanIsidroBoundary && sanIsidroBoundary.features) {
         const polygonCoords = extractPolygonCoordinates(sanIsidroBoundary);

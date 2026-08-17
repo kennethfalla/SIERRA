@@ -125,7 +125,8 @@ if($page === 'reset-password') {
 // PROFILE PAGE - Accessible to all logged-in users
 // ============================================
 if($page === 'profile') {
-    require_once 'views/profile.php';
+    // profile.php handles section-based routing internally via $_GET['section']
+    require_once 'views/shared/profile/profile.php';
     exit();
 }
 
@@ -143,6 +144,14 @@ if($page === 'manage-report') {
 // ============================================
 if($page === 'announcements') {
     require_once 'views/shared/announcements.php';
+    exit();
+}
+
+// ============================================
+// NOTIFICATIONS - SHARED PAGE FOR ALL ROLES
+// ============================================
+if($page === 'notifications') {
+    require_once 'views/shared/notifications.php';
     exit();
 }
 

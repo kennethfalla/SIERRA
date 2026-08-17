@@ -37,6 +37,9 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In - <?php echo htmlspecialchars($system_name); ?></title>
@@ -392,7 +395,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                             <input type="checkbox" name="remember" class="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-400">
                             <span class="text-xs text-gray-500 group-hover:text-gray-700">Remember me</span>
                         </label>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=forgot-password" class="text-xs font-medium text-emerald-700 hover:underline">Forgot Password</a>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=forgot-password" class="text-xs font-medium text-emerald-700 hover:underline">Forgot Password?</a>
                     </div>
 
                     <button type="submit" id="submitBtn" class="btn-primary" aria-label="Sign in button">

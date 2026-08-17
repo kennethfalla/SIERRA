@@ -54,7 +54,7 @@ $offset = ($page - 1) * $limit;
 if($offset < 0) $offset = 0;
 
 // Build WHERE clause based on role
-$where = "1=1 AND a.is_archived = 0";
+$where = "1=1 AND a.is_archived = 0 AND (a.expires_at IS NULL OR a.expires_at > NOW())";
 $params = [];
 
 if ($is_admin) {
@@ -246,6 +246,9 @@ if ($date_to != '') $active_filters++;
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>Announcements - EnviroTrack</title>
@@ -853,11 +856,16 @@ if ($date_to != '') $active_filters++;
                                 <?php echo getCategoryBadge($announcement['category'] ?? 'General'); ?>
                                 <?php echo getSourceBadge($announcement['created_by_role'], $announcement['barangay_name']); ?>
                                 <?php echo getAudienceBadge($announcement); ?>
+                                <?php if (!empty($announcement['expires_at'])): ?>
+                                <span class="text-[10px] text-orange-600 font-medium flex items-center gap-1 px-2.5 py-1 bg-orange-50 rounded-full border border-orange-100" title="This announcement will be hidden after this date/time">
+                                    <i class="fas fa-clock text-[9px]"></i> Expires <?php echo date('M d, Y · h:i A', strtotime($announcement['expires_at'])); ?>
+                                </span>
+                                <?php endif; ?>
                             </div>
                             <?php if ($can_edit_this || $can_delete_this): ?>
                             <div class="flex gap-1 flex-shrink-0">
                                 <?php if ($can_edit_this): ?>
-                                <button onclick='openEditModal(<?php echo $announcement['id']; ?>, <?php echo json_encode(htmlspecialchars($announcement['title'])); ?>, <?php echo json_encode($announcement['content']); ?>, <?php echo json_encode($announcement['category'] ?? 'General'); ?>, <?php echo json_encode($announcement['images']); ?>, <?php echo json_encode($announcement['broadcast_type'] ?? 'localized_public'); ?>, <?php echo json_encode($announcement['barangay_id'] ?? null); ?>, <?php echo json_encode($announcement['target_admin_id'] ?? null); ?>)' class="text-gray-400 hover:text-emerald-600 transition p-1.5 hover:bg-emerald-50 rounded-lg" title="Edit">
+                                <button onclick='openEditModal(<?php echo $announcement['id']; ?>, <?php echo json_encode(htmlspecialchars($announcement['title'])); ?>, <?php echo json_encode($announcement['content']); ?>, <?php echo json_encode($announcement['category'] ?? 'General'); ?>, <?php echo json_encode($announcement['images']); ?>, <?php echo json_encode($announcement['broadcast_type'] ?? 'localized_public'); ?>, <?php echo json_encode($announcement['barangay_id'] ?? null); ?>, <?php echo json_encode($announcement['target_admin_id'] ?? null); ?>, <?php echo json_encode($announcement['expires_at'] ?? null); ?>)' class="text-gray-400 hover:text-emerald-600 transition p-1.5 hover:bg-emerald-50 rounded-lg" title="Edit">
                                     <i class="fas fa-edit text-sm"></i>
                                 </button>
                                 <?php endif; ?>
@@ -1084,6 +1092,12 @@ if ($date_to != '') $active_filters++;
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">Expiration <span class="text-gray-400 text-xs font-normal">(Optional)</span></label>
+                    <input type="datetime-local" name="expires_at" id="create_expires_at" class="form-input-custom">
+                    <p class="text-xs text-gray-400 mt-1 font-medium">Leave empty to keep this announcement visible indefinitely. After this date/time the post is automatically hidden.</p>
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">Add Photos <span class="text-gray-400 text-xs font-normal">(Max 10)</span></label>
                     <div class="upload-area" id="uploadArea">
                         <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2 block"></i>
@@ -1193,6 +1207,12 @@ if ($date_to != '') $active_filters++;
                     <div style="border: 2px solid #E5E7EB; border-radius: 0.75rem; overflow: hidden;">
                         <div id="edit_editor"></div>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Expiration <span class="text-gray-400 text-xs font-normal">(Optional)</span></label>
+                    <input type="datetime-local" name="expires_at" id="edit_expires_at" class="form-input-custom">
+                    <p class="text-xs text-gray-400 mt-1 font-medium">Leave empty to remove the expiration. After this date/time the post is automatically hidden.</p>
                 </div>
 
                 <div class="form-group">
@@ -1493,11 +1513,15 @@ function openCreateModal() {
     updateFileInput();
 }
 
-function openEditModal(id, title, content, category, images, broadcastType, barangayId, targetAdminId) {
+function openEditModal(id, title, content, category, images, broadcastType, barangayId, targetAdminId, expiresAt) {
     document.getElementById('edit_id').value = id;
     document.getElementById('edit_title').value = title;
     document.getElementById('edit_category').value = category;
     setEditBroadcast(broadcastType, barangayId, targetAdminId);
+    var expInput = document.getElementById('edit_expires_at');
+    if (expInput) {
+        expInput.value = expiresAt ? String(expiresAt).replace(' ', 'T').substring(0, 16) : '';
+    }
     document.getElementById('editModal').classList.add('active');
     document.body.style.overflow = 'hidden';
 

@@ -24,6 +24,21 @@ $kpi_repeat_min_reports     = (float)SettingsHelper::get('kpi_repeat_min_reports
 $kpi_repeat_window_days     = (float)SettingsHelper::get('kpi_repeat_window_days', 30);
 
 // ------------------------------------------------------------
+// 0a. MENRO PDF EXPORT SETTINGS (System Settings → PDF Export)
+// Used by the official header and signatory block of exported PDFs.
+// ------------------------------------------------------------
+$menro_logo_path   = SettingsHelper::get('menro_logo', '');
+$menro_logo_url    = $menro_logo_path ? BASE_URL . $menro_logo_path : '';
+$pdf_office_name   = SettingsHelper::get('pdf_office_name', 'Municipal Environment and Natural Resources Office');
+$pdf_municipality  = SettingsHelper::get('pdf_municipality_name', 'Municipality of San Isidro');
+$pdf_prepared_by   = SettingsHelper::get('pdf_prepared_by_name', '');
+$pdf_prepared_tit  = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
+$pdf_approved_by   = SettingsHelper::get('pdf_approved_by_name', '');
+$pdf_approved_tit  = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
+$pdf_footer_note   = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
+$pdf_generated_by  = $_SESSION['user_name'] ?? 'System Admin';
+
+// ------------------------------------------------------------
 // 1. ALGORITHMIC KPI CALCULATIONS (back-end)
 // ------------------------------------------------------------
 
@@ -585,6 +600,9 @@ function getDecisionBadge($classification) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>MENRO Decision Dashboard - Sierra</title>
@@ -593,6 +611,7 @@ function getDecisionBadge($classification) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
     <!-- Leaflet.markercluster for clustering -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -1403,6 +1422,19 @@ function getDecisionBadge($classification) {
 // ------------------------------------------------------------
 // DATA FROM PHP
 // ------------------------------------------------------------
+const pdfSettings = {
+    lguLogo: <?php echo json_encode(SettingsHelper::getLogoUrl()); ?>,
+    menroLogo: <?php echo json_encode($menro_logo_url); ?>,
+    officeName: <?php echo json_encode($pdf_office_name); ?>,
+    municipality: <?php echo json_encode($pdf_municipality); ?>,
+    preparedByName: <?php echo json_encode($pdf_prepared_by); ?>,
+    preparedByTitle: <?php echo json_encode($pdf_prepared_tit); ?>,
+    approvedByName: <?php echo json_encode($pdf_approved_by); ?>,
+    approvedByTitle: <?php echo json_encode($pdf_approved_tit); ?>,
+    footerNote: <?php echo json_encode($pdf_footer_note); ?>,
+    generatedBy: <?php echo json_encode($pdf_generated_by); ?>,
+    generatedDate: <?php echo json_encode(date('F j, Y')); ?>
+};
 const activeReports = <?php echo json_encode($activeReports); ?>;
 const historicalReports = <?php echo json_encode($historicalReports); ?>;
 const boundaryData = <?php echo json_encode($boundary_data); ?>;
@@ -1448,11 +1480,7 @@ function initMap() {
     const center = [15.3092, 120.9033];
     map = L.map('map').setView(center, 13);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(map);
+    MapLayers.addControl(map);
 
     // Draw one clickable polygon per barangay (from the GeoJSON folder)
     addBarangayLayers();
@@ -2222,6 +2250,99 @@ function exportCSV() {
 }
 
 // Export PDF (dashboard snapshot)
+// ------------------------------------------------------------
+// MENRO PDF helpers — official header, metadata, signatory block
+// (configured in System Settings → PDF Export)
+// ------------------------------------------------------------
+function reportingPeriodLabel() {
+    const now = new Date();
+    const month = now.toLocaleString('en-US', { month: 'long' });
+    const year = now.getFullYear();
+    if (selectedRange === 'week') {
+        const sunday = now.getDate() - now.getDay();
+        const saturday = sunday + 6;
+        return 'Week of ' + month + ' ' + sunday + ' – ' + month + ' ' + saturday + ', ' + year;
+    }
+    if (selectedRange === 'month') return 'This Month (' + month + ' ' + year + ')';
+    if (selectedRange === 'year') return 'This Year (' + year + ')';
+    return 'All Time (through ' + month + ' ' + year + ')';
+}
+
+function buildOfficialHeader() {
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:12px; margin-bottom:12px; border-bottom:3px solid #10A37F;';
+
+    const left = document.createElement('div');
+    left.style.cssText = 'width:76px; height:76px; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
+    if (pdfSettings.lguLogo) {
+        const img = document.createElement('img');
+        img.src = pdfSettings.lguLogo;
+        img.style.cssText = 'max-width:76px; max-height:76px; object-fit:contain;';
+        left.appendChild(img);
+    } else {
+        left.innerHTML = '<div style="width:76px; height:76px; border:1px dashed #d1d5db; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:0.6rem; text-align:center;">LGU<br>Logo</div>';
+    }
+
+    const center = document.createElement('div');
+    center.style.cssText = 'flex:1; text-align:center; padding:0 8px;';
+    center.innerHTML =
+        '<div style="font-weight:800; color:#1f2937; font-size:1rem; line-height:1.35;">' + pdfSettings.officeName + '</div>' +
+        '<div style="color:#4b5563; font-size:0.8rem; margin-top:2px;">' + pdfSettings.municipality + '</div>' +
+        '<div style="color:#10A37F; font-weight:700; font-size:0.7rem; letter-spacing:0.08em; margin-top:5px; text-transform:uppercase;">Environmental Hazard Analysis Report</div>';
+
+    const right = document.createElement('div');
+    right.style.cssText = 'width:76px; height:76px; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
+    if (pdfSettings.menroLogo) {
+        const img = document.createElement('img');
+        img.src = pdfSettings.menroLogo;
+        img.style.cssText = 'max-width:76px; max-height:76px; object-fit:contain;';
+        right.appendChild(img);
+    } else {
+        right.innerHTML = '<div style="width:76px; height:76px; border:1px dashed #d1d5db; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:0.6rem; text-align:center;">MENRO<br>Logo</div>';
+    }
+
+    header.appendChild(left);
+    header.appendChild(center);
+    header.appendChild(right);
+    return header;
+}
+
+function buildMetadataBlock() {
+    const meta = document.createElement('div');
+    meta.style.cssText = 'background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:0.78rem; color:#374151; line-height:1.7;';
+    meta.innerHTML =
+        '<div><span style="font-weight:700;">Reporting Period:</span> ' + reportingPeriodLabel() + '</div>' +
+        '<div><span style="font-weight:700;">Date Generated:</span> ' + pdfSettings.generatedDate + '</div>' +
+        '<div><span style="font-weight:700;">Generated By:</span> ' + pdfSettings.generatedBy + '</div>';
+    return meta;
+}
+
+function buildSignatoryBlock() {
+    const block = document.createElement('div');
+    block.style.cssText = 'margin-top:28px; padding-top:18px; border-top:1px solid #e5e7eb;';
+    block.innerHTML =
+        '<div style="display:flex; justify-content:space-between; gap:40px; margin-bottom:10px;">' +
+            '<div style="flex:1;">' +
+                '<div style="font-size:0.72rem; font-weight:700; color:#374151;">Prepared by:</div>' +
+                '<div style="height:46px;"></div>' +
+                '<div style="text-align:center;">' +
+                    '<div style="font-weight:700; color:#111827;">' + pdfSettings.preparedByName + '</div>' +
+                    '<div style="font-size:0.72rem; color:#6b7280;">' + pdfSettings.preparedByTitle + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div style="flex:1;">' +
+                '<div style="font-size:0.72rem; font-weight:700; color:#374151;">Noted and Approved by:</div>' +
+                '<div style="height:46px;"></div>' +
+                '<div style="text-align:center;">' +
+                    '<div style="font-weight:700; color:#111827;">' + pdfSettings.approvedByName + '</div>' +
+                    '<div style="font-size:0.72rem; color:#6b7280;">' + pdfSettings.approvedByTitle + '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div style="text-align:center; font-size:0.68rem; color:#9ca3af; margin-top:8px;">' + pdfSettings.footerNote + '</div>';
+    return block;
+}
+
 function exportPDF() {
     document.getElementById('exportDropdownMenu').classList.remove('open');
     exportMenuOpen = false;
@@ -2275,6 +2396,11 @@ function exportPDF() {
             `;
         }
     });
+
+    // Inject official LGU header, metadata, and signatory block
+    clone.insertBefore(buildMetadataBlock(), clone.firstChild);
+    clone.insertBefore(buildOfficialHeader(), clone.firstChild);
+    clone.appendChild(buildSignatoryBlock());
 
     // Render clone in a hidden container
     const wrapper = document.createElement('div');

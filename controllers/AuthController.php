@@ -228,6 +228,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ========================================
+    // CHECK EMAIL DOMAIN EXISTS (AJAX)
+    // Real-time DNS check on the domain part of
+    // an email (MX / A / AAAA lookup). Returns
+    // whether the domain is live on the internet.
+    // ========================================
+    if ($action === 'check_domain') {
+        $email = $_POST['email'] ?? '';
+        $domain = '';
+        $atPos = strrpos($email, '@');
+        if ($atPos !== false) {
+            $domain = strtolower(substr($email, $atPos + 1));
+        }
+        echo json_encode([
+            'domain' => $domain,
+            'valid' => $domain !== '' && isEmailDomainValid($email)
+        ]);
+        exit();
+    }
+
+    // ========================================
     // SEND REGISTRATION OTP (Step 1 → Step 2)
     // ========================================
     if ($action === 'send_registration_otp') {
@@ -526,6 +546,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user_id = $db->lastInsertId();
             if ($activityLog) {
                 $activityLog->log($user_id, 'User Registration', "New user registered: $first_name $last_name");
+            }
+
+            // ============================================
+            // ACCOUNT CREATED WELCOME EMAIL (Brevo/Mailgun)
+            // ============================================
+            if (!empty($email) && SettingsHelper::isEmailEnabled()) {
+                $system_name = SettingsHelper::get('system_name', 'Sierra');
+                $login_url   = BASE_URL . 'index.php?page=login';
+
+                $template = SettingsHelper::getTemplate('template_account_created');
+                $body = SettingsHelper::parseTemplate($template, [
+                    '{first_name}'  => $first_name,
+                    '{last_name}'   => $last_name,
+                    '{full_name}'   => $first_name . ' ' . $last_name,
+                    '{email}'       => $email,
+                    '{system_name}' => $system_name,
+                    '{login_url}'   => $login_url,
+                ]);
+
+                $subject = "Welcome to $system_name - Account Created";
+
+                $welcome_html = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: 'Manrope', Arial, sans-serif; color: #1a2e1a; margin: 0; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: #10A37F; color: white; padding: 20px; text-align: center; border-radius: 12px 12px 0 0; }
+                        .content { background: #f9fbfa; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px; }
+                        .info-box { background: #ffffff; border: 1px solid #d1d5db; border-radius: 10px; padding: 20px; margin: 20px 0; }
+                        .info-box table { width: 100%; border-collapse: collapse; }
+                        .info-box td { padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+                        .info-box td:first-child { color: #6b7280; width: 40%; }
+                        .login-btn { display: inline-block; background: #10A37F; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; }
+                        .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h2 style='margin:0;'>$system_name</h2>
+                            <p style='margin:5px 0 0; opacity:0.9;'>Account Created</p>
+                        </div>
+                        <div class='content'>
+                            <h3 style='margin-top:0;'>Welcome " . htmlspecialchars($first_name) . ",</h3>
+                            <p>Your account has been created successfully and is now verified. You can start reporting environmental concerns in your community.</p>
+                            <div class='info-box'>
+                                <table>
+                                    <tr><td>Name</td><td><strong>" . htmlspecialchars($first_name . ' ' . $last_name) . "</strong></td></tr>
+                                    <tr><td>Email</td><td>" . htmlspecialchars($email) . "</td></tr>
+                                    <tr><td>Status</td><td><strong>Verified</strong></td></tr>
+                                </table>
+                            </div>
+                            <p>$body</p>
+                            <div style='text-align:center; margin:25px 0;'>
+                                <a href='$login_url' class='login-btn'>Login to Your Account</a>
+                            </div>
+                        </div>
+                        <div class='footer'>
+                            <p>© " . date('Y') . " $system_name - LGU San Isidro</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                ";
+
+                $email_sent = SettingsHelper::sendEmail($email, $first_name . ' ' . $last_name, $subject, $welcome_html);
+
+                if ($email_sent && $activityLog) {
+                    $activityLog->log($user_id, 'Email Sent', "Sent account created welcome email to $email");
+                } else {
+                    error_log("Account created welcome email failed for $email");
+                }
+            }
+
+            // ============================================
+            // WELCOME IN-APP NOTIFICATION (notification bell)
+            // ============================================
+            try {
+                $system_name = SettingsHelper::get('system_name', 'Sierra');
+                $notif = new Notification($db);
+                $notif->create(
+                    (int)$user_id,
+                    'Welcome to ' . $system_name . '!',
+                    'Your account has been created successfully. Start reporting environmental concerns in your community!',
+                    'welcome',
+                    'fa-leaf',
+                    '#10A37F',
+                    BASE_URL . 'index.php?page=dashboard'
+                );
+            } catch (Exception $e) {
+                error_log("Welcome notification creation failed for user #$user_id: " . $e->getMessage());
             }
 
             // Clear session data

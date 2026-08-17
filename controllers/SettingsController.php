@@ -46,8 +46,10 @@ class SettingsController {
             exit();
         }
 
-        // Route to the appropriate handler based on tab
-        $method = 'update' . ucfirst($tab);
+        // Route to the appropriate handler based on tab.
+        // Convert underscores to camelCase so "pdf_export" maps to
+        // updatePdfExport (matches the updateGeneral/updateLanding naming).
+        $method = 'update' . str_replace(' ', '', ucwords(str_replace('_', ' ', $tab)));
         if (method_exists($this, $method)) {
             $this->$method();
         } else {
@@ -107,6 +109,61 @@ class SettingsController {
         $this->activityLog->log($this->user_id, 'Update System Settings', "Updated general settings (system name, contact email, hotline" . (isset($_FILES['lgu_logo']) && $_FILES['lgu_logo']['error'] === UPLOAD_ERR_OK ? ", logo" : "") . ")", null, 'Settings');
         $_SESSION['success'] = "General settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=general");
+        exit();
+    }
+
+    // ================================================================
+    // 1a. PDF EXPORT SETTINGS (MENRO Analytics PDF — header & signatories)
+    // ================================================================
+    private function updatePdfExport() {
+        $office_name  = InputSanitizer::sanitizeString($_POST['pdf_office_name'] ?? 'Municipal Environment and Natural Resources Office');
+        $municipality = InputSanitizer::sanitizeString($_POST['pdf_municipality_name'] ?? 'Municipality of San Isidro');
+        $prepared_by  = InputSanitizer::sanitizeString($_POST['pdf_prepared_by_name'] ?? '');
+        $prepared_tit = InputSanitizer::sanitizeString($_POST['pdf_prepared_by_title'] ?? 'MENRO Data Analyst / Administrator');
+        $approved_by  = InputSanitizer::sanitizeString($_POST['pdf_approved_by_name'] ?? '');
+        $approved_tit = InputSanitizer::sanitizeString($_POST['pdf_approved_by_title'] ?? 'Municipal Environment and Natural Resources Officer');
+        $footer_note  = InputSanitizer::sanitizeString($_POST['pdf_footer_note'] ?? 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
+
+        SettingsHelper::set('pdf_office_name', $office_name);
+        SettingsHelper::set('pdf_municipality_name', $municipality);
+        SettingsHelper::set('pdf_prepared_by_name', $prepared_by);
+        SettingsHelper::set('pdf_prepared_by_title', $prepared_tit);
+        SettingsHelper::set('pdf_approved_by_name', $approved_by);
+        SettingsHelper::set('pdf_approved_by_title', $approved_tit);
+        SettingsHelper::set('pdf_footer_note', $footer_note);
+
+        // Handle MENRO logo upload
+        if (isset($_FILES['menro_logo']) && $_FILES['menro_logo']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['menro_logo'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            if (in_array($ext, $allowed) && $file['size'] <= 5242880) {
+                $upload_dir = BASE_PATH . 'uploads/settings/';
+                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+                $old_logo = SettingsHelper::get('menro_logo');
+                if ($old_logo && file_exists(BASE_PATH . $old_logo)) {
+                    unlink(BASE_PATH . $old_logo);
+                }
+                $new_filename = 'menro_' . time() . '.' . $ext;
+                $target_path = $upload_dir . $new_filename;
+                if (move_uploaded_file($file['tmp_name'], $target_path)) {
+                    SettingsHelper::set('menro_logo', 'uploads/settings/' . $new_filename);
+                } else {
+                    $_SESSION['error'] = "MENRO logo upload failed.";
+                    header("Location: " . BASE_URL . "index.php?page=settings&tab=pdf_export");
+                    exit();
+                }
+            } else {
+                $_SESSION['error'] = "Invalid MENRO logo file. Allowed: JPG, PNG, GIF, WebP (max 5MB).";
+                header("Location: " . BASE_URL . "index.php?page=settings&tab=pdf_export");
+                exit();
+            }
+        }
+
+        SettingsHelper::clearCache();
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated PDF export settings (office name, municipality, signatories" . (isset($_FILES['menro_logo']) && $_FILES['menro_logo']['error'] === UPLOAD_ERR_OK ? ", MENRO logo" : "") . ")", null, 'Settings');
+        $_SESSION['success'] = "PDF Export settings saved successfully!";
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=pdf_export");
         exit();
     }
 
@@ -1010,7 +1067,8 @@ class SettingsController {
             'template_status_update',
             'template_resolved',
             'template_escalated',
-            'template_staff_account_created'
+            'template_staff_account_created',
+            'template_account_created'
         ];
 
         foreach ($templates as $key) {

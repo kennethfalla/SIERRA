@@ -92,202 +92,16 @@ if ($current_hour < 12) {
 }
 
 // ========== NOTIFICATIONS SECTION ==========
-$notifications = array();
-
-// 1. Welcome notification
-$notifications[] = array(
-    'id' => 'welcome',
-    'type' => 'welcome',
-    'title' => 'Welcome to Sierra',
-    'message' => "Welcome back, $user_name! You're managing reports for " . ($barangay_info['name'] ?? 'your barangay'),
-    'time' => date('Y-m-d H:i:s'),
-    'icon' => 'fa-leaf',
-    'color' => '#10A37F',
-    'link' => '',
-    'read' => false
-);
-
-// 2. New pending reports notification
-$pending_reports = $reportModel->getReportsByStatus('pending', $barangay_id);
-if($pending_reports > 0) {
-    $notifications[] = array(
-        'id' => 'pending_reports',
-        'type' => 'pending',
-        'title' => 'New Reports Pending Verification',
-        'message' => "You have $pending_reports pending report(s) waiting for your review and verification.",
-        'time' => date('Y-m-d H:i:s'),
-        'icon' => 'fa-clock',
-        'color' => '#F59E0B',
-        'link' => BASE_URL . "index.php?page=verify-reports",
-        'read' => false
-    );
+// DB-backed: rows are created when events happen (new report submitted in
+// this barangay, status changes, announcements, account created). Read/unread
+// and clearing persist across page loads. Shared with the Notifications page.
+$user_id = (int)$_SESSION['user_id'];
+if (!class_exists('SettingsHelper')) {
+    require_once BASE_PATH . 'helpers/SettingsHelper.php';
 }
-
-// 3. In progress reports notification
-$in_progress_reports = $reportModel->getReportsByStatus('in_progress', $barangay_id);
-if($in_progress_reports > 0) {
-    $notifications[] = array(
-        'id' => 'in_progress_reports',
-        'type' => 'in_progress',
-        'title' => 'Reports Being Addressed',
-        'message' => "$in_progress_reports report(s) are currently in progress and being worked on.",
-        'time' => date('Y-m-d H:i:s'),
-        'icon' => 'fa-spinner',
-        'color' => '#DB2777',
-        'link' => BASE_URL . "index.php?page=verify-reports&status=in_progress",
-        'read' => false
-    );
-}
-
-// 4. Recently resolved reports notification
-$resolved_7_days = $db->prepare("
-    SELECT COUNT(*) as count FROM reports 
-    WHERE barangay_id = ? AND status = 'resolved' 
-    AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-");
-$resolved_7_days->execute([$barangay_id]);
-$recently_resolved = $resolved_7_days->fetch(PDO::FETCH_ASSOC)['count'];
-
-if($recently_resolved > 0) {
-    $notifications[] = array(
-        'id' => 'resolved_reports',
-        'type' => 'resolved',
-        'title' => 'Reports Resolved',
-        'message' => "$recently_resolved report(s) have been resolved in the last 7 days. Great work!",
-        'time' => date('Y-m-d H:i:s'),
-        'icon' => 'fa-check-circle',
-        'color' => '#10A37F',
-        'link' => BASE_URL . "index.php?page=verify-reports&status=resolved",
-        'read' => false
-    );
-}
-
-// 5. High risk reports notification
-$high_risk_count = $db->prepare("
-    SELECT COUNT(*) as count FROM reports 
-    WHERE barangay_id = ? AND risk_level IN ('high', 'critical')
-");
-$high_risk_count->execute([$barangay_id]);
-$high_risk = $high_risk_count->fetch(PDO::FETCH_ASSOC)['count'];
-
-if($high_risk > 0) {
-    $notifications[] = array(
-        'id' => 'high_risk',
-        'type' => 'risk',
-        'title' => 'High Risk Reports Need Attention',
-        'message' => "$high_risk report(s) with high or critical risk level require immediate attention.",
-        'time' => date('Y-m-d H:i:s'),
-        'icon' => 'fa-exclamation-triangle',
-        'color' => '#EF4444',
-        'link' => BASE_URL . "index.php?page=verify-reports&risk=high",
-        'read' => false
-    );
-}
-
-// 6. Weekly report summary notification
-$weekly_total = $db->prepare("
-    SELECT COUNT(*) as count FROM reports 
-    WHERE barangay_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-");
-$weekly_total->execute([$barangay_id]);
-$new_this_week = $weekly_total->fetch(PDO::FETCH_ASSOC)['count'];
-
-if($new_this_week > 0) {
-    $notifications[] = array(
-        'id' => 'weekly_summary',
-        'type' => 'summary',
-        'title' => 'Weekly Report Summary',
-        'message' => "$new_this_week new report(s) submitted this week in your barangay.",
-        'time' => date('Y-m-d H:i:s'),
-        'icon' => 'fa-chart-line',
-        'color' => '#8B5CF6',
-        'link' => BASE_URL . "index.php?page=verify-reports",
-        'read' => false
-    );
-}
-
-// 7. Template-driven report notifications (submitted / status update / resolved / escalated)
-// Messages are rendered from the admin Notification Templates — no SMS is sent for these.
-// SMS is only used for staff-account creation (see AdminController::sendWelcomeSMS).
-$tpl_status_map = [
-    'submitted'     => ['title' => 'Report Submitted',   'icon' => 'fa-paper-plane',   'color' => '#10A37F'],
-    'status_update' => ['title' => 'Report Status Update','icon' => 'fa-sync-alt',     'color' => '#3B82F6'],
-    'resolved'      => ['title' => 'Report Resolved',    'icon' => 'fa-check-circle',  'color' => '#10B981'],
-    'escalated'     => ['title' => 'Report Escalated',   'icon' => 'fa-share-alt',     'color' => '#EF4444'],
-];
-$tpl_event_for_status = [
-    'pending'          => 'submitted',
-    'verified'         => 'status_update',
-    'under_review'     => 'status_update',
-    'in_progress'      => 'status_update',
-    'escalated_pending'=> 'escalated',
-    'escalated'        => 'escalated',
-    'resolved'         => 'resolved',
-    'rejected'         => 'status_update',
-    'closed'           => 'status_update',
-];
-$tpl_type_key = [
-    'submitted'     => 'template_submitted',
-    'status_update' => 'template_status_update',
-    'resolved'      => 'template_resolved',
-    'escalated'     => 'template_escalated',
-];
-$tpl_reports_stmt = $db->prepare("
-    SELECT r.id, r.title, r.status, r.created_at, r.updated_at, r.severity_score,
-           c.name AS category_name, b.name AS barangay_name,
-           u.first_name, u.last_name, u.email, u.contact_number
-    FROM reports r
-    JOIN categories c ON r.category_id = c.id
-    JOIN barangays b ON r.barangay_id = b.id
-    JOIN users u ON r.user_id = u.id
-    WHERE r.barangay_id = :barangay_id AND r.status != 'cancelled'
-    ORDER BY r.updated_at DESC
-    LIMIT 8
-");
-$tpl_reports_stmt->bindValue(':barangay_id', $barangay_id);
-$tpl_reports_stmt->execute();
-while ($tpl_report = $tpl_reports_stmt->fetch(PDO::FETCH_ASSOC)) {
-    $event = $tpl_event_for_status[$tpl_report['status']] ?? null;
-    if ($event === null) continue;
-    if (!class_exists('SettingsHelper')) {
-        require_once BASE_PATH . 'helpers/SettingsHelper.php';
-    }
-    $tpl_text = SettingsHelper::getTemplate($tpl_type_key[$event]);
-    $status_label = ucwords(str_replace('_', ' ', $tpl_report['status']));
-    $tpl_data = [
-        '{report_id}'      => $tpl_report['id'],
-        '{report_title}'   => $tpl_report['title'],
-        '{report_status}'  => $status_label,
-        '{barangay_name}'  => $tpl_report['barangay_name'] ?? '',
-        '{category_name}'  => $tpl_report['category_name'] ?? '',
-        '{severity_score}' => $tpl_report['severity_score'] ?? 0,
-        '{first_name}'     => $tpl_report['first_name'] ?? '',
-        '{last_name}'      => $tpl_report['last_name'] ?? '',
-        '{full_name}'      => trim(($tpl_report['first_name'] ?? '') . ' ' . ($tpl_report['last_name'] ?? '')),
-        '{email}'          => $tpl_report['email'] ?? '',
-        '{contact_number}' => $tpl_report['contact_number'] ?? '',
-        '{role}'           => 'Citizen',
-    ];
-    $notifications[] = array(
-        'id' => 'tpl_' . $event . '_' . $tpl_report['id'],
-        'type' => $event,
-        'title' => $tpl_status_map[$event]['title'],
-        'message' => SettingsHelper::parseTemplate($tpl_text, $tpl_data),
-        'time' => $tpl_report['updated_at'] ?: $tpl_report['created_at'],
-        'icon' => $tpl_status_map[$event]['icon'],
-        'color' => $tpl_status_map[$event]['color'],
-        'link' => BASE_URL . "index.php?page=verify-reports&id=" . IdGuard::enc((int)$tpl_report['id']),
-        'read' => false
-    );
-}
-
-// Sort by time (newest first)
-usort($notifications, function($a, $b) {
-    return strtotime($b['time']) - strtotime($a['time']);
-});
-
-$notifications = array_slice($notifications, 0, 10);
-$unread_count = count($notifications);
+$notifModel = new Notification($db);
+$notifications = $notifModel->getForUser($user_id, 10);
+$unread_count = $notifModel->getUnreadCount($user_id);
 
 // ========== BASIC STATUS-BREAKDOWN STATISTICS (kept for the secondary row) ==========
 $total_reports = $reportModel->getTotalCount($barangay_id);
@@ -566,14 +380,19 @@ $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="csrf-token" content="<?php echo isset($csrf_token) ? htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8') : ''; ?>">
     <title>Barangay Dashboard - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
     <!-- Leaflet.markercluster for algorithm-driven clustering (same as MENRO map) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -767,6 +586,54 @@ $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
             color: #10A37F; 
         }
         .mark-all-read:hover { background: #F0FDF4; color: #0D8568; }
+        
+        .notification-actions {
+            display: flex;
+            border-top: 1px solid #F3F4F6;
+            background: #FAFAFA;
+        }
+        .notification-actions .mark-all-read,
+        .notification-actions .clear-notifications {
+            flex: 1;
+            text-align: center;
+            padding: 12px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+        }
+        .notification-actions .mark-all-read {
+            color: #10A37F;
+            border-right: 1px solid #F3F4F6;
+        }
+        .notification-actions .mark-all-read:hover {
+            background: #F0FDF4;
+            color: #0D8568;
+        }
+        .notification-actions .clear-notifications {
+            color: #EF4444;
+        }
+        .notification-actions .clear-notifications:hover {
+            background: #FEF2F2;
+            color: #B91C1C;
+        }
+        .view-all-notifications {
+            text-align: center;
+            padding: 12px 20px;
+            border-top: 1px solid #F3F4F6;
+            background: #FFFFFF;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #10A37F;
+        }
+        .view-all-notifications:hover {
+            background: #F0FDF4;
+            color: #0D8568;
+        }
         
         .resolution-card {
             background: white;
@@ -1085,7 +952,7 @@ $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
             <div class="notification-list">
                 <?php if(count($notifications) > 0): ?>
                     <?php foreach($notifications as $notif): ?>
-                    <div class="notification-item" data-link="<?php echo isset($notif['link']) ? $notif['link'] : ''; ?>">
+                    <div class="notification-item" data-link="<?php echo isset($notif['link']) ? $notif['link'] : ''; ?>" data-id="<?php echo (int)$notif['id']; ?>">
                         <div class="notification-icon" style="background: <?php echo $notif['color']; ?>20;">
                             <i class="fas <?php echo $notif['icon']; ?>" style="color: <?php echo $notif['color']; ?>; font-size: 1.25rem;"></i>
                         </div>
@@ -1095,15 +962,15 @@ $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
                             <div class="notification-time">
                                 <i class="far fa-clock"></i>
                                 <?php
-                                    $time_diff = time() - strtotime($notif['time']);
+                                    $time_diff = time() - strtotime($notif['created_at']);
                                     if($time_diff < 60) echo "Just now";
                                     elseif($time_diff < 3600) echo floor($time_diff / 60) . " min ago";
                                     elseif($time_diff < 86400) echo floor($time_diff / 3600) . " hours ago";
-                                    else echo date('M d', strtotime($notif['time']));
+                                    else echo date('M d', strtotime($notif['created_at']));
                                 ?>
                             </div>
                         </div>
-                        <?php if(!$notif['read']): ?>
+                        <?php if(!$notif['is_read']): ?>
                         <div class="notification-dot"></div>
                         <?php endif; ?>
                     </div>
@@ -1120,10 +987,18 @@ $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
             </div>
             
             <?php if(count($notifications) > 0): ?>
-            <div class="mark-all-read" onclick="markAllAsRead()">
-                <i class="fas fa-check-double mr-2"></i>Mark all as read
+            <div class="notification-actions">
+                <div class="mark-all-read" onclick="markAllAsRead()">
+                    <i class="fas fa-check-double mr-1"></i>Mark all as read
+                </div>
+                <div class="clear-notifications" onclick="clearAllNotifications()">
+                    <i class="fas fa-trash-alt mr-1"></i>Clear all
+                </div>
             </div>
             <?php endif; ?>
+            <div class="view-all-notifications" onclick="viewAllNotifications()">
+                <i class="fas fa-list-alt mr-2"></i>View all notifications
+            </div>
         </div>
         
         <!-- Success/Error Messages -->
@@ -1516,6 +1391,48 @@ $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
 
 <script>
 let isDropdownOpen = false;
+var NOTIF_BASE_URL = '<?php echo BASE_URL; ?>';
+
+function getCsrfToken() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+function showNotification(message, type) {
+    type = type || 'info';
+    var color = type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : '#3B82F6';
+    var toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 z-[9999999] text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 max-w-sm';
+    toast.style.background = color;
+    toast.innerHTML = '<span>' + message + '</span>';
+    document.body.appendChild(toast);
+    setTimeout(function() {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(function() { if (toast.parentNode) toast.remove(); }, 300);
+    }, 3000);
+}
+
+function updateNotificationBadge(count) {
+    var badge = document.getElementById('notificationBadge');
+    if (count > 0) {
+        if (!badge) {
+            var bell = document.querySelector('.notification-bell');
+            if (bell) {
+                badge = document.createElement('span');
+                badge.id = 'notificationBadge';
+                badge.className = 'notification-badge';
+                bell.appendChild(badge);
+            }
+        }
+        if (badge) {
+            badge.textContent = count > 9 ? '9+' : count;
+            badge.style.display = '';
+        }
+    } else if (badge) {
+        badge.style.display = 'none';
+    }
+}
 
 function toggleNotifications() {
     var dropdown = document.getElementById('notificationDropdown');
@@ -1530,19 +1447,90 @@ function toggleNotifications() {
     }
 }
 
-function handleNotificationClick(link) {
+function closeDropdown() {
+    var dropdown = document.getElementById('notificationDropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+        isDropdownOpen = false;
+    }
+}
+
+function handleNotificationClick(id, link) {
+    if (id) {
+        var formData = new FormData();
+        formData.append('action', 'mark_read');
+        formData.append('id', id);
+        formData.append('csrf_token', getCsrfToken());
+        fetch(NOTIF_BASE_URL + 'controllers/NotificationController.php', { method: 'POST', body: formData })
+            .catch(function() {});
+    }
     if (link && link !== '') {
         window.location.href = link;
     }
-    document.getElementById('notificationDropdown').style.display = 'none';
-    isDropdownOpen = false;
+    closeDropdown();
 }
 
 function markAllAsRead() {
-    document.querySelectorAll('.notification-item .notification-dot').forEach(dot => dot.remove());
-    var badge = document.getElementById('notificationBadge');
-    if (badge) badge.style.display = 'none';
-    setTimeout(() => { document.getElementById('notificationDropdown').style.display = 'none'; isDropdownOpen = false; }, 1500);
+    var markAllBtn = document.querySelector('.mark-all-read');
+    if (markAllBtn) markAllBtn.style.pointerEvents = 'none';
+
+    var formData = new FormData();
+    formData.append('action', 'mark_all_read');
+    formData.append('csrf_token', getCsrfToken());
+
+    fetch(NOTIF_BASE_URL + 'controllers/NotificationController.php', { method: 'POST', body: formData })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data && data.success) {
+                document.querySelectorAll('.notification-item .notification-dot').forEach(function(dot) { dot.remove(); });
+                updateNotificationBadge(0);
+                if (markAllBtn) {
+                    var originalText = markAllBtn.innerHTML;
+                    markAllBtn.innerHTML = '<i class="fas fa-check mr-1"></i>All marked as read';
+                    setTimeout(function() { if (markAllBtn) markAllBtn.innerHTML = originalText; }, 2000);
+                }
+            } else if (data && data.error) {
+                showNotification(data.error, 'error');
+            }
+        })
+        .catch(function() { showNotification('Failed to mark notifications as read.', 'error'); })
+        .finally(function() { if (markAllBtn) markAllBtn.style.pointerEvents = ''; });
+}
+
+function clearAllNotifications() {
+    if (!confirm('Clear all notifications? This cannot be undone.')) return;
+
+    var formData = new FormData();
+    formData.append('action', 'clear_all');
+    formData.append('csrf_token', getCsrfToken());
+
+    fetch(NOTIF_BASE_URL + 'controllers/NotificationController.php', { method: 'POST', body: formData })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data && data.success) {
+                var list = document.querySelector('.notification-list');
+                if (list) {
+                    list.innerHTML = '<div class="text-center py-12">'
+                        + '<div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">'
+                        + '<i class="fas fa-bell-slash text-2xl text-gray-400"></i></div>'
+                        + '<p class="text-gray-400 text-sm font-medium">No notifications yet</p>'
+                        + '<p class="text-xs text-gray-300 mt-1 font-medium">You have cleared your notifications.</p></div>';
+                }
+                var headerCount = document.querySelector('.notification-header .rounded-full');
+                if (headerCount) headerCount.textContent = '0 updates';
+                var actions = document.querySelector('.notification-actions');
+                if (actions) actions.style.display = 'none';
+                updateNotificationBadge(0);
+                showNotification('All notifications cleared.', 'success');
+            } else if (data && data.error) {
+                showNotification(data.error, 'error');
+            }
+        })
+        .catch(function() { showNotification('Failed to clear notifications.', 'error'); });
+}
+
+function viewAllNotifications() {
+    window.location.href = NOTIF_BASE_URL + 'index.php?page=notifications';
 }
 
 document.addEventListener('click', function(event) {
@@ -1564,10 +1552,10 @@ document.addEventListener('keydown', function(event) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.notification-item').forEach(item => {
+    document.querySelectorAll('.notification-item').forEach(function(item) {
         item.addEventListener('click', function(e) {
             e.stopPropagation();
-            handleNotificationClick(this.getAttribute('data-link'));
+            handleNotificationClick(this.getAttribute('data-id'), this.getAttribute('data-link'));
         });
     });
 });
@@ -1639,11 +1627,7 @@ function initMap() {
     // naturally zooms to just their local pins.
     map = L.map('map').setView(barangayCenter, 15);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(map);
+    MapLayers.addControl(map);
 
     // Draw THIS barangay's own boundary (its GeoJSON) so the map shows only
     // their jurisdiction, with the citizen report pins sitting on top of it.

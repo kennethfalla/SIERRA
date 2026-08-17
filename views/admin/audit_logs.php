@@ -14,6 +14,70 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
 $database = new Database();
 $db = $database->getConnection();
 
+// ------------------------------------------------------------
+// HELPER: parse a User-Agent into a friendly device label
+// e.g. "iPhone · Safari", "Windows 11 · Chrome", "Android Phone 14 · Chrome"
+// ------------------------------------------------------------
+function friendlyDeviceName($ua) {
+    if (empty(trim($ua))) return null;
+    $ua = ' ' . $ua . ' ';
+
+    if (stripos($ua, 'iPhone') !== false) {
+        $device = 'iPhone' . iosVersion($ua);
+    } elseif (stripos($ua, 'iPad') !== false) {
+        $device = 'iPad' . iosVersion($ua);
+    } elseif (stripos($ua, 'Android') !== false) {
+        $androidVer = '';
+        if (preg_match('/Android\s([0-9.]+)/i', $ua, $m)) $androidVer = ' ' . $m[1];
+        $device = (stripos($ua, 'Mobile') !== false ? 'Android Phone' : 'Android Tablet') . $androidVer;
+    } elseif (stripos($ua, 'CrOS') !== false) {
+        $device = 'Chromebook';
+    } elseif (preg_match('/Windows NT 11/i', $ua)) {
+        $device = 'Windows 11';
+    } elseif (preg_match('/Windows NT 10\.0/i', $ua)) {
+        $device = 'Windows 10/11';
+    } elseif (preg_match('/Windows NT 6\.3/i', $ua)) {
+        $device = 'Windows 8.1';
+    } elseif (preg_match('/Windows NT 6\.1/i', $ua)) {
+        $device = 'Windows 7';
+    } elseif (stripos($ua, 'Windows') !== false) {
+        $device = 'Windows PC';
+    } elseif (stripos($ua, 'Mac OS X') !== false || stripos($ua, 'Macintosh') !== false) {
+        $device = 'Mac';
+    } elseif (stripos($ua, 'Linux') !== false) {
+        $device = 'Linux Device';
+    } else {
+        $device = 'Unknown Device';
+    }
+
+    if (stripos($ua, 'SamsungBrowser') !== false) {
+        $browser = 'Samsung Internet';
+    } elseif (stripos($ua, 'Edg/') !== false) {
+        $browser = 'Edge';
+    } elseif (stripos($ua, 'OPR/') !== false || stripos($ua, 'Opera') !== false) {
+        $browser = 'Opera';
+    } elseif (stripos($ua, 'Chrome/') !== false) {
+        $browser = 'Chrome';
+    } elseif (stripos($ua, 'Firefox/') !== false) {
+        $browser = 'Firefox';
+    } elseif (preg_match('/Version\/[\d.]+.*Safari/i', $ua)) {
+        $browser = 'Safari';
+    } elseif (stripos($ua, 'Trident/') !== false || stripos($ua, 'MSIE') !== false) {
+        $browser = 'Internet Explorer';
+    } else {
+        $browser = null;
+    }
+
+    return $browser ? $device . ' · ' . $browser : $device;
+}
+
+function iosVersion($ua) {
+    if (preg_match('/OS (\d+)[_\.](\d+)/', $ua, $m)) {
+        return ' ' . $m[1] . '.' . $m[2];
+    }
+    return '';
+}
+
 // Get filter parameters
 $action_filter = $_GET['action'] ?? 'all';
 $user_filter = $_GET['user'] ?? '';
@@ -112,6 +176,9 @@ $top_actions = $db->query("
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Audit Logs - Sierra</title>
@@ -120,25 +187,43 @@ $top_actions = $db->query("
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
+        body { background: #F7FBF9; }
         
         ::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
         ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 20px; }
-        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #059669, #047857); border-radius: 20px; }
-        * { scrollbar-width: thin; scrollbar-color: #059669 #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #10A37F, #0D8568); border-radius: 20px; }
+        * { scrollbar-width: thin; scrollbar-color: #10A37F #f1f5f9; }
         
         h1, h2, h3, h4, h5, h6 { font-weight: 700; letter-spacing: -0.02em; }
+
+        .main-container {
+            padding: 1rem;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        @media (min-width: 640px) {
+            .main-container { padding: 1.5rem; }
+        }
+        @media (min-width: 768px) {
+            .main-container { padding: 2rem; }
+        }
+
+        .page-header { margin-bottom: 1.25rem; }
+        @media (min-width: 640px) { .page-header { margin-bottom: 1.5rem; } }
+        .page-title { font-size: 1.5rem; }
+        @media (min-width: 640px) { .page-title { font-size: 1.875rem; } }
         
         .stat-card { 
             border-radius: 12px; 
             transition: all 0.2s ease; 
-            border: 1px solid rgba(5, 150, 105, 0.08); 
+            border: 1px solid rgba(16, 163, 127, 0.08); 
             opacity: 0; 
             animation: slideUp 0.5s ease-out forwards; 
         }
         .stat-card:hover { 
             transform: translateY(-2px); 
-            border-color: #059669; 
-            box-shadow: 0 8px 20px -12px rgba(5, 150, 105, 0.15); 
+            border-color: #10A37F; 
+            box-shadow: 0 8px 20px -12px rgba(16, 163, 127, 0.15); 
         }
         
         @keyframes slideUp {
@@ -152,20 +237,13 @@ $top_actions = $db->query("
         .stat-card:nth-child(4) { animation-delay: 0.2s; }
         
         .btn-primary {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
             border-radius: 10px;
             transition: all 0.2s ease;
         }
         .btn-primary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
-        }
-        
-        .filter-card {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid #eef2f0;
-            padding: 1.25rem;
+            box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
         }
         
         .table-container {
@@ -193,7 +271,7 @@ $top_actions = $db->query("
         .action-default { background: #F3F4F6; color: #6B7280; }
         
         .role-badge-admin { background: #8B5CF6; color: white; }
-        .role-badge-barangay { background: #059669; color: white; }
+        .role-badge-barangay { background: #10A37F; color: white; }
         .role-badge-citizen { background: #3B82F6; color: white; }
         
         .modal {
@@ -227,34 +305,35 @@ $top_actions = $db->query("
             text-decoration: none;
             transition: all 0.2s;
         }
-        .pagination-btn:hover { background: #F0FDF4; border-color: #059669; }
-        .pagination-active { background: #059669; color: white; border-color: #059669; }
+        .pagination-btn:hover { background: #F0FDF4; border-color: #10A37F; }
+        .pagination-active { background: #10A37F; color: white; border-color: #10A37F; }
         
         @media (max-width: 768px) {
             .ml-72 { margin-left: 0; }
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-[#F5FBF6] to-[#EAF7F2]">
+<body class="bg-[#F7FBF9]">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div class="lg:ml-72 min-h-screen">
-    <div class="p-4 md:p-8 max-w-[1600px] mx-auto">
+    <div class="main-container max-w-7xl mx-auto">
         
-        <!-- Header -->
-        <div class="mb-8 animate-slide-up" style="animation-delay: 0s;">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <div class="flex items-center gap-3 mb-2">
-                        <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-history text-[#059669] text-xl"></i>
-                        </div>
-                        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">Audit Logs</h1>
-                    </div>
-                    <p class="text-gray-500 text-sm ml-14 font-medium">Track all system activities and user actions</p>
+        <!-- Header (on-brand) -->
+        <div class="page-header">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-history text-[#10A37F] text-xs md:text-sm"></i>
                 </div>
-                <button type="button" disabled class="px-5 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl font-semibold text-sm flex items-center gap-2 cursor-default">
+                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Administration</span>
+            </div>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h1 class="page-title font-bold text-gray-800">Audit Logs</h1>
+                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Track all system activities and user actions</p>
+                </div>
+                <button type="button" disabled class="px-4 py-2 bg-[#10A37F]/10 text-[#0D8568] rounded-xl font-semibold text-xs md:text-sm flex items-center gap-2 cursor-default">
                     <i class="fas fa-lock"></i> Read-only · System Admin
                 </button>
             </div>
@@ -327,7 +406,7 @@ $top_actions = $db->query("
         <?php if(!empty($top_actions)): ?>
         <div class="bg-white rounded-xl p-4 mb-6 border border-emerald-50 animate-slide-up">
             <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                <i class="fas fa-chart-pie text-[#059669]"></i> Most Common Actions
+                <i class="fas fa-chart-pie text-[#10A37F]"></i> Most Common Actions
             </h3>
             <div class="flex flex-wrap gap-3">
                 <?php foreach($top_actions as $action): ?>
@@ -339,79 +418,63 @@ $top_actions = $db->query("
         </div>
         <?php endif; ?>
         
-        <!-- Filter Card -->
-        <div class="filter-card mb-6 animate-slide-up">
-            <form method="GET" action="index.php" class="space-y-4">
-                <input type="hidden" name="page" value="audit-logs">
-                
-                <div class="flex flex-wrap items-end gap-3">
-                    <div class="flex-1 min-w-[200px]">
-                        <label class="block text-xs text-gray-500 mb-1 font-semibold">Search</label>
-                        <div class="relative">
-                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by description or user..." class="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#059669] focus:ring-2 focus:ring-emerald-100 outline-none transition">
-                        </div>
-                    </div>
-                    
-                    <div class="w-40">
-                        <label class="block text-xs text-gray-500 mb-1 font-semibold">Action</label>
-                        <select name="action" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#059669] focus:ring-2 focus:ring-emerald-100 outline-none bg-white">
-                            <option value="all">All Actions</option>
-                            <?php foreach($actions as $action): ?>
-                            <option value="<?php echo $action; ?>" <?php echo $action_filter == $action ? 'selected' : ''; ?>><?php echo htmlspecialchars($action); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="w-40">
-                        <label class="block text-xs text-gray-500 mb-1 font-semibold">Status</label>
-                        <select name="status" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#059669] focus:ring-2 focus:ring-emerald-100 outline-none bg-white">
-                            <option value="all">All Statuses</option>
-                            <option value="SUCCESS" <?php echo $status_filter == 'SUCCESS' ? 'selected' : ''; ?>>SUCCESS</option>
-                            <option value="FAILED" <?php echo $status_filter == 'FAILED' ? 'selected' : ''; ?>>FAILED</option>
-                            <option value="UNAUTHORIZED_ATTEMPT" <?php echo $status_filter == 'UNAUTHORIZED_ATTEMPT' ? 'selected' : ''; ?>>UNAUTHORIZED_ATTEMPT</option>
-                        </select>
-                    </div>
-                    
-                    <div class="w-44">
-                        <label class="block text-xs text-gray-500 mb-1 font-semibold">User</label>
-                        <select name="user" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#059669] focus:ring-2 focus:ring-emerald-100 outline-none bg-white">
-                            <option value="">All Users</option>
-                            <?php foreach($users as $u): ?>
-                            <option value="<?php echo $u['id']; ?>" <?php echo $user_filter == $u['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($u['first_name'] . ' ' . $u['last_name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="w-36">
-                        <label class="block text-xs text-gray-500 mb-1 font-semibold">From Date</label>
-                        <input type="date" name="date_from" value="<?php echo $date_from; ?>" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#059669] focus:ring-2 focus:ring-emerald-100 outline-none">
-                    </div>
-                    
-                    <div class="w-36">
-                        <label class="block text-xs text-gray-500 mb-1 font-semibold">To Date</label>
-                        <input type="date" name="date_to" value="<?php echo $date_to; ?>" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#059669] focus:ring-2 focus:ring-emerald-100 outline-none">
-                    </div>
-                    
-                    <div class="flex gap-2">
-                        <button type="submit" class="btn-primary px-5 py-2.5 text-white font-semibold transition shadow-sm">
-                            <i class="fas fa-filter mr-2"></i>Apply
-                        </button>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs" class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition">
-                            <i class="fas fa-times mr-2"></i>Reset
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
-        
-        <!-- Results Count -->
-        <div class="flex justify-between items-center mb-4 animate-slide-up">
-            <p class="text-sm text-gray-500 font-medium">
-                Showing <span class="font-bold text-gray-700"><?php echo count($logs); ?></span> of 
-                <span class="font-bold text-gray-700"><?php echo number_format($total_logs); ?></span> log entries
-            </p>
-        </div>
+        <!-- Filter Toolbar (Shared Design) -->
+        <?php
+        $ft_popover_count = (($date_from != '') ? 1 : 0) + (($date_to != '') ? 1 : 0) + ((!empty($user_filter)) ? 1 : 0);
+        $ft = [
+            'search_id'          => 'searchInput',
+            'search_value'       => htmlspecialchars($search),
+            'search_placeholder' => 'Search logs by description or user...',
+            'results_text'       => 'Showing <strong>' . count($logs) . '</strong> of <strong>' . number_format($total_logs) . '</strong> log entries',
+            'inline_selects'     => [
+                [
+                    'id'        => 'toolbarAction',
+                    'value'     => $action_filter,
+                    'min_width' => '140px',
+                    'options'   => array_merge(['all' => 'All Actions'], array_combine($actions, $actions)),
+                ],
+                [
+                    'id'        => 'toolbarStatus',
+                    'value'     => $status_filter,
+                    'min_width' => '140px',
+                    'options'   => [
+                        'all' => 'All Statuses',
+                        'SUCCESS' => 'Success',
+                        'FAILED' => 'Failed',
+                        'UNAUTHORIZED_ATTEMPT' => 'Unauthorized'
+                    ],
+                ],
+            ],
+            'filter_by'          => [
+                'active' => ($date_from != '' || $date_to != '' || !empty($user_filter)),
+                'count'  => $ft_popover_count,
+            ],
+            'popover_fields'     => [
+                ['kind' => 'select', 'id' => 'popoverUser', 'label' => 'User', 'value' => $user_filter, 'default' => '',
+                 'options' => array_merge(['' => 'All Users'], array_reduce($users, function($carry, $u) {
+                     $carry[$u['id']] = $u['first_name'] . ' ' . $u['last_name'];
+                     return $carry;
+                 }, []))
+                ],
+                ['kind' => 'date', 'id' => 'popoverDateFrom', 'label' => 'Date From', 'value' => $date_from, 'default' => ''],
+                ['kind' => 'date', 'id' => 'popoverDateTo', 'label' => 'Date To', 'value' => $date_to, 'default' => ''],
+            ],
+            'active_filters'     => (int)$active_filters,
+            'chips'              => array_filter([
+                !empty($search) ? '<span class="filter-chip">"' . htmlspecialchars($search) . '" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>' : null,
+                ($action_filter != 'all') ? '<span class="filter-chip">' . htmlspecialchars($action_filter) . ' <span class="chip-remove" data-filter="action"><i class="fas fa-times"></i></span></span>' : null,
+                ($status_filter != 'all') ? '<span class="filter-chip">' . ($status_filter == 'SUCCESS' ? 'Success' : ($status_filter == 'FAILED' ? 'Failed' : 'Unauthorized')) . ' <span class="chip-remove" data-filter="status"><i class="fas fa-times"></i></span></span>' : null,
+                (!empty($user_filter)) ? '<span class="filter-chip">User: ' . htmlspecialchars(array_reduce($users, function($carry, $u) use ($user_filter) {
+                    return $u['id'] == $user_filter ? ($u['first_name'] . ' ' . $u['last_name']) : $carry;
+                }, 'Unknown')) . ' <span class="chip-remove" data-filter="user"><i class="fas fa-times"></i></span></span>' : null,
+                ($date_from != '') ? '<span class="filter-chip">From ' . date('M d, Y', strtotime($date_from)) . ' <span class="chip-remove" data-filter="date_from"><i class="fas fa-times"></i></span></span>' : null,
+                ($date_to != '') ? '<span class="filter-chip">To ' . date('M d, Y', strtotime($date_to)) . ' <span class="chip-remove" data-filter="date_to"><i class="fas fa-times"></i></span></span>' : null,
+            ], fn($v) => $v !== null),
+            'chips_clear_all'    => true,
+            'callback'           => 'applyFilters',
+        ];
+        include __DIR__ . '/../shared/report_filter_toolbar.php';
+        ?>
         
         <!-- Logs Table -->
         <div class="table-container mb-6 animate-slide-up">
@@ -443,6 +506,13 @@ $top_actions = $db->query("
                                 $log_user_name  = $log['user_name']  ?: ($log['actor_name'] ?? null);
                                 $log_user_email = $log['user_email'] ?: '';
                                 $log_user_role  = $log['user_role'] ?: ($log['actor_role'] ?? null);
+
+                                // Citizens are stored with a NULL/empty user_type
+                                // (see roleFromUserType) — so any real user that
+                                // isn't staff/admin/barangay is a citizen.
+                                if (empty($log_user_role) && ($log['user_id'] || $log['actor_name'] || $log['user_name'])) {
+                                    $log_user_role = 'citizen';
+                                }
                                 
                                 // Affected module: prefer the stored value, then
                                 // derive a sensible module from the action name.
@@ -525,7 +595,10 @@ $top_actions = $db->query("
                                     <?php echo htmlspecialchars($log['ip_address'] ?: '—'); ?>
                                 </td>
                                 <td class="px-5 py-3 text-sm text-gray-500">
-                                    <?php echo htmlspecialchars(trim($log['user_agent'] ?? '') ?: '—'); ?>
+                                    <?php
+                                        $ua = trim($log['user_agent'] ?? '');
+                                        echo $ua ? htmlspecialchars(friendlyDeviceName($ua)) : '—';
+                                    ?>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -562,6 +635,77 @@ $top_actions = $db->query("
         
     </div>
 </div>
+
+<script>
+// Audit Logs Filter Functions
+function applyFilters() {
+    const search = document.getElementById('searchInput')?.value || '';
+    const action = document.getElementById('toolbarAction')?.value || 'all';
+    const status = document.getElementById('toolbarStatus')?.value || 'all';
+    const user = document.getElementById('popoverUser')?.value || '';
+    const dateFrom = document.getElementById('popoverDateFrom')?.value || '';
+    const dateTo = document.getElementById('popoverDateTo')?.value || '';
+    
+    const params = new URLSearchParams({
+        page: 'audit-logs',
+        search: search,
+        action: action,
+        status: status,
+        user: user,
+        date_from: dateFrom,
+        date_to: dateTo
+    });
+    
+    window.location.href = 'index.php?' + params.toString();
+}
+
+// Individual chip removal
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.chip-remove').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const filter = this.dataset.filter;
+            const params = new URLSearchParams(window.location.search);
+            
+            if (filter === 'search') {
+                params.delete('search');
+            } else if (filter === 'action') {
+                params.set('action', 'all');
+            } else if (filter === 'status') {
+                params.set('status', 'all');
+            } else if (filter === 'user') {
+                params.delete('user');
+            } else if (filter === 'date_from') {
+                params.delete('date_from');
+            } else if (filter === 'date_to') {
+                params.delete('date_to');
+            }
+            
+            window.location.href = 'index.php?' + params.toString();
+        });
+    });
+    
+    // Clear all filters
+    const clearAllBtn = document.getElementById('clearAllFilters');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = 'index.php?page=audit-logs';
+        });
+    }
+    
+    // Search on Enter key
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyFilters();
+            }
+        });
+    }
+});
+</script>
 
 </body>
 </html>

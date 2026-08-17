@@ -103,6 +103,12 @@ $navigation_groups = [
             'icon' => 'fa-archive',
             'description' => 'Manually archive old reports, retain rejected/spam, and manage the archive',
             'file' => 'archiving.php'
+        ],
+        'pdf_export' => [
+            'label' => 'PDF Export',
+            'icon' => 'fa-file-pdf',
+            'description' => 'MENRO PDF Analytics Export — official LGU header, logos, and signatory block',
+            'file' => 'pdf_export.php'
         ]
     ]
 ];
@@ -124,6 +130,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Settings - <?php echo htmlspecialchars($system_name); ?></title>

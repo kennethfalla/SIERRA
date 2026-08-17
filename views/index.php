@@ -133,6 +133,9 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title><?php echo htmlspecialchars($system_name); ?> - San Isidro Environmental Reporting System</title>
@@ -141,6 +144,7 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -419,6 +423,138 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
         }
         @media (prefers-reduced-motion: reduce) {
             #intro-splash { display: none; }
+        }
+
+        /* ============================================ */
+        /* MOBILE OPTIMISATIONS  (≤ 639px)              */
+        /* ============================================ */
+        @media (max-width: 639px) {
+
+            /* ── Nav ── */
+            nav .text-xl { font-size: 1rem; }
+
+            /* ── Hero ── */
+            #home {
+                min-height: 100svh;
+                border-radius: 0 0 1.5rem 1.5rem;
+            }
+            #home > .relative.z-10 {
+                padding-top: 4.5rem;
+                padding-bottom: 3rem;
+                gap: 1.5rem;
+            }
+            .hero-eyebrow {
+                font-size: 0.68rem !important;
+                padding: 0.35rem 0.75rem;
+                margin-bottom: 0.9rem !important;
+                line-height: 1.4;
+            }
+            .hero-heading {
+                font-size: 2rem !important;
+                line-height: 1.1;
+                margin-bottom: 0.75rem !important;
+            }
+            #home p.text-white\/85 {
+                font-size: 0.82rem !important;
+                line-height: 1.55;
+                margin-bottom: 1.1rem !important;
+            }
+            /* CTA buttons — stack nicely */
+            #home .flex.flex-wrap.gap-3 a {
+                padding: 0.55rem 1.1rem;
+                font-size: 0.8rem;
+                border-radius: 0.65rem;
+            }
+            /* Stats glass card — compact */
+            .glass-card {
+                padding: 1rem 1.1rem !important;
+                border-radius: 1.25rem !important;
+            }
+            .glass-card .text-2xl { font-size: 1.35rem; }
+            .glass-card > .flex.items-center.gap-3 { margin-bottom: 0.85rem !important; }
+            .glass-card > .flex.items-center.gap-3 .text-sm { font-size: 0.72rem; }
+            .glass-card > .flex.items-center.gap-3 p  { font-size: 0.68rem; }
+            .glass-card .mt-6 { margin-top: 0.85rem !important; }
+            .glass-card .w-11 { width: 2.1rem; height: 2.1rem; }
+
+            /* ── Section shared ── */
+            section { padding-top: 2.5rem !important; padding-bottom: 2.5rem !important; }
+            .text-center.mb-12,
+            .text-center.mb-8  { margin-bottom: 1.5rem !important; }
+            .text-center.mb-14 { margin-bottom: 1.75rem !important; }
+            section h2.text-3xl,
+            section h2.text-3xl.md\:text-4xl { font-size: 1.35rem !important; }
+            section p.text-gray-500 { font-size: 0.82rem !important; }
+            .section-divider { margin-bottom: 0.6rem; }
+
+            /* ── How It Works cards ── */
+            #features .grid.md\:grid-cols-3 { gap: 0.75rem; }
+            .feature-card { padding: 1.25rem !important; border-radius: 1rem !important; }
+            .feature-card .w-20 { width: 3rem; height: 3rem; }
+            .feature-card .text-3xl { font-size: 1.25rem; }
+            .feature-card h3.text-xl { font-size: 0.95rem !important; margin-bottom: 0.4rem !important; }
+            .feature-card p.text-sm { font-size: 0.78rem !important; }
+            /* Login prompt */
+            .login-prompt { padding: 1rem !important; }
+            .login-prompt p.text-lg  { font-size: 0.95rem !important; }
+            .login-prompt p.text-sm  { font-size: 0.78rem !important; }
+
+            /* ── Map section ── */
+            #map { height: 230px !important; border-radius: 0.75rem; }
+            #map-section .bg-white.rounded-2xl { padding: 0.65rem !important; }
+            #map-section .flex.flex-wrap.gap-3 { gap: 0.5rem; font-size: 0.7rem; }
+
+            /* ── Stats ── */
+            #stats .grid.grid-cols-2 { gap: 0.6rem; }
+            .stat-card { padding: 0.85rem 0.6rem !important; border-radius: 1rem !important; }
+            .stat-card .text-3xl { font-size: 1.35rem !important; }
+            .stat-card p.text-sm { font-size: 0.7rem !important; }
+            /* Resolution bar card */
+            #stats .mt-8 { margin-top: 0.85rem !important; padding: 0.9rem !important; border-radius: 1rem !important; }
+            #stats .mt-8 .text-3xl { font-size: 1.4rem !important; }
+            #stats .mt-8 .text-sm { font-size: 0.78rem !important; }
+            #stats .mt-8 .text-xs { font-size: 0.68rem !important; }
+            #stats .w-full.md\:w-2\/3 { width: 100% !important; }
+
+            /* ── About LGU ── */
+            #about .grid.md\:grid-cols-2 { gap: 1.25rem; margin-bottom: 2rem !important; }
+            #about h3.text-3xl,
+            #about h3.text-3xl.md\:text-4xl { font-size: 1.25rem !important; margin-bottom: 0.6rem !important; }
+            #about p.text-gray-600 { font-size: 0.8rem !important; line-height: 1.55; margin-bottom: 1rem !important; }
+            /* Mission / Vision images — shorter on mobile */
+            #about .relative.w-full.h-\[320px\],
+            #about img.w-full.h-\[320px\] { height: 190px !important; }
+            /* Inset image */
+            #about .absolute.-bottom-8 { display: none; }
+            /* Core Values grid */
+            #about .grid.grid-cols-2.md\:grid-cols-4 { gap: 0.6rem; }
+            #about .group.bg-white { padding: 0.85rem 0.6rem !important; border-radius: 0.85rem !important; }
+            #about .group .w-16 { width: 2.5rem; height: 2.5rem; margin-bottom: 0.6rem !important; }
+            #about .group .text-2xl { font-size: 1rem; }
+            #about .group h4 { font-size: 0.72rem !important; }
+            #about .group p.text-xs { font-size: 0.65rem !important; }
+            /* Bullet points */
+            #about .flex.items-start.gap-3 span { font-size: 0.78rem; }
+
+            /* ── Footer ── */
+            footer { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+            footer .grid.md\:grid-cols-4 { grid-template-columns: 1fr 1fr; gap: 1.5rem 1rem; }
+            footer h4 { font-size: 0.8rem; margin-bottom: 0.6rem !important; }
+            footer ul.space-y-2 { gap: 0.3rem; }
+            footer .text-sm { font-size: 0.75rem; }
+            footer .text-gray-400.text-sm { font-size: 0.73rem; }
+            footer .border-t { margin-top: 1.25rem !important; padding-top: 1rem !important; }
+            footer .border-t p { font-size: 0.68rem; }
+        }
+
+        /* ── Slightly above mobile (480–639) — loosen up slightly ── */
+        @media (min-width: 480px) and (max-width: 639px) {
+            .hero-heading { font-size: 2.35rem !important; }
+            .feature-card { padding: 1.5rem !important; }
+            .feature-card h3.text-xl { font-size: 1.05rem !important; }
+            .stat-card .text-3xl { font-size: 1.5rem !important; }
+            #about img.w-full.h-\[320px\],
+            #about .relative.w-full.h-\[320px\] { height: 220px !important; }
         }
     </style>
 </head>
@@ -1032,11 +1168,7 @@ const mapReports = <?php echo json_encode($reports_for_map); ?>;
 function initMap() {
     const map = L.map('map').setView([15.3092, 120.9033], 13);
     
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(map);
+    MapLayers.addControl(map);
     
     // Add San Isidro boundary
     <?php 
