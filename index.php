@@ -261,8 +261,20 @@ elseif($role === 'admin') {
         case 'manage-categories':
             header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
             exit();
+        case 'all-reports-print':
+            require_once 'views/admin/reports/all_reports_print.php';
+            break;
         case 'audit-logs':
             require_once 'views/admin/audit_logs.php';
+            break;
+        case 'audit-logs-report':
+            require_once 'views/admin/reports/audit_logs_report.php';
+            break;
+        case 'users-report':
+            require_once 'views/admin/reports/users_report.php';
+            break;
+        case 'dashboard-report':
+            require_once 'views/admin/reports/dashboard_report.php';
             break;
         case 'edit-profile':
             require_once 'views/edit_profile.php';

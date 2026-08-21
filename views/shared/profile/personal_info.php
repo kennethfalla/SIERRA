@@ -180,12 +180,34 @@
 
                                     <!-- Contact -->
                                     <div class="boxed-field">
-                                        <label class="boxed-label">Mobile Number</label>
-                                        <input type="tel" name="contact_number" value="<?php echo htmlspecialchars($user['contact_number']); ?>" pattern="09[0-9]{9}" required>
+                                        <div class="flex items-center justify-between">
+                                            <label class="boxed-label">Mobile Number</label>
+                                            <span id="phoneVerifiedBadge" style="display:none;" class="inline-flex items-center gap-1 text-[10px] font-bold text-green-600">
+                                                <i class="fas fa-check-circle"></i> Verified
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="tel" name="contact_number" value="<?php echo htmlspecialchars($user['contact_number']); ?>" pattern="09[0-9]{9}" required class="flex-1">
+                                            <button type="button" id="verifyPhoneBtn" onclick="sendPhoneOtp()" style="display:none;" class="btn-secondary whitespace-nowrap text-xs">
+                                                <i class="fas fa-shield-alt"></i> Verify Number
+                                            </button>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1" id="phoneHint">Changing your number requires SMS verification.</p>
                                     </div>
                                     <div class="boxed-field">
-                                        <label class="boxed-label">Email Address</label>
-                                        <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required>
+                                        <div class="flex items-center justify-between">
+                                            <label class="boxed-label">Email Address</label>
+                                            <span id="emailVerifiedBadge" style="display:none;" class="inline-flex items-center gap-1 text-[10px] font-bold text-green-600">
+                                                <i class="fas fa-check-circle"></i> Verified
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required class="flex-1">
+                                            <button type="button" id="confirmEmailBtn" onclick="sendEmailConfirm()" style="display:none;" class="btn-secondary whitespace-nowrap text-xs">
+                                                <i class="fas fa-envelope-check"></i> Confirm Email
+                                            </button>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-1" id="emailHint">Changing your email requires a confirmation code.</p>
                                     </div>
 
                                     <!-- Address -->

@@ -66,6 +66,192 @@ if ($date_to != '') {
     $params[':date_to'] = $date_to;
 }
 
+// ============================================
+// EXPORT CSV HANDLER
+// ============================================
+if (isset($_GET['export_type']) && $_GET['export_type'] !== '') {
+    if (!PermissionHelper::userHasPermission('can_export_reports')) {
+        $_SESSION['error'] = "You do not have permission to export reports.";
+        header("Location: " . BASE_URL . "index.php?page=all-reports");
+        exit();
+    }
+    $export_type = $_GET['export_type'];
+    $export_where = $where;
+    $export_params = $params;
+
+    $status_labels_export = [
+        'pending' => 'Pending', 'under_review' => 'Under Review', 'verified' => 'Verified',
+        'in_progress' => 'In Progress', 'escalated_pending' => 'Escalated (Pending)',
+        'escalated' => 'Escalated', 'resolved' => 'Resolved', 'rejected' => 'Rejected',
+        'cancelled' => 'Cancelled'
+    ];
+    $risk_labels_export = ['low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+
+    $export_join = "FROM reports r
+        JOIN categories c ON r.category_id = c.id
+        JOIN barangays b ON r.barangay_id = b.id
+        JOIN users u ON r.user_id = u.id";
+
+    $export_rows = [];
+    $export_headers = [];
+    $export_filename = '';
+
+    switch ($export_type) {
+        case 'master':
+            $export_filename = 'master_report_list_' . date('Y-m-d_His') . '.csv';
+            $export_headers = ['Report ID','Title','Description','Category','Barangay','Reporter','Risk Level','Severity Score','Decision Classification','Status','Impact Modifier','Verifications','Density Count','Latitude','Longitude','Address','Date Submitted','Last Updated','Resolved At','Escalated At'];
+            $sql = "SELECT r.id, r.title, r.description, r.latitude, r.longitude, r.location_address,
+                    r.risk_level, r.severity_score, r.decision_classification, r.status,
+                    r.impact_modifier, r.verification_count, r.spatial_density_count,
+                    c.name AS category_name, b.name AS barangay_name,
+                    CONCAT(u.first_name, ' ', u.last_name) AS reporter_name,
+                    r.created_at, r.updated_at, r.resolved_at, r.escalated_at
+                    $export_join WHERE $export_where ORDER BY r.created_at DESC";
+            $stmt = $db->prepare($sql);
+            foreach ($export_params as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $export_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'date_filtered':
+            $export_filename = 'date_filtered_reports_' . date('Y-m-d_His') . '.csv';
+            $export_headers = ['Report ID','Title','Category','Barangay','Reporter','Risk Level','Status','Date Submitted'];
+            $sql = "SELECT r.id, r.title, c.name AS category_name, b.name AS barangay_name,
+                    CONCAT(u.first_name, ' ', u.last_name) AS reporter_name,
+                    r.risk_level, r.status, r.created_at
+                    $export_join WHERE $export_where ORDER BY r.created_at DESC";
+            $stmt = $db->prepare($sql);
+            foreach ($export_params as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $export_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'by_category':
+            $export_filename = 'category_grouped_' . date('Y-m-d_His') . '.csv';
+            $export_headers = ['Category','Total Reports','High Risk','Critical Risk','Pending','In Progress','Resolved'];
+            $sql = "SELECT c.name AS category_name, COUNT(*) AS total_reports,
+                    SUM(CASE WHEN r.risk_level='high' THEN 1 ELSE 0 END) AS high_risk,
+                    SUM(CASE WHEN r.risk_level='critical' THEN 1 ELSE 0 END) AS critical_risk,
+                    SUM(CASE WHEN r.status='pending' THEN 1 ELSE 0 END) AS pending,
+                    SUM(CASE WHEN r.status='in_progress' THEN 1 ELSE 0 END) AS in_progress,
+                    SUM(CASE WHEN r.status='resolved' THEN 1 ELSE 0 END) AS resolved
+                    $export_join WHERE $export_where GROUP BY c.id, c.name ORDER BY total_reports DESC";
+            $stmt = $db->prepare($sql);
+            foreach ($export_params as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $export_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'by_barangay':
+            $export_filename = 'barangay_aggregated_' . date('Y-m-d_His') . '.csv';
+            $export_headers = ['Barangay','Total Reports','High Risk','Critical Risk','Pending','In Progress','Resolved','Escalated'];
+            $sql = "SELECT b.name AS barangay_name, COUNT(*) AS total_reports,
+                    SUM(CASE WHEN r.risk_level='high' THEN 1 ELSE 0 END) AS high_risk,
+                    SUM(CASE WHEN r.risk_level='critical' THEN 1 ELSE 0 END) AS critical_risk,
+                    SUM(CASE WHEN r.status='pending' THEN 1 ELSE 0 END) AS pending,
+                    SUM(CASE WHEN r.status='in_progress' THEN 1 ELSE 0 END) AS in_progress,
+                    SUM(CASE WHEN r.status='resolved' THEN 1 ELSE 0 END) AS resolved,
+                    SUM(CASE WHEN r.status IN ('escalated','escalated_pending') THEN 1 ELSE 0 END) AS escalated
+                    $export_join WHERE $export_where GROUP BY b.id, b.name ORDER BY total_reports DESC";
+            $stmt = $db->prepare($sql);
+            foreach ($export_params as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $export_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'by_risk':
+            $export_filename = 'risk_segmented_' . date('Y-m-d_His') . '.csv';
+            $export_headers = ['Risk Level','Total Reports','Categories Affected','Pending','In Progress','Resolved','Escalated'];
+            $sql = "SELECT r.risk_level, COUNT(*) AS total_reports,
+                    GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', ') AS categories_affected,
+                    SUM(CASE WHEN r.status='pending' THEN 1 ELSE 0 END) AS pending,
+                    SUM(CASE WHEN r.status='in_progress' THEN 1 ELSE 0 END) AS in_progress,
+                    SUM(CASE WHEN r.status='resolved' THEN 1 ELSE 0 END) AS resolved,
+                    SUM(CASE WHEN r.status IN ('escalated','escalated_pending') THEN 1 ELSE 0 END) AS escalated
+                    $export_join WHERE $export_where GROUP BY r.risk_level ORDER BY FIELD(r.risk_level,'critical','high','medium','low')";
+            $stmt = $db->prepare($sql);
+            foreach ($export_params as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $export_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'by_status':
+            $export_filename = 'status_tracking_' . date('Y-m-d_His') . '.csv';
+            $export_headers = ['Status','Total Reports','Categories','Barangays','Avg Severity Score'];
+            $sql = "SELECT r.status AS status_name, COUNT(*) AS total_reports,
+                    GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', ') AS categories,
+                    GROUP_CONCAT(DISTINCT b.name ORDER BY b.name SEPARATOR ', ') AS barangays,
+                    AVG(r.severity_score) AS avg_severity
+                    $export_join WHERE $export_where GROUP BY r.status ORDER BY FIELD(r.status,'pending','under_review','in_progress','escalated_pending','escalated','resolved','rejected')";
+            $stmt = $db->prepare($sql);
+            foreach ($export_params as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $export_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        default:
+            $_SESSION['error'] = "Invalid export type.";
+            header("Location: " . BASE_URL . "index.php?page=all-reports");
+            exit();
+    }
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $export_filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $output = fopen('php://output', 'w');
+    fwrite($output, "\xEF\xBB\xBF");
+    fputcsv($output, $export_headers);
+
+    foreach ($export_rows as $row) {
+        switch ($export_type) {
+            case 'master':
+                fputcsv($output, [
+                    '#' . str_pad($row['id'], 5, '0', STR_PAD_LEFT),
+                    $row['title'], $row['description'] ?? '', $row['category_name'],
+                    $row['barangay_name'], $row['reporter_name'],
+                    $risk_labels_export[$row['risk_level']] ?? $row['risk_level'],
+                    $row['severity_score'] ?? 0, $row['decision_classification'] ?? '',
+                    $status_labels_export[$row['status']] ?? $row['status'],
+                    $row['impact_modifier'] == 4 ? 'Severe' : ($row['impact_modifier'] == 2 ? 'Moderate' : 'Minor'),
+                    $row['verification_count'] ?? 0, $row['spatial_density_count'] ?? 0,
+                    $row['latitude'], $row['longitude'], $row['location_address'] ?? '',
+                    $row['created_at'], $row['updated_at'], $row['resolved_at'] ?? '', $row['escalated_at'] ?? ''
+                ]);
+                break;
+            case 'date_filtered':
+                fputcsv($output, [
+                    '#' . str_pad($row['id'], 5, '0', STR_PAD_LEFT),
+                    $row['title'], $row['category_name'], $row['barangay_name'],
+                    $row['reporter_name'],
+                    $risk_labels_export[$row['risk_level']] ?? $row['risk_level'],
+                    $status_labels_export[$row['status']] ?? $row['status'],
+                    $row['created_at']
+                ]);
+                break;
+            case 'by_category':
+                fputcsv($output, [$row['category_name'], $row['total_reports'], $row['high_risk'], $row['critical_risk'], $row['pending'], $row['in_progress'], $row['resolved']]);
+                break;
+            case 'by_barangay':
+                fputcsv($output, [$row['barangay_name'], $row['total_reports'], $row['high_risk'], $row['critical_risk'], $row['pending'], $row['in_progress'], $row['resolved'], $row['escalated']]);
+                break;
+            case 'by_risk':
+                fputcsv($output, [$risk_labels_export[$row['risk_level']] ?? $row['risk_level'], $row['total_reports'], $row['categories_affected'], $row['pending'], $row['in_progress'], $row['resolved'], $row['escalated']]);
+                break;
+            case 'by_status':
+                fputcsv($output, [$status_labels_export[$row['status_name']] ?? $row['status_name'], $row['total_reports'], $row['categories'], $row['barangays'], round($row['avg_severity'] ?? 0, 2)]);
+                break;
+        }
+    }
+    fclose($output);
+
+    require_once BASE_PATH . 'models/ActivityLog.php';
+    $actLog = new ActivityLog($db);
+    $actLog->log($_SESSION['user_id'], 'Export Reports', "Exported $export_type report from All Reports page", $_SERVER['REMOTE_ADDR'] ?? 'unknown', null, 'SUCCESS');
+    exit();
+}
+
 // Total count
 $count_sql = "SELECT COUNT(*) FROM reports r JOIN users u ON r.user_id = u.id WHERE $where";
 $count_stmt = $db->prepare($count_sql);
@@ -154,6 +340,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F7FBF9; }
@@ -687,9 +874,71 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                     <h1 class="page-title font-bold text-gray-800">All Reports</h1>
                     <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">View and manage all environmental reports across San Isidro</p>
                 </div>
-                <div class="text-right text-sm bg-emerald-50 px-4 py-2 rounded-xl">
-                    <div class="text-gray-600 font-medium"><?php echo (int)$total; ?> total reports</div>
-                    <div class="text-orange-600 font-semibold text-xs">Escalated: <strong><?php echo (int)$escalatedCount; ?></strong></div>
+                <div class="flex items-center gap-3">
+                    <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
+                    <div class="export-dropdown" id="exportDropdownWrap">
+                        <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
+                            <i class="fas fa-download"></i> Export
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div id="exportDropdown" class="export-dropdown-menu" style="width:320px;">
+                            <div class="export-dropdown-header">
+                                <p><i class="fas fa-file-export" style="color:#10A37F; margin-right:4px;"></i> Export as CSV</p>
+                                <p class="sub">Current filters will be applied</p>
+                            </div>
+                            <div>
+                                <button class="export-dropdown-item" onclick="downloadExport('master')">
+                                    <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-list-alt"></i></div>
+                                    <div class="item-text">
+                                        <div class="item-title">Master Report List</div>
+                                        <div class="item-desc">All incidents with full details</div>
+                                    </div>
+                                </button>
+                                <button class="export-dropdown-item" onclick="downloadExport('date_filtered')">
+                                    <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-calendar-alt"></i></div>
+                                    <div class="item-text">
+                                        <div class="item-title">Date-Filtered Reports</div>
+                                        <div class="item-desc">Temporal trend analysis</div>
+                                    </div>
+                                </button>
+                                <button class="export-dropdown-item" onclick="downloadExport('by_category')">
+                                    <div class="item-icon" style="background:#F3E8FF; color:#9333EA;"><i class="fas fa-tags"></i></div>
+                                    <div class="item-text">
+                                        <div class="item-title">Category Groupings</div>
+                                        <div class="item-desc">Clustered by incident type</div>
+                                    </div>
+                                </button>
+                                <button class="export-dropdown-item" onclick="downloadExport('by_barangay')">
+                                    <div class="item-icon" style="background:#FFEDD5; color:#EA580C;"><i class="fas fa-map-marker-alt"></i></div>
+                                    <div class="item-text">
+                                        <div class="item-title">Barangay-Level Aggregation</div>
+                                        <div class="item-desc">Geographic hotspot analysis</div>
+                                    </div>
+                                </button>
+                                <button class="export-dropdown-item" onclick="downloadExport('by_risk')">
+                                    <div class="item-icon" style="background:#FEE2E2; color:#DC2626;"><i class="fas fa-exclamation-triangle"></i></div>
+                                    <div class="item-text">
+                                        <div class="item-title">Risk Level Segmentation</div>
+                                        <div class="item-desc">Priority action lists by severity</div>
+                                    </div>
+                                </button>
+                                <button class="export-dropdown-item" onclick="downloadExport('by_status')">
+                                    <div class="item-icon" style="background:#CCFBF1; color:#0D9488;"><i class="fas fa-tasks"></i></div>
+                                    <div class="item-text">
+                                        <div class="item-title">Status Tracking Reports</div>
+                                        <div class="item-desc">Response efficiency audit</div>
+                                    </div>
+                                </button>
+                            </div>
+                            <div class="export-dropdown-footer">
+                                <p class="footer-label"><i class="fas fa-print"></i> Print Report</p>
+                                <button onclick="printReports()" class="btn-export-primary">
+                                    <i class="fas fa-print"></i> Print / Save as PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -1009,6 +1258,77 @@ function applyFilters() {
     if (limit) params.append('limit', limit);
     
     window.location.href = '?' + params.toString();
+}
+
+// ===== EXPORT FUNCTIONALITY =====
+function toggleExportDropdown() {
+    const dd = document.getElementById('exportDropdown');
+    const btn = document.getElementById('exportDropBtn');
+    dd.classList.toggle('open');
+    btn.classList.toggle('active');
+}
+
+function downloadExport(type) {
+    const params = new URLSearchParams();
+    params.append('page', 'all-reports');
+    params.append('export_type', type);
+
+    const status = document.getElementById('toolbarStatus').value;
+    const category = document.getElementById('popoverCategory').value;
+    const barangay = document.getElementById('popoverBarangay').value;
+    const risk = document.getElementById('popoverRisk').value;
+    const dateFrom = document.getElementById('popoverDateFrom').value;
+    const dateTo = document.getElementById('popoverDateTo').value;
+    const search = document.getElementById('searchInput').value;
+
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    if (parseInt(category) > 0) params.append('category', category);
+    if (parseInt(barangay) > 0) params.append('barangay', barangay);
+    if (risk) params.append('risk', risk);
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+
+    window.location.href = '?' + params.toString();
+    document.getElementById('exportDropdown').classList.remove('open');
+    document.getElementById('exportDropBtn').classList.remove('active');
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('exportDropdownWrap');
+    const dd = document.getElementById('exportDropdown');
+    const btn = document.getElementById('exportDropBtn');
+    if (wrap && dd && !wrap.contains(e.target)) {
+        dd.classList.remove('open');
+        if (btn) btn.classList.remove('active');
+    }
+});
+
+function printReports() {
+    const params = new URLSearchParams();
+    params.append('page', 'all-reports-print');
+    params.append('autoprint', '1');
+
+    const status = document.getElementById('toolbarStatus').value;
+    const category = document.getElementById('popoverCategory').value;
+    const barangay = document.getElementById('popoverBarangay').value;
+    const risk = document.getElementById('popoverRisk').value;
+    const dateFrom = document.getElementById('popoverDateFrom').value;
+    const dateTo = document.getElementById('popoverDateTo').value;
+    const search = document.getElementById('searchInput').value;
+
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    if (parseInt(category) > 0) params.append('category', category);
+    if (parseInt(barangay) > 0) params.append('barangay', barangay);
+    if (risk) params.append('risk', risk);
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+
+    window.open('<?php echo BASE_URL; ?>index.php?' + params.toString(), '_blank');
+    document.getElementById('exportDropdown').classList.remove('open');
+    document.getElementById('exportDropBtn').classList.remove('active');
 }
 </script>
 

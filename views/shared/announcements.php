@@ -374,10 +374,20 @@ if ($date_to != '') $active_filters++;
         .feed-container {
             display: grid;
             grid-template-columns: 1fr;
+            align-items: start;   /* stop cards stretching to match the tallest one in a row */
             gap: 1rem;
         }
         @media (min-width: 768px) {
-            .feed-container { grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+            .feed-container { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+        }
+        @media (min-width: 1280px) {
+            /* on wide screens, flow into 3 columns instead of leaving two huge stretched columns */
+            .feed-container { grid-template-columns: repeat(3, 1fr); }
+        }
+        .announcement-card {
+            display: flex;
+            flex-direction: column;
+            height: fit-content;
         }
 
         /* ===== FACEBOOK-STYLE PHOTO GRID ===== */
@@ -580,6 +590,35 @@ if ($date_to != '') $active_filters++;
             box-shadow: 0 2px 6px rgba(16, 163, 127, 0.15);
         }
 
+        /* ===== FLOATING CREATE BUTTON (mobile only) ===== */
+        .fab-create {
+            position: fixed;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #10A37F, #0D8568);
+            color: white;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 18px rgba(16, 163, 127, 0.4);
+            cursor: pointer;
+            z-index: 40; /* below modals/lightbox */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .fab-create:active {
+            transform: scale(0.94);
+            box-shadow: 0 3px 10px rgba(16, 163, 127, 0.35);
+        }
+        /* keep clear of safe-area on modern phones */
+        @supports (bottom: env(safe-area-inset-bottom)) {
+            .fab-create { bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
+        }
+
         .btn-cancel { background: white; border: 1px solid #E5E7EB; padding: 0.625rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .btn-cancel:hover { background: #f8fafc; border-color: #cbd5e1; }
         .btn-submit { background: linear-gradient(135deg, #10A37F, #0D8568); color: white; padding: 0.625rem 1.5rem; border-radius: 2rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; }
@@ -709,13 +748,20 @@ if ($date_to != '') $active_filters++;
                     </p>
                 </div>
                 <?php if ($can_create): ?>
-                    <button onclick="openCreateModal()" class="btn-primary inline-flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-center">
+                    <button onclick="openCreateModal()" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 justify-center">
                         <i class="fas fa-plus-circle text-xs md:text-sm"></i>
                         <span class="text-xs md:text-sm">Create Post</span>
                     </button>
                 <?php endif; ?>
             </div>
         </div>
+
+        <?php if ($can_create): ?>
+        <!-- Floating "+" button — mobile only, replaces the header Create Post button -->
+        <button onclick="openCreateModal()" class="fab-create sm:hidden" aria-label="Create Post">
+            <i class="fas fa-plus"></i>
+        </button>
+        <?php endif; ?>
 
         <!-- ===== SUCCESS/ERROR MESSAGES ===== -->
         <?php if(isset($_SESSION['success'])): ?>

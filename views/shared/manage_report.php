@@ -39,6 +39,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
@@ -135,58 +136,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .risk-high { background: #FFEDD5; color: #9A3412; }
         .risk-critical { background: #FEE2E2; color: #991B1B; }
 
-        /* ===== PRINT DROPDOWN ===== */
-        .print-dropdown { position: relative; display: inline-block; }
-        .print-dropdown-menu {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: calc(100% + 6px);
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.75rem;
-            box-shadow: 0 12px 36px -8px rgba(0,0,0,0.12), 0 4px 12px -4px rgba(0,0,0,0.06);
-            min-width: 180px;
-            z-index: 100;
-            overflow: hidden;
-            animation: dropdownIn 0.15s ease;
-        }
-        .print-dropdown-menu.open { display: block; }
-        @keyframes dropdownIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .print-dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 16px;
-            font-size: 0.82rem;
-            font-weight: 500;
-            color: #374151;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-        }
-        .print-dropdown-item:hover {
-            background: #E8F5F0;
-            color: #10A37F;
-        }
-        .print-dropdown-item i {
-            width: 16px;
-            text-align: center;
-            font-size: 0.85rem;
-        }
-        .print-dropdown-divider {
-            height: 1px;
-            background: #f3f4f6;
-            margin: 0;
-        }
+        /* Print dropdown styles: see assets/css/export-print.css */
 
-        /* ===== PRINT STYLES ===== */
+
         @media print {
             /* Reset page */
             @page {
@@ -611,24 +563,26 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Review, verify, and manage environmental report details</p>
                 </div>
                 <div class="flex gap-2 flex-wrap">
-                    <div class="print-dropdown">
-                        <button onclick="togglePrintMenu()" class="bg-white border border-gray-200 hover:border-[#10A37F] hover:bg-[#E8F5F0] text-gray-600 hover:text-[#10A37F] px-3 md:px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs md:text-sm font-medium">
+                    <div class="export-dropdown">
+                        <button onclick="togglePrintMenu()" class="btn-export-trigger" id="printDropdownTrigger">
                             <i class="fas fa-print"></i>
                             <span>Print</span>
-                            <i class="fas fa-chevron-down text-[10px] ml-0.5"></i>
+                            <i class="fas fa-chevron-down"></i>
                         </button>
-                        <div id="printDropdownMenu" class="print-dropdown-menu">
-                            <button class="print-dropdown-item" onclick="handlePrint()">
-                                <i class="fas fa-print"></i>
-                                <span>Print Report</span>
-                            </button>
-                            <div class="print-dropdown-divider"></div>
-                            <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
-                            <button class="print-dropdown-item" onclick="handleDownloadPDF()">
-                                <i class="fas fa-file-pdf"></i>
-                                <span>Download PDF</span>
-                            </button>
-                            <?php endif; ?>
+                        <div id="printDropdownMenu" class="export-dropdown-menu" style="width:200px;">
+                            <div>
+                                <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo (int)$report['id']; ?>&print=1', '_blank')">
+                                    <i class="fas fa-print"></i>
+                                    <span>Print Report</span>
+                                </button>
+                                <div class="export-dropdown-divider"></div>
+                                <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
+                                <button class="export-dropdown-item" onclick="handleDownloadPDF()">
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Download PDF</span>
+                                </button>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                     <a href="<?php echo ($user_role == 'admin') ? BASE_URL . 'index.php?page=all-reports' : BASE_URL . 'index.php?page=verify-reports'; ?>"
@@ -1534,15 +1488,19 @@ document.addEventListener('keydown', function(e) {
 // ===== PRINT DROPDOWN =====
 function togglePrintMenu() {
     const menu = document.getElementById('printDropdownMenu');
-    menu.classList.toggle('open');
+    const btn  = document.getElementById('printDropdownTrigger');
+    const isOpen = menu.classList.toggle('open');
+    if (btn) btn.classList.toggle('active', isOpen);
 }
 
 // Close dropdown when clicking outside
 document.addEventListener('click', function(e) {
-    const dropdown = document.querySelector('.print-dropdown');
+    const dropdown = document.querySelector('.export-dropdown');
     const menu = document.getElementById('printDropdownMenu');
+    const btn  = document.getElementById('printDropdownTrigger');
     if (dropdown && menu && !dropdown.contains(e.target)) {
         menu.classList.remove('open');
+        if (btn) btn.classList.remove('active');
     }
 });
 

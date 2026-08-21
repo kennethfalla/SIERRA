@@ -150,6 +150,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @media (max-width: 768px) {
             .ml-72 { margin-left: 0 !important; }
         }
+
+        /* ===== HIDE SETTINGS NAV TOGGLE ===== */
+        body.settings-nav-hidden .settings-layout {
+            grid-template-columns: 1fr;
+        }
+        body.settings-nav-hidden .settings-sidebar {
+            display: none;
+        }
         
         /* ===== CONTAINER ===== */
         .main-container {
@@ -185,23 +193,25 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             height: fit-content;
             position: sticky;
             top: 1.5rem;
+            max-height: calc(100vh - 3rem);
+            overflow-y: auto;
+            scrollbar-width: none;
         }
+        .settings-sidebar::-webkit-scrollbar { display: none; }
         @media (max-width: 768px) {
             .settings-sidebar {
                 position: static;
                 overflow-x: auto;
+                overflow-y: visible;
+                max-height: none;
                 display: flex;
                 flex-wrap: nowrap;
                 gap: 0.25rem;
                 padding: 0.5rem;
-                scrollbar-width: thin;
+                scrollbar-width: none;
             }
             .settings-sidebar::-webkit-scrollbar {
-                height: 4px;
-            }
-            .settings-sidebar::-webkit-scrollbar-thumb {
-                background: #10A37F;
-                border-radius: 4px;
+                display: none;
             }
             .category-header {
                 display: none;
@@ -547,15 +557,23 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="main-container max-w-7xl mx-auto">
         
         <!-- ===== PAGE HEADER ===== -->
-        <div class="mb-6">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-sliders-h text-[#10A37F] text-sm"></i>
+        <div class="mb-6 flex items-start justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-sliders-h text-[#10A37F] text-sm"></i>
+                    </div>
+                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Administration</span>
                 </div>
-                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Administration</span>
+                <h1 class="text-2xl font-bold text-gray-800">System Settings</h1>
+                <p class="text-gray-500 text-sm mt-1">Configure and manage all system settings</p>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800">System Settings</h1>
-            <p class="text-gray-500 text-sm mt-1">Configure and manage all system settings</p>
+            <button id="navToggleBtn" onclick="toggleSettingsNav()"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-200 bg-white text-sm font-semibold text-gray-600 hover:bg-emerald-50 hover:text-[#10A37F] hover:border-emerald-300 transition shadow-sm flex-shrink-0"
+                    title="Hide/Show the settings navigation menu to give the content more room">
+                <i id="navToggleIcon" class="fas fa-compress-arrows-alt"></i>
+                <span id="navToggleLabel">Hide Menu</span>
+            </button>
         </div>
 
         <!-- ===== FLASH MESSAGES ===== -->
@@ -633,6 +651,36 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
 <!-- ===== SCRIPTS ===== -->
 <script>
+// ===== HIDE SETTINGS NAV TOGGLE =====
+function toggleSettingsNav() {
+    const hidden = document.body.classList.toggle('settings-nav-hidden');
+    try { localStorage.setItem('settingsNavHidden', hidden ? '1' : '0'); } catch (e) {}
+    updateNavToggleBtn();
+}
+
+function updateNavToggleBtn() {
+    const icon = document.getElementById('navToggleIcon');
+    const label = document.getElementById('navToggleLabel');
+    if (!icon || !label) return;
+    const hidden = document.body.classList.contains('settings-nav-hidden');
+    if (hidden) {
+        icon.className = 'fas fa-expand-arrows-alt';
+        label.textContent = 'Show Menu';
+    } else {
+        icon.className = 'fas fa-compress-arrows-alt';
+        label.textContent = 'Hide Menu';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        if (localStorage.getItem('settingsNavHidden') === '1') {
+            document.body.classList.add('settings-nav-hidden');
+        }
+    } catch (e) {}
+    updateNavToggleBtn();
+});
+
 // ===== TOAST NOTIFICATION HELPER =====
 // Used by partials (e.g. map.php) that call showNotification(msg, type)
 function showNotification(message, type) {

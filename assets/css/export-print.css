@@ -1,0 +1,262 @@
+/* assets/css/export-print.css - Shared Export & Print Component Styles */
+/* Single source of truth for ALL export/print buttons and dropdowns.    */
+/* Linked by: dashboard, all_reports, manage_report, audit_logs,         */
+/*            manage_report_print, dashboard_report, all_reports_print   */
+
+/* ============================================
+   EXPORT DROPDOWN WRAPPER
+   ============================================ */
+.export-dropdown { position: relative; display: inline-block; }
+
+/* ============================================
+   DROPDOWN MENU
+   ============================================ */
+.export-dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 12px 36px -8px rgba(0,0,0,0.12), 0 4px 12px -4px rgba(0,0,0,0.06);
+    min-width: 220px;
+    z-index: 100;
+    overflow: hidden;
+    animation: exportMenuIn 0.15s ease;
+}
+.export-dropdown-menu.open { display: block; }
+
+@keyframes exportMenuIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+   DROPDOWN HEADER
+   ============================================ */
+.export-dropdown-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    background: linear-gradient(135deg, #F0FBF6 0%, #FFFFFF 100%);
+}
+.export-dropdown-header p {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.export-dropdown-header .sub {
+    font-size: 10px;
+    font-weight: 400;
+    color: #9ca3af;
+    text-transform: none;
+    letter-spacing: normal;
+    margin-top: 2px;
+}
+
+/* ============================================
+   DROPDOWN ITEMS
+   ============================================ */
+.export-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-family: 'Manrope', sans-serif;
+}
+.export-dropdown-item:hover {
+    background: #E8F5F0;
+    color: #10A37F;
+}
+.export-dropdown-item .item-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 12px;
+}
+.export-dropdown-item .item-text .item-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+.export-dropdown-item .item-text .item-desc {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-top: 1px;
+}
+.export-dropdown-item:hover .item-text .item-title { color: #10A37F; }
+
+.export-dropdown-divider {
+    height: 1px;
+    background: #f3f4f6;
+    margin: 4px 0;
+}
+
+/* ============================================
+   DROPDOWN FOOTER
+   ============================================ */
+.export-dropdown-footer {
+    padding: 10px 16px;
+    border-top: 1px solid #f3f4f6;
+    background: #f9fafb;
+}
+.export-dropdown-footer .footer-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+}
+.export-dropdown-footer .footer-label i { margin-right: 4px; }
+
+/* ============================================
+   TRIGGER BUTTON (opens the dropdown)
+   Ghost style — white bg, gray border, green on hover
+   ============================================ */
+.btn-export-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #ffffff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Manrope', sans-serif;
+    white-space: nowrap;
+    text-decoration: none;
+}
+.btn-export-trigger:hover {
+    border-color: #10A37F;
+    color: #10A37F;
+    background: #F0FBF6;
+    text-decoration: none;
+}
+.btn-export-trigger i.fa-chevron-down {
+    font-size: 10px;
+    margin-left: 2px;
+    transition: transform 0.2s ease;
+}
+.btn-export-trigger.active i.fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+/* ============================================
+   PRIMARY ACTION BUTTON (inside dropdown footer)
+   Green gradient — for Print / Save PDF actions
+   ============================================ */
+.btn-export-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Manrope', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+.btn-export-primary:hover {
+    background: linear-gradient(135deg, #0D8568 0%, #0B7258 100%);
+    box-shadow: 0 4px 12px rgba(16,163,127,0.25);
+    text-decoration: none;
+}
+
+/* ============================================
+   PRINT TOOLBAR (for printable report pages)
+   ============================================ */
+.print-toolbar {
+    max-width: 100%;
+    margin: 16px auto 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 0 12px;
+}
+.print-toolbar .btn-print {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.print-toolbar .btn-print:hover {
+    box-shadow: 0 4px 12px rgba(16,163,127,0.3);
+}
+.print-toolbar .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    font-family: 'Manrope', sans-serif;
+    transition: all 0.2s ease;
+}
+.print-toolbar .btn-back:hover {
+    border-color: #10A37F;
+    color: #10A37F;
+}
+.print-toolbar .hint {
+    color: #6b7280;
+    font-size: 11px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 640px) {
+    .export-dropdown-menu {
+        right: -40px;
+        min-width: 260px;
+    }
+    .print-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .print-toolbar .btn-print,
+    .print-toolbar .btn-back {
+        justify-content: center;
+    }
+}

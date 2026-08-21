@@ -413,6 +413,12 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
         'show_notes' => $show_notes
     ];
 
+    // Dedicated printable single-report page (opened from the Print dropdown).
+    if (!empty($_GET['print'])) {
+        require_once 'views/admin/reports/manage_report_print.php';
+        exit();
+    }
+
     require_once 'views/shared/manage_report.php';
     exit();
 }
@@ -451,6 +457,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
         ");
         $stmt->execute([$report_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($result) {
+            $result['token'] = IdGuard::enc((int)$result['id']);
+        }
         echo json_encode($result);
         exit();
     }

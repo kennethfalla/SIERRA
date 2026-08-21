@@ -185,6 +185,7 @@ $top_actions = $db->query("
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F7FBF9; }
@@ -245,7 +246,7 @@ $top_actions = $db->query("
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
         }
-        
+
         .table-container {
             background: white;
             border-radius: 12px;
@@ -333,9 +334,10 @@ $top_actions = $db->query("
                     <h1 class="page-title font-bold text-gray-800">Audit Logs</h1>
                     <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Track all system activities and user actions</p>
                 </div>
-                <button type="button" disabled class="px-4 py-2 bg-[#10A37F]/10 text-[#0D8568] rounded-xl font-semibold text-xs md:text-sm flex items-center gap-2 cursor-default">
-                    <i class="fas fa-lock"></i> Read-only · System Admin
-                </button>
+                <a href="?page=audit-logs-report<?php echo $date_from ? '&from=' . urlencode($date_from) : ''; ?><?php echo $date_to ? '&to=' . urlencode($date_to) : ''; ?>" class="btn-export-trigger">
+                    <i class="fas fa-print"></i>
+                    <span>Print Report</span>
+                </a>
             </div>
         </div>
         

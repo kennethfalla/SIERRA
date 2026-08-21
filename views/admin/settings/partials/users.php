@@ -104,6 +104,7 @@ $users_tab = isset($_GET['subtab']) ? $_GET['subtab'] : 'citizens';
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
 $barangay_filter = isset($_GET['barangay']) ? (int)$_GET['barangay'] : 0;
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
+$residency_filter = isset($_GET['residency']) ? $_GET['residency'] : '';
 
 // ============================================================
 // FETCH USERS FROM DATABASE
@@ -111,7 +112,7 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $all_users_data = [];
 $query = "SELECT u.id, u.email, u.first_name, u.last_name, u.user_type, u.barangay_id,
                  u.contact_number, u.is_active, u.created_at, u.job_title,
-                 u.is_resident, u.non_resident_address, u.profile_picture,
+                 u.is_resident, u.non_resident_address, u.province, u.municipality, u.profile_picture,
                  b.name as barangay_name
           FROM users u
           LEFT JOIN barangays b ON u.barangay_id = b.id
@@ -125,7 +126,7 @@ while($user = $all_users->fetch(PDO::FETCH_ASSOC)) {
 // ============================================================
 // FILTER FUNCTION
 // ============================================================
-function applyFilters($users, $search_query, $barangay_filter, $status_filter) {
+function applyFilters($users, $search_query, $barangay_filter, $status_filter, $residency_filter) {
     $filtered = $users;
 
     if (!empty($search_query)) {
@@ -134,6 +135,8 @@ function applyFilters($users, $search_query, $barangay_filter, $status_filter) {
                    stripos($user['email'] ?? '', $search_query) !== false ||
                    stripos($user['contact_number'] ?? '', $search_query) !== false ||
                    stripos($user['barangay_name'] ?? '', $search_query) !== false ||
+                   stripos($user['province'] ?? '', $search_query) !== false ||
+                   stripos($user['municipality'] ?? '', $search_query) !== false ||
                    stripos($user['job_title'] ?? '', $search_query) !== false;
         });
     }
@@ -148,6 +151,16 @@ function applyFilters($users, $search_query, $barangay_filter, $status_filter) {
         $is_active = ($status_filter === 'active') ? 1 : 0;
         $filtered = array_filter($filtered, function($user) use ($is_active) {
             return $user['is_active'] == $is_active;
+        });
+    }
+
+    if ($residency_filter === 'resident') {
+        $filtered = array_filter($filtered, function($user) {
+            return isset($user['is_resident']) && (int)$user['is_resident'] === 1;
+        });
+    } elseif ($residency_filter === 'non_resident') {
+        $filtered = array_filter($filtered, function($user) {
+            return isset($user['is_resident']) && (int)$user['is_resident'] === 0;
         });
     }
 
@@ -170,9 +183,9 @@ $menro_staff = array_filter($all_users_data, function($user) {
 });
 
 // Apply filters to each group
-$filtered_citizens = applyFilters($citizens, $search_query, $barangay_filter, $status_filter);
-$filtered_barangay = applyFilters($barangay_personnel, $search_query, $barangay_filter, $status_filter);
-$filtered_menro = applyFilters($menro_staff, $search_query, $barangay_filter, $status_filter);
+$filtered_citizens = applyFilters($citizens, $search_query, $barangay_filter, $status_filter, $residency_filter);
+$filtered_barangay = applyFilters($barangay_personnel, $search_query, $barangay_filter, $status_filter, $residency_filter);
+$filtered_menro = applyFilters($menro_staff, $search_query, $barangay_filter, $status_filter, $residency_filter);
 
 // ============================================================
 // STATISTICS
@@ -347,14 +360,12 @@ function getRoleBadge($user_type, $job_title = '') {
     .status-inactive { background: #FEE2E2; color: #991B1B; }
     .status-inactive .fa-circle { color: #EF4444; }
 
-    /* ===== FILTER CARD ===== */
-    .filter-card { background: white; border-radius: 12px; border: 1px solid rgba(16, 163, 127, 0.08); padding: 1.25rem; }
-
     /* ===== TABLE ===== */
     .table-container { background: white; border-radius: 12px; border: 1px solid rgba(16, 163, 127, 0.08); overflow: hidden; }
-    .table-container thead th { background: #F5FBF6; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; color: #8aa38a; padding: 0.75rem 1.25rem; }
-    .table-container tbody td { padding: 0.75rem 1.25rem; font-size: 0.875rem; border-bottom: 1px solid #f0f4f2; }
+    .table-container thead th { background: #F5FBF6; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8aa38a; padding: 0.6rem 0.85rem; }
+    .table-container tbody td { padding: 0.55rem 0.85rem; font-size: 0.82rem; border-bottom: 1px solid #f0f4f2; }
     .table-container tbody tr:hover { background: #f9fcfb; }
+    .table-container tbody td .action-btn { padding: 3px 8px; }
 
     /* ===== MODAL ===== */
     .modal-overlay {
@@ -396,23 +407,98 @@ function getRoleBadge($user_type, $job_title = '') {
     .action-btn-delete:hover { background: #FECACA; }
     .action-btn-disabled { background: #F3F4F6; color: #9CA3AF; cursor: not-allowed; }
 
+    /* ===== SUB-TABS NAV ===== */
+    .sub-tabs-nav { -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .sub-tabs-nav::-webkit-scrollbar { display: none; }
+
     /* ===== RESPONSIVE ===== */
+    @media (max-width: 1279px) {
+        /* Convert table rows into stacked cards */
+        .table-container { overflow: visible; background: transparent; border: none; }
+        .table-container thead { display: none; }
+        .table-container tbody { display: block; }
+        .table-container tbody tr {
+            display: block;
+            background: #fff;
+            border: 1px solid rgba(16, 163, 127, 0.08);
+            border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(16, 163, 127, 0.05);
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .table-container tbody tr:hover { background: #fff; }
+        .table-container tbody td {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 10px 16px;
+            border-bottom: 1px dashed #eef2ef;
+        }
+        .table-container tbody td::before {
+            content: attr(data-label);
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #8aa38a;
+            margin-bottom: 3px;
+        }
+        .table-container tbody tr td:last-child { border-bottom: none; }
+        .table-container tbody td.mobile-user {
+            display: block;
+            padding: 16px 16px 12px;
+            border-bottom: 1px solid #f0f4f2;
+        }
+        .table-container tbody td.mobile-user::before { display: none; }
+        .table-container tbody td.mobile-actions {
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #FBFDFC;
+        }
+        .table-container tbody td.mobile-actions::before { display: none; }
+        .table-container tbody td.mobile-actions form { margin: 0; }
+        .table-container tbody td.mobile-actions .action-btn {
+            flex: 1 1 auto;
+            justify-content: center;
+            padding: 9px 12px;
+            border-radius: 10px;
+        }
+        .table-container tbody td.mobile-actions .action-btn-disabled { flex: 0 0 auto; }
+        .table-container tbody tr.empty-row {
+            display: block;
+            background: #fff;
+            border: 1px solid rgba(16, 163, 127, 0.08);
+            box-shadow: none;
+            margin-bottom: 0;
+        }
+        .table-container tbody tr.empty-row td { display: block; padding: 0; border: none; }
+        .table-container tbody tr.empty-row td::before { display: none; }
+        .stat-card { padding: 1rem 0.9rem; }
+    }
     @media (max-width: 768px) {
-        .filter-card .flex-wrap { flex-direction: column; gap: 10px; }
-        .filter-card .flex-wrap > div { width: 100%; }
-        .table-container { overflow-x: auto; }
-        table { min-width: 700px; }
+        .modal-overlay { padding: 12px; align-items: flex-end; }
+        .modal-content { border-radius: 16px 16px 0 0; max-height: 88vh; }
+    }
+    @media (max-width: 480px) {
+        .action-btn { padding: 5px 9px; }
+        .action-btn-disabled { padding: 5px 9px; font-size: 0.65rem; }
+        .role-badge, .status-badge { padding: 3px 10px; font-size: 0.65rem; }
     }
 </style>
 
 <div class="fade-in">
 
     <!-- ===== TOOLBAR ===== -->
-    <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
-        
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+        <p class="text-sm text-gray-500 font-medium order-2 sm:order-1">
+            <i class="fas fa-user-cog mr-1.5 text-[#10A37F]"></i>
+            Manage <?php echo strtolower($tab_label); ?> accounts, roles, and access.
+        </p>
         <?php if($show_create_btn): ?>
         <button onclick="openCreateModal('<?php echo $create_role; ?>')"
-                class="btn-primary px-5 py-2.5 text-white font-semibold flex items-center gap-2 shadow-sm text-sm">
+                class="btn-primary px-5 py-2.5 text-white font-semibold flex items-center justify-center gap-2 shadow-sm text-sm w-full sm:w-auto order-1 sm:order-2">
             <i class="fas fa-plus-circle"></i>
             <?php echo $create_label; ?>
         </button>
@@ -478,103 +564,134 @@ function getRoleBadge($user_type, $job_title = '') {
     </div>
 
     <!-- ===== SUB-TABS ===== -->
-    <div class="border-b border-emerald-100 mb-5">
-        <nav class="flex flex-wrap gap-1 sm:gap-0 sm:space-x-8" aria-label="User tabs">
-            <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=citizens<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?>"
+    <div class="border-b border-emerald-100 mb-5 flex flex-wrap items-center justify-between gap-3">
+        <nav class="sub-tabs-nav flex gap-1 sm:gap-0 sm:space-x-8 sm:flex-wrap overflow-x-auto sm:overflow-visible whitespace-nowrap sm:whitespace-normal flex-1 min-w-0" aria-label="User tabs">
+            <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=citizens<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'citizens' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-users"></i>
                 Citizens
                 <span class="tab-badge"><?php echo $total_citizens; ?></span>
             </a>
-            <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=barangay<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?>"
+            <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=barangay<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'barangay' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-landmark"></i>
                 Barangay Personnel
                 <span class="tab-badge"><?php echo $total_barangay; ?></span>
             </a>
-            <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=menro<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?>"
+            <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=menro<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'menro' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-crown"></i>
                 MENRO Staff
                 <span class="tab-badge"><?php echo $total_menro; ?></span>
             </a>
         </nav>
+        <?php
+        $report_role    = $users_tab === 'citizens' ? 'citizen' : ($users_tab === 'barangay' ? 'barangay' : 'menro');
+        $report_status  = $status_filter !== '' ? urlencode($status_filter) : '';
+        $report_brgy    = $barangay_filter > 0 ? (int)$barangay_filter : 0;
+        $report_url     = '?page=users-report&role=' . $report_role
+                        . ($report_status ? '&status=' . $report_status : '')
+                        . ($report_brgy ? '&barangay=' . $report_brgy : '');
+        ?>
+        <a href="<?php echo $report_url; ?>" class="inline-flex items-center gap-2 px-4 py-2 bg-[#10A37F] text-white rounded-xl font-semibold text-xs md:text-sm hover:bg-[#0D8568] transition shadow-sm flex-shrink-0">
+            <i class="fas fa-file-print"></i> Print Report
+        </a>
     </div>
 
-    <!-- ===== FILTERS ===== -->
-    <div class="filter-card mb-6">
-        <form method="GET" action="<?php echo BASE_URL; ?>index.php" id="filterForm" class="flex flex-wrap items-end gap-3">
-            <input type="hidden" name="page" value="settings">
-            <input type="hidden" name="tab" value="users">
-            <input type="hidden" name="subtab" value="<?php echo $users_tab; ?>">
+    <!-- ===== FILTER TOOLBAR (shared report toolbar design) ===== -->
+    <?php
+    $ft_popover_count = 0;
+    if ($barangay_filter > 0) $ft_popover_count++;
 
-            <div class="flex-1 min-w-[200px]">
-                <label class="block text-xs text-gray-500 mb-1 font-semibold">Search</label>
-                <div class="relative">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                    <input type="text" name="search" id="searchInput" value="<?php echo htmlspecialchars($search_query); ?>"
-                           placeholder="Search by name, email, phone..."
-                           class="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm">
-                </div>
-            </div>
+    $ft_barangay_options = ['0' => 'All Barangays'];
+    if ($show_barangay_filter) {
+        foreach ($barangay_list as $brgy) { $ft_barangay_options[(string)$brgy['id']] = $brgy['name']; }
+    }
 
-            <?php if($show_barangay_filter): ?>
-            <div class="w-44">
-                <label class="block text-xs text-gray-500 mb-1 font-semibold">Barangay</label>
-                <select name="barangay" id="barangaySelect" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm">
-                    <option value="0">All Barangays</option>
-                    <?php foreach($barangay_list as $brgy): ?>
-                    <option value="<?php echo $brgy['id']; ?>" <?php echo $barangay_filter == $brgy['id'] ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($brgy['name']); ?>
-                    </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <?php endif; ?>
+    $ft_chips = [];
+    if (!empty($search_query)) $ft_chips[] = '<span class="filter-chip">"' . htmlspecialchars($search_query) . '" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>';
+    if ($barangay_filter > 0) {
+        $active_barangay_name = '';
+        foreach ($barangay_list as $brgy) {
+            if ($brgy['id'] == $barangay_filter) { $active_barangay_name = $brgy['name']; break; }
+        }
+        $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($active_barangay_name) . ' <span class="chip-remove" data-filter="barangay"><i class="fas fa-times"></i></span></span>';
+    }
+    if ($status_filter !== '') $ft_chips[] = '<span class="filter-chip">' . ($status_filter === 'active' ? 'Active' : 'Suspended') . ' <span class="chip-remove" data-filter="status"><i class="fas fa-times"></i></span></span>';
+    if ($residency_filter !== '') $ft_chips[] = '<span class="filter-chip">' . ($residency_filter === 'resident' ? 'Resident' : 'Non-Resident') . ' <span class="chip-remove" data-filter="residency"><i class="fas fa-times"></i></span></span>';
 
-            <?php if($show_status_filter): ?>
-            <div class="w-36">
-                <label class="block text-xs text-gray-500 mb-1 font-semibold">Status</label>
-                <select name="status" id="statusSelect" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm">
-                    <option value="">All Status</option>
-                    <option value="active" <?php echo $status_filter == 'active' ? 'selected' : ''; ?>>Active</option>
-                    <option value="inactive" <?php echo $status_filter == 'inactive' ? 'selected' : ''; ?>>Suspended</option>
-                </select>
-            </div>
-            <?php endif; ?>
+    $ft_inline_selects = [];
+    if ($show_status_filter) {
+        $ft_inline_selects[] = [
+            'id'        => 'toolbarStatus',
+            'value'     => $status_filter,
+            'min_width' => '130px',
+            'options'   => ['' => 'All Status', 'active' => 'Active', 'inactive' => 'Suspended'],
+        ];
+    }
+    if ($show_status_filter) {
+        $ft_inline_selects[] = [
+            'id'        => 'toolbarResidency',
+            'value'     => $residency_filter,
+            'min_width' => '160px',
+            'options'   => ['' => 'All Residents', 'resident' => 'Resident', 'non_resident' => 'Non-Resident'],
+        ];
+    }
 
-            <div class="flex gap-2">
-                <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=<?php echo $users_tab; ?>" class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition text-sm">
-                    <i class="fas fa-times mr-2"></i>Reset
-                </a>
-            </div>
-        </form>
+    $ft_popover_fields = [];
+    if ($show_barangay_filter) {
+        $ft_popover_fields[] = [
+            'kind' => 'select', 'id' => 'popoverBarangay', 'label' => 'Barangay',
+            'value' => $barangay_filter, 'default' => '0', 'options' => $ft_barangay_options,
+        ];
+    }
 
-        <div class="mt-4 pt-3 border-t border-emerald-50">
-            <p class="text-sm text-gray-500 font-medium">
-                <i class="fas fa-chart-line mr-1 text-[#10A37F]"></i>
-                Showing <span class="font-bold text-gray-700"><?php echo $display_count; ?></span> of
-                <span class="font-bold text-gray-700"><?php echo $display_total; ?></span> <?php echo strtolower($tab_label); ?>
-            </p>
-        </div>
-    </div>
+    $ft = [
+        'search_id'          => 'searchInput',
+        'search_value'       => $search_query,
+        'search_placeholder' => 'Search by name, email, phone...',
+        'results_text'       => 'Showing <strong>' . $display_count . '</strong> of <strong>' . $display_total . '</strong> ' . strtolower($tab_label),
+        'inline_selects'     => $ft_inline_selects,
+        'filter_by'          => [
+            'active' => ($barangay_filter > 0),
+            'count'  => $ft_popover_count,
+        ],
+        'popover_fields'     => $ft_popover_fields,
+        'trailing_select'    => null,
+        'view_toggle'        => null,
+        'active_filters'     => (int)((!empty($search_query) ? 1 : 0) + ($barangay_filter > 0 ? 1 : 0) + ($status_filter !== '' ? 1 : 0) + ($residency_filter !== '' ? 1 : 0)),
+        'chips'              => array_values(array_filter($ft_chips)),
+        'chips_clear_all'    => true,
+        'chip_clear_map'     => [
+            'search'   => ['el' => 'searchInput', 'clear' => ''],
+            'status'   => ['el' => 'toolbarStatus', 'clear' => ''],
+            'residency' => ['el' => 'toolbarResidency', 'clear' => ''],
+            'barangay' => ['el' => 'popoverBarangay', 'clear' => '0'],
+        ],
+        'callback'           => 'applyFilters',
+    ];
+    include __DIR__ . '/../../../shared/report_filter_toolbar.php';
+    ?>
 
     <!-- ===== USERS TABLE ===== -->
     <div class="table-container">
-        <div class="overflow-x-auto">
+        <div class="overflow-x-visible xl:overflow-x-auto">
             <table class="w-full">
                 <thead>
                     <tr>
                         <th class="text-left">User</th>
                         <th class="text-left">Contact</th>
                         <?php if($users_tab === 'barangay' || $users_tab === 'citizens'): ?>
-                        <th class="text-left">Barangay</th>
+                        <th class="text-left"><?php echo $residency_filter === 'non_resident' ? 'Province / Municipality' : 'Barangay'; ?></th>
                         <?php endif; ?>
                         <?php if($users_tab === 'menro'): ?>
                         <th class="text-left">Job Title</th>
                         <?php endif; ?>
                         <th class="text-left">Role</th>
                         <th class="text-left">Status</th>
+                        <?php if($users_tab === 'barangay' || $users_tab === 'citizens'): ?>
+                        <th class="text-left">Residency</th>
+                        <?php endif; ?>
                         <th class="text-left">Registered</th>
                         <th class="text-left">Actions</th>
                     </tr>
@@ -583,7 +700,7 @@ function getRoleBadge($user_type, $job_title = '') {
                     <?php if(count($display_users) > 0): ?>
                         <?php foreach($display_users as $user): ?>
                         <tr>
-                            <td>
+                            <td class="mobile-user">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                         <?php if(!empty($user['profile_picture'])): ?>
@@ -598,35 +715,55 @@ function getRoleBadge($user_type, $job_title = '') {
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Contact">
                                 <div class="flex items-center gap-1.5">
                                     <i class="fas fa-phone-alt text-gray-400 text-xs"></i>
                                     <span class="text-sm text-gray-600 font-medium"><?php echo formatPhoneNumber($user['contact_number']); ?></span>
                                 </div>
                             </td>
                             <?php if($users_tab === 'barangay' || $users_tab === 'citizens'): ?>
-                            <td>
-                                <span class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($user['barangay_name'] ?? '—'); ?></span>
+                            <td data-label="<?php echo $residency_filter === 'non_resident' ? 'Province / Municipality' : 'Barangay'; ?>">
+                                <?php if ($residency_filter === 'non_resident'): ?>
+                                    <?php $non_res_loc = trim(implode(', ', array_filter([$user['municipality'] ?? '', $user['province'] ?? '']))); ?>
+                                    <?php if ($non_res_loc !== ''): ?>
+                                        <span class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($non_res_loc); ?></span>
+                                    <?php else: ?>
+                                        <span class="text-sm text-gray-400 font-medium">—</span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($user['barangay_name'] ?? '—'); ?></span>
+                                <?php endif; ?>
                             </td>
                             <?php endif; ?>
                             <?php if($users_tab === 'menro'): ?>
-                            <td>
+                            <td data-label="Job Title">
                                 <span class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($user['job_title'] ?? '—'); ?></span>
                             </td>
                             <?php endif; ?>
-                            <td>
+                            <td data-label="Role">
                                 <?php echo getRoleBadge($user['user_type'] ?? null, $user['job_title'] ?? ''); ?>
                             </td>
-                            <td>
+                            <td data-label="Status">
                                 <span class="status-badge <?php echo $user['is_active'] == 1 ? 'status-active' : 'status-inactive'; ?>">
                                     <i class="fas fa-circle text-[6px] mr-1.5"></i>
                                     <?php echo $user['is_active'] == 1 ? 'Active' : 'Suspended'; ?>
                                 </span>
                             </td>
-                            <td>
+                            <?php if($users_tab === 'barangay' || $users_tab === 'citizens'): ?>
+                            <td data-label="Residency">
+                                <?php if(isset($user['is_resident']) && (int)$user['is_resident'] === 1): ?>
+                                    <span class="status-badge status-active"><i class="fas fa-home text-[8px] mr-1.5"></i>Resident</span>
+                                <?php elseif(isset($user['is_resident']) && (int)$user['is_resident'] === 0): ?>
+                                    <span class="status-badge status-inactive"><i class="fas fa-map-marker-alt text-[8px] mr-1.5"></i>Non-Resident</span>
+                                <?php else: ?>
+                                    <span class="text-sm text-gray-400 font-medium">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <?php endif; ?>
+                            <td data-label="Registered">
                                 <span class="text-sm text-gray-500 font-medium"><?php echo date('M d, Y', strtotime($user['created_at'])); ?></span>
                             </td>
-                            <td>
+                            <td class="mobile-actions">
                                 <div class="flex flex-wrap items-center gap-1.5">
                                     <!-- View Profile -->
                                     <button onclick="viewProfile(<?php echo $user['id']; ?>)"
@@ -654,15 +791,6 @@ function getRoleBadge($user_type, $job_title = '') {
                                             </button>
                                         </form>
                                         <?php endif; ?>
-
-                                        <form method="POST" class="inline" onsubmit="return confirm('Permanently delete this account? This cannot be undone.')">
-                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                            <button type="submit" class="action-btn action-btn-delete" title="Delete Account">
-                                                <i class="fas fa-trash-alt text-xs"></i>
-                                            </button>
-                                        </form>
                                     <?php else: ?>
                                         <span class="action-btn action-btn-disabled" title="Admin accounts are protected">
                                             <i class="fas fa-lock text-xs"></i> Protected
@@ -673,8 +801,8 @@ function getRoleBadge($user_type, $job_title = '') {
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr>
-                            <td colspan="<?php echo ($users_tab === 'barangay' || $users_tab === 'citizens') ? 8 : 7; ?>" class="text-center py-12">
+                        <tr class="empty-row">
+                            <td colspan="<?php echo ($users_tab === 'barangay' || $users_tab === 'citizens') ? 9 : 8; ?>" class="text-center py-12">
                                 <div class="empty-state">
                                     <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                                         <i class="fas fa-users-slash text-xl sm:text-2xl text-gray-400"></i>
@@ -966,6 +1094,12 @@ function viewProfile(userId) {
                         <p class="font-semibold text-gray-800 mt-1">${data.barangay_name}</p>
                     </div>
                     ` : ''}
+                    ${data.is_resident == 0 && data.non_resident_address ? `
+                    <div class="bg-gray-50 rounded-xl p-4">
+                        <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Non-Resident Address</p>
+                        <p class="font-semibold text-gray-800 mt-1">${data.non_resident_address}</p>
+                    </div>
+                    ` : ''}
                     ${data.job_title ? `
                     <div class="bg-gray-50 rounded-xl p-4">
                         <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Job Title</p>
@@ -996,27 +1130,29 @@ function closeProfileModal() {
 }
 
 // ============================================================
-// FILTER AUTO-SUBMIT
+// FILTER FUNCTIONALITY
+// The shared report_filter_toolbar partial handles search
+// debounce, inline selects, the "Filter By" popover, and filter
+// chips. This callback is invoked on every change and builds the
+// redirect URL (preserving the active subtab).
 // ============================================================
-let searchTimeout;
-const searchInput = document.getElementById('searchInput');
-const barangaySelect = document.getElementById('barangaySelect');
-const statusSelect = document.getElementById('statusSelect');
-const filterForm = document.getElementById('filterForm');
-
-if (searchInput) {
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => filterForm.submit(), 400);
+function applyFilters() {
+    const params = new URLSearchParams({
+        page: 'settings',
+        tab: 'users',
+        subtab: '<?php echo htmlspecialchars($users_tab); ?>'
     });
-}
+    const search = document.getElementById('searchInput')?.value || '';
+    const status = document.getElementById('toolbarStatus')?.value || '';
+    const residency = document.getElementById('toolbarResidency')?.value || '';
+    const barangay = document.getElementById('popoverBarangay')?.value || '0';
 
-if (barangaySelect) {
-    barangaySelect.addEventListener('change', () => filterForm.submit());
-}
+    if (search) params.set('search', search);
+    if (status) params.set('status', status);
+    if (residency) params.set('residency', residency);
+    if (parseInt(barangay, 10) > 0) params.set('barangay', barangay);
 
-if (statusSelect) {
-    statusSelect.addEventListener('change', () => filterForm.submit());
+    window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
 }
 
 // ============================================================

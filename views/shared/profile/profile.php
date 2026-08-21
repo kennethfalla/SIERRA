@@ -53,6 +53,302 @@ function saveProfileCrop($user_id, $current_picture, $cropped_data) {
 }
 
 // ============================================================
+// AJAX: Profile verification endpoints (phone OTP, email confirm)
+// ============================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'profile_ajax') {
+    header('Content-Type: application/json');
+    $ajax_action = $_POST['action'] ?? '';
+    $csrf_ok = isset($_POST['csrf_token']) && InputSanitizer::validateCsrfToken($_POST['csrf_token']);
+    if (!$csrf_ok) {
+        echo json_encode(['success' => false, 'message' => 'Invalid security token.']);
+        exit();
+    }
+
+    // --- SEND PHONE OTP ---
+    if ($ajax_action === 'send_phone_otp') {
+        $new_phone = InputSanitizer::sanitizePhone($_POST['new_phone'] ?? '');
+        if (!$new_phone || !preg_match('/^09[0-9]{9}$/', $new_phone)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid mobile number.']);
+            exit();
+        }
+
+        // Check not already used by another user
+        $dup = $db->prepare("SELECT id FROM users WHERE contact_number = :phone AND id != :uid");
+        $dup->execute([':phone' => $new_phone, ':uid' => $user_id]);
+        if ($dup->rowCount() > 0) {
+            echo json_encode(['success' => false, 'message' => 'This mobile number is already registered by another account.']);
+            exit();
+        }
+
+        $otp = sprintf("%06d", random_int(100000, 999999));
+        $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+
+        // Store with type = 'profile_phone'
+        try {
+            $typeCol = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'")->fetch(PDO::FETCH_ASSOC);
+            if (!$typeCol) {
+                $db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            } elseif (stripos($typeCol['Type'], 'enum') === 0) {
+                $db->exec("ALTER TABLE verification_codes MODIFY COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            }
+            $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'profile_phone')");
+            $stmt->execute([$user_id, $otp, $expires_at]);
+        } catch (PDOException $e) {
+            $db->exec("CREATE TABLE IF NOT EXISTS verification_codes (
+                id INT(11) AUTO_INCREMENT PRIMARY KEY,
+                user_id INT(11) NOT NULL,
+                code VARCHAR(10) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                used TINYINT(1) DEFAULT 0,
+                type VARCHAR(20) DEFAULT 'forgot',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'profile_phone')");
+            $stmt->execute([$user_id, $otp, $expires_at]);
+        }
+
+        $system_name = SettingsHelper::get('system_name', 'Sierra');
+        $message = "Your $system_name profile verification OTP is: $otp. Expires in 10 minutes.";
+        $sms_sent = SettingsHelper::sendSms($new_phone, $message);
+
+        if ($sms_sent) {
+            $_SESSION['profile_phone_otp_new'] = $new_phone;
+            echo json_encode(['success' => true, 'message' => 'OTP sent to your new number.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to send OTP. Please check your number and try again.']);
+        }
+        exit();
+    }
+
+    // --- VERIFY PHONE OTP ---
+    if ($ajax_action === 'verify_phone_otp') {
+        $otp = trim($_POST['otp'] ?? '');
+        if (strlen($otp) !== 6) {
+            echo json_encode(['success' => false, 'message' => 'Invalid OTP format.']);
+            exit();
+        }
+
+        $stmt = $db->prepare("SELECT id FROM verification_codes 
+                              WHERE user_id = :uid AND code = :code AND type = 'profile_phone'
+                              AND expires_at > NOW() AND used = 0");
+        $stmt->execute([':uid' => $user_id, ':code' => $otp]);
+        if ($stmt->rowCount() > 0) {
+            $update = $db->prepare("UPDATE verification_codes SET used = 1 WHERE user_id = :uid AND code = :code AND type = 'profile_phone'");
+            $update->execute([':uid' => $user_id, ':code' => $otp]);
+            $_SESSION['profile_phone_verified'] = true;
+            echo json_encode(['success' => true, 'message' => 'Phone number verified.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Invalid or expired OTP.']);
+        }
+        exit();
+    }
+
+    // --- SEND EMAIL CONFIRMATION ---
+    if ($ajax_action === 'send_email_confirm') {
+        $new_email = InputSanitizer::sanitizeEmail($_POST['new_email'] ?? '');
+        if (!$new_email || !filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid email address.']);
+            exit();
+        }
+
+        // Check not already used by another user
+        $dup = $db->prepare("SELECT id FROM users WHERE email = :email AND id != :uid");
+        $dup->execute([':email' => $new_email, ':uid' => $user_id]);
+        if ($dup->rowCount() > 0) {
+            echo json_encode(['success' => false, 'message' => 'This email is already registered by another account.']);
+            exit();
+        }
+
+        $confirm_code = strtoupper(bin2hex(random_bytes(4)));
+        $expires_at = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+
+        try {
+            $typeCol = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'")->fetch(PDO::FETCH_ASSOC);
+            if (!$typeCol) {
+                $db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            } elseif (stripos($typeCol['Type'], 'enum') === 0) {
+                $db->exec("ALTER TABLE verification_codes MODIFY COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            }
+            $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'profile_email')");
+            $stmt->execute([$user_id, $confirm_code, $expires_at]);
+        } catch (PDOException $e) {
+            $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'profile_email')");
+            $stmt->execute([$user_id, $confirm_code, $expires_at]);
+        }
+
+        $system_name = SettingsHelper::get('system_name', 'Sierra');
+        $full_name = htmlspecialchars($user['first_name'] . ' ' . $user['last_name']);
+        $subject = "Confirm Your Email Change - $system_name";
+
+        $html = "
+        <html><head><style>
+            body { font-family: 'Manrope', Arial, sans-serif; color: #1a2e1a; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #10A37F; color: white; padding: 20px; text-align: center; border-radius: 12px 12px 0 0; }
+            .content { background: #f9fbfa; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px; }
+            .code { font-size: 28px; font-weight: 800; letter-spacing: 6px; color: #10A37F; text-align: center; padding: 15px; background: #e6f7f0; border-radius: 8px; margin: 20px 0; }
+            .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
+        </style></head><body>
+            <div class='container'>
+                <div class='header'>
+                    <h2 style='margin:0;'>$system_name</h2>
+                    <p style='margin:5px 0 0; opacity:0.9;'>Email Confirmation</p>
+                </div>
+                <div class='content'>
+                    <h3 style='margin-top:0;'>Hello $full_name,</h3>
+                    <p>You requested to change your email address to <strong>" . htmlspecialchars($new_email) . "</strong>.</p>
+                    <p>Please use the confirmation code below to verify this change:</p>
+                    <div class='code'>$confirm_code</div>
+                    <p style='font-size:13px; color:#6b7280;'>This code expires in 30 minutes.</p>
+                    <p style='font-size:13px; color:#6b7280;'>If you didn't request this change, please ignore this email and your current email will remain unchanged.</p>
+                </div>
+                <div class='footer'>&copy; " . date('Y') . " $system_name - LGU San Isidro</div>
+            </div>
+        </body></html>";
+
+        $email_sent = SettingsHelper::sendEmail($new_email, $user['first_name'] . ' ' . $user['last_name'], $subject, $html);
+
+        if ($email_sent) {
+            $_SESSION['profile_email_otp_new'] = $new_email;
+            echo json_encode(['success' => true, 'message' => 'Confirmation code sent to your new email.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to send confirmation email. Please check your email address.']);
+        }
+        exit();
+    }
+
+    // --- VERIFY EMAIL CONFIRMATION ---
+    if ($ajax_action === 'verify_email_confirm') {
+        $token = trim($_POST['token'] ?? '');
+        if (strlen($token) < 4) {
+            echo json_encode(['success' => false, 'message' => 'Invalid confirmation code.']);
+            exit();
+        }
+
+        $stmt = $db->prepare("SELECT id FROM verification_codes 
+                              WHERE user_id = :uid AND code = :code AND type = 'profile_email'
+                              AND expires_at > NOW() AND used = 0");
+        $stmt->execute([':uid' => $user_id, ':code' => $token]);
+        if ($stmt->rowCount() > 0) {
+            $update = $db->prepare("UPDATE verification_codes SET used = 1 WHERE user_id = :uid AND code = :code AND type = 'profile_email'");
+            $update->execute([':uid' => $user_id, ':code' => $token]);
+            $_SESSION['profile_email_verified'] = true;
+            echo json_encode(['success' => true, 'message' => 'Email address verified.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Invalid or expired confirmation code.']);
+        }
+        exit();
+    }
+
+    // --- SEND PASSWORD CHANGE OTP ---
+    if ($ajax_action === 'send_password_otp') {
+        $current_password = $_POST['current_password'] ?? '';
+        $new_password = $_POST['new_password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+
+        $errors = [];
+        $userModel = new User($db);
+        if (!$userModel->verifyPassword($user_id, $current_password)) {
+            $errors[] = "Your current password is incorrect.";
+        }
+        $pwErrors = InputSanitizer::validatePassword($new_password);
+        if ($pwErrors) {
+            $errors = array_merge($errors, $pwErrors);
+        }
+        if ($new_password !== $confirm_password) {
+            $errors[] = "New password and confirmation do not match.";
+        }
+        if ($new_password !== '' && $new_password === $current_password) {
+            $errors[] = "New password must be different from your current password.";
+        }
+
+        if (!empty($errors)) {
+            echo json_encode(['success' => false, 'message' => implode(' ', $errors)]);
+            exit();
+        }
+
+        // Store pending password in session, send OTP
+        $_SESSION['pending_new_password'] = $new_password;
+
+        $otp = sprintf("%06d", random_int(100000, 999999));
+        $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+
+        try {
+            $typeCol = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'")->fetch(PDO::FETCH_ASSOC);
+            if (!$typeCol) {
+                $db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            } elseif (stripos($typeCol['Type'], 'enum') === 0) {
+                $db->exec("ALTER TABLE verification_codes MODIFY COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            }
+            $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'password_change')");
+            $stmt->execute([$user_id, $otp, $expires_at]);
+        } catch (PDOException $e) {
+            $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'password_change')");
+            $stmt->execute([$user_id, $otp, $expires_at]);
+        }
+
+        $contact_number = $user['contact_number'];
+        $system_name = SettingsHelper::get('system_name', 'Sierra');
+        $message = "Your $system_name password change OTP is: $otp. Expires in 10 minutes.";
+        $sms_sent = SettingsHelper::sendSms($contact_number, $message);
+
+        if ($sms_sent) {
+            echo json_encode(['success' => true, 'message' => 'OTP sent to your registered mobile number.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to send OTP. Please try again.']);
+        }
+        exit();
+    }
+
+    // --- VERIFY PASSWORD CHANGE OTP & CHANGE PASSWORD ---
+    if ($ajax_action === 'verify_password_otp') {
+        $otp = trim($_POST['otp'] ?? '');
+        if (strlen($otp) !== 6) {
+            echo json_encode(['success' => false, 'message' => 'Invalid OTP format.']);
+            exit();
+        }
+
+        if (empty($_SESSION['pending_new_password'])) {
+            echo json_encode(['success' => false, 'message' => 'Session expired. Please start the password change again.']);
+            exit();
+        }
+
+        $stmt = $db->prepare("SELECT id FROM verification_codes 
+                              WHERE user_id = :uid AND code = :code AND type = 'password_change'
+                              AND expires_at > NOW() AND used = 0");
+        $stmt->execute([':uid' => $user_id, ':code' => $otp]);
+        if ($stmt->rowCount() > 0) {
+            $update = $db->prepare("UPDATE verification_codes SET used = 1 WHERE user_id = :uid AND code = :code AND type = 'password_change'");
+            $update->execute([':uid' => $user_id, ':code' => $otp]);
+
+            $new_password = $_SESSION['pending_new_password'];
+            unset($_SESSION['pending_new_password']);
+
+            $userModel = new User($db);
+            $userModel->updatePassword($user_id, $new_password);
+
+            $activity = $db->prepare("INSERT INTO activity_logs (user_id, action, description, ip_address, user_agent, status, created_at) VALUES (?, 'Change Password', ?, ?, ?, 'SUCCESS', NOW())");
+            $activity->execute([
+                $user_id,
+                'User changed their password from the profile page (verified via OTP).',
+                $_SERVER['REMOTE_ADDR'] ?? '',
+                substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255)
+            ]);
+
+            echo json_encode(['success' => true, 'message' => 'Password changed successfully!']);
+        } else {
+            unset($_SESSION['pending_new_password']);
+            echo json_encode(['success' => false, 'message' => 'Invalid or expired OTP.']);
+        }
+        exit();
+    }
+
+    echo json_encode(['success' => false, 'message' => 'Unknown action.']);
+    exit();
+}
+
+// ============================================================
 // POST: Update personal information
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
@@ -71,10 +367,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Invalid email address.";
     if (!preg_match('/^09[0-9]{9}$/', $contact_number)) $errors[] = "Invalid mobile number.";
 
-    $check = $db->prepare("SELECT id FROM users WHERE (email = :email OR contact_number = :contact) AND id != :user_id");
-    $check->execute([':email' => $email, ':contact' => $contact_number, ':user_id' => $user_id]);
-    if ($check->rowCount() > 0) {
-        $errors[] = "Email or contact number already in use.";
+    // If phone changed, require verification
+    $phone_changed = ($contact_number !== $user['contact_number']);
+    if ($phone_changed) {
+        if (!isset($_SESSION['profile_phone_verified']) || $_SESSION['profile_phone_verified'] !== true) {
+            $errors[] = "Please verify your new phone number before saving.";
+        }
+        $check = $db->prepare("SELECT id FROM users WHERE contact_number = :contact AND id != :user_id");
+        $check->execute([':contact' => $contact_number, ':user_id' => $user_id]);
+        if ($check->rowCount() > 0) {
+            $errors[] = "This mobile number is already registered by another account.";
+        }
+    }
+
+    // If email changed, require confirmation
+    $email_changed = (strtolower($email) !== strtolower($user['email']));
+    if ($email_changed) {
+        if (!isset($_SESSION['profile_email_verified']) || $_SESSION['profile_email_verified'] !== true) {
+            $errors[] = "Please confirm your new email address before saving.";
+        }
+        $check = $db->prepare("SELECT id FROM users WHERE email = :email AND id != :user_id");
+        $check->execute([':email' => $email, ':user_id' => $user_id]);
+        if ($check->rowCount() > 0) {
+            $errors[] = "This email is already registered by another account.";
+        }
     }
 
     $profile_picture = $user['profile_picture'];
@@ -112,6 +428,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             ':profile_picture' => $profile_picture,
             ':user_id' => $user_id
         ]);
+
+        // Log phone/email changes
+        if ($phone_changed) {
+            $db->prepare("INSERT INTO activity_logs (user_id, action, description, ip_address, user_agent, status, created_at) VALUES (?, 'Update Phone', ?, ?, ?, 'SUCCESS', NOW())")
+               ->execute([$user_id, 'User updated their phone number from profile.', $_SERVER['REMOTE_ADDR'] ?? '', substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255)]);
+            unset($_SESSION['profile_phone_verified'], $_SESSION['profile_phone_otp_new']);
+        }
+        if ($email_changed) {
+            $db->prepare("INSERT INTO activity_logs (user_id, action, description, ip_address, user_agent, status, created_at) VALUES (?, 'Update Email', ?, ?, ?, 'SUCCESS', NOW())")
+               ->execute([$user_id, 'User updated their email address from profile.', $_SERVER['REMOTE_ADDR'] ?? '', substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255)]);
+            unset($_SESSION['profile_email_verified'], $_SESSION['profile_email_otp_new']);
+        }
+
         $_SESSION['success'] = "Profile updated!";
 
         $user = $db->prepare("SELECT u.*, b.name as barangay_name FROM users u LEFT JOIN barangays b ON u.barangay_id = b.id WHERE u.id = :user_id");
@@ -534,6 +863,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             background: transparent;
         }
         .boxed-field input:read-only { color: #9ca3af; font-weight: 500; }
+        .boxed-field .flex input { width: auto; flex: 1; }
         
         .legal-content h4 {
             font-weight: 700;
@@ -628,6 +958,66 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @media (max-width: 480px) {
             .crop-modal-footer { flex-direction: column; }
             .crop-modal-footer button { width: 100%; justify-content: center; }
+        }
+
+        /* Avatar picker modal (uses .crop-modal shell) */
+        .avatar-picker-body { padding: 20px; }
+        .avatar-picker-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            margin-bottom: 0.75rem;
+        }
+        .avatar-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 420px) {
+            .avatar-picker-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        }
+        .avatar-option {
+            position: relative;
+            border: 2px solid transparent;
+            border-radius: 50%;
+            padding: 3px;
+            background: none;
+            cursor: pointer;
+            transition: border-color 0.15s, transform 0.1s;
+            aspect-ratio: 1 / 1;
+        }
+        .avatar-option:hover { transform: scale(1.05); }
+        .avatar-option:focus-visible,
+        .avatar-option.selected { border-color: #10A37F; }
+        .avatar-option img { width: 100%; height: 100%; border-radius: 50%; display: block; object-fit: cover; }
+        .avatar-picker-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #9ca3af;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 16px 0;
+        }
+        .avatar-picker-divider::before,
+        .avatar-picker-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #eef3f0;
+        }
+        .avatar-gallery-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            min-height: 46px;
         }
         
         .pw-check {
@@ -855,6 +1245,24 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <input type="hidden" name="cropped_image" id="photoCroppedImage" value="">
 </form>
 
+<!-- Avatar Picker Modal -->
+<div id="avatarPickerModal" class="crop-modal">
+    <div class="crop-modal-content" style="max-width: 420px;">
+        <div class="crop-modal-header">
+            <h3><i class="fas fa-user-circle"></i> Change Profile Photo</h3>
+            <button onclick="closeAvatarPicker()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="crop-modal-body avatar-picker-body">
+            <div class="avatar-picker-label">Choose an avatar</div>
+            <div class="avatar-picker-grid" id="avatarPickerGrid"></div>
+            <div class="avatar-picker-divider">or</div>
+            <button type="button" id="avatarGalleryBtn" class="btn-secondary avatar-gallery-btn">
+                <i class="fas fa-image"></i> Choose from Gallery
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Crop Modal -->
 <div id="cropModal" class="crop-modal">
     <div class="crop-modal-content">
@@ -872,18 +1280,191 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </div>
 </div>
 
+<!-- Phone OTP Modal -->
+<div id="phoneOtpModal" class="crop-modal">
+    <div class="crop-modal-content" style="max-width:420px;">
+        <div class="crop-modal-header">
+            <h3><i class="fas fa-shield-alt"></i> Verify Phone Number</h3>
+            <button onclick="closePhoneOtpModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="crop-modal-body" style="padding:24px;">
+            <p class="text-sm text-gray-500 mb-4">We've sent a 6-digit OTP to your new mobile number. Enter it below to verify.</p>
+            <input type="text" id="phoneOtpInput" maxlength="6" placeholder="000000" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code" inputmode="numeric">
+            <p class="text-xs text-gray-400 mt-2 text-center">Expires in 10 minutes.</p>
+        </div>
+        <div class="crop-modal-footer">
+            <button onclick="closePhoneOtpModal()" class="btn-secondary">Cancel</button>
+            <button id="verifyPhoneOtpBtn" onclick="verifyPhoneOtp()" class="btn-primary"><i class="fas fa-check"></i> Verify OTP</button>
+        </div>
+    </div>
+</div>
+
+<!-- Email Confirmation Modal -->
+<div id="emailConfirmModal" class="crop-modal">
+    <div class="crop-modal-content" style="max-width:420px;">
+        <div class="crop-modal-header">
+            <h3><i class="fas fa-envelope-check"></i> Confirm Email Address</h3>
+            <button onclick="closeEmailConfirmModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="crop-modal-body" style="padding:24px;">
+            <p class="text-sm text-gray-500 mb-4">We've sent a confirmation code to your new email address. Enter it below to confirm.</p>
+            <input type="text" id="emailConfirmTokenInput" maxlength="8" placeholder="A1B2C3D4" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code">
+            <p class="text-xs text-gray-400 mt-2 text-center">Expires in 30 minutes.</p>
+        </div>
+        <div class="crop-modal-footer">
+            <button onclick="closeEmailConfirmModal()" class="btn-secondary">Cancel</button>
+            <button id="verifyEmailConfirmBtn" onclick="verifyEmailConfirm()" class="btn-primary"><i class="fas fa-check"></i> Verify Code</button>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     'use strict';
     
     // ===== AVATAR / PROFILE PHOTO FLOW =====
     var avatarContainer = document.getElementById('avatarContainer');
+    var avatarContainerEdit = document.getElementById('avatarContainerEdit');
     var avatarFileInput = document.getElementById('avatarFileInput');
     var photoForm = document.getElementById('photoForm');
     var photoCroppedImage = document.getElementById('photoCroppedImage');
-    
-    if (avatarContainer && avatarFileInput) {
-        avatarContainer.addEventListener('click', function() { avatarFileInput.click(); });
+    var editCroppedImage = document.getElementById('croppedImage'); // hidden field inside the Edit Profile form
+
+    // Tracks which avatar element triggered the picker: 'nav' (profile menu / navbar,
+    // saves immediately) or 'edit' (Edit Profile form, saved together on "Save").
+    var avatarPickerTarget = 'nav';
+
+    // 8 preset mascot avatars, each a cartoon face built on the app's own leaf-pin
+    // logo shape. Drawn as flat-design inline SVGs, no external image files needed.
+    var PRESET_AVATARS = [
+        { name: 'Sprout', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#E4F5EF"/><g transform="translate(13,6) scale(0.82)"><path d="M45,5 C22,5 8,22 8,45 C8,68 28,88 45,108 C62,88 82,68 82,45 C82,22 68,5 45,5 Z" fill="#10A37F"/><circle cx="33" cy="48" r="4.5" fill="white"/><circle cx="57" cy="48" r="4.5" fill="white"/><path d="M33,62 Q45,72 57,62" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/></g></svg>' },
+        { name: 'Wink', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#DCF3E8"/><g transform="translate(13,6) scale(0.82)"><path d="M45,5 C22,5 8,22 8,45 C8,68 28,88 45,108 C62,88 82,68 82,45 C82,22 68,5 45,5 Z" fill="#059669"/><circle cx="33" cy="48" r="4.5" fill="white"/><path d="M52,48 Q57,51 62,48" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/><path d="M33,62 Q45,72 57,62" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/></g></svg>' },
+        { name: 'Specs', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#DFF2E4"/><g transform="translate(13,6) scale(0.82)"><path d="M45,5 C22,5 8,22 8,45 C8,68 28,88 45,108 C62,88 82,68 82,45 C82,22 68,5 45,5 Z" fill="#16A34A"/><circle cx="33" cy="48" r="7" fill="none" stroke="white" stroke-width="2.5"/><circle cx="57" cy="48" r="7" fill="none" stroke="white" stroke-width="2.5"/><line x1="40" y1="48" x2="50" y2="48" stroke="white" stroke-width="2.5"/><circle cx="33" cy="48" r="2.5" fill="white"/><circle cx="57" cy="48" r="2.5" fill="white"/><path d="M35,64 Q45,70 55,64" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/></g></svg>' },
+        { name: 'Blush', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#DBF0EB"/><g transform="translate(13,6) scale(0.82)"><path d="M45,5 C22,5 8,22 8,45 C8,68 28,88 45,108 C62,88 82,68 82,45 C82,22 68,5 45,5 Z" fill="#0D9488"/><circle cx="33" cy="48" r="4.5" fill="white"/><circle cx="57" cy="48" r="4.5" fill="white"/><circle cx="31" cy="58" r="6" fill="white" opacity="0.5"/><circle cx="59" cy="58" r="6" fill="white" opacity="0.5"/><path d="M33,62 Q45,72 57,62" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/></g></svg>' },
+        { name: 'Star', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#DCEFE0"/><g transform="translate(13,6) scale(0.82)"><path d="M45,5 C22,5 8,22 8,45 C8,68 28,88 45,108 C62,88 82,68 82,45 C82,22 68,5 45,5 Z" fill="#15803D"/><polygon points="33.0,42.0 34.5,46.0 38.7,46.1 35.4,48.8 36.5,52.9 33.0,50.5 29.5,52.9 30.6,48.8 27.3,46.1 31.5,46.0" fill="white"/><polygon points="57.0,42.0 58.5,46.0 62.7,46.1 59.4,48.8 60.5,52.9 57.0,50.5 53.5,52.9 54.6,48.8 51.3,46.1 55.5,46.0" fill="white"/><ellipse cx="45" cy="68" rx="7" ry="5" fill="white"/></g></svg>' },
+        { name: 'Sleepy', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#DAF1EC"/><g transform="translate(13,6) scale(0.82)"><path d="M45,5 C22,5 8,22 8,45 C8,68 28,88 45,108 C62,88 82,68 82,45 C82,22 68,5 45,5 Z" fill="#14B8A6"/><path d="M27,48 Q33,44 39,48" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/><path d="M51,48 Q57,44 63,48" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/><circle cx="45" cy="64" r="3" fill="white"/><text x="66" y="42" fill="white" font-size="13" opacity="0.85">z</text><text x="72" y="32" fill="white" font-size="10" opacity="0.7">z</text></g></svg>' },
+        { name: 'Cool', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#D8E9E3"/><g transform="translate(13,6) scale(0.82)"><path d="M45,5 C22,5 8,22 8,45 C8,68 28,88 45,108 C62,88 82,68 82,45 C82,22 68,5 45,5 Z" fill="#065F46"/><rect x="25" y="43" width="16" height="10" rx="3" fill="#111827"/><rect x="49" y="43" width="16" height="10" rx="3" fill="#111827"/><line x1="41" y1="48" x2="49" y2="48" stroke="#111827" stroke-width="2.5"/><path d="M37,65 Q45,68 55,62" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/></g></svg>' },
+        { name: 'Giggle', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#E1F7E6"/><g transform="translate(13,6) scale(0.82)"><path d="M45,5 C22,5 8,22 8,45 C8,68 28,88 45,108 C62,88 82,68 82,45 C82,22 68,5 45,5 Z" fill="#22C55E"/><path d="M28,51 Q33,43 38,51" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/><path d="M52,51 Q57,43 62,51" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/><ellipse cx="45" cy="68" rx="9" ry="7" fill="white"/><circle cx="31" cy="58" r="5" fill="white" opacity="0.5"/><circle cx="59" cy="58" r="5" fill="white" opacity="0.5"/></g></svg>' }
+    ];
+
+    function svgDataUri(svgMarkup) {
+        return 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgMarkup)));
+    }
+
+    // Renders an avatar's SVG onto an off-screen canvas and hands back a PNG data URL,
+    // matching the format the server already expects for cropped uploads.
+    function rasterizeAvatar(svgMarkup, callback) {
+        var img = new Image();
+        img.onload = function() {
+            var canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 300;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, 300, 300);
+            callback(canvas.toDataURL('image/png'));
+        };
+        img.src = svgDataUri(svgMarkup);
+    }
+
+    function updateAvatarPreview(containerEl, dataUrl) {
+        if (!containerEl) return;
+        var img = containerEl.querySelector('img');
+        var initials = containerEl.querySelector('.initials');
+        if (img) {
+            img.src = dataUrl;
+            img.style.display = 'block';
+        } else {
+            if (initials) initials.style.display = 'none';
+            var newImg = document.createElement('img');
+            newImg.src = dataUrl;
+            newImg.alt = 'Profile';
+            containerEl.insertBefore(newImg, containerEl.firstChild);
+        }
+        // Keep the sidebar avatar in sync too, if present.
+        var sidebarImg = document.querySelector('#sidebar .w-10.h-10 img');
+        var sidebarSpan = document.querySelector('#sidebar .w-10.h-10 span');
+        if (sidebarImg) {
+            sidebarImg.src = dataUrl;
+            sidebarImg.style.display = 'block';
+            if (sidebarSpan) sidebarSpan.style.display = 'none';
+        }
+    }
+
+    // ===== AVATAR PICKER MODAL =====
+    var avatarPickerModal = document.getElementById('avatarPickerModal');
+    var avatarPickerGrid = document.getElementById('avatarPickerGrid');
+    var avatarGalleryBtn = document.getElementById('avatarGalleryBtn');
+
+    if (avatarPickerGrid) {
+        PRESET_AVATARS.forEach(function(avatar, idx) {
+            var svgMarkup = avatar.svg;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'avatar-option';
+            btn.setAttribute('aria-label', avatar.name + ' avatar');
+            btn.title = avatar.name;
+            var img = document.createElement('img');
+            img.src = svgDataUri(svgMarkup);
+            img.alt = avatar.name + ' avatar';
+            btn.appendChild(img);
+            btn.addEventListener('click', function() {
+                avatarPickerGrid.querySelectorAll('.avatar-option').forEach(function(b) { b.classList.remove('selected'); });
+                btn.classList.add('selected');
+                rasterizeAvatar(svgMarkup, function(dataUrl) {
+                    applyChosenAvatar(dataUrl);
+                });
+            });
+            avatarPickerGrid.appendChild(btn);
+        });
+    }
+
+    function applyChosenAvatar(dataUrl) {
+        if (avatarPickerTarget === 'edit') {
+            // Inside "Edit Profile": just stage the value, preview it, and let the
+            // existing "Save" button submit it along with the rest of the form.
+            if (editCroppedImage) editCroppedImage.value = dataUrl;
+            updateAvatarPreview(avatarContainerEdit, dataUrl);
+            closeAvatarPicker();
+        } else {
+            // From the profile menu / navbar avatar: save the photo right away.
+            photoCroppedImage.value = dataUrl;
+            updateAvatarPreview(avatarContainer, dataUrl);
+            closeAvatarPicker();
+            photoForm.submit();
+        }
+    }
+
+    window.openAvatarPicker = function(target) {
+        avatarPickerTarget = target || 'nav';
+        if (avatarPickerGrid) avatarPickerGrid.querySelectorAll('.avatar-option').forEach(function(b) { b.classList.remove('selected'); });
+        avatarPickerModal.classList.add('active');
+    };
+
+    window.closeAvatarPicker = function() {
+        avatarPickerModal.classList.remove('active');
+    };
+
+    if (avatarPickerModal) {
+        avatarPickerModal.addEventListener('click', function(e) {
+            if (e.target === this) window.closeAvatarPicker();
+        });
+    }
+
+    if (avatarGalleryBtn && avatarFileInput) {
+        avatarGalleryBtn.addEventListener('click', function() {
+            closeAvatarPicker();
+            avatarFileInput.click();
+        });
+    }
+
+    if (avatarContainer) {
+        avatarContainer.addEventListener('click', function() { window.openAvatarPicker('nav'); });
+    }
+    if (avatarContainerEdit) {
+        avatarContainerEdit.addEventListener('click', function() { window.openAvatarPicker('edit'); });
+    }
+
+    if (avatarFileInput) {
         avatarFileInput.addEventListener('change', function(e) {
             if (this.files && this.files[0]) {
                 var reader = new FileReader();
@@ -932,33 +1513,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         if (!cropper) return;
         var canvas = cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
         var dataUrl = canvas.toDataURL('image/png');
-        photoCroppedImage.value = dataUrl;
-        
-        // Preview in the nav avatar
-        var img = document.getElementById('avatarImg');
-        if (img) {
-            img.src = dataUrl;
-            img.style.display = 'block';
-        } else {
-            var init = document.getElementById('avatarInitials');
-            if (init) init.style.display = 'none';
-            var newImg = document.createElement('img');
-            newImg.id = 'avatarImg';
-            newImg.src = dataUrl;
-            newImg.alt = 'Profile';
-            avatarContainer.appendChild(newImg);
-        }
-        // Update sidebar avatar
-        var sidebarImg = document.querySelector('#sidebar .w-10.h-10 img');
-        var sidebarSpan = document.querySelector('#sidebar .w-10.h-10 span');
-        if (sidebarImg) {
-            sidebarImg.src = dataUrl;
-            sidebarImg.style.display = 'block';
-            if (sidebarSpan) sidebarSpan.style.display = 'none';
-        }
-        
+
         window.closeCropModal();
-        photoForm.submit();
+        applyChosenAvatar(dataUrl);
     });
     
     cropModal.addEventListener('click', function(e) {
@@ -1004,6 +1561,272 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
     };
     
+    // ===== EDIT PROFILE TOGGLE =====
+    var editToggleBtn = document.getElementById('editToggleBtn');
+    var cancelEditBtn = document.getElementById('cancelEditBtn');
+    var viewSection = document.getElementById('viewSection');
+    var editSection = document.getElementById('editSection');
+
+    if (editToggleBtn && viewSection && editSection) {
+        editToggleBtn.addEventListener('click', function() {
+            viewSection.style.display = 'none';
+            editSection.style.display = 'block';
+        });
+    }
+    if (cancelEditBtn && viewSection && editSection) {
+        cancelEditBtn.addEventListener('click', function() {
+            editSection.style.display = 'none';
+            viewSection.style.display = 'block';
+        });
+    }
+
+    // ===== PHONE OTP VERIFICATION =====
+    var phoneInput = document.querySelector('input[name="contact_number"]');
+    var originalPhone = phoneInput ? phoneInput.value.trim() : '';
+    var phoneChanged = false;
+    var phoneVerified = false;
+
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            var newPhone = this.value.trim();
+            phoneChanged = (newPhone !== originalPhone);
+            phoneVerified = false;
+            var badge = document.getElementById('phoneVerifiedBadge');
+            var verifyBtn = document.getElementById('verifyPhoneBtn');
+            if (badge) badge.style.display = 'none';
+            if (verifyBtn) verifyBtn.style.display = phoneChanged ? 'inline-flex' : 'none';
+        });
+    }
+
+    window.sendPhoneOtp = function() {
+        var newPhone = phoneInput ? phoneInput.value.trim() : '';
+        if (!/^09[0-9]{9}$/.test(newPhone)) {
+            showToast('Please enter a valid 11-digit mobile number.', 'error');
+            return;
+        }
+        if (newPhone === originalPhone) {
+            showToast('This is your current number. No verification needed.', 'info');
+            return;
+        }
+        var btn = document.getElementById('verifyPhoneBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...'; }
+
+        var formData = new FormData();
+        formData.append('action', 'send_phone_otp');
+        formData.append('new_phone', newPhone);
+        formData.append('csrf_token', '<?php echo $csrf_token; ?>');
+
+        fetch('<?php echo BASE_URL; ?>index.php?page=profile&action=profile_ajax', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-shield-alt"></i> Verify Number'; }
+            if (data.success) {
+                openPhoneOtpModal();
+                showToast(data.message || 'OTP sent to your new number.', 'success');
+            } else {
+                showToast(data.message || 'Failed to send OTP.', 'error');
+            }
+        })
+        .catch(function() {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-shield-alt"></i> Verify Number'; }
+            showToast('Network error. Please try again.', 'error');
+        });
+    };
+
+    function openPhoneOtpModal() {
+        document.getElementById('phoneOtpModal').classList.add('active');
+        document.getElementById('phoneOtpInput').value = '';
+        document.getElementById('phoneOtpInput').focus();
+    }
+    window.closePhoneOtpModal = function() {
+        document.getElementById('phoneOtpModal').classList.remove('active');
+    };
+
+    window.verifyPhoneOtp = function() {
+        var otp = document.getElementById('phoneOtpInput').value.trim();
+        if (otp.length !== 6) {
+            showToast('Please enter the 6-digit OTP.', 'error');
+            return;
+        }
+        var btn = document.getElementById('verifyPhoneOtpBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...'; }
+
+        var formData = new FormData();
+        formData.append('action', 'verify_phone_otp');
+        formData.append('otp', otp);
+        formData.append('csrf_token', '<?php echo $csrf_token; ?>');
+
+        fetch('<?php echo BASE_URL; ?>index.php?page=profile&action=profile_ajax', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Verify OTP'; }
+            if (data.success) {
+                phoneVerified = true;
+                window.closePhoneOtpModal();
+                var badge = document.getElementById('phoneVerifiedBadge');
+                if (badge) badge.style.display = 'inline-flex';
+                showToast('Phone number verified successfully!', 'success');
+            } else {
+                showToast(data.message || 'Invalid or expired OTP.', 'error');
+            }
+        })
+        .catch(function() {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Verify OTP'; }
+            showToast('Network error. Please try again.', 'error');
+        });
+    };
+
+    // ===== EMAIL CONFIRMATION =====
+    var emailInput = document.querySelector('input[name="email"]');
+    var originalEmail = emailInput ? emailInput.value.trim().toLowerCase() : '';
+    var emailChanged = false;
+    var emailVerified = false;
+
+    if (emailInput) {
+        emailInput.addEventListener('input', function() {
+            var newEmail = this.value.trim().toLowerCase();
+            emailChanged = (newEmail !== originalEmail);
+            emailVerified = false;
+            var badge = document.getElementById('emailVerifiedBadge');
+            var verifyBtn = document.getElementById('confirmEmailBtn');
+            if (badge) badge.style.display = 'none';
+            if (verifyBtn) verifyBtn.style.display = emailChanged ? 'inline-flex' : 'none';
+        });
+    }
+
+    window.sendEmailConfirm = function() {
+        var newEmail = emailInput ? emailInput.value.trim() : '';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+            showToast('Please enter a valid email address.', 'error');
+            return;
+        }
+        if (newEmail.toLowerCase() === originalEmail) {
+            showToast('This is your current email. No confirmation needed.', 'info');
+            return;
+        }
+        var btn = document.getElementById('confirmEmailBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...'; }
+
+        var formData = new FormData();
+        formData.append('action', 'send_email_confirm');
+        formData.append('new_email', newEmail);
+        formData.append('csrf_token', '<?php echo $csrf_token; ?>');
+
+        fetch('<?php echo BASE_URL; ?>index.php?page=profile&action=profile_ajax', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-envelope-check"></i> Confirm Email'; }
+            if (data.success) {
+                openEmailConfirmModal();
+                showToast(data.message || 'Confirmation link sent to your new email.', 'success');
+            } else {
+                showToast(data.message || 'Failed to send confirmation email.', 'error');
+            }
+        })
+        .catch(function() {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-envelope-check"></i> Confirm Email'; }
+            showToast('Network error. Please try again.', 'error');
+        });
+    };
+
+    function openEmailConfirmModal() {
+        document.getElementById('emailConfirmModal').classList.add('active');
+        document.getElementById('emailConfirmTokenInput').value = '';
+        document.getElementById('emailConfirmTokenInput').focus();
+    }
+    window.closeEmailConfirmModal = function() {
+        document.getElementById('emailConfirmModal').classList.remove('active');
+    };
+
+    window.verifyEmailConfirm = function() {
+        var token = document.getElementById('emailConfirmTokenInput').value.trim();
+        if (token.length < 4) {
+            showToast('Please enter the confirmation code.', 'error');
+            return;
+        }
+        var btn = document.getElementById('verifyEmailConfirmBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...'; }
+
+        var formData = new FormData();
+        formData.append('action', 'verify_email_confirm');
+        formData.append('token', token);
+        formData.append('csrf_token', '<?php echo $csrf_token; ?>');
+
+        fetch('<?php echo BASE_URL; ?>index.php?page=profile&action=profile_ajax', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Verify Code'; }
+            if (data.success) {
+                emailVerified = true;
+                window.closeEmailConfirmModal();
+                var badge = document.getElementById('emailVerifiedBadge');
+                if (badge) badge.style.display = 'inline-flex';
+                showToast('Email address verified successfully!', 'success');
+            } else {
+                showToast(data.message || 'Invalid or expired code.', 'error');
+            }
+        })
+        .catch(function() {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Verify Code'; }
+            showToast('Network error. Please try again.', 'error');
+        });
+    };
+
+    // ===== PROFILE FORM SUBMIT - CHECK VERIFICATION =====
+    var profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            var currentPhone = phoneInput ? phoneInput.value.trim() : '';
+            var currentEmail = emailInput ? emailInput.value.trim().toLowerCase() : '';
+
+            if (currentPhone !== originalPhone && !phoneVerified) {
+                e.preventDefault();
+                showToast('Please verify your new phone number before saving.', 'error');
+                return false;
+            }
+            if (currentEmail !== originalEmail && !emailVerified) {
+                e.preventDefault();
+                showToast('Please confirm your new email address before saving.', 'error');
+                return false;
+            }
+        });
+    }
+
+    // ===== TOAST NOTIFICATION =====
+    function showToast(message, type) {
+        var toast = document.createElement('div');
+        var colors = {
+            success: 'bg-green-50 border-green-500 text-green-700',
+            error: 'bg-red-50 border-red-500 text-red-700',
+            info: 'bg-blue-50 border-blue-500 text-blue-700'
+        };
+        var icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            info: 'fa-info-circle'
+        };
+        toast.className = 'fixed bottom-6 right-6 z-[99999] max-w-sm p-4 rounded-xl border-l-4 shadow-lg text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ' + (colors[type] || colors.info);
+        toast.innerHTML = '<div class="flex items-center gap-2"><i class="fas ' + (icons[type] || icons.info) + '"></i><span>' + message + '</span></div>';
+        document.body.appendChild(toast);
+        requestAnimationFrame(function() { toast.style.transform = 'translateY(0)'; toast.style.opacity = '1'; });
+        setTimeout(function() {
+            toast.style.transform = 'translateY(20px)'; toast.style.opacity = '0';
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 3500);
+    }
+
     // ===== FAQ ACCORDION =====
     document.querySelectorAll('.faq-question').forEach(function(q) {
         q.addEventListener('click', function() {

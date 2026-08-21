@@ -236,9 +236,6 @@ function categoryWeightLevelClass($weight) {
     .status-active { background: #D1FAE5; color: #065F46; }
     .status-inactive { background: #F3F4F6; color: #6B7280; }
 
-    /* ===== FILTER CARD ===== */
-    .filter-card { background: white; border-radius: 12px; border: 1px solid rgba(16, 163, 127, 0.08); padding: 1.25rem; }
-
     /* ===== TABLE ===== */
     .table-container { background: white; border-radius: 12px; border: 1px solid rgba(16, 163, 127, 0.08); overflow: hidden; }
     .table-container thead th { background: #F5FBF6; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; color: #8aa38a; padding: 0.75rem 1.25rem; }
@@ -288,22 +285,35 @@ function categoryWeightLevelClass($weight) {
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
-        .filter-card .flex-wrap { flex-direction: column; gap: 10px; }
-        .filter-card .flex-wrap > div { width: 100%; }
-        .table-container { overflow-x: auto; }
-        table { min-width: 700px; }
+        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-container table { min-width: 760px; }
+        .modal-overlay { padding: 12px; align-items: flex-end; }
+        .modal-content { border-radius: 16px 16px 0 0; max-height: 88vh; }
+        .stat-card { padding: 1rem 0.9rem; }
+    }
+    @media (max-width: 480px) {
+        .action-btn { padding: 5px 9px; }
+        .action-btn-disabled { padding: 5px 9px; font-size: 0.65rem; }
+        .status-badge { padding: 3px 10px; font-size: 0.65rem; }
+        .weight-badge { width: 2.25rem; height: 2.25rem; font-size: 0.95rem; }
     }
 </style>
 
 <div class="fade-in">
 
     <!-- ===== TOOLBAR ===== -->
-    <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
-        <p class="text-sm text-gray-500">
-            Manage environmental report categories with weight assignments.
-        </p>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+        <div class="flex items-center gap-3 flex-wrap">
+            <p class="text-sm text-gray-500 font-medium">
+                <i class="fas fa-tags mr-1.5 text-[#10A37F]"></i>
+                Manage report categories and severity weights.
+            </p>
+            <button onclick="openRubricModal()" class="text-[#10A37F] hover:text-[#0D8568] transition text-sm flex items-center gap-1.5 font-semibold px-2.5 py-1.5 rounded-lg hover:bg-emerald-50">
+                <i class="fas fa-chart-line"></i> Weight Rubric
+            </button>
+        </div>
         <button onclick="openAddCategoryModal()"
-                class="btn-primary px-5 py-2.5 text-white font-semibold flex items-center gap-2 shadow-sm text-sm">
+                class="btn-primary px-5 py-2.5 text-white font-semibold flex items-center justify-center gap-2 shadow-sm text-sm w-full sm:w-auto">
             <i class="fas fa-plus-circle"></i>
             Add Category
         </button>
@@ -349,50 +359,40 @@ function categoryWeightLevelClass($weight) {
         </div>
     </div>
 
-    <!-- ===== FILTERS ===== -->
-    <div class="filter-card mb-6">
-        <form method="GET" action="<?php echo BASE_URL; ?>index.php" id="filterForm" class="flex flex-wrap items-end gap-3">
-            <input type="hidden" name="page" value="settings">
-            <input type="hidden" name="tab" value="categories">
+    <!-- ===== FILTER TOOLBAR (shared report toolbar design) ===== -->
+    <?php
+    $ft_chips = [];
+    if (!empty($search_query)) $ft_chips[] = '<span class="filter-chip">"' . htmlspecialchars($search_query) . '" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>';
+    if ($status_filter !== 'all') $ft_chips[] = '<span class="filter-chip">' . ucfirst($status_filter) . ' <span class="chip-remove" data-filter="status"><i class="fas fa-times"></i></span></span>';
 
-            <div class="flex-1 min-w-[200px]">
-                <label class="block text-xs text-gray-500 mb-1 font-semibold">Search</label>
-                <div class="relative">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                    <input type="text" name="search" id="searchInput" value="<?php echo htmlspecialchars($search_query); ?>"
-                           placeholder="Search by name, description, or icon..."
-                           class="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm">
-                </div>
-            </div>
-
-            <div class="w-36">
-                <label class="block text-xs text-gray-500 mb-1 font-semibold">Status</label>
-                <select name="status" id="statusSelect" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm">
-                    <option value="all" <?php echo $status_filter == 'all' ? 'selected' : ''; ?>>All Status</option>
-                    <option value="active" <?php echo $status_filter == 'active' ? 'selected' : ''; ?>>Active</option>
-                    <option value="inactive" <?php echo $status_filter == 'inactive' ? 'selected' : ''; ?>>Inactive</option>
-                </select>
-            </div>
-
-            <div class="flex gap-2">
-                <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=categories" class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition text-sm">
-                    <i class="fas fa-times mr-2"></i>Reset
-                </a>
-            </div>
-        </form>
-
-        <div class="mt-4 pt-3 border-t border-emerald-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <p class="text-sm text-gray-500 font-medium">
-                <i class="fas fa-chart-line mr-1 text-[#10A37F]"></i>
-                Showing <span class="font-bold text-gray-700"><?php echo count($filtered_categories); ?></span> of
-                <span class="font-bold text-gray-700"><?php echo $total_categories; ?></span> categories
-            </p>
-            <button onclick="openRubricModal()" class="text-[#10A37F] hover:text-[#0D8568] transition text-sm flex items-center gap-1 font-semibold">
-                <i class="fas fa-chart-line"></i>
-                <span>Weight Rubric</span>
-            </button>
-        </div>
-    </div>
+    $ft = [
+        'search_id'          => 'searchInput',
+        'search_value'       => $search_query,
+        'search_placeholder' => 'Search by name, description, or icon...',
+        'results_text'       => 'Showing <strong>' . count($filtered_categories) . '</strong> of <strong>' . $total_categories . '</strong> categories',
+        'inline_selects'     => [
+            [
+                'id'        => 'toolbarStatus',
+                'value'     => $status_filter,
+                'min_width' => '130px',
+                'options'   => ['all' => 'All Status', 'active' => 'Active', 'inactive' => 'Inactive'],
+            ],
+        ],
+        'filter_by'          => ['active' => false, 'count' => 0],
+        'popover_fields'     => [],
+        'trailing_select'    => null,
+        'view_toggle'        => null,
+        'active_filters'     => (int)((!empty($search_query) ? 1 : 0) + ($status_filter !== 'all' ? 1 : 0)),
+        'chips'              => $ft_chips,
+        'chips_clear_all'    => true,
+        'chip_clear_map'     => [
+            'search' => ['el' => 'searchInput', 'clear' => ''],
+            'status' => ['el' => 'toolbarStatus', 'clear' => 'all'],
+        ],
+        'callback'           => 'applyFilters',
+    ];
+    include __DIR__ . '/../../../shared/report_filter_toolbar.php';
+    ?>
 
     <!-- ===== CATEGORIES TABLE ===== -->
     <div class="table-container">
@@ -824,22 +824,18 @@ function validateWeight() {
 }
 
 // ============================================================
-// FILTER AUTO-SUBMIT
+// FILTER FUNCTIONALITY
+// The shared report_filter_toolbar partial handles search
+// debounce, inline selects, and filter chips. This callback is
+// invoked on every change and builds the redirect URL.
 // ============================================================
-let searchTimeout;
-const searchInput = document.getElementById('searchInput');
-const statusSelect = document.getElementById('statusSelect');
-const filterForm = document.getElementById('filterForm');
-
-if (searchInput) {
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => filterForm.submit(), 400);
-    });
-}
-
-if (statusSelect) {
-    statusSelect.addEventListener('change', () => filterForm.submit());
+function applyFilters() {
+    const params = new URLSearchParams({ page: 'settings', tab: 'categories' });
+    const search = document.getElementById('searchInput')?.value || '';
+    const status = document.getElementById('toolbarStatus')?.value || 'all';
+    if (search) params.set('search', search);
+    if (status !== 'all') params.set('status', status);
+    window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
 }
 
 // ============================================================

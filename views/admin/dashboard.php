@@ -24,21 +24,6 @@ $kpi_repeat_min_reports     = (float)SettingsHelper::get('kpi_repeat_min_reports
 $kpi_repeat_window_days     = (float)SettingsHelper::get('kpi_repeat_window_days', 30);
 
 // ------------------------------------------------------------
-// 0a. MENRO PDF EXPORT SETTINGS (System Settings → PDF Export)
-// Used by the official header and signatory block of exported PDFs.
-// ------------------------------------------------------------
-$menro_logo_path   = SettingsHelper::get('menro_logo', '');
-$menro_logo_url    = $menro_logo_path ? BASE_URL . $menro_logo_path : '';
-$pdf_office_name   = SettingsHelper::get('pdf_office_name', 'Municipal Environment and Natural Resources Office');
-$pdf_municipality  = SettingsHelper::get('pdf_municipality_name', 'Municipality of San Isidro');
-$pdf_prepared_by   = SettingsHelper::get('pdf_prepared_by_name', '');
-$pdf_prepared_tit  = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
-$pdf_approved_by   = SettingsHelper::get('pdf_approved_by_name', '');
-$pdf_approved_tit  = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
-$pdf_footer_note   = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
-$pdf_generated_by  = $_SESSION['user_name'] ?? 'System Admin';
-
-// ------------------------------------------------------------
 // 1. ALGORITHMIC KPI CALCULATIONS (back-end)
 // ------------------------------------------------------------
 
@@ -609,6 +594,7 @@ function getDecisionBadge($classification) {
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
@@ -618,9 +604,6 @@ function getDecisionBadge($classification) {
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- html2canvas + jsPDF for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; overflow-x: hidden; }
@@ -873,78 +856,7 @@ function getDecisionBadge($classification) {
             position: relative;
         }
 
-        /* ===== EXPORT DROPDOWN ===== */
-        .export-dropdown {
-            position: relative;
-            display: inline-block;
-        }
-        .export-dropdown-menu {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: calc(100% + 6px);
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.75rem;
-            box-shadow: 0 12px 36px -8px rgba(0,0,0,0.12);
-            min-width: 200px;
-            z-index: 100;
-            overflow: hidden;
-            animation: dropdownIn 0.15s ease;
-        }
-        .export-dropdown-menu.open { display: block; }
-        @keyframes dropdownIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .export-dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 16px;
-            font-size: 0.82rem;
-            font-weight: 500;
-            color: #374151;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-        }
-        .export-dropdown-item:hover {
-            background: #E8F5F0;
-            color: #10A37F;
-        }
-        .export-dropdown-item i {
-            width: 18px;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-        .export-dropdown-divider {
-            height: 1px;
-            background: #f3f4f6;
-            margin: 0;
-        }
-        .btn-export {
-            background: white;
-            border: 1px solid #e2e8f0;
-            color: #374151;
-            padding: 0.5rem 1rem;
-            border-radius: 0.75rem;
-            font-weight: 500;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-export:hover {
-            border-color: #10A37F;
-            color: #10A37F;
-            background: #E8F5F0;
-        }
+        /* ===== EXPORT DROPDOWN (uses shared export-print.css) ===== */
 
         /* PDF/CSV overlay */
         .export-overlay {
@@ -994,6 +906,16 @@ function getDecisionBadge($classification) {
         .risk-medium { background: #FEF3C7; color: #92400E; }
         .risk-high { background: #FFEDD5; color: #9A3412; }
         .risk-critical { background: #FEE2E2; color: #991B1B; }
+        .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+        .status-pending { background: #FEF3C7; color: #D97706; }
+        .status-under_review { background: #DBEAFE; color: #1E40AF; }
+        .status-verified { background: #DBEAFE; color: #1E40AF; }
+        .status-in_progress { background: #FCE7F3; color: #DB2777; }
+        .status-escalated_pending { background: #FDE68A; color: #92400E; border: 1px solid #F59E0B; }
+        .status-escalated { background: #FED7AA; color: #9A3412; }
+        .status-resolved { background: #D1FAE5; color: #10A37F; }
+        .status-rejected { background: #FEE2E2; color: #DC2626; }
+        .status-cancelled { background: #F3F4F6; color: #4B5563; }
     </style>
 </head>
 <body>
@@ -1020,21 +942,35 @@ function getDecisionBadge($classification) {
                     <i class="far fa-calendar-alt"></i>
                     <span><?php echo date('F d, Y'); ?></span>
                 </div>
+                <div class="flex items-center gap-2">
+                    <div class="map-toggle" id="headerRangeToggle">
+                        <button data-range="custom" id="customRangeBtn">Custom</button>
+                    </div>
+                    <div id="customRangeBox" class="hidden items-center gap-2">
+                        <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
+                        <span class="text-xs text-gray-400">to</span>
+                        <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
+                    </div>
+                </div>
                 <!-- Export Dropdown -->
                 <div class="export-dropdown">
-                    <button onclick="toggleExportMenu()" class="btn-export">
+                    <button onclick="toggleExportMenu()" class="btn-export-trigger">
                         <i class="fas fa-file-export"></i>
                         Export Analytics
-                        <i class="fas fa-chevron-down text-[10px] ml-0.5"></i>
+                        <i class="fas fa-chevron-down"></i>
                     </button>
                     <div id="exportDropdownMenu" class="export-dropdown-menu">
                         <button class="export-dropdown-item" onclick="exportCSV()">
                             <i class="fas fa-file-csv"></i>
-                            <span>Export as CSV</span>
+                            <span>Export Monthly Summary (CSV)</span>
                         </button>
-                        <button class="export-dropdown-item" onclick="exportPDF()">
+                        <button class="export-dropdown-item" onclick="openDashboardReport(true)">
                             <i class="fas fa-file-pdf"></i>
-                            <span>Export as PDF</span>
+                            <span>Export as PDF (A4)</span>
+                        </button>
+                        <button class="export-dropdown-item" onclick="openDashboardReport(false)">
+                            <i class="fas fa-print"></i>
+                            <span>Print Report</span>
                         </button>
                         <div class="export-dropdown-divider"></div>
                         <button class="export-dropdown-item" onclick="exportCharts()">
@@ -1415,26 +1351,33 @@ function getDecisionBadge($classification) {
 </div>
 
 <!-- ============================================================ -->
+<!-- CHART EXPORT MODAL -->
+<!-- ============================================================ -->
+<div id="chartExportModal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-images text-[#10A37F] mr-2"></i>Export Charts as Images</h3>
+            <button type="button" onclick="closeChartExportModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <p class="text-xs text-gray-500 mb-3">Select which dashboard elements to export as PNG images:</p>
+        <div id="chartExportList" class="space-y-2 max-h-72 overflow-y-auto mb-4"></div>
+        <div class="flex flex-wrap gap-2 justify-end">
+            <button type="button" onclick="closeChartExportModal()" class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
+            <button type="button" onclick="exportSelectedCharts('selected')" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]">Export Selected</button>
+            <button type="button" onclick="exportSelectedCharts('all')" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]">Export All</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
 <!-- SCRIPTS -->
 <!-- ============================================================ -->
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 // ------------------------------------------------------------
 // DATA FROM PHP
 // ------------------------------------------------------------
-const pdfSettings = {
-    lguLogo: <?php echo json_encode(SettingsHelper::getLogoUrl()); ?>,
-    menroLogo: <?php echo json_encode($menro_logo_url); ?>,
-    officeName: <?php echo json_encode($pdf_office_name); ?>,
-    municipality: <?php echo json_encode($pdf_municipality); ?>,
-    preparedByName: <?php echo json_encode($pdf_prepared_by); ?>,
-    preparedByTitle: <?php echo json_encode($pdf_prepared_tit); ?>,
-    approvedByName: <?php echo json_encode($pdf_approved_by); ?>,
-    approvedByTitle: <?php echo json_encode($pdf_approved_tit); ?>,
-    footerNote: <?php echo json_encode($pdf_footer_note); ?>,
-    generatedBy: <?php echo json_encode($pdf_generated_by); ?>,
-    generatedDate: <?php echo json_encode(date('F j, Y')); ?>
-};
 const activeReports = <?php echo json_encode($activeReports); ?>;
 const historicalReports = <?php echo json_encode($historicalReports); ?>;
 const boundaryData = <?php echo json_encode($boundary_data); ?>;
@@ -1455,7 +1398,9 @@ const timeBucketData = <?php echo json_encode(array_values($timeBuckets)); ?>;
 // FILTER STATE (Category Filter + Timeframe Selector)
 // ------------------------------------------------------------
 let selectedCategories = new Set(allCategories.map(c => String(c.id))); // all checked by default
-let selectedRange = 'all'; // 'week' | 'month' | 'year' | 'all' — starts on "All Time" so the default master-cluster view shows everything
+let selectedRange = 'all'; // 'week' | 'month' | 'year' | 'custom' | 'all' — starts on "All Time" so the default master-cluster view shows everything
+let selectedFrom = ''; // 'YYYY-MM-DD' — used when selectedRange === 'custom'
+let selectedTo = '';   // 'YYYY-MM-DD' — used when selectedRange === 'custom'
 
 // ------------------------------------------------------------
 // MAP INITIALIZATION
@@ -1598,6 +1543,17 @@ function isWithinRange(dateStr, range) {
     if (range === 'all' || !dateStr) return true;
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return true;
+    if (range === 'custom') {
+        if (selectedFrom) {
+            const from = new Date(selectedFrom + 'T00:00:00');
+            if (!isNaN(from.getTime()) && date < from) return false;
+        }
+        if (selectedTo) {
+            const to = new Date(selectedTo + 'T23:59:59');
+            if (!isNaN(to.getTime()) && date > to) return false;
+        }
+        return true;
+    }
     const now = new Date();
     if (range === 'week') {
         const weekAgo = new Date(now);
@@ -1637,10 +1593,14 @@ function getFilteredData(mode) {
 
 function updateFilterSummary(mode, count) {
     const rangeLabels = { week: 'this week', month: 'this month', year: 'this year', all: 'all time' };
+    let rangeLabel = rangeLabels[selectedRange] || selectedRange;
+    if (selectedRange === 'custom') {
+        rangeLabel = 'custom (' + (selectedFrom || '?') + ' to ' + (selectedTo || '?') + ')';
+    }
     const modeLabel = (mode === 'active') ? 'active' : 'resolved (historical)';
     const el = document.getElementById('filterSummary');
     if (el) {
-        let summary = `Showing ${count} ${modeLabel} report(s) · ${rangeLabels[selectedRange]} · ${selectedCategories.size} of ${allCategories.length} categories selected.`;
+        let summary = `Showing ${count} ${modeLabel} report(s) · ${rangeLabel} · ${selectedCategories.size} of ${allCategories.length} categories selected.`;
         if (selectedBarangay) {
             summary += ` · Barangay: ${selectedBarangay}`;
         }
@@ -1805,16 +1765,75 @@ document.getElementById('catSelectNone').addEventListener('click', function() {
 // ------------------------------------------------------------
 // TIMEFRAME SELECTOR (works alongside Active/Historical toggle)
 // ------------------------------------------------------------
+function selectRange(range) {
+    if (range === selectedRange) return;
+    selectedRange = range;
+    document.querySelectorAll('[data-range]').forEach(b => {
+        b.classList.toggle('active', b.dataset.range === range);
+    });
+    toggleCustomRangeBox();
+    loadMapData(currentMode);
+}
+
 document.getElementById('timeframeToggle').addEventListener('click', function(e) {
     const btn = e.target.closest('button');
     if (!btn) return;
-    const range = btn.dataset.range;
-    if (range === selectedRange) return;
-    selectedRange = range;
-    this.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    loadMapData(currentMode);
+    selectRange(btn.dataset.range);
 });
+
+document.getElementById('customRangeBtn').addEventListener('click', function() {
+    selectRange('custom');
+});
+
+// ------------------------------------------------------------
+// CUSTOM DATE RANGE (from/to date pickers shown when "Custom" is active)
+// ------------------------------------------------------------
+function toYMD(d) {
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+}
+
+function toggleCustomRangeBox() {
+    const box = document.getElementById('customRangeBox');
+    if (!box) return;
+    if (selectedRange === 'custom') {
+        if (!selectedFrom) {
+            const to = new Date();
+            const from = new Date();
+            from.setDate(to.getDate() - 30);
+            selectedFrom = toYMD(from);
+            selectedTo = toYMD(to);
+        }
+        document.getElementById('rangeFrom').value = selectedFrom;
+        document.getElementById('rangeTo').value = selectedTo;
+        box.classList.remove('hidden');
+        box.classList.add('flex');
+    } else {
+        box.classList.add('hidden');
+        box.classList.remove('flex');
+    }
+}
+
+function applyCustomRange() {
+    if (selectedRange !== 'custom') return;
+    const from = document.getElementById('rangeFrom').value;
+    const to = document.getElementById('rangeTo').value;
+    if (!from || !to) {
+        alert('Please select both a start and end date.');
+        return;
+    }
+    if (from > to) {
+        alert('The start date must be on or before the end date.');
+        return;
+    }
+    selectedFrom = from;
+    selectedTo = to;
+    loadMapData(currentMode);
+}
+
+document.getElementById('rangeFrom').addEventListener('change', applyCustomRange);
+document.getElementById('rangeTo').addEventListener('change', applyCustomRange);
 
 // ------------------------------------------------------------
 // SEVERITY COLOR HELPERS
@@ -2207,282 +2226,267 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Export CSV
+// ------------------------------------------------------------
+// OPEN THE DEDICATED A4 PRINT / EXPORT REPORT PAGE
+// ------------------------------------------------------------
+// Launches views/admin/reports/dashboard_report.php in a new tab, carrying over the
+// active category filter and timeframe so the report honors the same scope.
+// Passing autoprint=1 (used by "Export as PDF") auto-opens the print dialog,
+// where the user picks "Save as PDF" for an A4 document.
+function openDashboardReport(autoprint) {
+    const cats = [...selectedCategories].join(',');
+    let url = '<?php echo BASE_URL; ?>index.php?page=dashboard-report&range=' + encodeURIComponent(selectedRange)
+        + '&cats=' + encodeURIComponent(cats);
+    if (selectedRange === 'custom') {
+        url += '&from=' + encodeURIComponent(selectedFrom || '')
+            + '&to=' + encodeURIComponent(selectedTo || '');
+    }
+    url += autoprint ? '&autoprint=1' : '';
+    window.open(url, '_blank');
+}
+
+// ------------------------------------------------------------
+// TRANSACTIONAL REPORT EXPORT — structured Excel-style report
+// ------------------------------------------------------------
+// Produces a multi-section CSV report (report header, monthly trend,
+// status / category / barangay breakdowns, and a detailed monthly
+// cross-tab). Active mode groups by report date (created_at);
+// historical mode groups by resolution date (resolved_at). A UTF-8
+// BOM is prepended so Excel renders special characters correctly.
+function csvCell(val) {
+    const s = String(val == null ? '' : val);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function formatMonthLabel(key) {
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const parts = key.split('-');
+    const y = parts[0];
+    const m = parseInt(parts[1], 10) - 1;
+    return (monthNames[m] || key) + ' ' + y;
+}
+
 function exportCSV() {
     document.getElementById('exportDropdownMenu').classList.remove('open');
     exportMenuOpen = false;
 
-    // Build CSV data from reports
-    const data = currentMode === 'active' ? activeReports : historicalReports;
+    // Build CSV data from reports — use the current filters (date range,
+    // categories, barangay) so the export matches exactly what is displayed.
+    const data = getFilteredData(currentMode);
     if (!data || data.length === 0) {
         alert('No data to export.');
         return;
     }
 
-    // Define headers
-    const headers = ['ID', 'Title', 'Category', 'Barangay', 'Status', 'Risk Level', 'Severity Score', 'Classification', 'Created At'];
-    if (currentMode === 'historical') headers.push('Resolved At');
+    const dateField = currentMode === 'active' ? 'created_at' : 'resolved_at';
+    const modeLabel = (currentMode === 'active') ? 'Active Hazards' : 'Historical Trends (Resolved)';
 
-    // Build rows
-    const rows = data.map(r => {
-        const row = [
-            r.id,
-            `"${(r.title || '').replace(/"/g, '""')}"`,
-            `"${(r.category_name || '').replace(/"/g, '""')}"`,
-            `"${(r.barangay_name || '').replace(/"/g, '""')}"`,
-            r.status || '',
-            r.risk_level || 'low',
-            r.severity_score || 0,
-            r.decision_classification || '',
-            r.created_at || ''
-        ];
-        if (currentMode === 'historical') row.push(r.resolved_at || '');
-        return row.join(',');
+    const rangeText = (selectedRange === 'custom')
+        ? (selectedFrom || '?') + ' to ' + (selectedTo || '?')
+        : ({ week: 'This Week', month: 'This Month', year: 'This Year', all: 'All Time' }[selectedRange] || selectedRange);
+
+    // Group reports by month (YYYY-MM)
+    const monthsMap = {};
+    data.forEach(r => {
+        const d = r[dateField];
+        if (!d) return;
+        const key = d.slice(0, 7);
+        if (!monthsMap[key]) monthsMap[key] = [];
+        monthsMap[key].push(r);
     });
+    const monthKeys = Object.keys(monthsMap).sort();
 
-    const csvContent = [headers.join(','), ...rows].join('\n');
+    // Discover the category / barangay / status breakdown present in the filtered data
+    const categories = [...new Set(data.map(r => r.category_name).filter(Boolean))].sort();
+    const barangays = [...new Set(data.map(r => r.barangay_name).filter(Boolean))].sort();
+    const presentStatuses = [...new Set(data.map(r => r.status || 'pending'))].sort();
+
+    const statusLabels = {
+        pending: 'Pending',
+        under_review: 'Under Review',
+        verified: 'Verified',
+        in_progress: 'In Progress',
+        escalated_pending: 'Escalated Pending',
+        escalated: 'Escalated',
+        resolved: 'Resolved',
+        rejected: 'Rejected',
+        cancelled: 'Cancelled'
+    };
+    const statusName = s => statusLabels[s] || s;
+
+    // Global aggregates
+    const byStatus = {}, byCategory = {}, byBarangay = {};
+    data.forEach(r => {
+        const st = r.status || 'pending';
+        byStatus[st] = (byStatus[st] || 0) + 1;
+        if (r.category_name) byCategory[r.category_name] = (byCategory[r.category_name] || 0) + 1;
+        if (r.barangay_name) byBarangay[r.barangay_name] = (byBarangay[r.barangay_name] || 0) + 1;
+    });
+    const total = data.length;
+    const pct = (part) => total > 0 ? (Math.round((part / total) * 1000) / 10) + '%' : '0%';
+
+    const lines = [];
+
+    // ---- 1. Report header block ----
+    lines.push('MENRO DECISION DASHBOARD - ANALYTICS REPORT');
+    lines.push('System:,' + csvCell('SIERRA - Web-Based Environmental Reporting System'));
+    lines.push('Generated On:,' + csvCell(new Date().toLocaleString()));
+    lines.push('Mode:,' + csvCell(modeLabel));
+    lines.push('Date Range:,' + csvCell(rangeText));
+    lines.push('Category Scope:,' + csvCell(selectedCategories.size === allCategories.length ? 'All Categories' : selectedCategories.size + ' of ' + allCategories.length + ' categories'));
+    if (selectedBarangay) lines.push('Barangay Filter:,' + csvCell(selectedBarangay));
+    lines.push('Total Reports:,' + total);
+    lines.push('');
+
+    // ---- 2. Monthly trend ----
+    lines.push('MONTHLY TREND');
+    lines.push('Month,Total Reports,Share');
+    monthKeys.forEach(key => {
+        const count = monthsMap[key].length;
+        lines.push(csvCell(formatMonthLabel(key)) + ',' + count + ',' + csvCell(pct(count)));
+    });
+    lines.push('');
+
+    // ---- 3. Status breakdown ----
+    lines.push('STATUS BREAKDOWN');
+    lines.push('Status,Count,Share');
+    presentStatuses.forEach(s => {
+        if (!byStatus[s]) return;
+        lines.push(csvCell(statusName(s)) + ',' + byStatus[s] + ',' + csvCell(pct(byStatus[s])));
+    });
+    lines.push('');
+
+    // ---- 4. Category breakdown ----
+    lines.push('CATEGORY BREAKDOWN');
+    lines.push('Category,Count,Share');
+    Object.keys(byCategory).sort().forEach(c => {
+        lines.push(csvCell(c) + ',' + byCategory[c] + ',' + csvCell(pct(byCategory[c])));
+    });
+    lines.push('');
+
+    // ---- 5. Barangay breakdown ----
+    lines.push('BARANGAY BREAKDOWN');
+    lines.push('Barangay,Count,Share');
+    Object.keys(byBarangay).sort().forEach(b => {
+        lines.push(csvCell(b) + ',' + byBarangay[b] + ',' + csvCell(pct(byBarangay[b])));
+    });
+    lines.push('');
+
+    // ---- 6. Detailed monthly cross-tab ----
+    lines.push('DETAILED MONTHLY BREAKDOWN (by Status / Category / Barangay)');
+    const headers = ['Month', 'Total Reports'];
+    presentStatuses.forEach(s => headers.push('Status: ' + statusName(s)));
+    categories.forEach(c => headers.push('Category: ' + c));
+    barangays.forEach(b => headers.push('Barangay: ' + b));
+    lines.push(headers.map(csvCell).join(','));
+
+    monthKeys.forEach(key => {
+        const group = monthsMap[key];
+        const mStatus = {}, mCat = {}, mBrgy = {};
+        group.forEach(r => {
+            const st = r.status || 'pending';
+            mStatus[st] = (mStatus[st] || 0) + 1;
+            if (r.category_name) mCat[r.category_name] = (mCat[r.category_name] || 0) + 1;
+            if (r.barangay_name) mBrgy[r.barangay_name] = (mBrgy[r.barangay_name] || 0) + 1;
+        });
+        const row = [csvCell(formatMonthLabel(key)), group.length];
+        presentStatuses.forEach(s => row.push(mStatus[s] || 0));
+        categories.forEach(c => row.push(mCat[c] || 0));
+        barangays.forEach(b => row.push(mBrgy[b] || 0));
+        lines.push(row.join(','));
+    });
+    lines.push('');
+
+    // ---- 7. Footer note ----
+    lines.push('End of report. Generated by SIERRA Environmental Reporting System.');
+    lines.push('');
+
+    // Prepend a UTF-8 BOM so Excel opens special characters correctly.
+    const csvContent = '\uFEFF' + lines.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `analytics_export_${currentMode}_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `analytics_export_${currentMode}_monthly_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
 }
 
-// Export PDF (dashboard snapshot)
 // ------------------------------------------------------------
-// MENRO PDF helpers — official header, metadata, signatory block
-// (configured in System Settings → PDF Export)
+// EXPORT CHARTS AS IMAGES — with element picker + map export
 // ------------------------------------------------------------
-function reportingPeriodLabel() {
-    const now = new Date();
-    const month = now.toLocaleString('en-US', { month: 'long' });
-    const year = now.getFullYear();
-    if (selectedRange === 'week') {
-        const sunday = now.getDate() - now.getDay();
-        const saturday = sunday + 6;
-        return 'Week of ' + month + ' ' + sunday + ' – ' + month + ' ' + saturday + ', ' + year;
-    }
-    if (selectedRange === 'month') return 'This Month (' + month + ' ' + year + ')';
-    if (selectedRange === 'year') return 'This Year (' + year + ')';
-    return 'All Time (through ' + month + ' ' + year + ')';
-}
+// Collects every dashboard widget (all .chart-card blocks) plus the
+// heatmap, then lets the admin choose which ones to download as PNG.
+// Charts, tables, text and the Leaflet map are all captured via
+// html2canvas so the exported image matches what is on screen.
 
-function buildOfficialHeader() {
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:12px; margin-bottom:12px; border-bottom:3px solid #10A37F;';
-
-    const left = document.createElement('div');
-    left.style.cssText = 'width:76px; height:76px; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
-    if (pdfSettings.lguLogo) {
-        const img = document.createElement('img');
-        img.src = pdfSettings.lguLogo;
-        img.style.cssText = 'max-width:76px; max-height:76px; object-fit:contain;';
-        left.appendChild(img);
-    } else {
-        left.innerHTML = '<div style="width:76px; height:76px; border:1px dashed #d1d5db; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:0.6rem; text-align:center;">LGU<br>Logo</div>';
-    }
-
-    const center = document.createElement('div');
-    center.style.cssText = 'flex:1; text-align:center; padding:0 8px;';
-    center.innerHTML =
-        '<div style="font-weight:800; color:#1f2937; font-size:1rem; line-height:1.35;">' + pdfSettings.officeName + '</div>' +
-        '<div style="color:#4b5563; font-size:0.8rem; margin-top:2px;">' + pdfSettings.municipality + '</div>' +
-        '<div style="color:#10A37F; font-weight:700; font-size:0.7rem; letter-spacing:0.08em; margin-top:5px; text-transform:uppercase;">Environmental Hazard Analysis Report</div>';
-
-    const right = document.createElement('div');
-    right.style.cssText = 'width:76px; height:76px; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
-    if (pdfSettings.menroLogo) {
-        const img = document.createElement('img');
-        img.src = pdfSettings.menroLogo;
-        img.style.cssText = 'max-width:76px; max-height:76px; object-fit:contain;';
-        right.appendChild(img);
-    } else {
-        right.innerHTML = '<div style="width:76px; height:76px; border:1px dashed #d1d5db; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:0.6rem; text-align:center;">MENRO<br>Logo</div>';
-    }
-
-    header.appendChild(left);
-    header.appendChild(center);
-    header.appendChild(right);
-    return header;
-}
-
-function buildMetadataBlock() {
-    const meta = document.createElement('div');
-    meta.style.cssText = 'background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:0.78rem; color:#374151; line-height:1.7;';
-    meta.innerHTML =
-        '<div><span style="font-weight:700;">Reporting Period:</span> ' + reportingPeriodLabel() + '</div>' +
-        '<div><span style="font-weight:700;">Date Generated:</span> ' + pdfSettings.generatedDate + '</div>' +
-        '<div><span style="font-weight:700;">Generated By:</span> ' + pdfSettings.generatedBy + '</div>';
-    return meta;
-}
-
-function buildSignatoryBlock() {
-    const block = document.createElement('div');
-    block.style.cssText = 'margin-top:28px; padding-top:18px; border-top:1px solid #e5e7eb;';
-    block.innerHTML =
-        '<div style="display:flex; justify-content:space-between; gap:40px; margin-bottom:10px;">' +
-            '<div style="flex:1;">' +
-                '<div style="font-size:0.72rem; font-weight:700; color:#374151;">Prepared by:</div>' +
-                '<div style="height:46px;"></div>' +
-                '<div style="text-align:center;">' +
-                    '<div style="font-weight:700; color:#111827;">' + pdfSettings.preparedByName + '</div>' +
-                    '<div style="font-size:0.72rem; color:#6b7280;">' + pdfSettings.preparedByTitle + '</div>' +
-                '</div>' +
-            '</div>' +
-            '<div style="flex:1;">' +
-                '<div style="font-size:0.72rem; font-weight:700; color:#374151;">Noted and Approved by:</div>' +
-                '<div style="height:46px;"></div>' +
-                '<div style="text-align:center;">' +
-                    '<div style="font-weight:700; color:#111827;">' + pdfSettings.approvedByName + '</div>' +
-                    '<div style="font-size:0.72rem; color:#6b7280;">' + pdfSettings.approvedByTitle + '</div>' +
-                '</div>' +
-            '</div>' +
-        '</div>' +
-        '<div style="text-align:center; font-size:0.68rem; color:#9ca3af; margin-top:8px;">' + pdfSettings.footerNote + '</div>';
-    return block;
-}
-
-function exportPDF() {
-    document.getElementById('exportDropdownMenu').classList.remove('open');
-    exportMenuOpen = false;
-
-    // Show loading overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'export-overlay';
-    overlay.id = 'exportOverlay';
-    overlay.innerHTML = `
-        <div class="export-overlay-card">
-            <div class="export-spinner"></div>
-            <p style="font-weight:700;color:#1f2937;font-size:0.95rem;margin-bottom:4px;">Generating PDF Report</p>
-            <p style="color:#6b7280;font-size:0.8rem;">Please wait a moment...</p>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-
-    // Clone the dashboard content (excluding the map and interactive elements)
-    const source = document.querySelector('.main-container');
-    const clone = source.cloneNode(true);
-
-    // Remove interactive elements from clone
-    clone.querySelectorAll('#map-container, .export-dropdown, .map-toggle, #categoryFilterWrap, #timeframeToggle, .chart-container canvas').forEach(el => {
-        if (el.parentNode) el.parentNode.removeChild(el);
+function collectExportItems() {
+    const items = [];
+    document.querySelectorAll('.chart-card').forEach(card => {
+        const title = card.querySelector('.chart-title')?.textContent?.trim().replace(/\s+/g, ' ') || 'Dashboard Widget';
+        items.push({ el: card, label: title });
     });
-
-    // Replace map with static text
-    const mapContainer = clone.querySelector('#map-container');
-    if (mapContainer) {
-        mapContainer.innerHTML = `
-            <div style="padding:1rem; background:#f0f4f0; border-radius:0.75rem; text-align:center; color:#6b7280; border:1px solid #e5e7eb;">
-                <i class="fas fa-map-marked-alt" style="color:#10A37F; font-size:24px; display:block; margin-bottom:8px;"></i>
-                <p style="font-weight:600;">Environmental Heatmap - ${currentMode === 'active' ? 'Active Hazards' : 'Historical Trends'}</p>
-                <p style="font-size:0.8rem;">${currentMode === 'active' ? activeReports.length : historicalReports.length} reports shown</p>
-                <p style="font-size:0.7rem;color:#9ca3af;">Filtered by ${selectedCategories.size} categories</p>
-            </div>
-        `;
-    }
-
-    // Replace charts with static text
-    clone.querySelectorAll('.chart-card').forEach(card => {
-        const canvas = card.querySelector('canvas');
-        if (canvas) {
-            const title = card.querySelector('.chart-title')?.textContent || 'Chart';
-            const parent = canvas.parentNode;
-            parent.innerHTML = `
-                <div style="padding:1rem; background:#f8fafc; border-radius:0.5rem; text-align:center; color:#6b7280; border:1px solid #e5e7eb;">
-                    <p style="font-weight:600;">${title.trim()}</p>
-                    <p style="font-size:0.8rem;">Data included in PDF export</p>
-                </div>
-            `;
-        }
-    });
-
-    // Inject official LGU header, metadata, and signatory block
-    clone.insertBefore(buildMetadataBlock(), clone.firstChild);
-    clone.insertBefore(buildOfficialHeader(), clone.firstChild);
-    clone.appendChild(buildSignatoryBlock());
-
-    // Render clone in a hidden container
-    const wrapper = document.createElement('div');
-    wrapper.id = 'pdf-render-container';
-    wrapper.style.cssText = 'position:fixed; left:-9999px; top:0; width:800px; background:white; z-index:-1; font-family:Manrope,sans-serif; padding:20px;';
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-
-    // Capture and generate PDF
-    setTimeout(() => {
-        html2canvas(clone, {
-            scale: 2,
-            useCORS: true,
-            letterRendering: true,
-            backgroundColor: '#ffffff',
-            width: 800,
-            windowWidth: 800,
-            scrollY: 0,
-            scrollX: 0
-        }).then(canvas => {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('portrait', 'mm', 'a4');
-            const marginX = 10, marginY = 10;
-            const usableW = 210 - (marginX * 2);
-            const usableH = 297 - (marginY * 2);
-            const imgRatio = canvas.width / canvas.height;
-            let pdfW = usableW;
-            let pdfH = pdfW / imgRatio;
-            if (pdfH > usableH) {
-                pdfH = usableH;
-                pdfW = pdfH * imgRatio;
-            }
-            const offsetX = marginX + (usableW - pdfW) / 2;
-            const offsetY = marginY;
-
-            const imgData = canvas.toDataURL('image/jpeg', 0.92);
-            pdf.addImage(imgData, 'JPEG', offsetX, offsetY, pdfW, pdfH);
-            pdf.save(`Dashboard_Report_${new Date().toISOString().slice(0,10)}.pdf`);
-
-            cleanup();
-        }).catch(err => {
-            console.error('PDF capture error:', err);
-            cleanup();
-            alert('Failed to generate PDF. Please try again.');
-        });
-    }, 500);
-
-    function cleanup() {
-        const c = document.getElementById('pdf-render-container');
-        if (c) c.remove();
-        const o = document.getElementById('exportOverlay');
-        if (o) o.remove();
-    }
+    const mapEl = document.getElementById('map');
+    if (mapEl) items.push({ el: mapEl, label: 'Environmental Heatmap (Map)' });
+    return items;
 }
 
-// Export Charts as Images
 function exportCharts() {
     document.getElementById('exportDropdownMenu').classList.remove('open');
     exportMenuOpen = false;
 
-    const charts = document.querySelectorAll('.chart-card canvas');
-    if (charts.length === 0) {
+    const items = collectExportItems();
+    if (items.length === 0) {
         alert('No charts to export.');
         return;
     }
 
-    // Create a zip-like download of all chart images (download one by one)
-    charts.forEach((canvas, index) => {
-        const title = canvas.closest('.chart-card')?.querySelector('.chart-title')?.textContent?.trim() || `Chart_${index + 1}`;
-        const link = document.createElement('a');
-        link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-    });
+    const list = document.getElementById('chartExportList');
+    list.innerHTML = items.map((it, i) => `
+        <label class="flex items-center gap-2 text-sm text-gray-700 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
+            <input type="checkbox" class="chart-export-checkbox accent-[#10A37F]" value="${i}" checked>
+            <span>${it.label}</span>
+        </label>
+    `).join('');
 
-    // Also export the map as image if possible
-    const mapElement = document.getElementById('map');
-    if (mapElement) {
-        // Use leaflet's built-in export or just notify
-        setTimeout(() => {
-            alert('Map image export is not supported directly. Use the PDF export for a complete dashboard snapshot.');
-        }, 500);
+    const modal = document.getElementById('chartExportModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeChartExportModal() {
+    const modal = document.getElementById('chartExportModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function exportSelectedCharts(mode) {
+    const items = collectExportItems();
+    const selected = [];
+    document.querySelectorAll('.chart-export-checkbox').forEach((cb, i) => {
+        if (mode === 'all' || cb.checked) selected.push(items[i]);
+    });
+    if (selected.length === 0) {
+        alert('Please select at least one element to export.');
+        return;
+    }
+    closeChartExportModal();
+
+    for (const it of selected) {
+        try {
+            const canvas = await html2canvas(it.el, {
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                scale: 2,
+                logging: false
+            });
+            const link = document.createElement('a');
+            link.download = it.label.replace(/[^a-zA-Z0-9]/g, '_') + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (e) {
+            console.error('Export failed for:', it.label, e);
+            alert('Failed to export "' + it.label + '".\n\nThe map tiles may not have loaded yet — wait a moment and try again.');
+        }
     }
 }
 
