@@ -1,8 +1,8 @@
 <?php
 // views/profile.php - MAIN PROFILE PAGE with sections loaded dynamically
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/config/config.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/helpers/SettingsHelper.php';
+require_once dirname(__DIR__, 3) . '/config/config.php';
+require_once dirname(__DIR__, 3) . '/helpers/SettingsHelper.php';
 requireLogin();
 
 $database = new Database();
@@ -38,11 +38,11 @@ function saveProfileCrop($user_id, $current_picture, $cropped_data) {
     $image_data = base64_decode($parts[1]);
     if ($image_data === false) return [false, 'Invalid image data.'];
 
-    $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/uploads/profile/';
+    $upload_dir = PROFILE_UPLOAD_DIR;
     if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
 
-    if ($current_picture && file_exists($_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/' . $current_picture)) {
-        @unlink($_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/' . $current_picture);
+    if ($current_picture && file_exists(BASE_PATH . $current_picture)) {
+        @unlink(BASE_PATH . $current_picture);
     }
 
     $new_filename = 'profile_' . $user_id . '_' . time() . '.png';
@@ -696,7 +696,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .metric-item {
             display: flex;
             flex-direction: column;
-            padding: 0.5rem 0;
+            padding: 0.4rem 0;
             border-bottom: 1px solid #f3f4f6;
         }
         .metric-item:last-child { border-bottom: none; }
@@ -1042,7 +1042,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 </head>
 <body>
 
-<?php include $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/views/layouts/sidebar.php'; ?>
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <!-- ===== MAIN CONTAINER ===== -->
 <div class="lg:ml-72 min-h-screen">
@@ -1127,7 +1127,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             Change Photo
                         </div>
                     </div>
-                    <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
                     <div>
                         <h3 class="font-bold text-gray-800"><?php echo htmlspecialchars($full_name); ?></h3>
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1 <?php echo $role_badge_color; ?>">
@@ -1244,6 +1243,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <input type="hidden" name="update_photo" value="1">
     <input type="hidden" name="cropped_image" id="photoCroppedImage" value="">
 </form>
+
+<!-- Hidden file input for "Choose from Gallery" (shared by profile menu + Edit Profile) -->
+<input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
 
 <!-- Avatar Picker Modal -->
 <div id="avatarPickerModal" class="crop-modal">

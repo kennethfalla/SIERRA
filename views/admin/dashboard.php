@@ -938,14 +938,12 @@ function getDecisionBadge($classification) {
                 <p class="text-gray-500 text-sm">Real-time algorithm-driven hazard intelligence for San Isidro</p>
             </div>
             <div class="flex items-center gap-3 mt-2 sm:mt-0">
-                <div class="text-sm text-gray-400 flex items-center gap-2 mr-2">
-                    <i class="far fa-calendar-alt"></i>
-                    <span><?php echo date('F d, Y'); ?></span>
-                </div>
                 <div class="flex items-center gap-2">
-                    <div class="map-toggle" id="headerRangeToggle">
-                        <button data-range="custom" id="customRangeBtn">Custom</button>
-                    </div>
+                    <button onclick="openDateRangePicker()" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-3 py-2 hover:border-[#10A37F] transition" id="dateRangeBtn">
+                        <i class="far fa-calendar-alt text-[#10A37F]"></i>
+                        <span id="dateRangeLabel"><?php echo date('F d, Y'); ?></span>
+                        <i class="fas fa-chevron-down text-xs text-gray-400"></i>
+                    </button>
                     <div id="customRangeBox" class="hidden items-center gap-2">
                         <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
                         <span class="text-xs text-gray-400">to</span>
@@ -960,22 +958,18 @@ function getDecisionBadge($classification) {
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div id="exportDropdownMenu" class="export-dropdown-menu">
+                        <button class="export-dropdown-item" onclick="openDashboardReport(false)">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Export as PDF</span>
+                        </button>
                         <button class="export-dropdown-item" onclick="exportCSV()">
                             <i class="fas fa-file-csv"></i>
-                            <span>Export Monthly Summary (CSV)</span>
-                        </button>
-                        <button class="export-dropdown-item" onclick="openDashboardReport(true)">
-                            <i class="fas fa-file-pdf"></i>
-                            <span>Export as PDF (A4)</span>
-                        </button>
-                        <button class="export-dropdown-item" onclick="openDashboardReport(false)">
-                            <i class="fas fa-print"></i>
-                            <span>Print Report</span>
+                            <span>Export as CSV</span>
                         </button>
                         <div class="export-dropdown-divider"></div>
                         <button class="export-dropdown-item" onclick="exportCharts()">
                             <i class="fas fa-chart-pie"></i>
-                            <span>Export Charts as Images</span>
+                            <span>Export Charts as Image</span>
                         </button>
                     </div>
                 </div>
@@ -1766,12 +1760,13 @@ document.getElementById('catSelectNone').addEventListener('click', function() {
 // TIMEFRAME SELECTOR (works alongside Active/Historical toggle)
 // ------------------------------------------------------------
 function selectRange(range) {
-    if (range === selectedRange) return;
+    if (range === selectedRange && range !== 'custom') return;
     selectedRange = range;
     document.querySelectorAll('[data-range]').forEach(b => {
         b.classList.toggle('active', b.dataset.range === range);
     });
     toggleCustomRangeBox();
+    updateDateRangeLabel();
     loadMapData(currentMode);
 }
 
@@ -1781,9 +1776,27 @@ document.getElementById('timeframeToggle').addEventListener('click', function(e)
     selectRange(btn.dataset.range);
 });
 
-document.getElementById('customRangeBtn').addEventListener('click', function() {
+function openDateRangePicker() {
     selectRange('custom');
-});
+    // Focus the from date to trigger the native date picker
+    const fromInput = document.getElementById('rangeFrom');
+    if (fromInput) {
+        fromInput.showPicker ? fromInput.showPicker() : fromInput.focus();
+    }
+}
+
+function updateDateRangeLabel() {
+    const label = document.getElementById('dateRangeLabel');
+    if (!label) return;
+    if (selectedRange === 'custom' && selectedFrom && selectedTo) {
+        const from = new Date(selectedFrom + 'T00:00:00');
+        const to = new Date(selectedTo + 'T00:00:00');
+        const opts = { month: 'short', day: 'numeric', year: 'numeric' };
+        label.textContent = from.toLocaleDateString('en-US', opts) + ' – ' + to.toLocaleDateString('en-US', opts);
+    } else {
+        label.textContent = '<?php echo date('F d, Y'); ?>';
+    }
+}
 
 // ------------------------------------------------------------
 // CUSTOM DATE RANGE (from/to date pickers shown when "Custom" is active)
@@ -1829,6 +1842,7 @@ function applyCustomRange() {
     }
     selectedFrom = from;
     selectedTo = to;
+    updateDateRangeLabel();
     loadMapData(currentMode);
 }
 

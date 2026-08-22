@@ -565,21 +565,20 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <div class="flex gap-2 flex-wrap">
                     <div class="export-dropdown">
                         <button onclick="togglePrintMenu()" class="btn-export-trigger" id="printDropdownTrigger">
-                            <i class="fas fa-print"></i>
-                            <span>Print</span>
+                            <i class="fas fa-file-export"></i>
+                            <span>Export</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
-                        <div id="printDropdownMenu" class="export-dropdown-menu" style="width:200px;">
+                        <div id="printDropdownMenu" class="export-dropdown-menu" style="width:220px;">
                             <div>
                                 <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo (int)$report['id']; ?>&print=1', '_blank')">
-                                    <i class="fas fa-print"></i>
-                                    <span>Print Report</span>
-                                </button>
-                                <div class="export-dropdown-divider"></div>
-                                <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
-                                <button class="export-dropdown-item" onclick="handleDownloadPDF()">
                                     <i class="fas fa-file-pdf"></i>
-                                    <span>Download PDF</span>
+                                    <span>Export as PDF</span>
+                                </button>
+                                <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
+                                <button class="export-dropdown-item" onclick="handleDownloadCSV()">
+                                    <i class="fas fa-file-csv"></i>
+                                    <span>Export as CSV</span>
                                 </button>
                                 <?php endif; ?>
                             </div>
@@ -1508,6 +1507,12 @@ document.addEventListener('click', function(e) {
 function handlePrint() {
     document.getElementById('printDropdownMenu').classList.remove('open');
     window.print();
+}
+
+// ===== CSV EXPORT =====
+function handleDownloadCSV() {
+    document.getElementById('printDropdownMenu').classList.remove('open');
+    window.location.href = '<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo (int)$report['id']; ?>&export=csv';
 }
 
 // ===== PDF DOWNLOAD (FIXED: removes script tags from clone) =====

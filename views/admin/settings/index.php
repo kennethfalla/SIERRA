@@ -11,6 +11,117 @@ requireRole('admin');
 $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'general';
 $system_name = SettingsHelper::get('system_name', 'Sierra');
 
+// ============================================================
+// USERS CSV EXPORT HANDLER
+// Runs BEFORE any HTML output so the CSV headers/download work
+// correctly (same pattern as views/admin/all_reports.php).
+// ============================================================
+if (isset($_GET['export_users']) && $_GET['export_users'] !== '') {
+    if (!PermissionHelper::userHasPermission('can_export_reports')) {
+        $_SESSION['error'] = "You do not have permission to export users.";
+        header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+        exit();
+    }
+
+    $export_type = $_GET['export_users'];
+    $export_from = $_GET['export_from'] ?? '';
+    $export_to   = $_GET['export_to'] ?? '';
+
+    $db2 = (new Database())->getConnection();
+    $q = "SELECT u.id, u.first_name, u.last_name, u.email, u.contact_number,
+                 u.user_type, u.is_active, u.created_at, u.job_title,
+                 u.is_resident, u.province, u.municipality, u.non_resident_address,
+                 b.name AS barangay_name
+          FROM users u
+          LEFT JOIN barangays b ON u.barangay_id = b.id";
+
+    $where = [];
+    $params = [];
+
+    switch ($export_type) {
+        case 'menro':
+            $where[] = "u.user_type IN ('admin','menro_staff')";
+            break;
+        case 'barangay':
+            $where[] = "u.user_type = 'barangay_personnel'";
+            break;
+        case 'reporters':
+            // Reporters = citizen accounts (both resident and non-resident).
+            $where[] = "u.user_type IS NULL";
+            break;
+        case 'residents':
+            $where[] = "u.user_type IS NULL AND u.is_resident = 1";
+            break;
+        case 'non_residents':
+            $where[] = "u.user_type IS NULL AND u.is_resident = 0";
+            break;
+        case 'new_accounts':
+            if ($export_from !== '') { $where[] = "DATE(u.created_at) >= :efrom"; $params[':efrom'] = $export_from; }
+            if ($export_to !== '')   { $where[] = "DATE(u.created_at) <= :eto";   $params[':eto']   = $export_to; }
+            break;
+        case 'status':
+            // Exports all users with their account status column.
+            break;
+        case 'all':
+        default:
+            break;
+    }
+
+    $sql = $q . (count($where) > 0 ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY u.created_at DESC';
+    $stmt = $db2->prepare($sql);
+    foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+    $stmt->execute();
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $labels = [
+        'ID', 'First Name', 'Last Name', 'Email', 'Contact Number', 'Role', 'Status',
+        'Barangay', 'Residency', 'Province/Municipality', 'Registered Date'
+    ];
+
+    $roleMap = [
+        'admin'              => 'Admin',
+        'menro_staff'        => 'MENRO Staff',
+        'barangay_personnel' => 'Barangay Personnel',
+    ];
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="users_' . $export_type . '_' . date('Y-m-d') . '.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM
+    fputcsv($out, $labels);
+
+    foreach ($rows as $r) {
+        $is_citizen  = empty($r['user_type']);
+        $role        = $is_citizen ? 'Citizen' : ($roleMap[$r['user_type']] ?? 'Citizen');
+        $status      = !empty($r['is_active']) ? 'Active' : 'Suspended';
+        $is_resident = (int)($r['is_resident'] ?? 1);
+        $residency   = $is_citizen ? ($is_resident ? 'Resident' : 'Non-Resident') : '—';
+
+        $loc = '';
+        if ($is_citizen && !$is_resident) {
+            $loc = trim(implode(', ', array_filter([$r['province'] ?? '', $r['municipality'] ?? ''])));
+        } else {
+            $loc = $r['barangay_name'] ?? '';
+        }
+
+        fputcsv($out, [
+            str_pad($r['id'], 5, '0', STR_PAD_LEFT),
+            $r['first_name'], $r['last_name'], $r['email'],
+            $r['contact_number'], $role, $status,
+            $r['barangay_name'] ?? '', $residency, $loc,
+            date('M d, Y', strtotime($r['created_at']))
+        ]);
+    }
+    fclose($out);
+
+    $actLog = new ActivityLog($db2);
+    $actLog->log($_SESSION['user_id'], 'Export Users', "Exported $export_type users list from Manage Users", $_SERVER['REMOTE_ADDR'] ?? 'unknown', null, 'SUCCESS');
+    exit();
+}
+
 // Define all setting tabs organized into categories
 $navigation_groups = [
     'General & Branding' => [
@@ -139,6 +250,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <!-- Leaflet Map (required by the Map settings tab preview) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

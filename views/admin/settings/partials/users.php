@@ -593,9 +593,67 @@ function getRoleBadge($user_type, $job_title = '') {
                         . ($report_status ? '&status=' . $report_status : '')
                         . ($report_brgy ? '&barangay=' . $report_brgy : '');
         ?>
-        <a href="<?php echo $report_url; ?>" class="inline-flex items-center gap-2 px-4 py-2 bg-[#10A37F] text-white rounded-xl font-semibold text-xs md:text-sm hover:bg-[#0D8568] transition shadow-sm flex-shrink-0">
-            <i class="fas fa-file-print"></i> Print Report
-        </a>
+        <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
+        <div class="export-dropdown" id="usersExportWrap">
+            <button onclick="toggleUsersExport()" id="usersExportBtn" class="btn-export-trigger">
+                <i class="fas fa-download"></i> Export
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div id="usersExportDropdown" class="export-dropdown-menu" style="width:300px;">
+                <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php<?php echo $report_url; ?>', '_blank')">
+                    <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
+                    <div class="item-text"><div class="item-title">Export as PDF</div><div class="item-desc">Preview and save as PDF</div></div>
+                </button>
+                <div class="export-dropdown-divider"></div>
+                <div class="export-dropdown-header">
+                    <p><i class="fas fa-file-csv"></i> Export Users as CSV</p>
+                    <div class="sub">Download accounts by category</div>
+                </div>
+                <button class="export-dropdown-item" onclick="downloadUsersExport('all')">
+                    <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-users"></i></div>
+                    <div class="item-text"><div class="item-title">All Users</div></div>
+                </button>
+                <button class="export-dropdown-item" onclick="downloadUsersExport('menro')">
+                    <div class="item-icon" style="background:#EDE9FE; color:#7C3AED;"><i class="fas fa-crown"></i></div>
+                    <div class="item-text"><div class="item-title">All MENRO Users</div></div>
+                </button>
+                <button class="export-dropdown-item" onclick="downloadUsersExport('barangay')">
+                    <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="item-text"><div class="item-title">All Barangay Users</div></div>
+                </button>
+                <button class="export-dropdown-item" onclick="downloadUsersExport('reporters')">
+                    <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-bullhorn"></i></div>
+                    <div class="item-text"><div class="item-title">All Reporters</div><div class="item-desc">Resident &amp; Non-Resident</div></div>
+                </button>
+                <button class="export-dropdown-item" onclick="downloadUsersExport('residents')">
+                    <div class="item-icon" style="background:#D1FAE5; color:#059669;"><i class="fas fa-home"></i></div>
+                    <div class="item-text"><div class="item-title">Residents Only</div></div>
+                </button>
+                <button class="export-dropdown-item" onclick="downloadUsersExport('non_residents')">
+                    <div class="item-icon" style="background:#FEF3C7; color:#B45309;"><i class="fas fa-road"></i></div>
+                    <div class="item-text"><div class="item-title">Non-Residents Only</div></div>
+                </button>
+                <div class="export-dropdown-divider"></div>
+                <div class="export-dropdown-footer">
+                    <div class="footer-label"><i class="fas fa-calendar"></i> New Accounts</div>
+                    <div style="display:flex; gap:8px; margin-bottom:8px;">
+                        <input type="date" id="exportNewFrom" class="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-[#10A37F]" placeholder="From">
+                        <input type="date" id="exportNewTo" class="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-[#10A37F]" placeholder="To">
+                    </div>
+                    <button class="btn-export-primary" onclick="downloadUsersExport('new_accounts')">
+                        <i class="fas fa-download"></i> Export New Accounts
+                    </button>
+                </div>
+                <div class="export-dropdown-divider"></div>
+                <div class="export-dropdown-footer">
+                    <div class="footer-label"><i class="fas fa-toggle-on"></i> Account Status</div>
+                    <button class="btn-export-primary" onclick="downloadUsersExport('status')">
+                        <i class="fas fa-file-csv"></i> Export Status Report
+                    </button>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <!-- ===== FILTER TOOLBAR (shared report toolbar design) ===== -->
@@ -1187,4 +1245,42 @@ document.getElementById('createStaffForm').addEventListener('submit', function(e
     }
     return true;
 });
+
+// ============================================================
+// USERS EXPORT DROPDOWN
+// ============================================================
+function toggleUsersExport() {
+    var dd = document.getElementById('usersExportDropdown');
+    var btn = document.getElementById('usersExportBtn');
+    dd.classList.toggle('open');
+    if (btn) btn.classList.toggle('active');
+}
+
+document.addEventListener('click', function(e) {
+    var wrap = document.getElementById('usersExportWrap');
+    var dd = document.getElementById('usersExportDropdown');
+    var btn = document.getElementById('usersExportBtn');
+    if (wrap && dd && !wrap.contains(e.target)) {
+        dd.classList.remove('open');
+        if (btn) btn.classList.remove('active');
+    }
+});
+
+function downloadUsersExport(type) {
+    var params = new URLSearchParams();
+    params.set('page', 'settings');
+    params.set('tab', 'users');
+    params.set('export_users', type);
+    if (type === 'new_accounts') {
+        var from = document.getElementById('exportNewFrom').value;
+        var to = document.getElementById('exportNewTo').value;
+        if (from) params.set('export_from', from);
+        if (to) params.set('export_to', to);
+    }
+    window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
+    var dd = document.getElementById('usersExportDropdown');
+    var btn = document.getElementById('usersExportBtn');
+    if (dd) dd.classList.remove('open');
+    if (btn) btn.classList.remove('active');
+}
 </script>

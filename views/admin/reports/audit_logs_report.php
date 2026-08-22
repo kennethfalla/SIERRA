@@ -24,6 +24,8 @@ $from = isset($_GET['from']) ? preg_replace('/[^0-9-]', '', $_GET['from']) : '';
 $to   = isset($_GET['to'])   ? preg_replace('/[^0-9-]/', '', $_GET['to'])   : '';
 $groupBy = ($_GET['group_by'] ?? 'role') === 'user' ? 'user' : 'role';
 $autoprint = !empty($_GET['autoprint']);
+$roleFilter   = in_array($_GET['role'] ?? 'all', ['all', 'menro', 'barangay', 'citizen', 'system'], true) ? $_GET['role'] : 'all';
+$statusFilter = in_array($_GET['status'] ?? 'all', ['SUCCESS', 'FAILED', 'UNAUTHORIZED_ATTEMPT'], true) ? $_GET['status'] : 'all';
 
 function isValidDateStr($s) {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) return false;
@@ -168,6 +170,20 @@ foreach ($logs as &$log) {
 unset($log);
 
 // ------------------------------------------------------------
+// APPLY ROLE & STATUS FILTERS
+// ------------------------------------------------------------
+if ($roleFilter !== 'all') {
+    $logs = array_values(array_filter($logs, function ($log) use ($roleFilter) {
+        return $log['_group'] === $roleFilter;
+    }));
+}
+if ($statusFilter !== 'all') {
+    $logs = array_values(array_filter($logs, function ($log) use ($statusFilter) {
+        return ($log['status'] ?? 'SUCCESS') === $statusFilter;
+    }));
+}
+
+// ------------------------------------------------------------
 // BUILD GROUPS
 // ------------------------------------------------------------
 $groups = [];
@@ -211,12 +227,23 @@ $systemName    = SettingsHelper::get('system_name', 'SIERRA');
 $generatedBy   = $_SESSION['user_name'] ?? 'System Admin';
 $generatedOn   = date('F j, Y \a\t h:i A');
 
+// PDF Export signatory block + footer (Settings > PDF Export)
+$preparedBy    = SettingsHelper::get('pdf_prepared_by_name', '');
+$preparedTitle = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
+$approvedBy    = SettingsHelper::get('pdf_approved_by_name', '');
+$approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
+$footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
+
 $rangeText = 'All Time';
 if ($from && $to)      $rangeText = date('M j, Y', strtotime($from)) . ' to ' . date('M j, Y', strtotime($to));
 elseif ($from)         $rangeText = 'From ' . date('M j, Y', strtotime($from));
 elseif ($to)           $rangeText = 'Up to ' . date('M j, Y', strtotime($to));
 
 $groupLabel = ($groupBy === 'user') ? 'Grouped by User' : 'Grouped by Role';
+
+$statusLabels = ['SUCCESS' => 'Success', 'FAILED' => 'Failed', 'UNAUTHORIZED_ATTEMPT' => 'Unauthorized'];
+$roleFilterText   = $roleFilter === 'all' ? 'All Roles' : roleGroupLabel($roleFilter);
+$statusFilterText = $statusFilter === 'all' ? 'All Statuses' : ($statusLabels[$statusFilter] ?? $statusFilter);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -422,6 +449,7 @@ $groupLabel = ($groupBy === 'user') ? 'Grouped by User' : 'Grouped by Role';
             color: #6b7280;
         }
         .report-footer .brand { font-weight: 700; color: #0D8568; }
+        .report-footer-note { margin-top: 6px; text-align: center; font-size: 8px; color: #9ca3af; }
 
         @page {
             margin: 10mm 12mm;
@@ -449,7 +477,8 @@ $groupLabel = ($groupBy === 'user') ? 'Grouped by User' : 'Grouped by Role';
 <body>
     <!-- Screen-only toolbar (hidden on print) -->
     <div class="toolbar">
-        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print / Save as PDF</button>
+        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
+        <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
         <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs">&larr; Back to Audit Logs</a>
         <span class="hint" style="color:#6b7280; font-size:11px;">Tip: choose "Save as PDF" as the printer destination for a PDF export.</span>
     </div>
@@ -459,6 +488,23 @@ $groupLabel = ($groupBy === 'user') ? 'Grouped by User' : 'Grouped by Role';
         <input type="hidden" name="page" value="audit-logs-report">
         <label>From <input type="date" name="from" value="<?php echo htmlspecialchars($from); ?>"></label>
         <label>To <input type="date" name="to" value="<?php echo htmlspecialchars($to); ?>"></label>
+        <label>Role
+            <select name="role">
+                <option value="all" <?php echo $roleFilter === 'all' ? 'selected' : ''; ?>>All Roles</option>
+                <option value="menro" <?php echo $roleFilter === 'menro' ? 'selected' : ''; ?>>MENRO</option>
+                <option value="barangay" <?php echo $roleFilter === 'barangay' ? 'selected' : ''; ?>>Barangay Officials</option>
+                <option value="citizen" <?php echo $roleFilter === 'citizen' ? 'selected' : ''; ?>>Reporters (Citizens)</option>
+                <option value="system" <?php echo $roleFilter === 'system' ? 'selected' : ''; ?>>System</option>
+            </select>
+        </label>
+        <label>Status
+            <select name="status">
+                <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All Statuses</option>
+                <option value="SUCCESS" <?php echo $statusFilter === 'SUCCESS' ? 'selected' : ''; ?>>Success</option>
+                <option value="FAILED" <?php echo $statusFilter === 'FAILED' ? 'selected' : ''; ?>>Failed</option>
+                <option value="UNAUTHORIZED_ATTEMPT" <?php echo $statusFilter === 'UNAUTHORIZED_ATTEMPT' ? 'selected' : ''; ?>>Unauthorized</option>
+            </select>
+        </label>
         <label>Group by
             <select name="group_by">
                 <option value="role" <?php echo $groupBy === 'role' ? 'selected' : ''; ?>>Role</option>
@@ -500,6 +546,8 @@ $groupLabel = ($groupBy === 'user') ? 'Grouped by User' : 'Grouped by Role';
                 <span><strong>Date Range:</strong> <?php echo htmlspecialchars($rangeText); ?></span>
                 <span><strong>Total Entries:</strong> <?php echo number_format($total); ?></span>
                 <span><strong>Groupings:</strong> <?php echo count($groups); ?></span>
+                <span><strong>Role:</strong> <?php echo htmlspecialchars($roleFilterText); ?></span>
+                <span><strong>Status:</strong> <?php echo htmlspecialchars($statusFilterText); ?></span>
                 <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
             </div>
@@ -561,14 +609,14 @@ $groupLabel = ($groupBy === 'user') ? 'Grouped by User' : 'Grouped by Role';
             <div>
                 <div class="sig-label">Prepared by:</div>
                 <div class="sig-line"></div>
-                <div class="sig-name"><?php echo htmlspecialchars($generatedBy); ?></div>
-                <div class="sig-title">System Administrator</div>
+                <div class="sig-name"><?php echo htmlspecialchars($preparedBy ?: $generatedBy); ?></div>
+                <div class="sig-title"><?php echo htmlspecialchars($preparedTitle); ?></div>
             </div>
             <div>
                 <div class="sig-label">Noted and Approved by:</div>
                 <div class="sig-line"></div>
-                <div class="sig-name">____________________</div>
-                <div class="sig-title">Municipal Environment and Natural Resources Officer</div>
+                <div class="sig-name"><?php echo htmlspecialchars($approvedBy ?: '____________________'); ?></div>
+                <div class="sig-title"><?php echo htmlspecialchars($approvedTitle); ?></div>
             </div>
         </div>
 
@@ -578,6 +626,7 @@ $groupLabel = ($groupBy === 'user') ? 'Grouped by User' : 'Grouped by Role';
             <span>Time Printed: <?php echo date('h:i A'); ?></span>
             <span><?php echo htmlspecialchars($systemName); ?> &middot; Audit Trail</span>
         </footer>
+        <div class="report-footer-note"><?php echo htmlspecialchars($footerNote); ?></div>
     </div>
 
     <?php if ($autoprint): ?>

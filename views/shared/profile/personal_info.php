@@ -8,7 +8,7 @@
                                 <i class="fas fa-id-card text-[#10A37F]"></i>
                                 <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Personal Information</h3>
                             </div>
-                            <button id="editToggleBtn" class="btn-primary inline-flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-center flex-shrink-0">
+                            <button id="editToggleBtn" class="btn-secondary inline-flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-center flex-shrink-0">
                                 <i class="fas fa-pen text-xs md:text-sm"></i> Edit Profile
                             </button>
                         </div>
@@ -245,7 +245,7 @@
                                 </div>
 
                                 <div class="flex flex-wrap gap-3 mt-6">
-                                    <button type="submit" class="btn-primary w-full md:w-auto justify-center" style="background:#111827;">
+                                    <button type="submit" class="btn-primary w-full md:w-auto justify-center">
                                         <i class="fas fa-save"></i> Save
                                     </button>
                                     <button type="button" id="cancelEditBtn" class="btn-secondary">

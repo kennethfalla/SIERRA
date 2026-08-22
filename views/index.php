@@ -1172,7 +1172,7 @@ function initMap() {
     
     // Add San Isidro boundary
     <?php 
-    $geojson_file = $_SERVER['DOCUMENT_ROOT'] . '/environmental-reporting-app/geojson/sanisidro.geojson';
+    $geojson_file = BASE_PATH . 'geojson/sanisidro.geojson';
     if (file_exists($geojson_file)) {
         $geojson_content = file_get_contents($geojson_file);
         $boundary_data = json_decode($geojson_content, true);
@@ -1248,7 +1248,7 @@ function initMap() {
             <?php else: ?>
             const popupContent = `
                 <div style="font-family: Manrope, sans-serif; min-width: 180px; padding: 4px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">🔒</div>
+                    <div style="font-size: 32px; margin-bottom: 8px; color: #059669;"><i class="fas fa-lock"></i></div>
                     <p style="font-size: 14px; font-weight: 600; color: #1e293b;">Login to view details</p>
                     <p style="font-size: 12px; color: #64748b; margin: 4px 0 8px;">Sign in to see full report information</p>
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" 

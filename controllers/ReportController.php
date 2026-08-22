@@ -419,6 +419,57 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
         exit();
     }
 
+    // Single-report CSV export (opened from the Export dropdown).
+    if (!empty($_GET['export']) && $_GET['export'] === 'csv') {
+        if (!PermissionHelper::userHasPermission('can_export_reports')) {
+            $_SESSION['error'] = "You are not permitted to export reports.";
+            header('Location: ' . BASE_URL . 'index.php?page=manage-report&id=' . IdGuard::enc((int)$report_id));
+            exit();
+        }
+
+        $statusLabel = ucwords(str_replace('_', ' ', (string)$report_data['status']));
+        $riskLabel   = ucfirst((string)($report_data['risk_level'] ?? 'low'));
+        $residency   = ($report_data['is_resident'] ?? 1) ? 'Resident' : 'Non-Resident';
+
+        $fields = [
+            ['Report ID', '#' . str_pad((int)$report_data['id'], 6, '0', STR_PAD_LEFT)],
+            ['Title', $report_data['title'] ?? ''],
+            ['Category', $report_data['category_name'] ?? ''],
+            ['Barangay', $report_data['barangay_name'] ?? ''],
+            ['Status', $statusLabel],
+            ['Risk Level', $riskLabel],
+            ['Severity Score', $report_data['severity_score'] ?? ''],
+            ['Decision Classification', $report_data['decision_classification'] ?? ''],
+            ['Reporter', $report_data['user_name'] ?? ''],
+            ['Email', $report_data['email'] ?? ''],
+            ['Contact Number', $report_data['contact_number'] ?? ''],
+            ['Residency', $residency],
+            ['Latitude', $report_data['latitude'] ?? ''],
+            ['Longitude', $report_data['longitude'] ?? ''],
+            ['Address', $report_data['location_address'] ?? ''],
+            ['Date Submitted', $report_data['created_at'] ?? ''],
+            ['Last Updated', $report_data['updated_at'] ?? ''],
+            ['Resolved At', $report_data['resolved_at'] ?? ''],
+            ['Description', $report_data['description'] ?? ''],
+        ];
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="report_' . $report_id . '_' . date('Y-m-d') . '.csv"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, ['Field', 'Value']);
+        foreach ($fields as $field) {
+            fputcsv($out, $field);
+        }
+        fclose($out);
+
+        $activityLog->log($_SESSION['user_id'], 'Export Report', "Exported report #$report_id as CSV", $_SERVER['REMOTE_ADDR'] ?? 'unknown', null, 'SUCCESS');
+        exit();
+    }
+
     require_once 'views/shared/manage_report.php';
     exit();
 }

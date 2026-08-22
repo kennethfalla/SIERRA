@@ -376,6 +376,58 @@ function getSeverityTierPHP($score) {
 $recent_reports = $reportModel->getAllReports($barangay_id);
 $recent_reports->execute();
 $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
+
+// ============================================================
+// CSV EXPORT HANDLER (barangay-scoped analytics + report list)
+// ============================================================
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    $status_labels_export = [
+        'pending' => 'Pending', 'under_review' => 'Under Review', 'verified' => 'Verified',
+        'in_progress' => 'In Progress', 'escalated_pending' => 'Escalated (Pending)',
+        'escalated' => 'Escalated', 'resolved' => 'Resolved', 'rejected' => 'Rejected',
+        'cancelled' => 'Cancelled'
+    ];
+    $risk_labels_export = ['low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+
+    $stmt = $db->prepare("
+        SELECT r.id, r.title, r.description, r.risk_level, r.severity_score,
+               r.status, r.created_at, r.resolved_at,
+               c.name AS category_name,
+               CONCAT(u.first_name, ' ', u.last_name) AS reporter_name
+        FROM reports r
+        JOIN categories c ON r.category_id = c.id
+        JOIN users u ON r.user_id = u.id
+        WHERE r.barangay_id = ?
+        ORDER BY r.created_at DESC
+    ");
+    $stmt->execute([$barangay_id]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="barangay_reports_' . date('Y-m-d_His') . '.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, ['Report ID', 'Title', 'Description', 'Category', 'Reporter', 'Risk Level', 'Severity Score', 'Status', 'Date Submitted', 'Resolved At']);
+    foreach ($rows as $row) {
+        fputcsv($out, [
+            '#' . str_pad($row['id'], 5, '0', STR_PAD_LEFT),
+            $row['title'],
+            $row['description'] ?? '',
+            $row['category_name'],
+            $row['reporter_name'],
+            $risk_labels_export[$row['risk_level']] ?? $row['risk_level'],
+            $row['severity_score'] ?? 0,
+            $status_labels_export[$row['status']] ?? $row['status'],
+            $row['created_at'],
+            $row['resolved_at'] ?? ''
+        ]);
+    }
+    fclose($out);
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -390,6 +442,7 @@ $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
@@ -915,6 +968,23 @@ $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                     
                     <div class="flex items-center gap-4">
+                        <div class="export-dropdown">
+                            <button onclick="toggleExportMenu()" class="btn-export-trigger bg-white/15 border-white/30 text-white hover:bg-white/25 hover:border-white/50 hover:text-white">
+                                <i class="fas fa-file-export"></i>
+                                <span>Export</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div id="exportMenu" class="export-dropdown-menu">
+                                <button class="export-dropdown-item" onclick="window.print()">
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Export as PDF</span>
+                                </button>
+                                <button class="export-dropdown-item" onclick="exportCSV()">
+                                    <i class="fas fa-file-csv"></i>
+                                    <span>Export as CSV</span>
+                                </button>
+                            </div>
+                        </div>
                         <!-- Notification Bell -->
                         <div class="relative">
                             <div class="notification-bell bg-white/20 rounded-xl w-12 h-12 flex items-center justify-center" onclick="toggleNotifications()">
@@ -1433,6 +1503,19 @@ function updateNotificationBadge(count) {
         badge.style.display = 'none';
     }
 }
+
+function exportCSV() {
+    window.location.href = '<?php echo BASE_URL; ?>index.php?page=dashboard&export=csv';
+}
+
+function toggleExportMenu() {
+    document.getElementById('exportMenu').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+    const dd = document.querySelector('.export-dropdown');
+    const menu = document.getElementById('exportMenu');
+    if (dd && menu && !dd.contains(e.target)) menu.classList.remove('open');
+});
 
 function toggleNotifications() {
     var dropdown = document.getElementById('notificationDropdown');

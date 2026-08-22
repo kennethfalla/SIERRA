@@ -234,6 +234,9 @@ elseif($role === 'barangay_official') {
         case 'verify-reports':
             require_once 'views/barangay/verify_reports.php';
             break;
+        case 'reporters-directory':
+            require_once 'views/barangay/reporters_directory.php';
+            break;
         case 'edit-profile':
             require_once 'views/edit_profile.php';
             break;

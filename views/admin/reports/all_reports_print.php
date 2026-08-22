@@ -56,11 +56,40 @@ $riskLabels = ['low'=>'Low','medium'=>'Medium','high'=>'High','critical'=>'Criti
 $lguLogo = SettingsHelper::getLogoUrl();
 $menroLogoPath = SettingsHelper::get('menro_logo', '');
 $menroLogo = $menroLogoPath ? BASE_URL . $menroLogoPath : '';
-$officeName = SettingsHelper::get('pdf_office_name', 'Municipal Environment and Natural Resources Office');
-$municipality = SettingsHelper::get('pdf_municipality_name', 'Municipality of San Isidro');
 $systemName = SettingsHelper::get('system_name', 'SIERRA');
 $generatedBy = $_SESSION['user_name'] ?? 'System User';
 $generatedOn = date('F j, Y \a\t h:i A');
+
+// PDF Export settings (Settings > PDF Export)
+$officeName    = SettingsHelper::get('pdf_office_name', 'Municipal Environment and Natural Resources Office');
+$municipality  = SettingsHelper::get('pdf_municipality_name', 'Municipality of San Isidro');
+$preparedBy    = SettingsHelper::get('pdf_prepared_by_name', '');
+$preparedTitle = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
+$approvedBy    = SettingsHelper::get('pdf_approved_by_name', '');
+$approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
+$footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
+
+// Determine if this is a barangay user
+$isBarangay = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'barangay_official');
+$barangayName = '';
+if ($isBarangay && isset($_SESSION['barangay_id'])) {
+    $barangayModel = new Barangay($db);
+    $brgyInfo = $barangayModel->getById($_SESSION['barangay_id']);
+    $barangayName = $brgyInfo['name'] ?? '';
+}
+
+// Header text based on role
+if ($isBarangay) {
+    $headerLine1 = 'Republic of the Philippines';
+    $headerLine2 = 'Province of Nueva Ecija';
+    $headerLine3 = $municipality;
+    $headerLine4 = 'Barangay ' . htmlspecialchars($barangayName);
+} else {
+    $headerLine1 = 'Republic of the Philippines';
+    $headerLine2 = $officeName;
+    $headerLine3 = $municipality;
+    $headerLine4 = 'San Isidro, Nueva Ecija';
+}
 
 $filterSummary = [];
 if ($status_filter) $filterSummary[] = 'Status: ' . ($statusLabels[$status_filter] ?? $status_filter);
@@ -137,6 +166,7 @@ if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
         .sig-title { font-size: 10px; color: #6b7280; text-align: center; }
         .report-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-top: 22px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #6b7280; }
         .report-footer .brand { font-weight: 700; color: #0D8568; }
+        .report-footer-note { margin-top: 6px; text-align: center; font-size: 8px; color: #9ca3af; }
         @page { size: A4 landscape; margin: 12mm 10mm 18mm; }
         @media print {
             body { background: #ffffff !important; }
@@ -148,9 +178,8 @@ if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
 </head>
 <body>
     <div class="toolbar">
-        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print / Save as PDF</button>
-        <a href="<?php echo BASE_URL; ?>index.php?page=all-reports">&larr; Back to All Reports</a>
-        <span class="hint">Tip: choose "Save as PDF" as the printer destination for a PDF export.</span>
+        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
+        <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
     </div>
 
     <div class="report">
@@ -159,9 +188,10 @@ if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
                 <?php if ($lguLogo): ?><img src="<?php echo htmlspecialchars($lguLogo); ?>" alt="LGU Logo"><?php else: ?><div class="logo-placeholder">LGU<br>Logo</div><?php endif; ?>
             </div>
             <div class="org-block">
-                <div class="org-line1">Republic of the Philippines</div>
-                <div class="org-name"><?php echo htmlspecialchars($officeName); ?></div>
-                <div class="org-muni"><?php echo htmlspecialchars($municipality); ?></div>
+                <div class="org-line1"><?php echo $headerLine1; ?></div>
+                <div class="org-name"><?php echo $headerLine2; ?></div>
+                <div class="org-muni"><?php echo $headerLine3; ?></div>
+                <div class="org-muni"><?php echo $headerLine4; ?></div>
             </div>
             <div class="logo-box">
                 <?php if ($menroLogo): ?><img src="<?php echo htmlspecialchars($menroLogo); ?>" alt="MENRO Logo"><?php else: ?><div class="logo-placeholder">MENRO<br>Logo</div><?php endif; ?>
@@ -245,14 +275,14 @@ if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
             <div>
                 <div class="sig-label">Prepared by:</div>
                 <div class="sig-line"></div>
-                <div class="sig-name"><?php echo htmlspecialchars($generatedBy); ?></div>
-                <div class="sig-title">MENRO Staff</div>
+                <div class="sig-name"><?php echo htmlspecialchars($preparedBy ?: $generatedBy); ?></div>
+                <div class="sig-title"><?php echo htmlspecialchars($preparedTitle); ?></div>
             </div>
             <div>
                 <div class="sig-label">Noted and Approved by:</div>
                 <div class="sig-line"></div>
-                <div class="sig-name">____________________</div>
-                <div class="sig-title">MENRO Head</div>
+                <div class="sig-name"><?php echo htmlspecialchars($approvedBy ?: '____________________'); ?></div>
+                <div class="sig-title"><?php echo htmlspecialchars($approvedTitle); ?></div>
             </div>
         </div>
 
@@ -261,6 +291,7 @@ if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
             <span>Time Printed: <?php echo date('h:i A'); ?></span>
             <span class="brand"><?php echo htmlspecialchars($systemName); ?> &middot; Web-Based Environmental Reporting System</span>
         </footer>
+        <div class="report-footer-note"><?php echo htmlspecialchars($footerNote); ?></div>
     </div>
 
     <?php if ($autoprint): ?>

@@ -38,6 +38,13 @@ $systemName    = SettingsHelper::get('system_name', 'SIERRA');
 $generatedBy   = $_SESSION['user_name'] ?? 'System User';
 $generatedOn   = date('F j, Y \a\t h:i A');
 
+// PDF Export signatory block + footer (Settings > PDF Export)
+$preparedBy    = SettingsHelper::get('pdf_prepared_by_name', '');
+$preparedTitle = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
+$approvedBy    = SettingsHelper::get('pdf_approved_by_name', '');
+$approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
+$footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
+
 $reportNo = str_pad($report['id'], 6, '0', STR_PAD_LEFT);
 $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (float)$report['latitude'] != 0 && (float)$report['longitude'] != 0;
 ?>
@@ -248,6 +255,7 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
             color: #6b7280;
         }
         .report-footer .brand { font-weight: 700; color: #0D8568; }
+        .report-footer-note { margin-top: 6px; text-align: center; font-size: 8px; color: #9ca3af; }
 
         @page {
             margin: 10mm 12mm;
@@ -269,7 +277,8 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
 <body>
     <!-- Screen-only toolbar (hidden on print) -->
     <div class="toolbar">
-        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print / Save as PDF</button>
+        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
+        <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
         <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo (int)$report['id']; ?>">&larr; Back to Report</a>
         <span class="hint">Tip: choose "Save as PDF" as the printer destination for a PDF export.</span>
     </div>
@@ -461,14 +470,14 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
             <div>
                 <div class="sig-label">Prepared by:</div>
                 <div class="sig-line"></div>
-                <div class="sig-name"><?php echo htmlspecialchars($generatedBy); ?></div>
-                <div class="sig-title">System User</div>
+                <div class="sig-name"><?php echo htmlspecialchars($preparedBy ?: $generatedBy); ?></div>
+                <div class="sig-title"><?php echo htmlspecialchars($preparedTitle); ?></div>
             </div>
             <div>
                 <div class="sig-label">Noted and Approved by:</div>
                 <div class="sig-line"></div>
-                <div class="sig-name">____________________</div>
-                <div class="sig-title">Municipal Environment and Natural Resources Officer</div>
+                <div class="sig-name"><?php echo htmlspecialchars($approvedBy ?: '____________________'); ?></div>
+                <div class="sig-title"><?php echo htmlspecialchars($approvedTitle); ?></div>
             </div>
         </div>
 
@@ -478,6 +487,7 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
             <span>Time Printed: <?php echo date('h:i A'); ?></span>
             <span><?php echo htmlspecialchars($systemName); ?> &middot; Web-Based Environmental Reporting System</span>
         </footer>
+        <div class="report-footer-note"><?php echo htmlspecialchars($footerNote); ?></div>
     </div>
 
     <?php if (!empty($_GET['autoprint'])): ?>

@@ -334,9 +334,9 @@ $top_actions = $db->query("
                     <h1 class="page-title font-bold text-gray-800">Audit Logs</h1>
                     <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Track all system activities and user actions</p>
                 </div>
-                <a href="?page=audit-logs-report<?php echo $date_from ? '&from=' . urlencode($date_from) : ''; ?><?php echo $date_to ? '&to=' . urlencode($date_to) : ''; ?>" class="btn-export-trigger">
-                    <i class="fas fa-print"></i>
-                    <span>Print Report</span>
+                <a href="?page=audit-logs-report<?php echo $date_from ? '&from=' . urlencode($date_from) : ''; ?><?php echo $date_to ? '&to=' . urlencode($date_to) : ''; ?><?php echo $status_filter !== 'all' ? '&status=' . urlencode($status_filter) : ''; ?>" class="btn-export-trigger">
+                    <i class="fas fa-file-export"></i>
+                    <span>Export</span>
                 </a>
             </div>
         </div>

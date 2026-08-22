@@ -359,6 +359,18 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
             </a>
+
+            <a href="<?php echo BASE_URL; ?>index.php?page=reporters-directory" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-address-book text-sm <?php echo $current_page == 'reporters-directory' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium">Reporters Directory</span>
+                <?php if($current_page == 'reporters-directory'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
         </div>
         
         <?php elseif($user_role == 'admin'): ?>

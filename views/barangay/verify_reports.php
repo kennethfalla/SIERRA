@@ -89,6 +89,58 @@ if ($search_keyword != '') {
 }
 
 // ============================================================
+// CSV EXPORT HANDLER (barangay-scoped, honors current filters)
+// ============================================================
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    $status_labels_export = [
+        'pending' => 'Pending', 'under_review' => 'Under Review', 'verified' => 'Verified',
+        'in_progress' => 'In Progress', 'escalated_pending' => 'Escalated (Pending)',
+        'escalated' => 'Escalated', 'resolved' => 'Resolved', 'rejected' => 'Rejected',
+        'cancelled' => 'Cancelled'
+    ];
+    $risk_labels_export = ['low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+
+    $export_sql = "SELECT r.id, r.title, r.description, r.risk_level, r.severity_score,
+                          r.status, r.created_at, r.resolved_at,
+                          c.name AS category_name,
+                          CONCAT(u.first_name, ' ', u.last_name) AS reporter_name
+                   FROM reports r
+                   JOIN categories c ON r.category_id = c.id
+                   JOIN users u ON r.user_id = u.id
+                   WHERE $where
+                   ORDER BY r.created_at DESC";
+    $export_stmt = $db->prepare($export_sql);
+    foreach ($params as $k => $v) $export_stmt->bindValue($k, $v);
+    $export_stmt->execute();
+    $export_rows = $export_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="barangay_reports_' . date('Y-m-d_His') . '.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, ['Report ID', 'Title', 'Description', 'Category', 'Reporter', 'Risk Level', 'Severity Score', 'Status', 'Date Submitted', 'Resolved At']);
+    foreach ($export_rows as $row) {
+        fputcsv($out, [
+            '#' . str_pad($row['id'], 5, '0', STR_PAD_LEFT),
+            $row['title'],
+            $row['description'] ?? '',
+            $row['category_name'],
+            $row['reporter_name'],
+            $risk_labels_export[$row['risk_level']] ?? $row['risk_level'],
+            $row['severity_score'] ?? 0,
+            $status_labels_export[$row['status']] ?? $row['status'],
+            $row['created_at'],
+            $row['resolved_at'] ?? ''
+        ]);
+    }
+    fclose($out);
+    exit();
+}
+
+// ============================================================
 // PAGINATION
 // ============================================================
 $limit = 10;
@@ -184,6 +236,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -1127,9 +1180,28 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                     <h1 class="page-title font-bold text-gray-800">Manage Reports</h1>
                     <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Review and manage environmental reports from your barangay</p>
                 </div>
-                <span class="location-badge inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-xs text-[#10A37F] font-semibold">
-                    <i class="fas fa-map-marker-alt mr-1.5"></i>San Isidro, Nueva Ecija
-                </span>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="location-badge inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-xs text-[#10A37F] font-semibold">
+                        <i class="fas fa-map-marker-alt mr-1.5"></i>San Isidro, Nueva Ecija
+                    </span>
+                    <div class="export-dropdown">
+                        <button onclick="toggleExportMenu()" class="btn-export-trigger">
+                            <i class="fas fa-file-export"></i>
+                            <span>Export</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div id="exportMenu" class="export-dropdown-menu">
+                            <button class="export-dropdown-item" onclick="window.print()">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>Export as PDF</span>
+                            </button>
+                            <button class="export-dropdown-item" onclick="exportCSV()">
+                                <i class="fas fa-file-csv"></i>
+                                <span>Export as CSV</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -1415,6 +1487,34 @@ function setViewMode(mode) {
 // ===== LOADING =====
 function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+// ===== EXPORT CSV (honors current filters) =====
+function exportCSV() {
+    const params = new URLSearchParams();
+    params.append('page', 'verify-reports');
+    params.append('export', 'csv');
+    const status = document.getElementById('toolbarStatus')?.value || '';
+    const risk = document.getElementById('popoverRisk')?.value || '';
+    const category = document.getElementById('popoverCategory')?.value || '0';
+    const dateRange = document.getElementById('popoverDateRange')?.value || '0';
+    const search = document.getElementById('searchInput')?.value || '';
+    if (status) params.append('status', status);
+    if (risk) params.append('risk', risk);
+    if (parseInt(category) > 0) params.append('category', category);
+    if (parseInt(dateRange) > 0) params.append('date_range', dateRange);
+    if (search) params.append('search', search);
+    window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
+}
+
+// ===== EXPORT DROPDOWN =====
+function toggleExportMenu() {
+    document.getElementById('exportMenu').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+    const dd = document.querySelector('.export-dropdown');
+    const menu = document.getElementById('exportMenu');
+    if (dd && menu && !dd.contains(e.target)) menu.classList.remove('open');
+});
 
 // ===== APPLY FILTERS =====
 function applyFilters() {

@@ -881,61 +881,21 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                             <i class="fas fa-download"></i> Export
                             <i class="fas fa-chevron-down"></i>
                         </button>
-                        <div id="exportDropdown" class="export-dropdown-menu" style="width:320px;">
-                            <div class="export-dropdown-header">
-                                <p><i class="fas fa-file-export" style="color:#10A37F; margin-right:4px;"></i> Export as CSV</p>
-                                <p class="sub">Current filters will be applied</p>
-                            </div>
-                            <div>
-                                <button class="export-dropdown-item" onclick="downloadExport('master')">
-                                    <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-list-alt"></i></div>
-                                    <div class="item-text">
-                                        <div class="item-title">Master Report List</div>
-                                        <div class="item-desc">All incidents with full details</div>
-                                    </div>
-                                </button>
-                                <button class="export-dropdown-item" onclick="downloadExport('date_filtered')">
-                                    <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-calendar-alt"></i></div>
-                                    <div class="item-text">
-                                        <div class="item-title">Date-Filtered Reports</div>
-                                        <div class="item-desc">Temporal trend analysis</div>
-                                    </div>
-                                </button>
-                                <button class="export-dropdown-item" onclick="downloadExport('by_category')">
-                                    <div class="item-icon" style="background:#F3E8FF; color:#9333EA;"><i class="fas fa-tags"></i></div>
-                                    <div class="item-text">
-                                        <div class="item-title">Category Groupings</div>
-                                        <div class="item-desc">Clustered by incident type</div>
-                                    </div>
-                                </button>
-                                <button class="export-dropdown-item" onclick="downloadExport('by_barangay')">
-                                    <div class="item-icon" style="background:#FFEDD5; color:#EA580C;"><i class="fas fa-map-marker-alt"></i></div>
-                                    <div class="item-text">
-                                        <div class="item-title">Barangay-Level Aggregation</div>
-                                        <div class="item-desc">Geographic hotspot analysis</div>
-                                    </div>
-                                </button>
-                                <button class="export-dropdown-item" onclick="downloadExport('by_risk')">
-                                    <div class="item-icon" style="background:#FEE2E2; color:#DC2626;"><i class="fas fa-exclamation-triangle"></i></div>
-                                    <div class="item-text">
-                                        <div class="item-title">Risk Level Segmentation</div>
-                                        <div class="item-desc">Priority action lists by severity</div>
-                                    </div>
-                                </button>
-                                <button class="export-dropdown-item" onclick="downloadExport('by_status')">
-                                    <div class="item-icon" style="background:#CCFBF1; color:#0D9488;"><i class="fas fa-tasks"></i></div>
-                                    <div class="item-text">
-                                        <div class="item-title">Status Tracking Reports</div>
-                                        <div class="item-desc">Response efficiency audit</div>
-                                    </div>
-                                </button>
-                            </div>
-                            <div class="export-dropdown-footer">
-                                <p class="footer-label"><i class="fas fa-print"></i> Print Report</p>
-                                <button onclick="printReports()" class="btn-export-primary">
-                                    <i class="fas fa-print"></i> Print / Save as PDF
-                                </button>
-                            </div>
+                        <div id="exportDropdown" class="export-dropdown-menu" style="width:280px;">
+                            <button class="export-dropdown-item" onclick="printReports()">
+                                <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
+                                <div class="item-text">
+                                    <div class="item-title">Export as PDF</div>
+                                    <div class="item-desc">Preview and save as PDF</div>
+                                </div>
+                            </button>
+                            <button class="export-dropdown-item" onclick="downloadExport('master')">
+                                <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
+                                <div class="item-text">
+                                    <div class="item-title">Export as CSV</div>
+                                    <div class="item-desc">All reports with current filters</div>
+                                </div>
+                            </button>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -1308,7 +1268,6 @@ document.addEventListener('click', function(e) {
 function printReports() {
     const params = new URLSearchParams();
     params.append('page', 'all-reports-print');
-    params.append('autoprint', '1');
 
     const status = document.getElementById('toolbarStatus').value;
     const category = document.getElementById('popoverCategory').value;
