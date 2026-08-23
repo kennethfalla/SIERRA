@@ -334,7 +334,7 @@ $top_actions = $db->query("
                     <h1 class="page-title font-bold text-gray-800">Audit Logs</h1>
                     <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Track all system activities and user actions</p>
                 </div>
-                <a href="?page=audit-logs-report<?php echo $date_from ? '&from=' . urlencode($date_from) : ''; ?><?php echo $date_to ? '&to=' . urlencode($date_to) : ''; ?><?php echo $status_filter !== 'all' ? '&status=' . urlencode($status_filter) : ''; ?>" class="btn-export-trigger">
+                <a href="?page=audit-logs-report<?php echo $date_from ? '&from=' . urlencode($date_from) : ''; ?><?php echo $date_to ? '&to=' . urlencode($date_to) : ''; ?><?php echo $action_filter !== 'all' ? '&action=' . urlencode($action_filter) : ''; ?><?php echo !empty($user_filter) ? '&user=' . urlencode($user_filter) : ''; ?><?php echo $status_filter !== 'all' ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="btn-export-trigger">
                     <i class="fas fa-file-export"></i>
                     <span>Export</span>
                 </a>
@@ -423,6 +423,15 @@ $top_actions = $db->query("
         <!-- Filter Toolbar (Shared Design) -->
         <?php
         $ft_popover_count = (($date_from != '') ? 1 : 0) + (($date_to != '') ? 1 : 0) + ((!empty($user_filter)) ? 1 : 0);
+
+        $active_filters = 0;
+        if ($search != '') $active_filters++;
+        if ($action_filter != 'all') $active_filters++;
+        if ($status_filter != 'all') $active_filters++;
+        if (!empty($user_filter)) $active_filters++;
+        if ($date_from != '') $active_filters++;
+        if ($date_to != '') $active_filters++;
+
         $ft = [
             'search_id'          => 'searchInput',
             'search_value'       => htmlspecialchars($search),
@@ -473,6 +482,14 @@ $top_actions = $db->query("
                 ($date_to != '') ? '<span class="filter-chip">To ' . date('M d, Y', strtotime($date_to)) . ' <span class="chip-remove" data-filter="date_to"><i class="fas fa-times"></i></span></span>' : null,
             ], fn($v) => $v !== null),
             'chips_clear_all'    => true,
+            'chip_clear_map'     => [
+                'search'    => ['el' => 'searchInput',      'clear' => ''],
+                'action'    => ['el' => 'toolbarAction',    'clear' => 'all'],
+                'status'    => ['el' => 'toolbarStatus',    'clear' => 'all'],
+                'user'      => ['el' => 'popoverUser',      'clear' => ''],
+                'date_from' => ['el' => 'popoverDateFrom',  'clear' => ''],
+                'date_to'   => ['el' => 'popoverDateTo',    'clear' => ''],
+            ],
             'callback'           => 'applyFilters',
         ];
         include __DIR__ . '/../shared/report_filter_toolbar.php';
@@ -660,53 +677,6 @@ function applyFilters() {
     
     window.location.href = 'index.php?' + params.toString();
 }
-
-// Individual chip removal
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.chip-remove').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const filter = this.dataset.filter;
-            const params = new URLSearchParams(window.location.search);
-            
-            if (filter === 'search') {
-                params.delete('search');
-            } else if (filter === 'action') {
-                params.set('action', 'all');
-            } else if (filter === 'status') {
-                params.set('status', 'all');
-            } else if (filter === 'user') {
-                params.delete('user');
-            } else if (filter === 'date_from') {
-                params.delete('date_from');
-            } else if (filter === 'date_to') {
-                params.delete('date_to');
-            }
-            
-            window.location.href = 'index.php?' + params.toString();
-        });
-    });
-    
-    // Clear all filters
-    const clearAllBtn = document.getElementById('clearAllFilters');
-    if (clearAllBtn) {
-        clearAllBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            window.location.href = 'index.php?page=audit-logs';
-        });
-    }
-    
-    // Search on Enter key
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                applyFilters();
-            }
-        });
-    }
-});
 </script>
 
 </body>

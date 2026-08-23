@@ -175,20 +175,36 @@ $severityTotal = array_sum(array_column($severityTiers, 'count'));
 $criticalSharePct = $severityTotal > 0 ? round(($severityTiers['critical']['count'] / $severityTotal) * 100, 1) : 0;
 $criticalAlert = $severityTotal > 0 && $criticalSharePct > (float)$kpi_critical_reports_pct;
 
-// Seasonal Hazard Analytics (monthly count of high-severity hotspots over last 12 months)
-$seasonalData = [];
-$months = [];
+// Seasonal Hazard Analytics — monthly counts per severity level (last 12 months).
+// Computed per risk level so the chart can be switched between severities
+// (All / Low / Medium / High / Critical) and time windows on the client side.
+$seasonalMonths = [];
+$seasonalByLevel = ['all' => [], 'low' => [], 'medium' => [], 'high' => [], 'critical' => []];
 for ($i = 11; $i >= 0; $i--) {
     $month = date('Y-m', strtotime("-$i months"));
-    $months[] = date('M', strtotime("-$i months"));
-    $count = $db->query("
-        SELECT COUNT(*) FROM reports
-        WHERE severity_score >= {$severityBands['orange']}
-          AND status NOT IN ('resolved', 'rejected', 'cancelled')
-          AND DATE_FORMAT(created_at, '%Y-%m') = '$month'
-    ")->fetchColumn();
-    $seasonalData[] = (int)$count;
+    $seasonalMonths[] = $month;
+    foreach ($seasonalByLevel as $k => $v) {
+        $seasonalByLevel[$k][$month] = 0;
+    }
 }
+$seasonalRows = $db->query("
+    SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, risk_level, COUNT(*) AS total
+    FROM reports
+    WHERE status NOT IN ('resolved', 'rejected', 'cancelled')
+      AND DATE_FORMAT(created_at, '%Y-%m') >= '{$seasonalMonths[0]}'
+    GROUP BY ym, risk_level
+")->fetchAll(PDO::FETCH_ASSOC);
+foreach ($seasonalRows as $row) {
+    $ym = $row['ym'];
+    $lvl = in_array($row['risk_level'], ['low', 'medium', 'high', 'critical'], true) ? $row['risk_level'] : 'low';
+    if (isset($seasonalByLevel['all'][$ym])) {
+        $seasonalByLevel['all'][$ym] += (int)$row['total'];
+        $seasonalByLevel[$lvl][$ym] += (int)$row['total'];
+    }
+}
+// Keep $months / $seasonalData aliases for the default chart rendering.
+$months = array_map(function ($m) { return date('M', strtotime($m)); }, $seasonalMonths);
+$seasonalData = array_values($seasonalByLevel['all']);
 
 // Surge Alert: compare the most recent month vs. the previous month per category.
 // If any category grew by at least the configured surge threshold (%), flag a
@@ -590,7 +606,7 @@ function getDecisionBadge($classification) {
     <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>MENRO Decision Dashboard - Sierra</title>
+    <title>MENRO Analytics Dashboard - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -932,47 +948,23 @@ function getDecisionBadge($classification) {
                     <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
                         <i class="fas fa-chart-pie text-[#10A37F] text-sm"></i>
                     </div>
-                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Decision Support System</span>
+                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Analytics Dashboard</span>
                 </div>
-                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">MENRO Decision Dashboard</h1>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">MENRO Analytics Dashboard</h1>
                 <p class="text-gray-500 text-sm">Real-time algorithm-driven hazard intelligence for San Isidro</p>
             </div>
             <div class="flex items-center gap-3 mt-2 sm:mt-0">
-                <div class="flex items-center gap-2">
-                    <button onclick="openDateRangePicker()" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-3 py-2 hover:border-[#10A37F] transition" id="dateRangeBtn">
-                        <i class="far fa-calendar-alt text-[#10A37F]"></i>
-                        <span id="dateRangeLabel"><?php echo date('F d, Y'); ?></span>
-                        <i class="fas fa-chevron-down text-xs text-gray-400"></i>
-                    </button>
-                    <div id="customRangeBox" class="hidden items-center gap-2">
-                        <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
-                        <span class="text-xs text-gray-400">to</span>
-                        <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
-                    </div>
+                <div class="flex items-center gap-2 text-sm text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-2">
+                    <i class="far fa-calendar-alt text-[#10A37F]"></i>
+                    <span class="font-semibold text-gray-500">Date:</span>
+                    <span class="font-semibold text-gray-800"><?php echo date('F d, Y'); ?></span>
                 </div>
-                <!-- Export Dropdown -->
-                <div class="export-dropdown">
-                    <button onclick="toggleExportMenu()" class="btn-export-trigger">
-                        <i class="fas fa-file-export"></i>
-                        Export Analytics
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div id="exportDropdownMenu" class="export-dropdown-menu">
-                        <button class="export-dropdown-item" onclick="openDashboardReport(false)">
-                            <i class="fas fa-file-pdf"></i>
-                            <span>Export as PDF</span>
-                        </button>
-                        <button class="export-dropdown-item" onclick="exportCSV()">
-                            <i class="fas fa-file-csv"></i>
-                            <span>Export as CSV</span>
-                        </button>
-                        <div class="export-dropdown-divider"></div>
-                        <button class="export-dropdown-item" onclick="exportCharts()">
-                            <i class="fas fa-chart-pie"></i>
-                            <span>Export Charts as Image</span>
-                        </button>
-                    </div>
-                </div>
+                <!-- Export Analytics -->
+                <button onclick="openExportModal()" class="btn-export-trigger">
+                    <i class="fas fa-file-export"></i>
+                    Export Analytics
+                    <i class="fas fa-chevron-down"></i>
+                </button>
             </div>
         </div>
 
@@ -1007,6 +999,48 @@ function getDecisionBadge($classification) {
         </div>
 
         <!-- ============================================================ -->
+        <!-- REPORT FILTER TOOLBAR (filters the heatmap + exports) -->
+        <!-- ============================================================ -->
+        <?php
+        $dash_status_options = [
+            'all' => 'All Statuses', 'pending' => 'Pending', 'under_review' => 'Under Review',
+            'verified' => 'Verified', 'in_progress' => 'In Progress',
+            'escalated_pending' => 'Escalated Pending', 'escalated' => 'Escalated',
+            'resolved' => 'Resolved', 'rejected' => 'Rejected', 'cancelled' => 'Cancelled'
+        ];
+        $dash_risk_options = ['all' => 'All Risk Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+
+        $dash_barangay_options = ['' => 'All Barangays'];
+        try {
+            $dash_barangay_list = $db->query("SELECT id, name FROM barangays ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($dash_barangay_list as $b) {
+                $dash_barangay_options[$b['name']] = $b['name'];
+            }
+        } catch (Exception $e) {
+            $dash_barangay_list = [];
+        }
+
+        $ft = [
+            'search_id'          => 'dashSearchInput',
+            'search_value'       => '',
+            'search_placeholder' => 'Search reports by title or description...',
+            'inline_selects'     => [
+                ['id' => 'dashStatusFilter', 'value' => 'all', 'min_width' => '150px', 'options' => $dash_status_options],
+                ['id' => 'dashRiskFilter', 'value' => 'all', 'min_width' => '150px', 'options' => $dash_risk_options],
+            ],
+            'filter_by'          => ['active' => false, 'count' => 0],
+            'popover_fields'     => [
+                ['kind' => 'select', 'id' => 'dashBarangayFilter', 'label' => 'Barangay', 'value' => '', 'default' => '', 'options' => $dash_barangay_options],
+            ],
+            'active_filters'     => 0,
+            'chips'              => [],
+            'chips_clear_all'    => false,
+            'callback'           => 'applyDashboardFilters',
+        ];
+        include BASE_PATH . 'views/shared/report_filter_toolbar.php';
+        ?>
+
+        <!-- ============================================================ -->
         <!-- 2. DECISION-SUPPORT HEATMAP WITH TOGGLE -->
         <!-- ============================================================ -->
         <div id="map-container" class="mb-6">
@@ -1014,7 +1048,7 @@ function getDecisionBadge($classification) {
                 <div class="flex flex-wrap items-center gap-3">
                     <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
                         <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
-                        Environmental Heatmap
+                        Environmental Hazard Map
                     </h2>
                     <div class="map-toggle" id="mapToggle">
                         <button class="active" data-mode="active">Active Hazards</button>
@@ -1060,12 +1094,20 @@ function getDecisionBadge($classification) {
                     </div>
                 </div>
 
-                <!-- Timeframe Selector -->
-                <div class="map-toggle" id="timeframeToggle">
-                    <button data-range="week">This Week</button>
-                    <button data-range="month">This Month</button>
-                    <button data-range="year">This Year</button>
-                    <button class="active" data-range="all">All Time</button>
+                <!-- Timeframe Selector + Custom Date Range -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="map-toggle" id="timeframeToggle">
+                        <button data-range="week">This Week</button>
+                        <button data-range="month">This Month</button>
+                        <button data-range="year">This Year</button>
+                        <button data-range="custom">Custom</button>
+                        <button class="active" data-range="all">All Time</button>
+                    </div>
+                    <div id="customRangeBox" class="hidden items-center gap-2">
+                        <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
+                        <span class="text-xs text-gray-400">to</span>
+                        <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
+                    </div>
                 </div>
             </div>
 
@@ -1104,7 +1146,23 @@ function getDecisionBadge($classification) {
             </div>
             <!-- Seasonal Hazard Analytics -->
             <div class="chart-card">
-                <div class="chart-title"><i class="fas fa-chart-line text-[#10A37F] mr-2"></i>Seasonal Hazard Trends (High-Severity)</div>
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+                    <div class="chart-title"><i class="fas fa-chart-line text-[#10A37F] mr-2"></i>Seasonal Hazard Trends</div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select id="seasonalSeveritySelect" class="text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#10A37F]">
+                            <option value="all">All Severities</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                        <select id="seasonalPeriodSelect" class="text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#10A37F]">
+                            <option value="3">Last 3 Months</option>
+                            <option value="6">Last 6 Months</option>
+                            <option value="12" selected>Last 12 Months</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="chart-container">
                     <canvas id="seasonalChart"></canvas>
                 </div>
@@ -1364,6 +1422,32 @@ function getDecisionBadge($classification) {
 </div>
 
 <!-- ============================================================ -->
+<!-- EXPORT ANALYTICS MODAL (All-in-one-page + individual sections) -->
+<!-- ============================================================ -->
+<div id="exportModal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-file-export text-[#10A37F] mr-2"></i>Export Analytics</h3>
+            <button type="button" onclick="closeExportModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <p class="text-xs text-gray-500 mb-3">Choose what to export:</p>
+        <div class="space-y-2 max-h-72 overflow-y-auto mb-4">
+            <label class="flex items-center gap-2 text-sm text-gray-800 font-semibold px-2 py-2 rounded bg-emerald-50 border border-emerald-100 cursor-pointer">
+                <input type="checkbox" id="exportAllCheckbox" class="accent-[#10A37F]" checked>
+                <i class="fas fa-file-pdf text-[#10A37F]"></i> All Analytics (one page)
+            </label>
+            <div id="exportItemsList" class="space-y-1 pl-2"></div>
+        </div>
+        <div class="flex flex-wrap gap-2 justify-end">
+            <button type="button" onclick="closeExportModal()" class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
+            <button type="button" onclick="exportAnalyticsCsv()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]"><i class="fas fa-file-csv mr-1"></i>CSV</button>
+            <button type="button" onclick="exportAnalyticsImages()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]"><i class="fas fa-images mr-1"></i>Selected Images</button>
+            <button type="button" onclick="exportAnalyticsPdf()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]"><i class="fas fa-file-pdf mr-1"></i>Export PDF</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
 <!-- SCRIPTS -->
 <!-- ============================================================ -->
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
@@ -1380,6 +1464,8 @@ const severityData = <?php echo json_encode(array_values(array_column($severityT
 const severityLabels = <?php echo json_encode(array_values(array_column($severityTiers, 'label'))); ?>;
 const seasonalData = <?php echo json_encode($seasonalData); ?>;
 const months = <?php echo json_encode($months); ?>;
+const seasonalDataByLevel = <?php echo json_encode($seasonalByLevel); ?>;
+const seasonalMonthKeys = <?php echo json_encode($seasonalMonths); ?>;
 const allCategories = <?php echo json_encode($categories); ?>;
 const demographicsAvailable = <?php echo $demographicsAvailable && $demographicsTotal > 0 ? 'true' : 'false'; ?>;
 const demographicsData = <?php echo json_encode([$demographics['resident'], $demographics['non_resident']]); ?>;
@@ -1395,6 +1481,9 @@ let selectedCategories = new Set(allCategories.map(c => String(c.id))); // all c
 let selectedRange = 'all'; // 'week' | 'month' | 'year' | 'custom' | 'all' — starts on "All Time" so the default master-cluster view shows everything
 let selectedFrom = ''; // 'YYYY-MM-DD' — used when selectedRange === 'custom'
 let selectedTo = '';   // 'YYYY-MM-DD' — used when selectedRange === 'custom'
+let searchQuery = '';  // from the report filter toolbar
+let selectedStatus = 'all'; // from the report filter toolbar
+let selectedRisk = 'all';   // from the report filter toolbar
 
 // ------------------------------------------------------------
 // MAP INITIALIZATION
@@ -1581,7 +1670,13 @@ function getFilteredData(mode) {
         const rangeOk = isWithinRange(report[dateField], selectedRange);
         const barangayOk = !selectedBarangay
             || String(report.barangay_name || '').trim().toLowerCase() === selectedBarangay.toLowerCase();
-        return categoryOk && rangeOk && barangayOk;
+        const statusOk = selectedStatus === 'all' || String(report.status || '') === selectedStatus;
+        const riskOk = selectedRisk === 'all' || String(report.risk_level || '') === selectedRisk;
+        const q = searchQuery.trim().toLowerCase();
+        const searchOk = !q
+            || String(report.title || '').toLowerCase().includes(q)
+            || String(report.description || '').toLowerCase().includes(q);
+        return categoryOk && rangeOk && barangayOk && statusOk && riskOk && searchOk;
     });
 }
 
@@ -1600,6 +1695,31 @@ function updateFilterSummary(mode, count) {
         }
         el.textContent = summary;
     }
+}
+
+// ------------------------------------------------------------
+// REPORT FILTER TOOLBAR — client-side filter callback
+// (shared report_filter_toolbar.php calls this via FT.callback)
+// ------------------------------------------------------------
+function applyDashboardFilters() {
+    const s = document.getElementById('dashSearchInput');
+    const st = document.getElementById('dashStatusFilter');
+    const rk = document.getElementById('dashRiskFilter');
+    const brgy = document.getElementById('dashBarangayFilter');
+
+    searchQuery = s ? s.value : '';
+    selectedStatus = st ? st.value : 'all';
+    selectedRisk = rk ? rk.value : 'all';
+
+    const brgyVal = brgy ? brgy.value : '';
+    if (brgyVal !== (selectedBarangay || '')) {
+        selectedBarangay = brgyVal || null;
+        if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
+        selectedBarangayLayer = null;
+        updateBarangayFilterChip();
+    }
+
+    loadMapData(currentMode);
 }
 
 function loadMapData(mode) {
@@ -1766,7 +1886,6 @@ function selectRange(range) {
         b.classList.toggle('active', b.dataset.range === range);
     });
     toggleCustomRangeBox();
-    updateDateRangeLabel();
     loadMapData(currentMode);
 }
 
@@ -1775,28 +1894,6 @@ document.getElementById('timeframeToggle').addEventListener('click', function(e)
     if (!btn) return;
     selectRange(btn.dataset.range);
 });
-
-function openDateRangePicker() {
-    selectRange('custom');
-    // Focus the from date to trigger the native date picker
-    const fromInput = document.getElementById('rangeFrom');
-    if (fromInput) {
-        fromInput.showPicker ? fromInput.showPicker() : fromInput.focus();
-    }
-}
-
-function updateDateRangeLabel() {
-    const label = document.getElementById('dateRangeLabel');
-    if (!label) return;
-    if (selectedRange === 'custom' && selectedFrom && selectedTo) {
-        const from = new Date(selectedFrom + 'T00:00:00');
-        const to = new Date(selectedTo + 'T00:00:00');
-        const opts = { month: 'short', day: 'numeric', year: 'numeric' };
-        label.textContent = from.toLocaleDateString('en-US', opts) + ' – ' + to.toLocaleDateString('en-US', opts);
-    } else {
-        label.textContent = '<?php echo date('F d, Y'); ?>';
-    }
-}
 
 // ------------------------------------------------------------
 // CUSTOM DATE RANGE (from/to date pickers shown when "Custom" is active)
@@ -1842,7 +1939,6 @@ function applyCustomRange() {
     }
     selectedFrom = from;
     selectedTo = to;
-    updateDateRangeLabel();
     loadMapData(currentMode);
 }
 
@@ -2114,6 +2210,89 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ------------------------------------------------------------
+// SEASONAL HAZARD TRENDS (customizable severity + time window)
+// ------------------------------------------------------------
+let seasonalChartInstance = null;
+
+const SEASONAL_META = {
+    all:      { label: 'All Severities', color: '#10A37F', bg: 'rgba(16, 163, 127, 0.12)' },
+    low:      { label: 'Low',            color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
+    medium:   { label: 'Medium',         color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.12)' },
+    high:     { label: 'High',           color: '#F97316', bg: 'rgba(249, 115, 22, 0.12)' },
+    critical: { label: 'Critical',       color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)' }
+};
+
+function renderSeasonalChart() {
+    const canvas = document.getElementById('seasonalChart');
+    if (!canvas) return;
+
+    const severitySel = document.getElementById('seasonalSeveritySelect');
+    const periodSel = document.getElementById('seasonalPeriodSelect');
+    const severity = severitySel ? severitySel.value : 'all';
+    const period = parseInt(periodSel ? periodSel.value : '12', 10);
+
+    // seasonalMonthKeys are oldest -> newest; take the most recent N months.
+    const keys = (seasonalMonthKeys || []).slice(-period);
+    const labels = keys.map(k => {
+        const d = new Date(k + '-01T00:00:00');
+        return isNaN(d.getTime()) ? k : d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    });
+    const data = keys.map(k => {
+        const bucket = seasonalDataByLevel[severity] || seasonalDataByLevel.all || {};
+        return bucket[k] || 0;
+    });
+
+    const meta = SEASONAL_META[severity] || SEASONAL_META.all;
+
+    if (seasonalChartInstance) {
+        seasonalChartInstance.data.labels = labels;
+        seasonalChartInstance.data.datasets[0].data = data;
+        seasonalChartInstance.data.datasets[0].label = meta.label;
+        seasonalChartInstance.data.datasets[0].borderColor = meta.color;
+        seasonalChartInstance.data.datasets[0].backgroundColor = meta.bg;
+        seasonalChartInstance.data.datasets[0].pointBackgroundColor = meta.color;
+        seasonalChartInstance.update();
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    seasonalChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: meta.label,
+                data: data,
+                borderColor: meta.color,
+                backgroundColor: meta.bg,
+                tension: 0.3,
+                fill: true,
+                pointBackgroundColor: meta.color,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#e5e7eb' }, ticks: { font: { size: 10 } } },
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+            },
+            responsive: true,
+            maintainAspectRatio: true
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const sev = document.getElementById('seasonalSeveritySelect');
+    const period = document.getElementById('seasonalPeriodSelect');
+    if (sev) sev.addEventListener('change', renderSeasonalChart);
+    if (period) period.addEventListener('change', renderSeasonalChart);
+});
+
+// ------------------------------------------------------------
 // CHARTS
 // ------------------------------------------------------------
 function initCharts() {
@@ -2139,37 +2318,8 @@ function initCharts() {
         }
     });
 
-    // Seasonal Hazard Trends (Line)
-    const ctx2 = document.getElementById('seasonalChart').getContext('2d');
-    new Chart(ctx2, {
-        type: 'line',
-        data: {
-            labels: months,
-            datasets: [{
-                label: 'High-Severity (Score ≥ 9)',
-                data: seasonalData,
-                borderColor: '#EF4444',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                tension: 0.3,
-                fill: true,
-                pointBackgroundColor: '#EF4444',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 4
-            }]
-        },
-        options: {
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#e5e7eb' }, ticks: { font: { size: 10 } } },
-                x: { grid: { display: false }, ticks: { font: { size: 10 } } }
-            },
-            responsive: true,
-            maintainAspectRatio: true
-        }
-    });
+    // Seasonal Hazard Trends (Line) — customizable via renderSeasonalChart()
+    renderSeasonalChart();
 
     // Reporter Demographics (Donut)
     if (demographicsAvailable) {
@@ -2222,23 +2372,67 @@ function initCharts() {
 // ------------------------------------------------------------
 // EXPORT FUNCTIONS
 // ------------------------------------------------------------
-let exportMenuOpen = false;
-
-function toggleExportMenu() {
-    const menu = document.getElementById('exportDropdownMenu');
-    menu.classList.toggle('open');
-    exportMenuOpen = !exportMenuOpen;
+// ===== EXPORT ANALYTICS MODAL =====
+function openExportModal() {
+    const items = collectExportItems();
+    const list = document.getElementById('exportItemsList');
+    if (list) {
+        list.innerHTML = items.map((it, i) => `
+            <label class="flex items-center gap-2 text-sm text-gray-700 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
+                <input type="checkbox" class="export-item-checkbox accent-[#10A37F]" value="${i}">
+                <span>${it.label}</span>
+            </label>
+        `).join('');
+    }
+    const modal = document.getElementById('exportModal');
+    if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
 }
 
-// Close export dropdown when clicking outside
-document.addEventListener('click', function(e) {
-    const dropdown = document.querySelector('.export-dropdown');
-    const menu = document.getElementById('exportDropdownMenu');
-    if (dropdown && menu && !dropdown.contains(e.target)) {
-        menu.classList.remove('open');
-        exportMenuOpen = false;
+function closeExportModal() {
+    const modal = document.getElementById('exportModal');
+    if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+}
+
+// Export the whole analytics dashboard as a single A4 page.
+function exportAnalyticsPdf() {
+    closeExportModal();
+    openDashboardReport(true);
+}
+
+function exportAnalyticsCsv() {
+    closeExportModal();
+    exportCSV();
+}
+
+// Export each individually-selected analytics section as a PNG image.
+async function exportAnalyticsImages() {
+    const items = collectExportItems();
+    const selected = [];
+    document.querySelectorAll('.export-item-checkbox').forEach((cb, i) => {
+        if (cb.checked) selected.push(items[i]);
+    });
+    closeExportModal();
+    if (selected.length === 0) {
+        alert('Please select at least one analytics section.');
+        return;
     }
-});
+    for (const it of selected) {
+        try {
+            const canvas = await html2canvas(it.el, {
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                scale: 2,
+                logging: false
+            });
+            const link = document.createElement('a');
+            link.download = it.label.replace(/[^a-zA-Z0-9]/g, '_') + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (e) {
+            console.error('Export failed for:', it.label, e);
+        }
+    }
+}
 
 // ------------------------------------------------------------
 // OPEN THE DEDICATED A4 PRINT / EXPORT REPORT PAGE
@@ -2281,9 +2475,6 @@ function formatMonthLabel(key) {
 }
 
 function exportCSV() {
-    document.getElementById('exportDropdownMenu').classList.remove('open');
-    exportMenuOpen = false;
-
     // Build CSV data from reports — use the current filters (date range,
     // categories, barangay) so the export matches exactly what is displayed.
     const data = getFilteredData(currentMode);
@@ -2435,19 +2626,19 @@ function exportCSV() {
 
 function collectExportItems() {
     const items = [];
+    // KPI summary cards (first row of analytics)
+    const kpiGrid = document.querySelector('.kpi-card') ? document.querySelector('.kpi-card').parentElement : null;
+    if (kpiGrid) items.push({ el: kpiGrid, label: 'KPI Summary' });
     document.querySelectorAll('.chart-card').forEach(card => {
         const title = card.querySelector('.chart-title')?.textContent?.trim().replace(/\s+/g, ' ') || 'Dashboard Widget';
         items.push({ el: card, label: title });
     });
     const mapEl = document.getElementById('map');
-    if (mapEl) items.push({ el: mapEl, label: 'Environmental Heatmap (Map)' });
+    if (mapEl) items.push({ el: mapEl, label: 'Environmental Hazard Map (Map)' });
     return items;
 }
 
 function exportCharts() {
-    document.getElementById('exportDropdownMenu').classList.remove('open');
-    exportMenuOpen = false;
-
     const items = collectExportItems();
     if (items.length === 0) {
         alert('No charts to export.');

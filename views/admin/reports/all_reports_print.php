@@ -99,6 +99,17 @@ if ($risk_filter) $filterSummary[] = 'Risk: ' . ($riskLabels[$risk_filter] ?? $r
 if ($search) $filterSummary[] = 'Search: "' . htmlspecialchars($search) . '"';
 if ($date_from) $filterSummary[] = 'From: ' . date('M j, Y', strtotime($date_from));
 if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
+
+// Dynamic report title based on the selected filter.
+$reportTitle = 'ALL REPORTS';
+if ($barangay_filter > 0) {
+    $brgTitle = $db->prepare("SELECT name FROM barangays WHERE id = ?");
+    $brgTitle->execute([$barangay_filter]);
+    $brgTitleRow = $brgTitle->fetch();
+    $reportTitle = 'BARANGAY ' . strtoupper($brgTitleRow['name'] ?? '') . ' REPORTS';
+} elseif ($status_filter != '') {
+    $reportTitle = strtoupper($statusLabels[$status_filter] ?? str_replace('_', ' ', $status_filter)) . ' REPORTS';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -199,7 +210,7 @@ if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
         </header>
 
         <div class="report-title-block">
-            <div class="report-title">ALL REPORTS</div>
+            <div class="report-title"><?php echo htmlspecialchars($reportTitle); ?></div>
             <div class="report-subtitle">Environmental Incident Report &middot; <?php echo htmlspecialchars($municipality); ?></div>
             <div class="report-meta">
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
@@ -210,7 +221,7 @@ if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
 
         <?php if (!empty($filterSummary)): ?>
         <div class="filter-bar">
-            <span class="filter-label"><i class="fas fa-filter" style="margin-right:4px;"></i>Active Filters:</span>
+            <span class="filter-label"><i class="fas fa-filter" style="margin-right:4px;"></i>Filters:</span>
             <?php foreach ($filterSummary as $f): ?>
                 <span class="filter-chip"><?php echo htmlspecialchars($f); ?></span>
             <?php endforeach; ?>

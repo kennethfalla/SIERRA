@@ -36,6 +36,24 @@ if (!empty($_GET['cats'])) {
 $autoprint = !empty($_GET['autoprint']);
 
 // ------------------------------------------------------------
+// ADDITIONAL FILTERS (Status / Risk / Barangay) — surfaced via the
+// on-page filter controls, just like the other printable report pages.
+// ------------------------------------------------------------
+$validStatuses = ['all','pending','under_review','verified','in_progress','escalated_pending','escalated','resolved','rejected','cancelled'];
+$statusFilter = in_array($_GET['status'] ?? 'all', $validStatuses, true) ? ($_GET['status']) : 'all';
+
+$validRisks = ['all','low','medium','high','critical'];
+$riskFilter = in_array($_GET['risk'] ?? 'all', $validRisks, true) ? ($_GET['risk']) : 'all';
+
+$barangayFilter = isset($_GET['barangay']) ? (int)$_GET['barangay'] : 0;
+
+// If the on-page filter form supplies an explicit from/to date, treat the
+// report as a custom date range (even if `range` was not set to "custom").
+if (($from !== '' || $to !== '') && $range !== 'custom') {
+    $range = 'custom';
+}
+
+// ------------------------------------------------------------
 // DATE WINDOW + PERIOD LABELS
 // ------------------------------------------------------------
 switch ($range) {
@@ -67,6 +85,18 @@ switch ($range) {
             $periodStart = $startDate;
             $periodLabel = 'Custom Range';
             $rangeLabel  = 'Custom';
+        } elseif (isValidDateStr($from)) {
+            $startDate   = $from . ' 00:00:00';
+            $endDate     = date('Y-m-d H:i:s');
+            $periodStart = $startDate;
+            $periodLabel = 'Custom Range';
+            $rangeLabel  = 'Custom';
+        } elseif (isValidDateStr($to)) {
+            $startDate   = '1970-01-01 00:00:00';
+            $endDate     = $to . ' 23:59:59';
+            $periodStart = $startDate;
+            $periodLabel = 'Custom Range';
+            $rangeLabel  = 'Custom';
         } else {
             $range       = 'all';
             $startDate   = '1970-01-01 00:00:00';
@@ -94,6 +124,38 @@ if (!empty($cats)) {
     $catSql = ' AND r.category_id IN (' . implode(',', array_map('intval', $cats)) . ')';
 }
 
+// Status / Risk / Barangay filter clause (bound params).
+$filterSql = '';
+$filterParams = [];
+if ($statusFilter !== 'all') {
+    $filterSql .= ' AND r.status = :status';
+    $filterParams[':status'] = $statusFilter;
+}
+if ($riskFilter !== 'all') {
+    $filterSql .= ' AND r.risk_level = :risk';
+    $filterParams[':risk'] = $riskFilter;
+}
+if ($barangayFilter > 0) {
+    $filterSql .= ' AND r.barangay_id = :barangay';
+    $filterParams[':barangay'] = $barangayFilter;
+}
+
+// Load barangay list for the on-page filter dropdown.
+$barangayList = [];
+try {
+    $barangayList = $db->query("SELECT id, name FROM barangays ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $barangayList = [];
+}
+
+$statusLabels = [
+    'all' => 'All Statuses', 'pending' => 'Pending', 'under_review' => 'Under Review',
+    'verified' => 'Verified', 'in_progress' => 'In Progress',
+    'escalated_pending' => 'Escalated Pending', 'escalated' => 'Escalated',
+    'resolved' => 'Resolved', 'rejected' => 'Rejected', 'cancelled' => 'Cancelled'
+];
+$riskLabels = ['all' => 'All Risk Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+
 // ------------------------------------------------------------
 // 1. TRANSACTIONAL SERIES (grouped by Month)
 // ------------------------------------------------------------
@@ -101,11 +163,11 @@ $monthlyCounts = [];
 $monthStmt = $db->prepare("
     SELECT DATE_FORMAT(r.created_at, '%Y-%m') AS ym, COUNT(*) AS total
     FROM reports r
-    WHERE r.created_at >= :start $catSql$endSql
+    WHERE r.created_at >= :start $catSql$filterSql$endSql
     GROUP BY ym
     ORDER BY ym ASC
 ");
-$monthStmt->execute([':start' => $startDate] + ($endSql ? [':end' => $endDate] : []));
+$monthStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
 foreach ($monthStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
     $monthlyCounts[$row['ym']] = (int)$row['total'];
 }
@@ -134,13 +196,13 @@ foreach ($monthKeys as $k) {
 // 2. KPI METRICS
 // ------------------------------------------------------------
 // Total Count (within the selected date window + category filter)
-$totalStmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE r.created_at >= :start $catSql$endSql");
-$totalStmt->execute([':start' => $startDate] + ($endSql ? [':end' => $endDate] : []));
+$totalStmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE r.created_at >= :start $catSql$filterSql$endSql");
+$totalStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
 $totalCount = (int)$totalStmt->fetchColumn();
 
 // New Period Count
-$newStmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE r.created_at >= :start $catSql$endSql");
-$newStmt->execute([':start' => $periodStart] + ($endSql ? [':end' => $endDate] : []));
+$newStmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE r.created_at >= :start $catSql$filterSql$endSql");
+$newStmt->execute([':start' => $periodStart] + $filterParams + ($endSql ? [':end' => $endDate] : []));
 $newCount = (int)$newStmt->fetchColumn();
 
 // Category Breakdown (top category)
@@ -149,12 +211,12 @@ $topStmt = $db->prepare("
     SELECT COALESCE(c.name, 'Uncategorized') AS category_name, COUNT(*) AS total
     FROM reports r
     LEFT JOIN categories c ON r.category_id = c.id
-    WHERE r.created_at >= :start $catSql$endSql
+    WHERE r.created_at >= :start $catSql$filterSql$endSql
     GROUP BY c.id, c.name
     ORDER BY total DESC
     LIMIT 1
 ");
-$topStmt->execute([':start' => $startDate] + ($endSql ? [':end' => $endDate] : []));
+$topStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
 $topRow = $topStmt->fetch(PDO::FETCH_ASSOC);
 if ($topRow) {
     $topCategory = $topRow;
@@ -171,10 +233,10 @@ try {
         SELECT u.residency_status AS status_type, COUNT(*) AS total
         FROM reports r
         JOIN users u ON u.id = r.user_id
-        WHERE r.created_at >= :start $catSql$endSql
+        WHERE r.created_at >= :start $catSql$filterSql$endSql
         GROUP BY u.residency_status
     ");
-    $demStmt->execute([':start' => $startDate] + ($endSql ? [':end' => $endDate] : []));
+    $demStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
     foreach ($demStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $key = (strtolower($row['status_type']) === 'resident') ? 'resident' : 'non_resident';
         $demographics[$key] += (int)$row['total'];
@@ -185,10 +247,10 @@ try {
             SELECT u.is_resident AS status_type, COUNT(*) AS total
             FROM reports r
             JOIN users u ON u.id = r.user_id
-            WHERE r.created_at >= :start $catSql$endSql
+            WHERE r.created_at >= :start $catSql$filterSql$endSql
             GROUP BY u.is_resident
         ");
-        $demStmt->execute([':start' => $startDate] + ($endSql ? [':end' => $endDate] : []));
+        $demStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
         foreach ($demStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $key = ((int)$row['status_type'] === 1) ? 'resident' : 'non_resident';
             $demographics[$key] += (int)$row['total'];
@@ -204,13 +266,13 @@ $nonResidentPct = $demographicsTotal > 0 ? round(($demographics['non_resident'] 
 // ------------------------------------------------------------
 // 4. DYNAMIC INSIGHTS (trend highlights)
 // ------------------------------------------------------------
-function reportCountForMonth($db, $ym, $catSql) {
-    $stmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE DATE_FORMAT(r.created_at, '%Y-%m') = :ym $catSql");
-    $stmt->execute([':ym' => $ym]);
+function reportCountForMonth($db, $ym, $catSql, $filterSql = '', $filterParams = []) {
+    $stmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE DATE_FORMAT(r.created_at, '%Y-%m') = :ym $catSql$filterSql");
+    $stmt->execute([':ym' => $ym] + $filterParams);
     return (int)$stmt->fetchColumn();
 }
-$curCount  = reportCountForMonth($db, date('Y-m'), $catSql);
-$prevCount = reportCountForMonth($db, date('Y-m', strtotime('first day of last month')), $catSql);
+$curCount  = reportCountForMonth($db, date('Y-m'), $catSql, $filterSql, $filterParams);
+$prevCount = reportCountForMonth($db, date('Y-m', strtotime('first day of last month')), $catSql, $filterSql, $filterParams);
 
 $insights = [];
 if ($totalCount === 0) {
@@ -326,6 +388,56 @@ if ($isBarangay) {
             background: #fff;
         }
         .toolbar .hint { color: #6b7280; font-size: 11px; }
+
+        /* ===== Screen-only filter controls ===== */
+        .controls {
+            max-width: 210mm;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+        .controls label { font-size: 12px; font-weight: 600; color: #374151; }
+        .controls input[type="date"], .controls select {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: inherit;
+            background: #fff;
+            color: #1f2937;
+        }
+        .controls .btn-generate {
+            background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .controls .btn-generate:hover { box-shadow: 0 4px 12px rgba(16,163,127,0.3); }
+        .filter-summary-bar {
+            max-width: 210mm;
+            margin: 0 auto 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            background: #f4faf7;
+            border: 1px solid #dff0e9;
+            border-radius: 8px;
+            padding: 6px 12px;
+        }
+        .filter-summary-bar .fs-label { font-size: 10px; font-weight: 700; color: #0D8568; text-transform: uppercase; letter-spacing: 0.05em; }
+        .filter-summary-bar .fs-chip { background: #d1fae5; color: #065f46; border-radius: 999px; padding: 2px 10px; font-size: 10px; font-weight: 600; }
 
         /* ===== Report page (A4 portrait) ===== */
         .report {
@@ -472,6 +584,7 @@ if ($isBarangay) {
                 print-color-adjust: exact !important;
             }
             .toolbar { display: none !important; }
+            .controls, .filter-summary-bar { display: none !important; }
             .report {
                 width: 100%;
                 min-height: 0;
@@ -492,6 +605,60 @@ if ($isBarangay) {
         <a href="<?php echo BASE_URL; ?>index.php?page=dashboard">&larr; Back to Dashboard</a>
         <span class="hint">Tip: choose "Save as PDF" as the printer destination for an A4 PDF export.</span>
     </div>
+
+    <!-- Screen-only filter controls (hidden on print) -->
+    <form class="controls" method="get" action="<?php echo BASE_URL; ?>index.php">
+        <input type="hidden" name="page" value="dashboard-report">
+        <input type="hidden" name="range" value="<?php echo htmlspecialchars($range); ?>">
+        <label>From <input type="date" name="from" value="<?php echo htmlspecialchars($from); ?>"></label>
+        <label>To <input type="date" name="to" value="<?php echo htmlspecialchars($to); ?>"></label>
+        <label>Status
+            <select name="status">
+                <?php foreach ($statusLabels as $val => $label): ?>
+                <option value="<?php echo htmlspecialchars($val); ?>" <?php echo $statusFilter === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Risk
+            <select name="risk">
+                <?php foreach ($riskLabels as $val => $label): ?>
+                <option value="<?php echo htmlspecialchars($val); ?>" <?php echo $riskFilter === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>Barangay
+            <select name="barangay">
+                <option value="0" <?php echo $barangayFilter === 0 ? 'selected' : ''; ?>>All Barangays</option>
+                <?php foreach ($barangayList as $brgy): ?>
+                <option value="<?php echo (int)$brgy['id']; ?>" <?php echo $barangayFilter === (int)$brgy['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($brgy['name']); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <button type="submit" class="btn-generate"><i class="fas fa-sync-alt" style="margin-right:6px;"></i>Generate Report</button>
+    </form>
+
+    <?php
+    $filterChips = [];
+    if ($from || $to) {
+        $fr = $from ? date('M j, Y', strtotime($from)) : '&hellip;';
+        $t  = $to ? date('M j, Y', strtotime($to)) : '&hellip;';
+        $filterChips[] = 'Date: ' . $fr . ' &ndash; ' . $t;
+    }
+    if ($statusFilter !== 'all') $filterChips[] = 'Status: ' . $statusLabels[$statusFilter];
+    if ($riskFilter !== 'all')   $filterChips[] = 'Risk: ' . $riskLabels[$riskFilter];
+    if ($barangayFilter > 0) {
+        $brgyName = '';
+        foreach ($barangayList as $brgy) { if ((int)$brgy['id'] === $barangayFilter) { $brgyName = $brgy['name']; break; } }
+        $filterChips[] = 'Barangay: ' . $brgyName;
+    }
+    if (!empty($filterChips)): ?>
+    <div class="filter-summary-bar">
+        <span class="fs-label"><i class="fas fa-filter" style="margin-right:4px;"></i>Active Filters:</span>
+        <?php foreach ($filterChips as $chip): ?>
+        <span class="fs-chip"><?php echo $chip; ?></span>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
 
     <div class="report">
         <!-- ===== Official LGU Header ===== -->
@@ -525,6 +692,12 @@ if ($isBarangay) {
             <div class="report-meta">
                 <span><strong>Date Range:</strong> <?php echo date('M j, Y', strtotime($startDate)); ?> &ndash; <?php echo date('M j, Y', strtotime($endDate)); ?></span>
                 <span><strong>Period:</strong> <?php echo htmlspecialchars($periodLabel); ?></span>
+                <?php if ($statusFilter !== 'all'): ?><span><strong>Status:</strong> <?php echo htmlspecialchars($statusLabels[$statusFilter]); ?></span><?php endif; ?>
+                <?php if ($riskFilter !== 'all'): ?><span><strong>Risk:</strong> <?php echo htmlspecialchars($riskLabels[$riskFilter]); ?></span><?php endif; ?>
+                <?php if ($barangayFilter > 0): ?>
+                    <?php $brgyNameForMeta = ''; foreach ($barangayList as $b) { if ((int)$b['id'] === $barangayFilter) { $brgyNameForMeta = $b['name']; break; } } ?>
+                    <span><strong>Barangay:</strong> <?php echo htmlspecialchars($brgyNameForMeta); ?></span>
+                <?php endif; ?>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
                 <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
             </div>

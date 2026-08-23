@@ -7,6 +7,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Load the per-deployment env file early so deployment-specific constants
+// (e.g. BASE_URL, DB credentials, APP_ENV) can be defined here and take
+// precedence over the auto-detection below.
+$__envFile = dirname(__DIR__) . '/config/env.php';
+if (file_exists($__envFile)) {
+    require_once $__envFile;
+}
+
 // ============================================
 // BASE URL & PATH DEFINITIONS
 // ============================================
@@ -16,14 +24,30 @@ if (!defined('BASE_URL')) {
     if (isset($_SERVER['HTTP_HOST'])) {
         $scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host     = $_SERVER['HTTP_HOST']; // includes port when non-standard
-        // Derive the app's sub-path from __DIR__ vs DOCUMENT_ROOT
-        $docRoot  = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']), '/');
-        $appDir   = rtrim(str_replace('\\', '/', dirname(__DIR__)), '/');
-        $subPath  = str_replace($docRoot, '', $appDir);
+
+        // Build the app's URL sub-path from the running script's URL path.
+        // On some hosts (e.g. InfinityFree) *_SELF / SCRIPT_NAME can leak the
+        // full filesystem path, so we strip DOCUMENT_ROOT when it appears and
+        // force an empty sub-path if anything still looks like a server path.
+        $script  = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? ($_SERVER['PHP_SELF'] ?? ''));
+        $docRoot = isset($_SERVER['DOCUMENT_ROOT']) ? rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']), '/') : '';
+        if ($docRoot !== '' && strpos($script, $docRoot) === 0) {
+            $script = substr($script, strlen($docRoot));
+        }
+        if ($script === '') $script = '/index.php';
+
+        $scriptDir = str_replace('\\', '/', dirname($script));
+        $subPath   = ($scriptDir === '/' || $scriptDir === '.') ? '' : $scriptDir;
+
+        // Safety net: a genuine URL sub-path never begins with a filesystem root.
+        if (preg_match('#^/(home|var|usr|opt|srv|tmp)(/|$)#', $subPath)) {
+            $subPath = '';
+        }
+
         define('BASE_URL', $scheme . '://' . $host . $subPath . '/');
     } else {
         // CLI or missing server vars — fall back to original hardcoded value
-        define('BASE_URL', 'http://localhost/environmental-reporting-app/');
+        define('BASE_URL', 'http://localhost/');
     }
 }
 define('BASE_PATH', dirname(__DIR__) . '/');

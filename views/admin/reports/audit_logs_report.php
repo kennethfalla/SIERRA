@@ -26,6 +26,9 @@ $groupBy = ($_GET['group_by'] ?? 'role') === 'user' ? 'user' : 'role';
 $autoprint = !empty($_GET['autoprint']);
 $roleFilter   = in_array($_GET['role'] ?? 'all', ['all', 'menro', 'barangay', 'citizen', 'system'], true) ? $_GET['role'] : 'all';
 $statusFilter = in_array($_GET['status'] ?? 'all', ['SUCCESS', 'FAILED', 'UNAUTHORIZED_ATTEMPT'], true) ? $_GET['status'] : 'all';
+$actionFilter = isset($_GET['action']) ? trim($_GET['action']) : 'all';
+$userFilter   = isset($_GET['user']) ? (int)$_GET['user'] : 0;
+$search       = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 function isValidDateStr($s) {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) return false;
@@ -42,6 +45,18 @@ $where = ["1=1"];
 $params = [];
 if ($from) { $where[] = "DATE(a.created_at) >= :from"; $params[':from'] = $from; }
 if ($to)   { $where[] = "DATE(a.created_at) <= :to";   $params[':to']   = $to;   }
+if ($actionFilter !== '' && $actionFilter !== 'all') {
+    $where[] = "a.action = :action";
+    $params[':action'] = $actionFilter;
+}
+if ($userFilter > 0) {
+    $where[] = "a.user_id = :user";
+    $params[':user'] = $userFilter;
+}
+if ($search !== '') {
+    $where[] = "(a.description LIKE :search OR u.first_name LIKE :search OR u.last_name LIKE :search OR u.email LIKE :search OR a.action LIKE :search OR a.status LIKE :search)";
+    $params[':search'] = "%$search%";
+}
 
 $sql = "SELECT a.*,
                CONCAT(u.first_name, ' ', u.last_name) AS user_name,
@@ -55,6 +70,10 @@ $sql = "SELECT a.*,
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Distinct actions + users for the on-page filter controls.
+$actionList = $db->query("SELECT DISTINCT action FROM activity_logs ORDER BY action")->fetchAll(PDO::FETCH_COLUMN);
+$userList = $db->query("SELECT id, first_name, last_name, email FROM users ORDER BY first_name")->fetchAll(PDO::FETCH_ASSOC);
 
 // ------------------------------------------------------------
 // HELPERS
@@ -244,6 +263,14 @@ $groupLabel = ($groupBy === 'user') ? 'Grouped by User' : 'Grouped by Role';
 $statusLabels = ['SUCCESS' => 'Success', 'FAILED' => 'Failed', 'UNAUTHORIZED_ATTEMPT' => 'Unauthorized'];
 $roleFilterText   = $roleFilter === 'all' ? 'All Roles' : roleGroupLabel($roleFilter);
 $statusFilterText = $statusFilter === 'all' ? 'All Statuses' : ($statusLabels[$statusFilter] ?? $statusFilter);
+$actionFilterText = ($actionFilter === '' || $actionFilter === 'all') ? 'All Actions' : $actionFilter;
+$userFilterText = 'All Users';
+if ($userFilter > 0) {
+    foreach ($userList as $u) {
+        if ((int)$u['id'] === $userFilter) { $userFilterText = $u['first_name'] . ' ' . $u['last_name']; break; }
+    }
+}
+$searchText = $search !== '' ? $search : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -308,7 +335,7 @@ $statusFilterText = $statusFilter === 'all' ? 'All Statuses' : ($statusLabels[$s
             padding: 10px 14px;
         }
         .controls label { font-size: 12px; font-weight: 600; color: #374151; }
-        .controls input[type="date"], .controls select {
+        .controls input[type="date"], .controls input[type="text"], .controls select {
             border: 1px solid #d1d5db;
             border-radius: 8px;
             padding: 6px 8px;
@@ -486,6 +513,7 @@ $statusFilterText = $statusFilter === 'all' ? 'All Statuses' : ($statusLabels[$s
     <!-- Screen-only report controls -->
     <form class="controls" method="get" action="<?php echo BASE_URL; ?>index.php">
         <input type="hidden" name="page" value="audit-logs-report">
+        <label>Search <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Description, user, email, action..."></label>
         <label>From <input type="date" name="from" value="<?php echo htmlspecialchars($from); ?>"></label>
         <label>To <input type="date" name="to" value="<?php echo htmlspecialchars($to); ?>"></label>
         <label>Role
@@ -503,6 +531,22 @@ $statusFilterText = $statusFilter === 'all' ? 'All Statuses' : ($statusLabels[$s
                 <option value="SUCCESS" <?php echo $statusFilter === 'SUCCESS' ? 'selected' : ''; ?>>Success</option>
                 <option value="FAILED" <?php echo $statusFilter === 'FAILED' ? 'selected' : ''; ?>>Failed</option>
                 <option value="UNAUTHORIZED_ATTEMPT" <?php echo $statusFilter === 'UNAUTHORIZED_ATTEMPT' ? 'selected' : ''; ?>>Unauthorized</option>
+            </select>
+        </label>
+        <label>Action
+            <select name="action">
+                <option value="all" <?php echo $actionFilter === 'all' ? 'selected' : ''; ?>>All Actions</option>
+                <?php foreach ($actionList as $act): ?>
+                <option value="<?php echo htmlspecialchars($act); ?>" <?php echo $actionFilter === $act ? 'selected' : ''; ?>><?php echo htmlspecialchars($act); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>User
+            <select name="user">
+                <option value="0" <?php echo $userFilter === 0 ? 'selected' : ''; ?>>All Users</option>
+                <?php foreach ($userList as $u): ?>
+                <option value="<?php echo (int)$u['id']; ?>" <?php echo $userFilter === (int)$u['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($u['first_name'] . ' ' . $u['last_name']); ?></option>
+                <?php endforeach; ?>
             </select>
         </label>
         <label>Group by
@@ -548,6 +592,9 @@ $statusFilterText = $statusFilter === 'all' ? 'All Statuses' : ($statusLabels[$s
                 <span><strong>Groupings:</strong> <?php echo count($groups); ?></span>
                 <span><strong>Role:</strong> <?php echo htmlspecialchars($roleFilterText); ?></span>
                 <span><strong>Status:</strong> <?php echo htmlspecialchars($statusFilterText); ?></span>
+                <span><strong>Action:</strong> <?php echo htmlspecialchars($actionFilterText); ?></span>
+                <span><strong>User:</strong> <?php echo htmlspecialchars($userFilterText); ?></span>
+                <?php if ($searchText !== ''): ?><span><strong>Search:</strong> "<?php echo htmlspecialchars($searchText); ?>"</span><?php endif; ?>
                 <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
             </div>

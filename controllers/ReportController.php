@@ -389,7 +389,9 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
         ($user_role == 'barangay_official' && $report_data['status'] == Report::STATUS_IN_PROGRESS) ||
         ($user_role == 'admin' && in_array($report_data['status'], [Report::STATUS_ESCALATED_PENDING, Report::STATUS_ESCALATED]))
     );
-    $show_notes = in_array($report_data['status'], [Report::STATUS_IN_PROGRESS, Report::STATUS_ESCALATED_PENDING, Report::STATUS_ESCALATED]);
+    // Notes stay visible regardless of status so the audit trail of
+    // investigation notes remains available even after a report is resolved.
+    $show_notes = true;
 
     $view_data = [
         'report' => $report_data,

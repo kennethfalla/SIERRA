@@ -1406,11 +1406,12 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                                 <?php endif; ?>
                             </div>
                             <div class="flex items-center gap-2">
-                                <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#10A37F] hover:text-[#0D8568] transition">
+                                <?php if ($r['status'] === 'resolved'): ?>
+                                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="btn-manage">
                                     <i class="fas fa-eye"></i> View
                                 </a>
-                                <?php if (PermissionHelper::canManageReport($r)): ?>
-                                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="btn-manage">
+                                <?php elseif (PermissionHelper::canManageReport($r)): ?>
+                                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="btn-manage" data-report-status="<?php echo htmlspecialchars($r['status']); ?>" onclick="return confirmUnderReview(event, this)">
                                     <i class="fas fa-edit"></i> Manage
                                 </a>
                                 <?php else: ?>
@@ -1460,6 +1461,21 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
     </div>
 </div>
 
+<!-- Under Review Confirmation Modal -->
+<div id="underReviewModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm items-center justify-center z-[9999] p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl" onclick="event.stopPropagation()">
+        <div class="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-search text-blue-600 text-2xl"></i>
+        </div>
+        <h3 class="text-lg font-bold text-gray-800 text-center mb-2">Proceed with Under Review?</h3>
+        <p class="text-sm text-gray-500 text-center mb-6">This will mark the report as Under Review so you can start verifying and managing it.</p>
+        <div class="flex gap-3">
+            <button type="button" onclick="closeUnderReviewModal()" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 transition">Cancel</button>
+            <button type="button" onclick="proceedUnderReview()" class="flex-1 px-4 py-2.5 bg-[#10A37F] text-white rounded-xl font-medium hover:bg-[#0D8568] transition">Proceed</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentViewMode = '<?php echo $view_mode; ?>';
 
@@ -1487,6 +1503,32 @@ function setViewMode(mode) {
 // ===== LOADING =====
 function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+// ===== UNDER REVIEW CONFIRMATION =====
+let underReviewTargetUrl = '';
+function confirmUnderReview(e, el) {
+    if (el.getAttribute('data-report-status') !== 'pending') return true;
+    e.preventDefault();
+    underReviewTargetUrl = el.href;
+    const modal = document.getElementById('underReviewModal');
+    if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+    return false;
+}
+function closeUnderReviewModal() {
+    const modal = document.getElementById('underReviewModal');
+    if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+}
+function proceedUnderReview() {
+    const url = underReviewTargetUrl;
+    closeUnderReviewModal();
+    if (url) window.location.href = url;
+}
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('underReviewModal');
+    if (modal && !modal.classList.contains('hidden') && e.target === modal) {
+        closeUnderReviewModal();
+    }
+});
 
 // ===== EXPORT CSV (honors current filters) =====
 function exportCSV() {
