@@ -1571,14 +1571,14 @@ function buildBarangayReportUrl(format) {
 
 function exportDashboardPdf() {
     document.getElementById('exportMenu').classList.remove('open');
-    window.open(buildBarangayReportUrl('') + '&autoprint=1', '_blank');
+    window.open('<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-print&autoprint=1', '_blank');
 }
 
 function exportDashboardCsv() {
     document.getElementById('exportMenu').classList.remove('open');
     var iframe = document.createElement('iframe');
     iframe.style.display = 'none';
-    iframe.src = buildBarangayReportUrl('csv');
+    iframe.src = '<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-print&format=csv';
     document.body.appendChild(iframe);
     setTimeout(function() { iframe.remove(); }, 8000);
 }

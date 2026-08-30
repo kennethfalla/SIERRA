@@ -175,10 +175,10 @@ if($page === 'settings') {
     // Handle POST requests for settings updates
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $settings_tab = $_GET['tab'] ?? 'general';
-        if ($settings_tab === 'users' || $settings_tab === 'categories') {
-            // User & category management POSTs are handled by their own
-            // partials (they validate CSRF, process the action, and redirect).
-            require_once 'views/admin/settings/partials/' . ($settings_tab === 'users' ? 'users.php' : 'categories.php');
+        if ($settings_tab === 'categories') {
+            // Category management POSTs are handled by their own partial
+            // (they validate CSRF, process the action, and redirect).
+            require_once 'views/admin/settings/partials/categories.php';
             exit();
         }
         require_once 'controllers/SettingsController.php';
@@ -237,6 +237,18 @@ elseif($role === 'barangay_official') {
         case 'reporters-directory':
             require_once 'views/barangay/reporters_directory.php';
             break;
+        case 'barangay-dashboard-report':
+            require_once 'views/admin/reports/dashboard_report.php';
+            break;
+        case 'barangay-dashboard-print':
+            require_once 'views/barangay/reports/dashboard_print.php';
+            break;
+        case 'barangay-manage-reports-print':
+            require_once 'views/barangay/reports/manage_reports_print.php';
+            break;
+        case 'barangay-reporters-print':
+            require_once 'views/barangay/reports/reporters_directory_print.php';
+            break;
         case 'edit-profile':
             require_once 'views/edit_profile.php';
             break;
@@ -259,8 +271,8 @@ elseif($role === 'admin') {
             require_once 'views/admin/all_reports.php';
             break;
         case 'manage-users':
-            header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
-            exit();
+            require_once 'views/admin/users.php';
+            break;
         case 'manage-categories':
             header("Location: " . BASE_URL . "index.php?page=settings&tab=categories");
             exit();
