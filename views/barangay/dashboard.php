@@ -1169,13 +1169,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <button class="active" data-mode="active">Active Hazards</button>
                         <button data-mode="historical">Historical / Resolved</button>
                     </div>
-                    <div class="map-toggle" id="timeframeToggle">
-                        <button data-range="week">This Week</button>
-                        <button data-range="month">This Month</button>
-                        <button data-range="year">This Year</button>
-                        <button data-range="custom">Custom</button>
-                        <button class="active" data-range="all">All Time</button>
-                    </div>
                 </div>
                 <div class="flex flex-wrap gap-3 text-xs">
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $criticalBands['yellow'] - 1; ?>)</span>
@@ -1185,15 +1178,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </div>
             </div>
 
-            <!-- Custom date range (shown when "Custom" is active) -->
-            <div id="customRangeBox" class="hidden items-center gap-2 mb-3">
-                <span class="text-xs text-gray-500 font-medium">Custom range:</span>
-                <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1 text-sm">
-                <span class="text-xs text-gray-400">to</span>
-                <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1 text-sm">
-            </div>
-
-            <!-- Category Filter -->
+            <!-- Category Filter + Timeframe Selector -->
             <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
                 <div class="relative" id="categoryFilterWrap">
                     <button id="categoryFilterBtn" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 hover:border-[#10A37F] transition">
@@ -1222,6 +1207,23 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         </div>
                     </div>
                 </div>
+
+                <!-- Timeframe Selector + Custom Date Range -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="map-toggle" id="timeframeToggle">
+                        <button data-range="week">This Week</button>
+                        <button data-range="month">This Month</button>
+                        <button data-range="year">This Year</button>
+                        <button data-range="custom">Custom</button>
+                        <button class="active" data-range="all">All Time</button>
+                    </div>
+                    <div id="customRangeBox" class="hidden items-center gap-2">
+                        <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
+                        <span class="text-xs text-gray-400">to</span>
+                        <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
+                    </div>
+                </div>
+
                 <p class="text-xs text-gray-400 font-medium">📍 <?php echo count($activeReports); ?> active reports in your barangay</p>
             </div>
 

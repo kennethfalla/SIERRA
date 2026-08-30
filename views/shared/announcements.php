@@ -374,15 +374,8 @@ if ($date_to != '') $active_filters++;
         .feed-container {
             display: grid;
             grid-template-columns: 1fr;
-            align-items: start;   /* stop cards stretching to match the tallest one in a row */
+            align-items: start;
             gap: 1rem;
-        }
-        @media (min-width: 768px) {
-            .feed-container { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
-        }
-        @media (min-width: 1280px) {
-            /* on wide screens, flow into 3 columns instead of leaving two huge stretched columns */
-            .feed-container { grid-template-columns: repeat(3, 1fr); }
         }
         .announcement-card {
             display: flex;
