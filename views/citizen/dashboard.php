@@ -2359,14 +2359,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (boundaryData && boundaryData.features) {
         try {
             var coords = extractPolygonCoords(boundaryData);
-            if (coords) L.polygon(coords, { color:'#10A37F', weight:1.5, opacity:0.7, fillColor:'#10A37F',
-                fillOpacity:0, smoothFactor:1, interactive:false }).addTo(communityMap);
+            if (coords) {
+                L.polygon(coords, MapLayers.whiteCasingStyle(1.5)).addTo(communityMap);
+                L.polygon(coords, MapLayers.dashedBoundaryStyle(1.5)).addTo(communityMap);
+            }
         } catch(e) {}
     }
 
-    var barangayStyle = { color:'#10A37F', weight:1.5, opacity:0.7, fillColor:'#10A37F', fillOpacity:0, smoothFactor:1 };
+    var barangayStyle = MapLayers.dashedBoundaryStyle(1.5);
     var barangayLayer = null;
+    var citizenSpotlight = null;
+    var citizenSelected = null;
     if (barangayData && barangayData.features) {
+        L.geoJSON(barangayData, { style: MapLayers.whiteCasingStyle(1.5), interactive: false }).addTo(communityMap);
         barangayLayer = L.geoJSON(barangayData, {
             style: barangayStyle,
             onEachFeature: function(feature, layer) {
@@ -2374,8 +2379,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 layer.bindTooltip(name, { sticky:true });
                 layer.on({
                     mouseover: function() { layer.setStyle({ fillOpacity:0.15, weight:2 }); layer.bringToFront(); },
-                    mouseout:  function() { layer.setStyle(barangayStyle); },
-                    click:     function() { try { communityMap.fitBounds(layer.getBounds(),{maxZoom:14}); } catch(e){} }
+                    mouseout:  function() { if (citizenSelected !== layer) layer.setStyle(barangayStyle); },
+                    click:     function() {
+                        if (citizenSelected === layer) {
+                            layer.setStyle(barangayStyle);
+                            citizenSelected = null;
+                            if (citizenSpotlight) { communityMap.removeLayer(citizenSpotlight); citizenSpotlight = null; }
+                        } else {
+                            if (citizenSelected) citizenSelected.setStyle(barangayStyle);
+                            citizenSelected = layer;
+                            layer.setStyle({ fillOpacity:0.15, weight:2 });
+                            layer.bringToFront();
+                            if (citizenSpotlight) communityMap.removeLayer(citizenSpotlight);
+                            citizenSpotlight = MapLayers.spotlight(communityMap, layer);
+                        }
+                        try { communityMap.fitBounds(layer.getBounds(),{maxZoom:14}); } catch(e){}
+                    }
                 });
             }
         }).addTo(communityMap);

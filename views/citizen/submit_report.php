@@ -3413,9 +3413,8 @@ if (is_dir($barangays_dir)) {
             const polygonCoords = extractPolygonCoordinates(sanIsidroBoundary);
             if (polygonCoords) {
                 sanIsidroPolygon = polygonCoords.map(function(coord) { return [coord[1], coord[0]]; });
-                boundaryLayer = L.polygon(polygonCoords, {
-                    color: "#10A37F", weight: 1.5, opacity: 0.7, fillColor: "#10A37F", fillOpacity: 0, smoothFactor: 1
-                }).addTo(map);
+                L.polygon(polygonCoords, MapLayers.whiteCasingStyle(1.5)).addTo(map);
+                boundaryLayer = L.polygon(polygonCoords, MapLayers.dashedBoundaryStyle(1.5)).addTo(map);
                 map.fitBounds(boundaryLayer.getBounds());
             }
         }
@@ -3423,10 +3422,9 @@ if (is_dir($barangays_dir)) {
         // Official barangay boundaries — the map shows exactly which barangay
         // a tapped point falls into (used by detectBarangay() for accuracy).
         if (barangayData && barangayData.features) {
+            L.geoJSON(barangayData, { style: MapLayers.whiteCasingStyle(1.5), interactive: false }).addTo(map);
             const brgyLayer = L.geoJSON(barangayData, {
-                style: {
-                    color: "#10A37F", weight: 1.5, opacity: 0.7, fillColor: "#10A37F", fillOpacity: 0, smoothFactor: 1
-                },
+                style: MapLayers.dashedBoundaryStyle(1.5),
                 onEachFeature: function(feature, layer) {
                     const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
                     layer.bindTooltip(name, { sticky: true });

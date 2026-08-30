@@ -1729,15 +1729,9 @@ function initMap() {
     // Draw THIS barangay's own boundary (its GeoJSON) so the map shows only
     // their jurisdiction, with the citizen report pins sitting on top of it.
     if (barangayBoundary && barangayBoundary.features) {
+        L.geoJSON(barangayBoundary, { style: MapLayers.whiteCasingStyle(2), interactive: false }).addTo(map);
         const brgyLayer = L.geoJSON(barangayBoundary, {
-            style: {
-                color: "#10A37F",
-                weight: 1.5,
-                opacity: 0.7,
-                fillColor: "#10A37F",
-                fillOpacity: 0,
-                smoothFactor: 1
-            },
+            style: MapLayers.dashedBoundaryStyle(2),
             onEachFeature: function(feature, layer) {
                 const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
                 layer.bindTooltip(name, { sticky: true });

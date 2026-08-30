@@ -1471,14 +1471,8 @@ let currentMode = 'active'; // 'active' or 'historical'
 let barangayLayer = null;
 let selectedBarangay = null;
 let selectedBarangayLayer = null;
-const barangayDefaultStyle = {
-    color: "#10A37F",
-    weight: 1.5,
-    opacity: 0.7,
-    fillColor: "#10A37F",
-    fillOpacity: 0,
-    smoothFactor: 1
-};
+let spotlightMask = null;
+const barangayDefaultStyle = MapLayers.dashedBoundaryStyle(1.5);
 
 function initMap() {
     const center = [15.3092, 120.9033];
@@ -1495,15 +1489,8 @@ function initMap() {
         try {
             const coords = extractPolygonCoords(boundaryData);
             if (coords) {
-                L.polygon(coords, {
-                    color: "#10A37F",
-                    weight: 1.5,
-                    opacity: 0.7,
-                    fillColor: "#10A37F",
-                    fillOpacity: 0,
-                    smoothFactor: 1,
-                    interactive: false
-                }).addTo(map);
+                L.polygon(coords, MapLayers.whiteCasingStyle(1.5)).addTo(map);
+                L.polygon(coords, MapLayers.dashedBoundaryStyle(1.5)).addTo(map);
             }
         } catch(e) {}
     }
@@ -1515,6 +1502,10 @@ function initMap() {
 // Render all barangay boundaries as an interactive polygon layer.
 function addBarangayLayers() {
     if (!barangayData || !barangayData.features) return;
+
+    // White casing under the dashed green stroke so the boundary reads as
+    // alternating green/white dashes.
+    L.geoJSON(barangayData, { style: MapLayers.whiteCasingStyle(1.5), interactive: false }).addTo(map);
 
     barangayLayer = L.geoJSON(barangayData, {
         style: barangayDefaultStyle,
@@ -1556,6 +1547,8 @@ function toggleBarangayFilter(name, layer) {
     selectedBarangayLayer = layer;
     layer.setStyle({ fillColor: "#10A37F", fillOpacity: 0.15, weight: 2, color: "#10A37F" });
     layer.bringToFront();
+    if (spotlightMask) { map.removeLayer(spotlightMask); spotlightMask = null; }
+    spotlightMask = MapLayers.spotlight(map, layer);
     updateBarangayFilterChip();
     loadMapData(currentMode);
 }
@@ -1564,6 +1557,7 @@ function clearBarangayFilter() {
     selectedBarangay = null;
     if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
     selectedBarangayLayer = null;
+    if (spotlightMask) { map.removeLayer(spotlightMask); spotlightMask = null; }
     updateBarangayFilterChip();
     loadMapData(currentMode);
 }
@@ -1692,6 +1686,7 @@ function applyDashboardFilters() {
         selectedBarangay = brgyVal || null;
         if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
         selectedBarangayLayer = null;
+        if (spotlightMask) { map.removeLayer(spotlightMask); spotlightMask = null; }
         updateBarangayFilterChip();
     }
 

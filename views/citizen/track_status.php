@@ -1842,14 +1842,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sanIsidroBoundary && sanIsidroBoundary.features) {
         const polygonCoords = extractPolygonCoordinates(sanIsidroBoundary);
         if (polygonCoords) {
-            L.polygon(polygonCoords, {
-                color: "#10A37F",
-                weight: 1.5,
-                opacity: 0.7,
-                fillColor: "#10A37F",
-                fillOpacity: 0,
-                smoothFactor: 1
-            }).addTo(map);
+            L.polygon(polygonCoords, MapLayers.whiteCasingStyle(1.5)).addTo(map);
+            L.polygon(polygonCoords, MapLayers.dashedBoundaryStyle(1.5)).addTo(map);
         }
     }
 
@@ -1865,6 +1859,7 @@ document.addEventListener('DOMContentLoaded', function() {
         detectedLabel.textContent = 'Not within any barangay polygon';
     }
     if (barangayData && barangayData.features) {
+        L.geoJSON(barangayData, { style: MapLayers.whiteCasingStyle(1), interactive: false }).addTo(map);
         barangayData.features.forEach(function(feature) {
             const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
             const isDetected = detectedBrgy && (feature.properties.barangay_id === detectedBrgy.id);
@@ -1872,7 +1867,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 style: {
                     color: "#10A37F",
                     weight: isDetected ? 2 : 1,
-                    opacity: 0.7,
+                    opacity: 0.9,
+                    dashArray: "6 6",
                     fillColor: "#10A37F",
                     fillOpacity: isDetected ? 0.15 : 0,
                     smoothFactor: 1

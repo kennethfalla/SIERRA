@@ -1,71 +1,86 @@
 // assets/js/map-layers.js
-// Base map presets shared by every map in the system.
-// Every user can switch between three views: Satellite, Street, Light.
-// The Satellite layer (Esri World Imagery) is the starting view.
-//
-// CARTO basemaps require a free API key. Request one (no CARTO account needed,
-// free up to 5M tile requests/month) at https://carto.com/basemaps/apikey
-// then paste it into CARTO_API_KEY below.
-var CARTO_API_KEY = 'YOUR_KEY';
+// Single OpenStreetMap base layer (Leaflet + OSM only). Also provides shared
+// helpers for the dashed green/white administrative boundary styling and the
+// "spotlight" mask that desaturates everything outside a selected polygon.
 
 (function () {
     'use strict';
 
-    function lightLayer() {
-        return L.tileLayer('https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=' + CARTO_API_KEY, {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    function osmLayer() {
+        return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 20,
             maxNativeZoom: 19
         });
     }
 
-    function satelliteLayer() {
-        return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
-            maxZoom: 20,
-            maxNativeZoom: 19
-        });
+    function addMapLayerControl(map) {
+        var layer = osmLayer();
+        layer.addTo(map);
+        return layer;
     }
 
-    function streetLayer() {
-        return L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=' + CARTO_API_KEY, {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            maxZoom: 20,
-            maxNativeZoom: 19
-        });
-    }
-
-    /**
-     * Attach the base-layer switcher to a Leaflet map.
-     * @param {L.Map} map Target map instance
-     * @param {Object} opts Optional { default: 'Satellite'|'Street'|'Light', position }
-     * @returns {L.TileLayer} The default layer that was added to the map
-     */
-    function addMapLayerControl(map, opts) {
-        opts = opts || {};
-
-        var layers = {
-            'Satellite': satelliteLayer(),
-            'Street': streetLayer(),
-            'Light': lightLayer()
+    // Green dashed stroke (transparent fill). Pairs with whiteCasingStyle() so
+    // the boundary reads as alternating green/white dashes.
+    function dashedBoundaryStyle(weight, color) {
+        return {
+            color: color || '#10A37F',
+            weight: weight || 1.5,
+            opacity: 0.9,
+            dashArray: '6 6',
+            fillColor: color || '#10A37F',
+            fillOpacity: 0,
+            smoothFactor: 1
         };
+    }
 
-        var defaultName = layers[opts.default] ? opts.default : 'Satellite';
-        var active = layers[defaultName];
-        active.addTo(map);
+    // Solid white line drawn UNDER the dashed green stroke (the "white" part of
+    // the alternating dashes, plus a clean white edge).
+    function whiteCasingStyle(weight) {
+        return {
+            color: '#ffffff',
+            weight: (weight || 1.5) + 2,
+            opacity: 1,
+            fill: false,
+            fillOpacity: 0,
+            smoothFactor: 1
+        };
+    }
 
-        L.control.layers(layers, null, {
-            position: opts.position || 'topright',
-            collapsed: opts.collapsed !== false
+    // Normalize a Leaflet layer's latlngs (single Polygon ring) so it can be
+    // used as the hole for the spotlight mask.
+    function normalizeRings(latlngs) {
+        if (!latlngs || !latlngs.length) return null;
+        var first = latlngs[0];
+        if (first && typeof first[0] === 'number') return latlngs;      // single ring
+        if (first && Array.isArray(first[0])) return first;             // first ring of multi
+        return latlngs;
+    }
+
+    // Inverted-polygon mask: heavy desaturation (white veil) over everything
+    // OUTSIDE the selected polygon, leaving the inside at full saturation.
+    // Pass a Leaflet layer or raw latlngs.
+    function spotlight(map, layerOrLatLngs, options) {
+        options = options || {};
+        var latlngs = (layerOrLatLngs && layerOrLatLngs.getLatLngs) ? layerOrLatLngs.getLatLngs() : layerOrLatLngs;
+        var ring = normalizeRings(latlngs);
+        if (!ring) return null;
+
+        var world = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+        var mask = L.polygon([world, ring], {
+            fillColor: options.fillColor || '#ffffff',
+            fillOpacity: (options.fillOpacity != null) ? options.fillOpacity : 0.6,
+            stroke: false,
+            interactive: false
         }).addTo(map);
-
-        return active;
+        return mask;
     }
 
     window.MapLayers = {
-        getLayers: function () {
-            return { 'Satellite': satelliteLayer(), 'Street': streetLayer(), 'Light': lightLayer() };
-        },
-        addControl: addMapLayerControl
+        addControl: addMapLayerControl,
+        getLayers: function () { return { 'OpenStreetMap': osmLayer() }; },
+        dashedBoundaryStyle: dashedBoundaryStyle,
+        whiteCasingStyle: whiteCasingStyle,
+        spotlight: spotlight
     };
 })();

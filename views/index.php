@@ -1187,14 +1187,8 @@ function initMap() {
             for (const feature of boundaryData.features) {
                 if (feature.geometry && feature.geometry.type === 'MultiPolygon') {
                     const coords = feature.geometry.coordinates[0][0].map(coord => [coord[1], coord[0]]);
-                    L.polygon(coords, {
-                        color: "#10A37F",
-                        weight: 1.5,
-                        opacity: 0.7,
-                        fillColor: "#10A37F",
-                        fillOpacity: 0,
-                        smoothFactor: 1
-                    }).addTo(map);
+                    L.polygon(coords, MapLayers.whiteCasingStyle(1.5)).addTo(map);
+                    L.polygon(coords, MapLayers.dashedBoundaryStyle(1.5)).addTo(map);
                 }
             }
         } catch(e) {
