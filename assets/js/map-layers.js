@@ -108,7 +108,7 @@
         var world = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
         var mask = L.polygon([world, ring], {
             fillColor: options.fillColor || '#ffffff',
-            fillOpacity: (options.fillOpacity != null) ? options.fillOpacity : 0.6,
+            fillOpacity: (options.fillOpacity != null) ? options.fillOpacity : 0.3,
             stroke: false,
             interactive: false
         }).addTo(map);
