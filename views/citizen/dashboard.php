@@ -171,7 +171,7 @@ if (is_dir($barangays_dir)) {
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
     <title>Citizen Dashboard - EnviroTrack</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -2359,12 +2359,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (boundaryData && boundaryData.features) {
         try {
             var coords = extractPolygonCoords(boundaryData);
-            if (coords) L.polygon(coords, { color:'#10A37F', weight:1.2, fillColor:'#10A37F',
+            if (coords) L.polygon(coords, { color:'#4ADE80', weight:1.2, fillColor:'#4ADE80',
                 fillOpacity:0.03, dashArray:'6 4', smoothFactor:1, interactive:false }).addTo(communityMap);
         } catch(e) {}
     }
 
-    var barangayStyle = { color:'#10A37F', weight:1.5, fillColor:'#10A37F', fillOpacity:0.06, smoothFactor:1 };
+    var barangayStyle = { color:'#4ADE80', weight:1.5, fillColor:'#4ADE80', fillOpacity:0.06, smoothFactor:1 };
     var barangayLayer = null;
     if (barangayData && barangayData.features) {
         barangayLayer = L.geoJSON(barangayData, {

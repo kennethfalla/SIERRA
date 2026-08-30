@@ -88,7 +88,7 @@ if (is_dir($barangays_dir)) {
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
     <title>Submit Report - EnviroTrack</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -3414,7 +3414,7 @@ if (is_dir($barangays_dir)) {
             if (polygonCoords) {
                 sanIsidroPolygon = polygonCoords.map(function(coord) { return [coord[1], coord[0]]; });
                 boundaryLayer = L.polygon(polygonCoords, {
-                    color: "#10A37F", weight: 2, fillColor: "#10A37F", fillOpacity: 0.05, smoothFactor: 1, dashArray: "6 4"
+                    color: "#4ADE80", weight: 2, fillColor: "#4ADE80", fillOpacity: 0.05, smoothFactor: 1, dashArray: "6 4"
                 }).addTo(map);
                 map.fitBounds(boundaryLayer.getBounds());
             }
@@ -3425,7 +3425,7 @@ if (is_dir($barangays_dir)) {
         if (barangayData && barangayData.features) {
             const brgyLayer = L.geoJSON(barangayData, {
                 style: {
-                    color: "#0D8568", weight: 1.5, fillColor: "#10A37F", fillOpacity: 0.10, smoothFactor: 1
+                    color: "#4ADE80", weight: 1.5, fillColor: "#4ADE80", fillOpacity: 0.10, smoothFactor: 1
                 },
                 onEachFeature: function(feature, layer) {
                     const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';

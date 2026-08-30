@@ -329,7 +329,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
     <title>Track Report - EnviroTrack</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1843,9 +1843,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const polygonCoords = extractPolygonCoordinates(sanIsidroBoundary);
         if (polygonCoords) {
             L.polygon(polygonCoords, {
-                color: "#10A37F",
+                color: "#4ADE80",
                 weight: 2,
-                fillColor: "#10A37F",
+                fillColor: "#4ADE80",
                 fillOpacity: 0.05,
                 smoothFactor: 1,
                 dashArray: "6 4"
@@ -1870,9 +1870,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const isDetected = detectedBrgy && (feature.properties.barangay_id === detectedBrgy.id);
             L.geoJSON(feature, {
                 style: {
-                    color: isDetected ? "#0D8568" : "#9CA3AF",
+                    color: "#4ADE80",
                     weight: isDetected ? 2.5 : 1,
-                    fillColor: isDetected ? "#10A37F" : "#10A37F",
+                    fillColor: "#4ADE80",
                     fillOpacity: isDetected ? 0.18 : 0.05,
                     smoothFactor: 1
                 }

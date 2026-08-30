@@ -140,7 +140,7 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title><?php echo htmlspecialchars($system_name); ?> - San Isidro Environmental Reporting System</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1188,9 +1188,9 @@ function initMap() {
                 if (feature.geometry && feature.geometry.type === 'MultiPolygon') {
                     const coords = feature.geometry.coordinates[0][0].map(coord => [coord[1], coord[0]]);
                     L.polygon(coords, {
-                        color: "#059669",
+                        color: "#4ADE80",
                         weight: 2,
-                        fillColor: "#059669",
+                        fillColor: "#4ADE80",
                         fillOpacity: 0.08,
                         smoothFactor: 1
                     }).addTo(map);

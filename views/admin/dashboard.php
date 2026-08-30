@@ -532,12 +532,12 @@ function getSeverityTier($score) {
 function getRecommendation($score) {
     $level = getRiskLevelFromScore($score);
     $recs = [
-        'low'      => 'Standard Barangay-level maintenance. No MENRO intervention required.',
-        'medium'   => 'Flagged for priority Barangay resolution. MENRO monitoring advised.',
-        'high'     => 'Escalate to MENRO. Dispatch hazard clearing team to prevent secondary damage or flooding.',
-        'critical' => 'CRITICAL. Deploy MENRO heavy equipment and initiate municipal response protocols immediately.',
+        'low'      => 'Keep as is. Barangay can handle this with regular cleanup.',
+        'medium'   => 'Barangay should act soon. MENRO should keep an eye on this.',
+        'high'     => 'Send to MENRO. Clear the hazard now before it spreads or causes flooding.',
+        'critical' => 'Act now. Send MENRO crews and equipment to this location right away.',
     ];
-    return 'System Recommendation: ' . $recs[$level];
+    return 'Recommendation: ' . $recs[$level];
 }
 
 // Load San Isidro boundary GeoJSON for map
@@ -608,7 +608,7 @@ function getDecisionBadge($classification) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>MENRO Analytics Dashboard - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -960,11 +960,32 @@ function getDecisionBadge($classification) {
                     <span class="font-semibold text-gray-800"><?php echo date('F d, Y'); ?></span>
                 </div>
                 <!-- Export Analytics -->
-                <button onclick="openExportModal()" class="btn-export-trigger">
-                    <i class="fas fa-file-export"></i>
-                    Export Analytics
-                    <i class="fas fa-chevron-down"></i>
-                </button>
+                <div class="export-dropdown" id="exportDropdownWrap">
+                    <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
+                        <i class="fas fa-download"></i> Export
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div id="exportDropdown" class="export-dropdown-menu" style="width:280px;">
+                        <div class="export-dropdown-header">
+                            <p>Export Analytics</p>
+                            <p class="sub">Download the current analytics</p>
+                        </div>
+                        <button class="export-dropdown-item" onclick="exportAnalyticsPdf()">
+                            <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
+                            <div class="item-text">
+                                <div class="item-title">Export as PDF</div>
+                                <div class="item-desc">Preview and save as PDF</div>
+                            </div>
+                        </button>
+                        <button class="export-dropdown-item" onclick="exportAnalyticsCsv()">
+                            <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
+                            <div class="item-text">
+                                <div class="item-title">Export as CSV</div>
+                                <div class="item-desc">Download spreadsheet of analytics</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1140,7 +1161,7 @@ function getDecisionBadge($classification) {
                 <?php if ($criticalAlert): ?>
                 <div class="rec-box rec-critical mt-4">
                     <i class="fas fa-lightbulb mr-2"></i>
-                    <strong>System Recommendation:</strong> Critical-severity reports make up <?php echo $criticalSharePct; ?>% of all active reports — exceeding the <?php echo (float)$kpi_critical_reports_pct; ?>% threshold. High-severity alerts suggest a concentrated hazard situation. Recommend immediate MENRO intervention and municipal response protocols.
+                    <strong>Recommendation:</strong> Too many critical cases. <?php echo $criticalSharePct; ?>% of active reports are critical. Send help to the affected areas now.
                 </div>
                 <?php endif; ?>
             </div>
@@ -1169,7 +1190,7 @@ function getDecisionBadge($classification) {
                 <?php if ($surgeAlert): ?>
                 <div class="rec-box rec-critical mt-4">
                     <i class="fas fa-lightbulb mr-2"></i>
-                    <strong>System Recommendation:</strong> <?php echo htmlspecialchars($surgeAlert['category']); ?> incidents have surged by <?php echo $surgeAlert['pct']; ?>% compared to the previous month (<?php echo $surgeAlert['previous']; ?> → <?php echo $surgeAlert['current']; ?> this month), exceeding the <?php echo $kpi_surge_alert_threshold; ?>% surge threshold. Recommend budget reallocation to increase response capability for <?php echo htmlspecialchars($surgeAlert['category']); ?> reports.
+                    <strong>Recommendation:</strong> <?php echo htmlspecialchars($surgeAlert['category']); ?> reports jumped by <?php echo $surgeAlert['pct']; ?>% this month (from <?php echo $surgeAlert['previous']; ?> to <?php echo $surgeAlert['current']; ?>). Put more resources into <?php echo htmlspecialchars($surgeAlert['category']); ?>.
                 </div>
                 <?php endif; ?>
             </div>
@@ -1234,7 +1255,7 @@ function getDecisionBadge($classification) {
             <?php if ($worst && $worst['resolution_rate'] < $kpi_resolution_rate_target): ?>
             <div class="rec-box rec-critical mt-4">
                 <i class="fas fa-lightbulb mr-2"></i>
-                <strong>System Recommendation:</strong> Brgy. <?php echo htmlspecialchars($worst['barangay_name']); ?> is experiencing a backlog with only a <?php echo $worst['resolution_rate']; ?>% clearance rate (below the <?php echo $kpi_resolution_rate_target; ?>% target). Dispatch MENRO auxiliary staff and prioritize resolution.
+                <strong>Recommendation:</strong> Brgy. <?php echo htmlspecialchars($worst['barangay_name']); ?> has cleared only <?php echo $worst['resolution_rate']; ?>% of its reports. Send extra staff to help clear the backlog.
             </div>
             <?php endif; ?>
             <?php endif; ?>
@@ -1270,17 +1291,17 @@ function getDecisionBadge($classification) {
                 <?php if ($sla_breached): ?>
                 <div class="rec-box rec-critical">
                     <i class="fas fa-lightbulb mr-2"></i>
-                    <strong>System Recommendation:</strong> The current average response time is <?php echo round($avgResolutionHoursThisMonth, 1); ?> hours, which exceeds the municipal KPI of <?php echo $sla_hours; ?> hours<?php if ($slowestBarangay): ?> — the delay is heavily concentrated in Brgy. <?php echo htmlspecialchars($slowestBarangay['barangay_name']); ?> (avg. <?php echo $slowestBarangay['avg_hours']; ?> hours)<?php endif; ?>. Recommend adding a maintenance crew and equipment to ease the dispatch bottleneck.
+                    <strong>Recommendation:</strong> Response time is <?php echo round($avgResolutionHoursThisMonth, 1); ?> hours, above the <?php echo $sla_hours; ?>-hour target<?php if ($slowestBarangay): ?>. The delay is worst in Brgy. <?php echo htmlspecialchars($slowestBarangay['barangay_name']); ?> (avg. <?php echo $slowestBarangay['avg_hours']; ?> hours)<?php endif; ?>. Add a crew or equipment there.
                 </div>
                 <?php elseif ($resolutionTrend === 'worse'): ?>
                 <div class="rec-box rec-critical">
                     <i class="fas fa-lightbulb mr-2"></i>
-                    <strong>System Recommendation:</strong> Response time is trending up. This may indicate the municipality is understaffed or under-equipped — consider justifying additional maintenance workers or equipment.
+                    <strong>Recommendation:</strong> Response time is getting slower. Consider adding more workers or equipment.
                 </div>
                 <?php elseif ($resolutionTrend === 'better'): ?>
                 <div class="rec-box rec-low">
                     <i class="fas fa-lightbulb mr-2"></i>
-                    <strong>System Recommendation:</strong> Response time is improving. Current staffing and equipment levels appear to be working well.
+                    <strong>Recommendation:</strong> Response time is improving. Keep it up.
                 </div>
                 <?php endif; ?>
             </div>
@@ -1312,7 +1333,7 @@ function getDecisionBadge($classification) {
                 <?php if ($lowGroup): ?>
                 <div class="rec-box rec-medium mt-4">
                     <i class="fas fa-lightbulb mr-2"></i>
-                    <strong>System Recommendation:</strong> Only <?php echo $lowGroupPct; ?>% of reports come from <?php echo $lowGroup; ?> — below the <?php echo (float)$kpi_demographic_threshold; ?>% engagement target. Launch an IEC (Information, Education &amp; Communication) campaign targeted at <?php echo $lowGroup; ?> to improve participation.
+                    <strong>Recommendation:</strong> Only <?php echo $lowGroupPct; ?>% of reports come from <?php echo $lowGroup; ?>. Run an info drive to encourage them to report.
                 </div>
                 <?php endif; ?>
                 <?php endif; ?>
@@ -1331,9 +1352,9 @@ function getDecisionBadge($classification) {
                 </div>
                 <div class="rec-box rec-medium mt-4">
                     <i class="fas fa-lightbulb mr-2"></i>
-                    <strong>System Recommendation:</strong>
+                    <strong>Recommendation:</strong>
                     <?php if ($peakDayTotal > 0): ?>
-                        Historical data indicates peak hazard reporting consistently occurs on <strong><?php echo $peakDayLabel; ?></strong>s between <strong><?php echo $peakTimeLabel; ?></strong>. Schedule maximum dispatchers and admin staff during this window to keep response times inside the municipal KPI.
+                        Most reports come on <strong><?php echo $peakDayLabel; ?></strong>s between <strong><?php echo $peakTimeLabel; ?></strong>. Schedule more staff during these hours.
                     <?php else: ?>
                         Not enough report data yet to identify a peak reporting window.
                     <?php endif; ?>
@@ -1370,14 +1391,14 @@ function getDecisionBadge($classification) {
                 </div>
                 <div class="rec-box rec-critical mt-4">
                     <i class="fas fa-lightbulb mr-2"></i>
-                    <strong>System Recommendation:</strong>
+                    <strong>Recommendation:</strong>
                     <?php
                         $topSpot = $repeatOffenders[0];
                         $spotCount = (int)$topSpot['incident_count'];
-                        $spotBarangay = !empty($topSpot['barangay_name']) ? 'Brgy. ' . $topSpot['barangay_name'] : 'The #1 location';
-                        $spotCategory = $topSpot['category_names'] ?? 'the same hazard type';
+                        $spotBarangay = !empty($topSpot['barangay_name']) ? 'Brgy. ' . $topSpot['barangay_name'] : 'This location';
+                        $spotCategory = $topSpot['category_names'] ?? 'the same hazard';
                     ?>
-                    <?php echo $spotBarangay; ?> has logged <?php echo $spotCount; ?> reports within the last <?php echo (int)$kpi_repeat_window_days; ?> days (exceeding the <?php echo (int)$kpi_repeat_min_reports; ?>-report repeat threshold), the majority being <?php echo htmlspecialchars($spotCategory); ?>. This is a chronic enforcement problem, not a cleanup problem. Recommend installing CCTVs and consider permanent infrastructural changes.
+                    <?php echo $spotBarangay; ?> has logged <?php echo $spotCount; ?> reports in <?php echo (int)$kpi_repeat_window_days; ?> days, mostly <?php echo htmlspecialchars($spotCategory); ?>. This keeps coming back. Put up CCTV and look at a permanent fix.
                 </div>
                 <?php endif; ?>
             </div>
@@ -1403,55 +1424,9 @@ function getDecisionBadge($classification) {
 </div>
 
 <!-- ============================================================ -->
-<!-- CHART EXPORT MODAL -->
-<!-- ============================================================ -->
-<div id="chartExportModal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-images text-[#10A37F] mr-2"></i>Export Charts as Images</h3>
-            <button type="button" onclick="closeChartExportModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-        </div>
-        <p class="text-xs text-gray-500 mb-3">Select which dashboard elements to export as PNG images:</p>
-        <div id="chartExportList" class="space-y-2 max-h-72 overflow-y-auto mb-4"></div>
-        <div class="flex flex-wrap gap-2 justify-end">
-            <button type="button" onclick="closeChartExportModal()" class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
-            <button type="button" onclick="exportSelectedCharts('selected')" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]">Export Selected</button>
-            <button type="button" onclick="exportSelectedCharts('all')" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]">Export All</button>
-        </div>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- EXPORT ANALYTICS MODAL (All-in-one-page + individual sections) -->
-<!-- ============================================================ -->
-<div id="exportModal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-file-export text-[#10A37F] mr-2"></i>Export Analytics</h3>
-            <button type="button" onclick="closeExportModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-        </div>
-        <p class="text-xs text-gray-500 mb-3">Choose what to export:</p>
-        <div class="space-y-2 max-h-72 overflow-y-auto mb-4">
-            <label class="flex items-center gap-2 text-sm text-gray-800 font-semibold px-2 py-2 rounded bg-emerald-50 border border-emerald-100 cursor-pointer">
-                <input type="checkbox" id="exportAllCheckbox" class="accent-[#10A37F]" checked>
-                <i class="fas fa-file-pdf text-[#10A37F]"></i> All Analytics (one page)
-            </label>
-            <div id="exportItemsList" class="space-y-1 pl-2"></div>
-        </div>
-        <div class="flex flex-wrap gap-2 justify-end">
-            <button type="button" onclick="closeExportModal()" class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
-            <button type="button" onclick="exportAnalyticsCsv()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]"><i class="fas fa-file-csv mr-1"></i>CSV</button>
-            <button type="button" onclick="exportAnalyticsImages()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]"><i class="fas fa-images mr-1"></i>Selected Images</button>
-            <button type="button" onclick="exportAnalyticsPdf()" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#10A37F] hover:bg-[#0D8568]"><i class="fas fa-file-pdf mr-1"></i>Export PDF</button>
-        </div>
-    </div>
-</div>
-
-<!-- ============================================================ -->
 <!-- SCRIPTS -->
 <!-- ============================================================ -->
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 // ------------------------------------------------------------
 // DATA FROM PHP
@@ -1497,9 +1472,9 @@ let barangayLayer = null;
 let selectedBarangay = null;
 let selectedBarangayLayer = null;
 const barangayDefaultStyle = {
-    color: "#10A37F",
+    color: "#4ADE80",
     weight: 1.5,
-    fillColor: "#10A37F",
+    fillColor: "#4ADE80",
     fillOpacity: 0.06,
     smoothFactor: 1
 };
@@ -1520,9 +1495,9 @@ function initMap() {
             const coords = extractPolygonCoords(boundaryData);
             if (coords) {
                 L.polygon(coords, {
-                    color: "#10A37F",
+                    color: "#4ADE80",
                     weight: 1.2,
-                    fillColor: "#10A37F",
+                    fillColor: "#4ADE80",
                     fillOpacity: 0.03,
                     dashArray: "6 4",
                     smoothFactor: 1,
@@ -1578,7 +1553,7 @@ function toggleBarangayFilter(name, layer) {
     selectedBarangay = name;
     if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
     selectedBarangayLayer = layer;
-    layer.setStyle({ fillColor: "#10A37F", fillOpacity: 0.22, weight: 3, color: "#0D8568" });
+    layer.setStyle({ fillColor: "#4ADE80", fillOpacity: 0.22, weight: 3, color: "#4ADE80" });
     layer.bringToFront();
     updateBarangayFilterChip();
     loadMapData(currentMode);
@@ -1974,10 +1949,10 @@ function getRiskLevelLabelFromScore(score) {
 }
 function getRiskRecommendation(score) {
     const recs = {
-        low: 'Standard Barangay-level maintenance. No MENRO intervention required.',
-        medium: 'Flagged for priority Barangay resolution. MENRO monitoring advised.',
-        high: 'Escalate to MENRO. Dispatch hazard clearing team to prevent secondary damage or flooding.',
-        critical: 'CRITICAL. Deploy MENRO heavy equipment and initiate municipal response protocols immediately.'
+        low: 'Keep as is. Barangay can handle this with regular cleanup.',
+        medium: 'Barangay should act soon. MENRO should keep an eye on this.',
+        high: 'Send to MENRO. Clear the hazard now before it spreads or causes flooding.',
+        critical: 'Act now. Send MENRO crews and equipment to this location right away.'
     };
     return recs[getRiskLevelFromScore(score)] || recs.low;
 }
@@ -2143,7 +2118,7 @@ function renderDrillPanel(report) {
         <!-- Recommendation -->
         <div class="drill-rec-box ${recClass}">
             <i class="fas fa-lightbulb mr-2"></i>
-            <strong>System Recommendation:</strong> ${recText}
+            <strong>Recommendation:</strong> ${recText}
         </div>
 
         <!-- Open Full Report -->
@@ -2372,327 +2347,57 @@ function initCharts() {
 // ------------------------------------------------------------
 // EXPORT FUNCTIONS
 // ------------------------------------------------------------
-// ===== EXPORT ANALYTICS MODAL =====
-function openExportModal() {
-    const items = collectExportItems();
-    const list = document.getElementById('exportItemsList');
-    if (list) {
-        list.innerHTML = items.map((it, i) => `
-            <label class="flex items-center gap-2 text-sm text-gray-700 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" class="export-item-checkbox accent-[#10A37F]" value="${i}">
-                <span>${it.label}</span>
-            </label>
-        `).join('');
+function toggleExportDropdown() {
+    const dd = document.getElementById('exportDropdown');
+    const btn = document.getElementById('exportDropBtn');
+    if (dd) dd.classList.toggle('open');
+    if (btn) btn.classList.toggle('active');
+}
+
+// Close the export dropdown when clicking outside of it.
+document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('exportDropdownWrap');
+    const dd = document.getElementById('exportDropdown');
+    const btn = document.getElementById('exportDropBtn');
+    if (wrap && dd && !wrap.contains(e.target)) {
+        dd.classList.remove('open');
+        if (btn) btn.classList.remove('active');
     }
-    const modal = document.getElementById('exportModal');
-    if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-}
+});
 
-function closeExportModal() {
-    const modal = document.getElementById('exportModal');
-    if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
-}
-
-// Export the whole analytics dashboard as a single A4 page.
-function exportAnalyticsPdf() {
-    closeExportModal();
-    openDashboardReport(true);
-}
-
-function exportAnalyticsCsv() {
-    closeExportModal();
-    exportCSV();
-}
-
-// Export each individually-selected analytics section as a PNG image.
-async function exportAnalyticsImages() {
-    const items = collectExportItems();
-    const selected = [];
-    document.querySelectorAll('.export-item-checkbox').forEach((cb, i) => {
-        if (cb.checked) selected.push(items[i]);
-    });
-    closeExportModal();
-    if (selected.length === 0) {
-        alert('Please select at least one analytics section.');
-        return;
-    }
-    for (const it of selected) {
-        try {
-            const canvas = await html2canvas(it.el, {
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                scale: 2,
-                logging: false
-            });
-            const link = document.createElement('a');
-            link.download = it.label.replace(/[^a-zA-Z0-9]/g, '_') + '.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        } catch (e) {
-            console.error('Export failed for:', it.label, e);
-        }
-    }
-}
-
-// ------------------------------------------------------------
-// OPEN THE DEDICATED A4 PRINT / EXPORT REPORT PAGE
-// ------------------------------------------------------------
-// Launches views/admin/reports/dashboard_report.php in a new tab, carrying over the
-// active category filter and timeframe so the report honors the same scope.
-// Passing autoprint=1 (used by "Export as PDF") auto-opens the print dialog,
-// where the user picks "Save as PDF" for an A4 document.
-function openDashboardReport(autoprint) {
+function buildDashboardReportUrl(format) {
     const cats = [...selectedCategories].join(',');
-    let url = '<?php echo BASE_URL; ?>index.php?page=dashboard-report&range=' + encodeURIComponent(selectedRange)
+    let url = '<?php echo BASE_URL; ?>index.php?page=dashboard-report'
+        + '&range=' + encodeURIComponent(selectedRange)
         + '&cats=' + encodeURIComponent(cats);
     if (selectedRange === 'custom') {
         url += '&from=' + encodeURIComponent(selectedFrom || '')
             + '&to=' + encodeURIComponent(selectedTo || '');
     }
-    url += autoprint ? '&autoprint=1' : '';
-    window.open(url, '_blank');
+    if (format) url += '&format=' + encodeURIComponent(format);
+    return url;
 }
 
-// ------------------------------------------------------------
-// TRANSACTIONAL REPORT EXPORT — structured Excel-style report
-// ------------------------------------------------------------
-// Produces a multi-section CSV report (report header, monthly trend,
-// status / category / barangay breakdowns, and a detailed monthly
-// cross-tab). Active mode groups by report date (created_at);
-// historical mode groups by resolution date (resolved_at). A UTF-8
-// BOM is prepended so Excel renders special characters correctly.
-function csvCell(val) {
-    const s = String(val == null ? '' : val);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+function exportAnalyticsPdf() {
+    closeExportDropdown();
+    window.open(buildDashboardReportUrl('') + '&autoprint=1', '_blank');
 }
 
-function formatMonthLabel(key) {
-    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const parts = key.split('-');
-    const y = parts[0];
-    const m = parseInt(parts[1], 10) - 1;
-    return (monthNames[m] || key) + ' ' + y;
+function exportAnalyticsCsv() {
+    closeExportDropdown();
+    // Download without opening a new tab/page.
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = buildDashboardReportUrl('csv');
+    document.body.appendChild(iframe);
+    setTimeout(function() { iframe.remove(); }, 8000);
 }
 
-function exportCSV() {
-    // Build CSV data from reports — use the current filters (date range,
-    // categories, barangay) so the export matches exactly what is displayed.
-    const data = getFilteredData(currentMode);
-    if (!data || data.length === 0) {
-        alert('No data to export.');
-        return;
-    }
-
-    const dateField = currentMode === 'active' ? 'created_at' : 'resolved_at';
-    const modeLabel = (currentMode === 'active') ? 'Active Hazards' : 'Historical Trends (Resolved)';
-
-    const rangeText = (selectedRange === 'custom')
-        ? (selectedFrom || '?') + ' to ' + (selectedTo || '?')
-        : ({ week: 'This Week', month: 'This Month', year: 'This Year', all: 'All Time' }[selectedRange] || selectedRange);
-
-    // Group reports by month (YYYY-MM)
-    const monthsMap = {};
-    data.forEach(r => {
-        const d = r[dateField];
-        if (!d) return;
-        const key = d.slice(0, 7);
-        if (!monthsMap[key]) monthsMap[key] = [];
-        monthsMap[key].push(r);
-    });
-    const monthKeys = Object.keys(monthsMap).sort();
-
-    // Discover the category / barangay / status breakdown present in the filtered data
-    const categories = [...new Set(data.map(r => r.category_name).filter(Boolean))].sort();
-    const barangays = [...new Set(data.map(r => r.barangay_name).filter(Boolean))].sort();
-    const presentStatuses = [...new Set(data.map(r => r.status || 'pending'))].sort();
-
-    const statusLabels = {
-        pending: 'Pending',
-        under_review: 'Under Review',
-        verified: 'Verified',
-        in_progress: 'In Progress',
-        escalated_pending: 'Escalated Pending',
-        escalated: 'Escalated',
-        resolved: 'Resolved',
-        rejected: 'Rejected',
-        cancelled: 'Cancelled'
-    };
-    const statusName = s => statusLabels[s] || s;
-
-    // Global aggregates
-    const byStatus = {}, byCategory = {}, byBarangay = {};
-    data.forEach(r => {
-        const st = r.status || 'pending';
-        byStatus[st] = (byStatus[st] || 0) + 1;
-        if (r.category_name) byCategory[r.category_name] = (byCategory[r.category_name] || 0) + 1;
-        if (r.barangay_name) byBarangay[r.barangay_name] = (byBarangay[r.barangay_name] || 0) + 1;
-    });
-    const total = data.length;
-    const pct = (part) => total > 0 ? (Math.round((part / total) * 1000) / 10) + '%' : '0%';
-
-    const lines = [];
-
-    // ---- 1. Report header block ----
-    lines.push('MENRO DECISION DASHBOARD - ANALYTICS REPORT');
-    lines.push('System:,' + csvCell('SIERRA - Web-Based Environmental Reporting System'));
-    lines.push('Generated On:,' + csvCell(new Date().toLocaleString()));
-    lines.push('Mode:,' + csvCell(modeLabel));
-    lines.push('Date Range:,' + csvCell(rangeText));
-    lines.push('Category Scope:,' + csvCell(selectedCategories.size === allCategories.length ? 'All Categories' : selectedCategories.size + ' of ' + allCategories.length + ' categories'));
-    if (selectedBarangay) lines.push('Barangay Filter:,' + csvCell(selectedBarangay));
-    lines.push('Total Reports:,' + total);
-    lines.push('');
-
-    // ---- 2. Monthly trend ----
-    lines.push('MONTHLY TREND');
-    lines.push('Month,Total Reports,Share');
-    monthKeys.forEach(key => {
-        const count = monthsMap[key].length;
-        lines.push(csvCell(formatMonthLabel(key)) + ',' + count + ',' + csvCell(pct(count)));
-    });
-    lines.push('');
-
-    // ---- 3. Status breakdown ----
-    lines.push('STATUS BREAKDOWN');
-    lines.push('Status,Count,Share');
-    presentStatuses.forEach(s => {
-        if (!byStatus[s]) return;
-        lines.push(csvCell(statusName(s)) + ',' + byStatus[s] + ',' + csvCell(pct(byStatus[s])));
-    });
-    lines.push('');
-
-    // ---- 4. Category breakdown ----
-    lines.push('CATEGORY BREAKDOWN');
-    lines.push('Category,Count,Share');
-    Object.keys(byCategory).sort().forEach(c => {
-        lines.push(csvCell(c) + ',' + byCategory[c] + ',' + csvCell(pct(byCategory[c])));
-    });
-    lines.push('');
-
-    // ---- 5. Barangay breakdown ----
-    lines.push('BARANGAY BREAKDOWN');
-    lines.push('Barangay,Count,Share');
-    Object.keys(byBarangay).sort().forEach(b => {
-        lines.push(csvCell(b) + ',' + byBarangay[b] + ',' + csvCell(pct(byBarangay[b])));
-    });
-    lines.push('');
-
-    // ---- 6. Detailed monthly cross-tab ----
-    lines.push('DETAILED MONTHLY BREAKDOWN (by Status / Category / Barangay)');
-    const headers = ['Month', 'Total Reports'];
-    presentStatuses.forEach(s => headers.push('Status: ' + statusName(s)));
-    categories.forEach(c => headers.push('Category: ' + c));
-    barangays.forEach(b => headers.push('Barangay: ' + b));
-    lines.push(headers.map(csvCell).join(','));
-
-    monthKeys.forEach(key => {
-        const group = monthsMap[key];
-        const mStatus = {}, mCat = {}, mBrgy = {};
-        group.forEach(r => {
-            const st = r.status || 'pending';
-            mStatus[st] = (mStatus[st] || 0) + 1;
-            if (r.category_name) mCat[r.category_name] = (mCat[r.category_name] || 0) + 1;
-            if (r.barangay_name) mBrgy[r.barangay_name] = (mBrgy[r.barangay_name] || 0) + 1;
-        });
-        const row = [csvCell(formatMonthLabel(key)), group.length];
-        presentStatuses.forEach(s => row.push(mStatus[s] || 0));
-        categories.forEach(c => row.push(mCat[c] || 0));
-        barangays.forEach(b => row.push(mBrgy[b] || 0));
-        lines.push(row.join(','));
-    });
-    lines.push('');
-
-    // ---- 7. Footer note ----
-    lines.push('End of report. Generated by SIERRA Environmental Reporting System.');
-    lines.push('');
-
-    // Prepend a UTF-8 BOM so Excel opens special characters correctly.
-    const csvContent = '\uFEFF' + lines.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `analytics_export_${currentMode}_monthly_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-}
-
-// ------------------------------------------------------------
-// EXPORT CHARTS AS IMAGES — with element picker + map export
-// ------------------------------------------------------------
-// Collects every dashboard widget (all .chart-card blocks) plus the
-// heatmap, then lets the admin choose which ones to download as PNG.
-// Charts, tables, text and the Leaflet map are all captured via
-// html2canvas so the exported image matches what is on screen.
-
-function collectExportItems() {
-    const items = [];
-    // KPI summary cards (first row of analytics)
-    const kpiGrid = document.querySelector('.kpi-card') ? document.querySelector('.kpi-card').parentElement : null;
-    if (kpiGrid) items.push({ el: kpiGrid, label: 'KPI Summary' });
-    document.querySelectorAll('.chart-card').forEach(card => {
-        const title = card.querySelector('.chart-title')?.textContent?.trim().replace(/\s+/g, ' ') || 'Dashboard Widget';
-        items.push({ el: card, label: title });
-    });
-    const mapEl = document.getElementById('map');
-    if (mapEl) items.push({ el: mapEl, label: 'Environmental Hazard Map (Map)' });
-    return items;
-}
-
-function exportCharts() {
-    const items = collectExportItems();
-    if (items.length === 0) {
-        alert('No charts to export.');
-        return;
-    }
-
-    const list = document.getElementById('chartExportList');
-    list.innerHTML = items.map((it, i) => `
-        <label class="flex items-center gap-2 text-sm text-gray-700 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
-            <input type="checkbox" class="chart-export-checkbox accent-[#10A37F]" value="${i}" checked>
-            <span>${it.label}</span>
-        </label>
-    `).join('');
-
-    const modal = document.getElementById('chartExportModal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-function closeChartExportModal() {
-    const modal = document.getElementById('chartExportModal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-}
-
-async function exportSelectedCharts(mode) {
-    const items = collectExportItems();
-    const selected = [];
-    document.querySelectorAll('.chart-export-checkbox').forEach((cb, i) => {
-        if (mode === 'all' || cb.checked) selected.push(items[i]);
-    });
-    if (selected.length === 0) {
-        alert('Please select at least one element to export.');
-        return;
-    }
-    closeChartExportModal();
-
-    for (const it of selected) {
-        try {
-            const canvas = await html2canvas(it.el, {
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                scale: 2,
-                logging: false
-            });
-            const link = document.createElement('a');
-            link.download = it.label.replace(/[^a-zA-Z0-9]/g, '_') + '.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        } catch (e) {
-            console.error('Export failed for:', it.label, e);
-            alert('Failed to export "' + it.label + '".\n\nThe map tiles may not have loaded yet — wait a moment and try again.');
-        }
-    }
+function closeExportDropdown() {
+    const dd = document.getElementById('exportDropdown');
+    const btn = document.getElementById('exportDropBtn');
+    if (dd) dd.classList.remove('open');
+    if (btn) btn.classList.remove('active');
 }
 
 // ------------------------------------------------------------

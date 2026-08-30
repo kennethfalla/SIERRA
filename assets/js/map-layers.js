@@ -1,12 +1,12 @@
 // assets/js/map-layers.js
 // Base map presets shared by every map in the system.
-// Every user can switch between three views: Default (light), Satellite, Street.
-// The Default layer (Esri light-gray canvas) is always the starting view.
+// Every user can switch between three views: Light, Satellite, Street.
+// The Satellite layer (Esri World Imagery) is always the starting view.
 
 (function () {
     'use strict';
 
-    function defaultLayer() {
+    function lightLayer() {
         return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
             maxZoom: 20,
@@ -34,19 +34,19 @@
     /**
      * Attach the base-layer switcher to a Leaflet map.
      * @param {L.Map} map Target map instance
-     * @param {Object} opts Optional { default: 'Default'|'Satellite'|'Street', position }
+     * @param {Object} opts Optional { default: 'Light'|'Satellite'|'Street', position }
      * @returns {L.TileLayer} The default layer that was added to the map
      */
     function addMapLayerControl(map, opts) {
         opts = opts || {};
 
         var layers = {
-            'Default': defaultLayer(),
+            'Light': lightLayer(),
             'Satellite': satelliteLayer(),
             'Street': streetLayer()
         };
 
-        var defaultName = layers[opts.default] ? opts.default : 'Default';
+        var defaultName = layers[opts.default] ? opts.default : 'Satellite';
         var active = layers[defaultName];
         active.addTo(map);
 
@@ -60,7 +60,7 @@
 
     window.MapLayers = {
         getLayers: function () {
-            return { 'Default': defaultLayer(), 'Satellite': satelliteLayer(), 'Street': streetLayer() };
+            return { 'Light': lightLayer(), 'Satellite': satelliteLayer(), 'Street': streetLayer() };
         },
         addControl: addMapLayerControl
     };

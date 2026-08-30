@@ -440,7 +440,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <meta name="csrf-token" content="<?php echo isset($csrf_token) ? htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8') : ''; ?>">
     <title>Barangay Dashboard - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -975,11 +975,11 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                             <div id="exportMenu" class="export-dropdown-menu">
-                                <button class="export-dropdown-item" onclick="window.print()">
+                                <button class="export-dropdown-item" onclick="exportDashboardPdf()">
                                     <i class="fas fa-file-pdf"></i>
                                     <span>Export as PDF</span>
                                 </button>
-                                <button class="export-dropdown-item" onclick="exportCSV()">
+                                <button class="export-dropdown-item" onclick="exportDashboardCsv()">
                                     <i class="fas fa-file-csv"></i>
                                     <span>Export as CSV</span>
                                 </button>
@@ -1508,6 +1508,20 @@ function exportCSV() {
     window.location.href = '<?php echo BASE_URL; ?>index.php?page=dashboard&export=csv';
 }
 
+function exportDashboardPdf() {
+    document.getElementById('exportMenu').classList.remove('open');
+    window.open('<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-report&autoprint=1', '_blank');
+}
+
+function exportDashboardCsv() {
+    document.getElementById('exportMenu').classList.remove('open');
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = '<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-report&format=csv';
+    document.body.appendChild(iframe);
+    setTimeout(function() { iframe.remove(); }, 8000);
+}
+
 function toggleExportMenu() {
     document.getElementById('exportMenu').classList.toggle('open');
 }
@@ -1717,9 +1731,9 @@ function initMap() {
     if (barangayBoundary && barangayBoundary.features) {
         const brgyLayer = L.geoJSON(barangayBoundary, {
             style: {
-                color: "#10A37F",
+                color: "#4ADE80",
                 weight: 2.5,
-                fillColor: "#10A37F",
+                fillColor: "#4ADE80",
                 fillOpacity: 0.07,
                 smoothFactor: 1
             },
