@@ -1477,7 +1477,6 @@ const barangayDefaultStyle = {
     opacity: 0.7,
     fillColor: "#10A37F",
     fillOpacity: 0,
-    dashArray: "4 6",
     smoothFactor: 1
 };
 
@@ -1502,7 +1501,6 @@ function initMap() {
                     opacity: 0.7,
                     fillColor: "#10A37F",
                     fillOpacity: 0,
-                    dashArray: "4 6",
                     smoothFactor: 1,
                     interactive: false
                 }).addTo(map);

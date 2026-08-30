@@ -1736,7 +1736,6 @@ function initMap() {
                 opacity: 0.7,
                 fillColor: "#10A37F",
                 fillOpacity: 0,
-                dashArray: "4 6",
                 smoothFactor: 1
             },
             onEachFeature: function(feature, layer) {
