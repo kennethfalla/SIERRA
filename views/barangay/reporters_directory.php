@@ -146,7 +146,7 @@ function reporterLocationOf($r) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Reporters Directory - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
@@ -207,12 +207,12 @@ function reporterLocationOf($r) {
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div id="exportMenu" class="export-dropdown-menu">
-                        <div class="export-dropdown-header"><p><i class="fas fa-file-csv"></i> Export Directory</p></div>
-                        <button class="export-dropdown-item" onclick="downloadExport('residents')">
-                            <i class="fas fa-home"></i><span>Residents List</span>
+                        <div class="export-dropdown-header"><p><i class="fas fa-file-export"></i> Export Directory</p></div>
+                        <button class="export-dropdown-item" onclick="downloadPdf()">
+                            <i class="fas fa-file-pdf"></i><span>Export as PDF</span>
                         </button>
-                        <button class="export-dropdown-item" onclick="downloadExport('non_residents')">
-                            <i class="fas fa-road"></i><span>Non-Residents &amp; Other Barangay</span>
+                        <button class="export-dropdown-item" onclick="downloadCsv()">
+                            <i class="fas fa-file-csv"></i><span>Export as CSV</span>
                         </button>
                     </div>
                 </div>
@@ -304,6 +304,18 @@ document.addEventListener('click', function(e) {
 function downloadExport(type) {
     document.getElementById('exportMenu').classList.remove('open');
     window.location.href = '<?php echo BASE_URL; ?>index.php?page=reporters-directory&tab=<?php echo $active_tab; ?>&export=' + type;
+}
+function downloadPdf() {
+    document.getElementById('exportMenu').classList.remove('open');
+    window.open('<?php echo BASE_URL; ?>index.php?page=barangay-reporters-print&type=<?php echo $active_tab; ?>&autoprint=1', '_blank');
+}
+function downloadCsv() {
+    document.getElementById('exportMenu').classList.remove('open');
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = '<?php echo BASE_URL; ?>index.php?page=barangay-reporters-print&type=<?php echo $active_tab; ?>&format=csv';
+    document.body.appendChild(iframe);
+    setTimeout(function() { iframe.remove(); }, 8000);
 }
 function closeReporterModal() {
     document.getElementById('reporterModal').classList.remove('active');

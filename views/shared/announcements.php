@@ -253,7 +253,7 @@ if ($date_to != '') $active_filters++;
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>Announcements - EnviroTrack</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Quill CSS -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
@@ -388,6 +388,32 @@ if ($date_to != '') $active_filters++;
             display: flex;
             flex-direction: column;
             height: fit-content;
+        }
+
+        /* Keep long titles/content from overflowing the card off-screen */
+        .announcement-card h3 {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .announcement-card .content-preview {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            overflow: hidden;
+        }
+        .announcement-card .content-preview img,
+        .announcement-card .content-preview video,
+        .announcement-card .content-preview table {
+            max-width: 100%;
+            height: auto;
+        }
+        .announcement-card .badge,
+        .announcement-card [class*="rounded-full"] {
+            max-width: 100%;
+            white-space: normal;
         }
 
         /* ===== FACEBOOK-STYLE PHOTO GRID ===== */

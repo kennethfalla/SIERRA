@@ -968,23 +968,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     </div>
                     
                     <div class="flex items-center gap-4">
-                        <div class="export-dropdown">
-                            <button onclick="toggleExportMenu()" class="btn-export-trigger bg-white/15 border-white/30 text-white hover:bg-white/25 hover:border-white/50 hover:text-white">
-                                <i class="fas fa-file-export"></i>
-                                <span>Export</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <div id="exportMenu" class="export-dropdown-menu">
-                                <button class="export-dropdown-item" onclick="exportDashboardPdf()">
-                                    <i class="fas fa-file-pdf"></i>
-                                    <span>Export as PDF</span>
-                                </button>
-                                <button class="export-dropdown-item" onclick="exportDashboardCsv()">
-                                    <i class="fas fa-file-csv"></i>
-                                    <span>Export as CSV</span>
-                                </button>
-                            </div>
-                        </div>
                         <!-- Notification Bell -->
                         <div class="relative">
                             <div class="notification-bell bg-white/20 rounded-xl w-12 h-12 flex items-center justify-center" onclick="toggleNotifications()">
@@ -1125,6 +1108,52 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         </div>
 
         <!-- ============================================================ -->
+        <!-- REPORT FILTER TOOLBAR + EXPORT (like MENRO) -->
+        <!-- ============================================================ -->
+        <div class="bg-white border border-gray-200 rounded-xl p-3 mb-6 flex flex-wrap items-center gap-3 shadow-sm">
+            <div class="relative flex-1 min-w-[200px]">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input id="barangaySearchInput" type="text" placeholder="Search reports by title or description..." class="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-[#10A37F]">
+            </div>
+            <select id="barangayStatusFilter" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#10A37F] bg-white">
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="under_review">Under Review</option>
+                <option value="verified">Verified</option>
+                <option value="in_progress">In Progress</option>
+                <option value="escalated_pending">Escalated Pending</option>
+                <option value="escalated">Escalated</option>
+                <option value="resolved">Resolved</option>
+                <option value="rejected">Rejected</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="barangayRiskFilter" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#10A37F] bg-white">
+                <option value="all">All Risk Levels</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+            </select>
+            <div class="export-dropdown ml-auto">
+                <button onclick="toggleExportMenu()" class="btn-export-trigger">
+                    <i class="fas fa-file-export"></i>
+                    <span>Export</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div id="exportMenu" class="export-dropdown-menu">
+                    <button class="export-dropdown-item" onclick="exportDashboardPdf()">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Export as PDF</span>
+                    </button>
+                    <button class="export-dropdown-item" onclick="exportDashboardCsv()">
+                        <i class="fas fa-file-csv"></i>
+                        <span>Export as CSV</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
         <!-- 2. CENTERPIECE: DECISION-SUPPORT LOCAL MAP -->
         <!-- Strictly WHERE barangay_id = ? · same 50m clustering + -->
         <!-- 20-point severity algorithm as the MENRO map, scaled to the LGU -->
@@ -1140,6 +1169,13 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <button class="active" data-mode="active">Active Hazards</button>
                         <button data-mode="historical">Historical / Resolved</button>
                     </div>
+                    <div class="map-toggle" id="timeframeToggle">
+                        <button data-range="week">This Week</button>
+                        <button data-range="month">This Month</button>
+                        <button data-range="year">This Year</button>
+                        <button data-range="custom">Custom</button>
+                        <button class="active" data-range="all">All Time</button>
+                    </div>
                 </div>
                 <div class="flex flex-wrap gap-3 text-xs">
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $criticalBands['yellow'] - 1; ?>)</span>
@@ -1147,6 +1183,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $criticalBands['orange']; ?>-<?php echo $criticalBands['critical'] - 1; ?>)</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $criticalBands['critical']; ?>-20)</span>
                 </div>
+            </div>
+
+            <!-- Custom date range (shown when "Custom" is active) -->
+            <div id="customRangeBox" class="hidden items-center gap-2 mb-3">
+                <span class="text-xs text-gray-500 font-medium">Custom range:</span>
+                <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1 text-sm">
+                <span class="text-xs text-gray-400">to</span>
+                <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1 text-sm">
             </div>
 
             <!-- Category Filter -->
@@ -1508,16 +1552,31 @@ function exportCSV() {
     window.location.href = '<?php echo BASE_URL; ?>index.php?page=dashboard&export=csv';
 }
 
+function buildBarangayReportUrl(format) {
+    const cats = [...selectedCategories].join(',');
+    let url = '<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-report'
+        + '&range=' + encodeURIComponent(selectedRange)
+        + '&cats=' + encodeURIComponent(cats);
+    if (selectedRange === 'custom') {
+        url += '&from=' + encodeURIComponent(selectedFrom || '')
+            + '&to=' + encodeURIComponent(selectedTo || '');
+    }
+    if (selectedStatus && selectedStatus !== 'all') url += '&status=' + encodeURIComponent(selectedStatus);
+    if (selectedRisk && selectedRisk !== 'all') url += '&risk=' + encodeURIComponent(selectedRisk);
+    if (format) url += '&format=' + encodeURIComponent(format);
+    return url;
+}
+
 function exportDashboardPdf() {
     document.getElementById('exportMenu').classList.remove('open');
-    window.open('<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-report&autoprint=1', '_blank');
+    window.open(buildBarangayReportUrl('') + '&autoprint=1', '_blank');
 }
 
 function exportDashboardCsv() {
     document.getElementById('exportMenu').classList.remove('open');
     var iframe = document.createElement('iframe');
     iframe.style.display = 'none';
-    iframe.src = '<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-report&format=csv';
+    iframe.src = buildBarangayReportUrl('csv');
     document.body.appendChild(iframe);
     setTimeout(function() { iframe.remove(); }, 8000);
 }
@@ -1670,6 +1729,12 @@ const barangayBoundary = <?php echo json_encode($barangay_boundary); ?>;
 // ========== FILTER STATE (Category Filter + Active/Historical toggle) ==========
 let selectedCategories = new Set(allCategories.map(c => String(c.id)));
 let currentMode = 'active';
+let selectedRange = 'all';
+let selectedFrom = '';
+let selectedTo = '';
+let selectedStatus = 'all';
+let selectedRisk = 'all';
+let searchQuery = '';
 
 // ========== SEVERITY COLOR HELPERS (same 20-point algorithm as MENRO) ==========
 // Single source of truth for risk bands, mirroring PHP getSeverityBands()
@@ -1745,19 +1810,61 @@ function initMap() {
     loadMapData('active');
 }
 
+function isWithinRange(dateStr, range) {
+    if (range === 'all' || !dateStr) return true;
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return true;
+    if (range === 'custom') {
+        if (selectedFrom) {
+            const from = new Date(selectedFrom + 'T00:00:00');
+            if (!isNaN(from.getTime()) && date < from) return false;
+        }
+        if (selectedTo) {
+            const to = new Date(selectedTo + 'T23:59:59');
+            if (!isNaN(to.getTime()) && date > to) return false;
+        }
+        return true;
+    }
+    const now = new Date();
+    if (range === 'week') {
+        const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7); return date >= weekAgo;
+    }
+    if (range === 'month') {
+        const monthAgo = new Date(now); monthAgo.setMonth(now.getMonth() - 1); return date >= monthAgo;
+    }
+    if (range === 'year') {
+        const yearAgo = new Date(now); yearAgo.setFullYear(now.getFullYear() - 1); return date >= yearAgo;
+    }
+    return true;
+}
+
 function getFilteredData(mode) {
     const source = (mode === 'active') ? activeReports : historicalReports;
     if (!source) return [];
+    const dateField = (mode === 'active') ? 'created_at' : 'resolved_at';
+    const q = searchQuery.trim().toLowerCase();
     return source.filter(report => {
-        return selectedCategories.size === 0 ? false : selectedCategories.has(String(report.category_id));
+        const categoryOk = selectedCategories.size === 0 ? false : selectedCategories.has(String(report.category_id));
+        const rangeOk = isWithinRange(report[dateField], selectedRange);
+        const statusOk = selectedStatus === 'all' || String(report.status || '') === selectedStatus;
+        const riskOk = selectedRisk === 'all' || String(report.risk_level || '') === selectedRisk;
+        const searchOk = !q
+            || String(report.title || '').toLowerCase().includes(q)
+            || String(report.description || '').toLowerCase().includes(q);
+        return categoryOk && rangeOk && statusOk && riskOk && searchOk;
     });
 }
 
 function updateFilterSummary(mode, count) {
+    const rangeLabels = { week: 'this week', month: 'this month', year: 'this year', all: 'all time' };
+    let rangeLabel = rangeLabels[selectedRange] || selectedRange;
+    if (selectedRange === 'custom') {
+        rangeLabel = 'custom (' + (selectedFrom || '?') + ' to ' + (selectedTo || '?') + ')';
+    }
     const modeLabel = (mode === 'active') ? 'active' : 'resolved (historical)';
     const el = document.getElementById('filterSummary');
     if (el) {
-        el.textContent = `Showing ${count} ${modeLabel} report(s) in your barangay · ${selectedCategories.size} of ${allCategories.length} categories selected.`;
+        el.textContent = `Showing ${count} ${modeLabel} report(s) in your barangay · ${rangeLabel} · ${selectedCategories.size} of ${allCategories.length} categories selected.`;
     }
 }
 
@@ -1848,6 +1955,78 @@ document.getElementById('mapToggle').addEventListener('click', function(e) {
     this.querySelectorAll('button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     loadMapData(mode);
+});
+
+// ========== TIMEFRAME SELECTOR (This Week / Month / Year / Custom / All) ==========
+function toYMD(d) {
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+}
+function toggleCustomRangeBox() {
+    const box = document.getElementById('customRangeBox');
+    if (!box) return;
+    if (selectedRange === 'custom') {
+        if (!selectedFrom) {
+            const to = new Date();
+            const from = new Date();
+            from.setDate(to.getDate() - 30);
+            selectedFrom = toYMD(from);
+            selectedTo = toYMD(to);
+        }
+        document.getElementById('rangeFrom').value = selectedFrom;
+        document.getElementById('rangeTo').value = selectedTo;
+        box.classList.remove('hidden');
+        box.classList.add('flex');
+    } else {
+        box.classList.add('hidden');
+        box.classList.remove('flex');
+    }
+}
+function selectRange(range) {
+    if (range === selectedRange && range !== 'custom') return;
+    selectedRange = range;
+    document.querySelectorAll('#timeframeToggle [data-range]').forEach(b => {
+        b.classList.toggle('active', b.dataset.range === range);
+    });
+    toggleCustomRangeBox();
+    loadMapData(currentMode);
+}
+document.getElementById('timeframeToggle').addEventListener('click', function(e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    selectRange(btn.dataset.range);
+});
+function applyCustomRange() {
+    if (selectedRange !== 'custom') return;
+    const from = document.getElementById('rangeFrom').value;
+    const to = document.getElementById('rangeTo').value;
+    if (!from || !to) { alert('Please select both a start and end date.'); return; }
+    if (from > to) { alert('The start date must be on or before the end date.'); return; }
+    selectedFrom = from;
+    selectedTo = to;
+    loadMapData(currentMode);
+}
+document.getElementById('rangeFrom').addEventListener('change', applyCustomRange);
+document.getElementById('rangeTo').addEventListener('change', applyCustomRange);
+
+// ========== REPORT FILTER TOOLBAR (search / status / risk) ==========
+const barangaySearchInput = document.getElementById('barangaySearchInput');
+const barangayStatusFilter = document.getElementById('barangayStatusFilter');
+const barangayRiskFilter = document.getElementById('barangayRiskFilter');
+
+let searchTimer = null;
+barangaySearchInput.addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function() { searchQuery = barangaySearchInput.value; loadMapData(currentMode); }, 350);
+});
+barangayStatusFilter.addEventListener('change', function() {
+    selectedStatus = barangayStatusFilter.value;
+    loadMapData(currentMode);
+});
+barangayRiskFilter.addEventListener('change', function() {
+    selectedRisk = barangayRiskFilter.value;
+    loadMapData(currentMode);
 });
 
 // ========== CATEGORY FILTER DROPDOWN ==========
