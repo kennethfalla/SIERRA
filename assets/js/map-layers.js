@@ -1,7 +1,8 @@
 // assets/js/map-layers.js
 // Base map presets shared by every map in the system.
 // Every user can switch between three views: Light, Satellite, Street.
-// The Satellite layer (Esri World Imagery) is always the starting view.
+// The Light layer (Esri light-gray canvas, a Positron-style muted light map)
+// is the starting view so hazard markers and boundaries pop without noise.
 
 (function () {
     'use strict';
@@ -46,7 +47,7 @@
             'Street': streetLayer()
         };
 
-        var defaultName = layers[opts.default] ? opts.default : 'Satellite';
+        var defaultName = layers[opts.default] ? opts.default : 'Light';
         var active = layers[defaultName];
         active.addTo(map);
 

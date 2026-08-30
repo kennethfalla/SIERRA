@@ -1472,10 +1472,12 @@ let barangayLayer = null;
 let selectedBarangay = null;
 let selectedBarangayLayer = null;
 const barangayDefaultStyle = {
-    color: "#4ADE80",
+    color: "#38bdf8",
     weight: 1.5,
-    fillColor: "#4ADE80",
-    fillOpacity: 0.06,
+    opacity: 0.7,
+    fillColor: "#38bdf8",
+    fillOpacity: 0,
+    dashArray: "4 6",
     smoothFactor: 1
 };
 
@@ -1495,11 +1497,12 @@ function initMap() {
             const coords = extractPolygonCoords(boundaryData);
             if (coords) {
                 L.polygon(coords, {
-                    color: "#4ADE80",
-                    weight: 1.2,
-                    fillColor: "#4ADE80",
-                    fillOpacity: 0.03,
-                    dashArray: "6 4",
+                    color: "#38bdf8",
+                    weight: 1.5,
+                    opacity: 0.7,
+                    fillColor: "#38bdf8",
+                    fillOpacity: 0,
+                    dashArray: "4 6",
                     smoothFactor: 1,
                     interactive: false
                 }).addTo(map);
@@ -1524,7 +1527,7 @@ function addBarangayLayers() {
             layer.on({
                 mouseover: function() {
                     if (!selectedBarangayLayer || layer !== selectedBarangayLayer) {
-                        layer.setStyle({ fillOpacity: 0.14, weight: 2.5 });
+                        layer.setStyle({ fillOpacity: 0.15, weight: 2 });
                         layer.bringToFront();
                     }
                 },
@@ -1553,7 +1556,7 @@ function toggleBarangayFilter(name, layer) {
     selectedBarangay = name;
     if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
     selectedBarangayLayer = layer;
-    layer.setStyle({ fillColor: "#4ADE80", fillOpacity: 0.22, weight: 3, color: "#4ADE80" });
+    layer.setStyle({ fillColor: "#38bdf8", fillOpacity: 0.15, weight: 2, color: "#38bdf8" });
     layer.bringToFront();
     updateBarangayFilterChip();
     loadMapData(currentMode);

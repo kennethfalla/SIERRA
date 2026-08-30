@@ -2359,12 +2359,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (boundaryData && boundaryData.features) {
         try {
             var coords = extractPolygonCoords(boundaryData);
-            if (coords) L.polygon(coords, { color:'#4ADE80', weight:1.2, fillColor:'#4ADE80',
-                fillOpacity:0.03, dashArray:'6 4', smoothFactor:1, interactive:false }).addTo(communityMap);
+            if (coords) L.polygon(coords, { color:'#38bdf8', weight:1.5, opacity:0.7, fillColor:'#38bdf8',
+                fillOpacity:0, dashArray:'4 6', smoothFactor:1, interactive:false }).addTo(communityMap);
         } catch(e) {}
     }
 
-    var barangayStyle = { color:'#4ADE80', weight:1.5, fillColor:'#4ADE80', fillOpacity:0.06, smoothFactor:1 };
+    var barangayStyle = { color:'#38bdf8', weight:1.5, opacity:0.7, fillColor:'#38bdf8', fillOpacity:0, dashArray:'4 6', smoothFactor:1 };
     var barangayLayer = null;
     if (barangayData && barangayData.features) {
         barangayLayer = L.geoJSON(barangayData, {
@@ -2373,7 +2373,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
                 layer.bindTooltip(name, { sticky:true });
                 layer.on({
-                    mouseover: function() { layer.setStyle({ fillOpacity:0.14, weight:2.5 }); layer.bringToFront(); },
+                    mouseover: function() { layer.setStyle({ fillOpacity:0.15, weight:2 }); layer.bringToFront(); },
                     mouseout:  function() { layer.setStyle(barangayStyle); },
                     click:     function() { try { communityMap.fitBounds(layer.getBounds(),{maxZoom:14}); } catch(e){} }
                 });

@@ -1188,10 +1188,12 @@ function initMap() {
                 if (feature.geometry && feature.geometry.type === 'MultiPolygon') {
                     const coords = feature.geometry.coordinates[0][0].map(coord => [coord[1], coord[0]]);
                     L.polygon(coords, {
-                        color: "#4ADE80",
-                        weight: 2,
-                        fillColor: "#4ADE80",
-                        fillOpacity: 0.08,
+                        color: "#38bdf8",
+                        weight: 1.5,
+                        opacity: 0.7,
+                        fillColor: "#38bdf8",
+                        fillOpacity: 0,
+                        dashArray: "4 6",
                         smoothFactor: 1
                     }).addTo(map);
                 }

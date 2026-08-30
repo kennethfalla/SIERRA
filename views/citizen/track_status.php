@@ -1843,12 +1843,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const polygonCoords = extractPolygonCoordinates(sanIsidroBoundary);
         if (polygonCoords) {
             L.polygon(polygonCoords, {
-                color: "#4ADE80",
-                weight: 2,
-                fillColor: "#4ADE80",
-                fillOpacity: 0.05,
+                color: "#38bdf8",
+                weight: 1.5,
+                opacity: 0.7,
+                fillColor: "#38bdf8",
+                fillOpacity: 0,
                 smoothFactor: 1,
-                dashArray: "6 4"
+                dashArray: "4 6"
             }).addTo(map);
         }
     }
@@ -1870,10 +1871,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const isDetected = detectedBrgy && (feature.properties.barangay_id === detectedBrgy.id);
             L.geoJSON(feature, {
                 style: {
-                    color: "#4ADE80",
-                    weight: isDetected ? 2.5 : 1,
-                    fillColor: "#4ADE80",
-                    fillOpacity: isDetected ? 0.18 : 0.05,
+                    color: "#38bdf8",
+                    weight: isDetected ? 2 : 1,
+                    opacity: 0.7,
+                    fillColor: "#38bdf8",
+                    fillOpacity: isDetected ? 0.15 : 0,
                     smoothFactor: 1
                 }
             }).addTo(map).bindTooltip(name, { sticky: true });
