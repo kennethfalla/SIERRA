@@ -1472,10 +1472,10 @@ let barangayLayer = null;
 let selectedBarangay = null;
 let selectedBarangayLayer = null;
 const barangayDefaultStyle = {
-    color: "#38bdf8",
+    color: "#10A37F",
     weight: 1.5,
     opacity: 0.7,
-    fillColor: "#38bdf8",
+    fillColor: "#10A37F",
     fillOpacity: 0,
     dashArray: "4 6",
     smoothFactor: 1
@@ -1497,10 +1497,10 @@ function initMap() {
             const coords = extractPolygonCoords(boundaryData);
             if (coords) {
                 L.polygon(coords, {
-                    color: "#38bdf8",
+                    color: "#10A37F",
                     weight: 1.5,
                     opacity: 0.7,
-                    fillColor: "#38bdf8",
+                    fillColor: "#10A37F",
                     fillOpacity: 0,
                     dashArray: "4 6",
                     smoothFactor: 1,
@@ -1556,7 +1556,7 @@ function toggleBarangayFilter(name, layer) {
     selectedBarangay = name;
     if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
     selectedBarangayLayer = layer;
-    layer.setStyle({ fillColor: "#38bdf8", fillOpacity: 0.15, weight: 2, color: "#38bdf8" });
+    layer.setStyle({ fillColor: "#10A37F", fillOpacity: 0.15, weight: 2, color: "#10A37F" });
     layer.bringToFront();
     updateBarangayFilterChip();
     loadMapData(currentMode);

@@ -1843,10 +1843,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const polygonCoords = extractPolygonCoordinates(sanIsidroBoundary);
         if (polygonCoords) {
             L.polygon(polygonCoords, {
-                color: "#38bdf8",
+                color: "#10A37F",
                 weight: 1.5,
                 opacity: 0.7,
-                fillColor: "#38bdf8",
+                fillColor: "#10A37F",
                 fillOpacity: 0,
                 smoothFactor: 1,
                 dashArray: "4 6"
@@ -1871,10 +1871,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const isDetected = detectedBrgy && (feature.properties.barangay_id === detectedBrgy.id);
             L.geoJSON(feature, {
                 style: {
-                    color: "#38bdf8",
+                    color: "#10A37F",
                     weight: isDetected ? 2 : 1,
                     opacity: 0.7,
-                    fillColor: "#38bdf8",
+                    fillColor: "#10A37F",
                     fillOpacity: isDetected ? 0.15 : 0,
                     smoothFactor: 1
                 }

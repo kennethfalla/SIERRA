@@ -2359,12 +2359,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (boundaryData && boundaryData.features) {
         try {
             var coords = extractPolygonCoords(boundaryData);
-            if (coords) L.polygon(coords, { color:'#38bdf8', weight:1.5, opacity:0.7, fillColor:'#38bdf8',
+            if (coords) L.polygon(coords, { color:'#10A37F', weight:1.5, opacity:0.7, fillColor:'#10A37F',
                 fillOpacity:0, dashArray:'4 6', smoothFactor:1, interactive:false }).addTo(communityMap);
         } catch(e) {}
     }
 
-    var barangayStyle = { color:'#38bdf8', weight:1.5, opacity:0.7, fillColor:'#38bdf8', fillOpacity:0, dashArray:'4 6', smoothFactor:1 };
+    var barangayStyle = { color:'#10A37F', weight:1.5, opacity:0.7, fillColor:'#10A37F', fillOpacity:0, dashArray:'4 6', smoothFactor:1 };
     var barangayLayer = null;
     if (barangayData && barangayData.features) {
         barangayLayer = L.geoJSON(barangayData, {

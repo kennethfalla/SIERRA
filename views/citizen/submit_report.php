@@ -3414,7 +3414,7 @@ if (is_dir($barangays_dir)) {
             if (polygonCoords) {
                 sanIsidroPolygon = polygonCoords.map(function(coord) { return [coord[1], coord[0]]; });
                 boundaryLayer = L.polygon(polygonCoords, {
-                    color: "#38bdf8", weight: 1.5, opacity: 0.7, fillColor: "#38bdf8", fillOpacity: 0, smoothFactor: 1, dashArray: "4 6"
+                    color: "#10A37F", weight: 1.5, opacity: 0.7, fillColor: "#10A37F", fillOpacity: 0, smoothFactor: 1, dashArray: "4 6"
                 }).addTo(map);
                 map.fitBounds(boundaryLayer.getBounds());
             }
@@ -3425,7 +3425,7 @@ if (is_dir($barangays_dir)) {
         if (barangayData && barangayData.features) {
             const brgyLayer = L.geoJSON(barangayData, {
                 style: {
-                    color: "#38bdf8", weight: 1.5, opacity: 0.7, fillColor: "#38bdf8", fillOpacity: 0, dashArray: "4 6", smoothFactor: 1
+                    color: "#10A37F", weight: 1.5, opacity: 0.7, fillColor: "#10A37F", fillOpacity: 0, dashArray: "4 6", smoothFactor: 1
                 },
                 onEachFeature: function(feature, layer) {
                     const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';

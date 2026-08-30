@@ -1731,10 +1731,10 @@ function initMap() {
     if (barangayBoundary && barangayBoundary.features) {
         const brgyLayer = L.geoJSON(barangayBoundary, {
             style: {
-                color: "#38bdf8",
+                color: "#10A37F",
                 weight: 1.5,
                 opacity: 0.7,
-                fillColor: "#38bdf8",
+                fillColor: "#10A37F",
                 fillOpacity: 0,
                 dashArray: "4 6",
                 smoothFactor: 1
