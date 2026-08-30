@@ -64,11 +64,11 @@
     // the boundary reads as alternating green/white dashes.
     function dashedBoundaryStyle(weight, color) {
         return {
-            color: color || '#10A37F',
+            color: color || '#4ADE80',
             weight: weight || 1.5,
             opacity: 0.9,
             dashArray: '6 6',
-            fillColor: color || '#10A37F',
+            fillColor: color || '#4ADE80',
             fillOpacity: 0,
             smoothFactor: 1
         };

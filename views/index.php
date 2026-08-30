@@ -1188,7 +1188,7 @@ function initMap() {
                 if (feature.geometry && feature.geometry.type === 'MultiPolygon') {
                     const coords = feature.geometry.coordinates[0][0].map(coord => [coord[1], coord[0]]);
                     L.polygon(coords, MapLayers.whiteCasingStyle(1.5)).addTo(map);
-                    L.polygon(coords, MapLayers.dashedBoundaryStyle(1.5)).addTo(map);
+                    L.polygon(coords, MapLayers.dashedBoundaryStyle(1.5)).bindTooltip('San Isidro, Nueva Ecija', { sticky: true }).addTo(map);
                 }
             }
         } catch(e) {

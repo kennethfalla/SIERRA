@@ -1865,11 +1865,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const isDetected = detectedBrgy && (feature.properties.barangay_id === detectedBrgy.id);
             L.geoJSON(feature, {
                 style: {
-                    color: "#10A37F",
+                    color: "#4ADE80",
                     weight: isDetected ? 2 : 1,
                     opacity: 0.9,
                     dashArray: "6 6",
-                    fillColor: "#10A37F",
+                    fillColor: "#4ADE80",
                     fillOpacity: isDetected ? 0.15 : 0,
                     smoothFactor: 1
                 }

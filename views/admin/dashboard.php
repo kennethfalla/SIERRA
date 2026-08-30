@@ -1489,8 +1489,8 @@ function initMap() {
         try {
             const coords = extractPolygonCoords(boundaryData);
             if (coords) {
-                L.polygon(coords, MapLayers.whiteCasingStyle(1.5)).addTo(map);
-                L.polygon(coords, MapLayers.dashedBoundaryStyle(1.5)).addTo(map);
+                L.polygon(coords, Object.assign({}, MapLayers.whiteCasingStyle(1.5), { interactive: false })).addTo(map);
+                L.polygon(coords, Object.assign({}, MapLayers.dashedBoundaryStyle(1.5), { interactive: false })).addTo(map);
             }
         } catch(e) {}
     }
@@ -1545,7 +1545,7 @@ function toggleBarangayFilter(name, layer) {
     selectedBarangay = name;
     if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
     selectedBarangayLayer = layer;
-    layer.setStyle({ fillColor: "#10A37F", fillOpacity: 0.15, weight: 2, color: "#10A37F" });
+    layer.setStyle({ fillColor: "#4ADE80", fillOpacity: 0.15, weight: 2, color: "#4ADE80" });
     layer.bringToFront();
     if (spotlightMask) { map.removeLayer(spotlightMask); spotlightMask = null; }
     spotlightMask = MapLayers.spotlight(map, layer);
