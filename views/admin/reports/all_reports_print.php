@@ -7,6 +7,10 @@ requireRole('admin');
 $database = new Database();
 $db = $database->getConnection();
 
+// Filter dropdown data (for the screen-only sidebar)
+$categories = $db->query("SELECT id, name FROM categories ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+$barangays = $db->query("SELECT id, name FROM barangays ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+
 $status_filter = $_GET['status'] ?? '';
 $category_filter = isset($_GET['category']) ? (int)$_GET['category'] : 0;
 $barangay_filter = isset($_GET['barangay']) ? (int)$_GET['barangay'] : 0;
@@ -53,6 +57,17 @@ $total = count($reports);
 $statusLabels = ['pending'=>'Pending','under_review'=>'Under Review','verified'=>'Verified','in_progress'=>'In Progress','escalated_pending'=>'Escalated (Pending)','escalated'=>'Escalated','resolved'=>'Resolved','rejected'=>'Rejected','cancelled'=>'Cancelled'];
 $riskLabels = ['low'=>'Low','medium'=>'Medium','high'=>'High','critical'=>'Critical'];
 
+$sidebarStatuses = [
+    '' => 'All Statuses',
+    'pending' => 'Pending',
+    'under_review' => 'Under Review',
+    'in_progress' => 'In Progress',
+    'escalated' => 'Escalated',
+    'resolved' => 'Resolved',
+    'rejected' => 'Rejected',
+    'cancelled' => 'Cancelled',
+];
+
 $lguLogo = SettingsHelper::getLogoUrl();
 $menroLogoPath = SettingsHelper::get('menro_logo', '');
 $menroLogo = $menroLogoPath ? BASE_URL . $menroLogoPath : '';
@@ -63,8 +78,9 @@ $generatedOn = date('F j, Y \a\t h:i A');
 // PDF Export settings (Settings > PDF Export)
 $officeName    = SettingsHelper::get('pdf_office_name', 'Municipal Environment and Natural Resources Office');
 $municipality  = SettingsHelper::get('pdf_municipality_name', 'Municipality of San Isidro');
-$preparedBy    = SettingsHelper::get('pdf_prepared_by_name', '');
-$preparedTitle = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
+$_pdfCfg       = getPdfExportConfig();
+$preparedBy    = $_pdfCfg['prepared_by'];
+$preparedTitle = $_pdfCfg['prepared_title'];
 $approvedBy    = SettingsHelper::get('pdf_approved_by_name', '');
 $approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
 $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
@@ -100,15 +116,33 @@ if ($search) $filterSummary[] = 'Search: "' . htmlspecialchars($search) . '"';
 if ($date_from) $filterSummary[] = 'From: ' . date('M j, Y', strtotime($date_from));
 if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
 
-// Dynamic report title based on the selected filter.
-$reportTitle = 'ALL REPORTS';
+// Dynamic report title built from the active filters.
+$titleCategory = '';
+if ($category_filter > 0) {
+    $tq = $db->prepare("SELECT name FROM categories WHERE id = ?");
+    $tq->execute([$category_filter]);
+    $titleCategory = (string)($tq->fetchColumn() ?: '');
+}
+$titleBarangay = '';
 if ($barangay_filter > 0) {
-    $brgTitle = $db->prepare("SELECT name FROM barangays WHERE id = ?");
-    $brgTitle->execute([$barangay_filter]);
-    $brgTitleRow = $brgTitle->fetch();
-    $reportTitle = 'BARANGAY ' . strtoupper($brgTitleRow['name'] ?? '') . ' REPORTS';
-} elseif ($status_filter != '') {
-    $reportTitle = strtoupper($statusLabels[$status_filter] ?? str_replace('_', ' ', $status_filter)) . ' REPORTS';
+    $tq = $db->prepare("SELECT name FROM barangays WHERE id = ?");
+    $tq->execute([$barangay_filter]);
+    $titleBarangay = (string)($tq->fetchColumn() ?: '');
+}
+$titleStatus = $status_filter ? ($statusLabels[$status_filter] ?? str_replace('_', ' ', $status_filter)) : '';
+$titleRisk = $risk_filter ? ($riskLabels[$risk_filter] ?? $risk_filter) : '';
+
+$reportTitle = 'All Reports';
+if ($titleCategory !== '' && $titleBarangay !== '') {
+    $reportTitle = 'Reports for ' . $titleCategory . ' in Barangay ' . $titleBarangay;
+} elseif ($titleCategory !== '') {
+    $reportTitle = 'Reports for ' . $titleCategory;
+} elseif ($titleBarangay !== '') {
+    $reportTitle = 'All Reports in Barangay ' . $titleBarangay;
+} elseif ($titleStatus !== '') {
+    $reportTitle = $titleStatus . ' Reports';
+} elseif ($titleRisk !== '') {
+    $reportTitle = $titleRisk . ' Risk Reports';
 }
 ?>
 <!DOCTYPE html>
@@ -178,22 +212,130 @@ if ($barangay_filter > 0) {
         .report-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-top: 22px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #6b7280; }
         .report-footer .brand { font-weight: 700; color: #0D8568; }
         .report-footer-note { margin-top: 6px; text-align: center; font-size: 8px; color: #9ca3af; }
+        /* ===== Screen-only filter sidebar (main-sidebar style) ===== */
+        .page-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
+        .filter-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid rgba(16,163,127,0.12); box-shadow: 2px 0 20px -8px rgba(16,163,127,0.18); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
+        .sidebar-head { padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
+        .sidebar-head .head-title { font-size: 14px; font-weight: 800; color: #111827; }
+        .sidebar-head .head-sub { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
+        .sidebar-form { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
+        .sidebar-group { display: flex; flex-direction: column; gap: 10px; }
+        .sidebar-group-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+        .filter-field { display: flex; flex-direction: column; gap: 4px; }
+        .filter-field label { font-size: 11px; font-weight: 600; color: #374151; }
+        .filter-field select, .filter-field input { width: 100%; padding: 9px 10px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 12.5px; font-family: inherit; background: #fff; color: #1f2937; transition: all 0.15s ease; }
+        .filter-field select:hover, .filter-field input:hover { border-color: #d1d5db; }
+        .filter-field select:focus, .filter-field input:focus { border-color: #10A37F; outline: none; box-shadow: 0 0 0 3px rgba(16,163,127,0.12); }
+        .section-check-list { display: flex; flex-direction: column; gap: 2px; }
+        .section-check { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; transition: background 0.12s ease; font-size: 12px; color: #374151; font-weight: 500; }
+        .section-check:hover { background: #F0FBF6; }
+        .section-check input { accent-color: #10A37F; width: 15px; height: 15px; cursor: pointer; }
+        .sidebar-footer { padding: 14px 16px; border-top: 1px solid #f3f4f6; background: #fff; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .btn-apply { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
+        .btn-apply:hover { box-shadow: 0 6px 16px rgba(16,163,127,0.35); transform: translateY(-1px); }
+        .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
+        .btn-reset:hover { color: #EF4444; border-color: #EF4444; background: #FEF2F2; }
+        .page-main { flex: 1; min-width: 0; padding: 16px; }
+        @media (max-width: 900px) { .page-wrap { flex-direction: column; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }
+
         @page { size: A4 landscape; margin: 12mm 10mm 18mm; }
         @media print {
             body { background: #ffffff !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .filter-sidebar { display: none !important; }
+            .page-wrap { display: block; padding: 0; }
+            .page-main { padding: 0; }
             .toolbar { display: none !important; }
             .report { width: 100%; min-height: 0; margin: 0; padding: 0; box-shadow: none; border: none; }
         }
     </style>
 </head>
 <body>
-    <div class="toolbar">
-        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
-        <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
-    </div>
+    <div class="page-wrap">
+        <aside class="filter-sidebar">
+            <div class="sidebar-head">
+                <div class="head-icon"><i class="fas fa-sliders-h"></i></div>
+                <div>
+                    <div class="head-title">Filters</div>
+                    <div class="head-sub">Refine report</div>
+                </div>
+            </div>
+            <form class="sidebar-form" method="get" action="<?php echo BASE_URL; ?>index.php">
+                <input type="hidden" name="page" value="all-reports-print">
+                <div class="sidebar-body">
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Scope</div>
+                        <div class="filter-field">
+                            <label for="sideStatus">Status</label>
+                            <select name="status" id="sideStatus">
+                                <?php foreach ($sidebarStatuses as $val => $label): ?>
+                                <option value="<?php echo htmlspecialchars($val); ?>" <?php echo $status_filter === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideCategory">Category</label>
+                            <select name="category" id="sideCategory">
+                                <option value="0" <?php echo $category_filter === 0 ? 'selected' : ''; ?>>All Categories</option>
+                                <?php foreach ($categories as $cat): ?>
+                                <option value="<?php echo (int)$cat['id']; ?>" <?php echo $category_filter === (int)$cat['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($cat['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideBarangay">Barangay</label>
+                            <select name="barangay" id="sideBarangay">
+                                <option value="0" <?php echo $barangay_filter === 0 ? 'selected' : ''; ?>>All Barangays</option>
+                                <?php foreach ($barangays as $b): ?>
+                                <option value="<?php echo (int)$b['id']; ?>" <?php echo $barangay_filter === (int)$b['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($b['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideRisk">Risk Level</label>
+                            <select name="risk" id="sideRisk">
+                                <option value="" <?php echo $risk_filter === '' ? 'selected' : ''; ?>>All Levels</option>
+                                <?php foreach ($riskLabels as $val => $label): ?>
+                                <option value="<?php echo htmlspecialchars($val); ?>" <?php echo $risk_filter === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Date</div>
+                        <div class="filter-field">
+                            <label for="sideDateFrom">Date From</label>
+                            <input type="date" name="date_from" id="sideDateFrom" value="<?php echo htmlspecialchars($date_from); ?>">
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideDateTo">Date To</label>
+                            <input type="date" name="date_to" id="sideDateTo" value="<?php echo htmlspecialchars($date_to); ?>">
+                        </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Search</div>
+                        <div class="filter-field">
+                            <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Title, description, reporter...">
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-footer">
+                    <button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Apply Filters</button>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=all-reports-print" class="btn-reset"><i class="fas fa-undo"></i> Reset</a>
+                </div>
+            </form>
+        </aside>
 
-    <div class="report">
+        <div class="page-main">
+            <div class="toolbar">
+                <a href="<?php echo BASE_URL; ?>index.php?page=all-reports" class="btn-back"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>Back</a>
+                <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
+                <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
+            </div>
+
+            <div class="report">
         <header class="report-header">
             <div class="logo-box">
                 <?php if ($lguLogo): ?><img src="<?php echo htmlspecialchars($lguLogo); ?>" alt="LGU Logo"><?php else: ?><div class="logo-placeholder">LGU<br>Logo</div><?php endif; ?>
@@ -303,6 +445,8 @@ if ($barangay_filter > 0) {
             <span class="brand"><?php echo htmlspecialchars($systemName); ?> &middot; Web-Based Environmental Reporting System</span>
         </footer>
         <div class="report-footer-note"><?php echo htmlspecialchars($footerNote); ?></div>
+            </div>
+        </div>
     </div>
 
     <?php if ($autoprint): ?>

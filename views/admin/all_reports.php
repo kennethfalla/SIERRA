@@ -338,7 +338,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All Reports - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
@@ -878,7 +878,8 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                     <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
                     <div class="export-dropdown" id="exportDropdownWrap">
                         <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
-                            <i class="fas fa-download"></i> Export
+                            <i class="fas fa-file-export"></i>
+                            <span>Export</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div id="exportDropdown" class="export-dropdown-menu" style="width:280px;">

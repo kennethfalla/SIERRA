@@ -203,11 +203,11 @@ function reporterLocationOf($r) {
                 </div>
                 <div class="export-dropdown">
                     <button onclick="toggleExportMenu()" class="btn-export-trigger">
-                        <i class="fas fa-download"></i> Export
+                        <i class="fas fa-file-export"></i>
+                        <span>Export</span>
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div id="exportMenu" class="export-dropdown-menu">
-                        <div class="export-dropdown-header"><p><i class="fas fa-file-export"></i> Export Directory</p></div>
                         <button class="export-dropdown-item" onclick="downloadPdf()">
                             <i class="fas fa-file-pdf"></i><span>Export as PDF</span>
                         </button>

@@ -118,16 +118,15 @@ class SettingsController {
     private function updatePdfExport() {
         $office_name  = InputSanitizer::sanitizeString($_POST['pdf_office_name'] ?? 'Municipal Environment and Natural Resources Office');
         $municipality = InputSanitizer::sanitizeString($_POST['pdf_municipality_name'] ?? 'Municipality of San Isidro');
-        $prepared_by  = InputSanitizer::sanitizeString($_POST['pdf_prepared_by_name'] ?? '');
-        $prepared_tit = InputSanitizer::sanitizeString($_POST['pdf_prepared_by_title'] ?? 'MENRO Data Analyst / Administrator');
         $approved_by  = InputSanitizer::sanitizeString($_POST['pdf_approved_by_name'] ?? '');
         $approved_tit = InputSanitizer::sanitizeString($_POST['pdf_approved_by_title'] ?? 'Municipal Environment and Natural Resources Officer');
         $footer_note  = InputSanitizer::sanitizeString($_POST['pdf_footer_note'] ?? 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
 
+        // "Prepared by" is always the signed-in account's name (auto) and is
+        // no longer stored as a setting. Only "Approved by" and the logo are
+        // editable here.
         SettingsHelper::set('pdf_office_name', $office_name);
         SettingsHelper::set('pdf_municipality_name', $municipality);
-        SettingsHelper::set('pdf_prepared_by_name', $prepared_by);
-        SettingsHelper::set('pdf_prepared_by_title', $prepared_tit);
         SettingsHelper::set('pdf_approved_by_name', $approved_by);
         SettingsHelper::set('pdf_approved_by_title', $approved_tit);
         SettingsHelper::set('pdf_footer_note', $footer_note);

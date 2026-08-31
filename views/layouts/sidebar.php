@@ -164,7 +164,7 @@ switch($user_type) {
         $role_icon = 'fa-map-marker-alt';
         break;
     default:
-        $role_display_name = 'Citizen';
+        $role_display_name = isset($user_is_resident) && $user_is_resident == 0 ? 'Non-Resident' : 'Resident';
         $role_badge_color = 'bg-blue-100 text-blue-700';
         $role_icon = 'fa-user';
 }
@@ -238,7 +238,7 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
         <?php if($user_role == 'citizen'): ?>
         <!-- Citizen Section -->
         <div class="mb-6">
-            <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3">Main</p>
+
             
             <!-- Home -->
             <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
@@ -309,7 +309,7 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
         <?php elseif($user_role == 'barangay_official'): ?>
         <!-- Barangay Official Section -->
         <div class="mb-6">
-            <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3">Main</p>
+
             
             <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -376,7 +376,7 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
         <?php elseif($user_role == 'admin'): ?>
         <!-- Admin/MENRO Section -->
         <div class="mb-6">
-            <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3">Main</p>
+
             
             <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -427,6 +427,18 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 <?php endif; ?>
             </a>
             
+            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'manage-users' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'manage-users' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-users-cog text-sm <?php echo $current_page == 'manage-users' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium">User Management</span>
+                <?php if($current_page == 'manage-users'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+
             <?php if (($_SESSION['user_type'] ?? null) === 'admin'): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'audit-logs' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">

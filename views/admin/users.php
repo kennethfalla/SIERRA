@@ -1,17 +1,121 @@
 <?php
-// views/admin/settings/partials/users.php
-// Manage Users — embedded as the "Users" tab of System Settings.
-// Full CRUD with role-based access control. Three sub-tabs:
-// Citizens, Barangay Personnel, MENRO Staff.
-//
-// POST actions (deactivate / activate / delete) are handled inline here
-// (the settings shell routes ?tab=users POSTs to this partial) and redirect
-// back to Settings > Users. Account creation posts to AdminController.
-// NOTE: `subtab` (not `tab`) holds the inner Citizens/Barangay/MENRO tab,
-// because `tab` is the settings tab itself.
+// views/admin/users.php - STANDALONE USER MANAGEMENT PAGE
+// Reached via index.php?page=manage-users[&subtab=citizens|barangay|menro].
+// Full CRUD (activate / deactivate / delete) is handled inline here;
+// account creation posts to AdminController.
 
+require_once dirname(__DIR__, 2) . '/config/config.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
 require_once BASE_PATH . 'helpers/PermissionHelper.php';
+requireRole('admin');
+
+$system_name = SettingsHelper::get('system_name', 'Sierra');
+
+// ============================================================
+// USERS CSV EXPORT HANDLER (runs before any HTML output)
+// ============================================================
+if (isset($_GET['export_users']) && $_GET['export_users'] !== '') {
+    if (!PermissionHelper::userHasPermission('can_export_reports')) {
+        $_SESSION['error'] = "You do not have permission to export users.";
+        header("Location: " . BASE_URL . "index.php?page=manage-users");
+        exit();
+    }
+
+    $export_type = $_GET['export_users'];
+    $export_from = $_GET['export_from'] ?? '';
+    $export_to   = $_GET['export_to'] ?? '';
+
+    $db2 = (new Database())->getConnection();
+    $q = "SELECT u.id, u.first_name, u.last_name, u.email, u.contact_number,
+                 u.user_type, u.is_active, u.created_at, u.job_title,
+                 u.is_resident, u.province, u.municipality, u.non_resident_address,
+                 b.name AS barangay_name
+          FROM users u
+          LEFT JOIN barangays b ON u.barangay_id = b.id";
+
+    $where = [];
+    $params = [];
+
+    switch ($export_type) {
+        case 'menro':
+            $where[] = "u.user_type IN ('admin','menro_staff')";
+            break;
+        case 'barangay':
+            $where[] = "u.user_type = 'barangay_personnel'";
+            break;
+        case 'reporters':
+            $where[] = "u.user_type IS NULL";
+            break;
+        case 'residents':
+            $where[] = "u.user_type IS NULL AND u.is_resident = 1";
+            break;
+        case 'non_residents':
+            $where[] = "u.user_type IS NULL AND u.is_resident = 0";
+            break;
+        case 'new_accounts':
+            if ($export_from !== '') { $where[] = "DATE(u.created_at) >= :efrom"; $params[':efrom'] = $export_from; }
+            if ($export_to !== '')   { $where[] = "DATE(u.created_at) <= :eto";   $params[':eto']   = $export_to; }
+            break;
+        case 'status':
+        case 'all':
+        default:
+            break;
+    }
+
+    $sql = $q . (count($where) > 0 ? ' WHERE ' . implode(' AND ', $where) : '') . ' ORDER BY u.created_at DESC';
+    $stmt = $db2->prepare($sql);
+    foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+    $stmt->execute();
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $labels = [
+        'ID', 'First Name', 'Last Name', 'Email', 'Contact Number', 'Role', 'Status',
+        'Barangay', 'Residency', 'Province/Municipality', 'Registered Date'
+    ];
+
+    $roleMap = [
+        'admin'              => 'Admin',
+        'menro_staff'        => 'MENRO Staff',
+        'barangay_personnel' => 'Barangay Personnel',
+    ];
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="users_' . $export_type . '_' . date('Y-m-d') . '.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, $labels);
+
+    foreach ($rows as $r) {
+        $is_citizen  = empty($r['user_type']);
+        $role        = $is_citizen ? 'Citizen' : ($roleMap[$r['user_type']] ?? 'Citizen');
+        $status      = !empty($r['is_active']) ? 'Active' : 'Suspended';
+        $is_resident = (int)($r['is_resident'] ?? 1);
+        $residency   = $is_citizen ? ($is_resident ? 'Resident' : 'Non-Resident') : '—';
+
+        $loc = '';
+        if ($is_citizen && !$is_resident) {
+            $loc = trim(implode(', ', array_filter([$r['province'] ?? '', $r['municipality'] ?? ''])));
+        } else {
+            $loc = $r['barangay_name'] ?? '';
+        }
+
+        fputcsv($out, [
+            str_pad($r['id'], 5, '0', STR_PAD_LEFT),
+            $r['first_name'], $r['last_name'], $r['email'],
+            $r['contact_number'], $role, $status,
+            $r['barangay_name'] ?? '', $residency, $loc,
+            date('M d, Y', strtotime($r['created_at']))
+        ]);
+    }
+    fclose($out);
+
+    $actLog = new ActivityLog($db2);
+    $actLog->log($_SESSION['user_id'], 'Export Users', "Exported $export_type users list from User Management", $_SERVER['REMOTE_ADDR'] ?? 'unknown', null, 'SUCCESS');
+    exit();
+}
 
 $database = new Database();
 $db = $database->getConnection();
@@ -24,7 +128,7 @@ $activityLog = new ActivityLog($db);
 // ============================================================
 if($_SERVER['REQUEST_METHOD'] === 'POST') {
     $redirect_subtab = $_GET['subtab'] ?? 'citizens';
-    $redirect_url = BASE_URL . "index.php?page=settings&tab=users&subtab=" . $redirect_subtab;
+    $redirect_url = BASE_URL . "index.php?page=manage-users&subtab=" . $redirect_subtab;
 
     // CSRF protection
     if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
@@ -277,6 +381,66 @@ function getRoleBadge($user_type, $job_title = '') {
     }
 }
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
+    <?php endif; ?>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>User Management - <?php echo htmlspecialchars($system_name); ?></title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+    <style>
+        * { font-family: 'Manrope', sans-serif; }
+        body { background: #F5FBF6; }
+        @media (max-width: 768px) {
+            .ml-72 { margin-left: 0 !important; width: 100%; padding: 0; }
+        }
+        .main-container {
+            padding: 1rem;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+        @media (min-width: 640px) { .main-container { padding: 1.5rem; } }
+        @media (min-width: 768px) { .main-container { padding: 2rem; } }
+    </style>
+</head>
+<body>
+
+<?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
+
+<div class="lg:ml-72 min-h-screen">
+    <div class="main-container max-w-7xl mx-auto">
+
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-users-cog text-[#10A37F] text-sm"></i>
+                </div>
+                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Administration</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
+            <p class="text-gray-500 text-sm mt-1">Manage citizens, barangay personnel, and MENRO staff accounts</p>
+        </div>
+
+        <!-- Flash Messages -->
+        <?php if(isset($_SESSION['success'])): ?>
+            <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-xl text-green-700 text-sm flex items-center gap-2">
+                <i class="fas fa-check-circle text-green-500"></i>
+                <span><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></span>
+            </div>
+        <?php endif; ?>
+        <?php if(isset($_SESSION['error'])): ?>
+            <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl text-red-700 text-sm flex items-center gap-2">
+                <i class="fas fa-exclamation-circle text-red-500"></i>
+                <span><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></span>
+            </div>
+        <?php endif; ?>
 
 <style>
     ::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
@@ -566,19 +730,19 @@ function getRoleBadge($user_type, $job_title = '') {
     <!-- ===== SUB-TABS ===== -->
     <div class="border-b border-emerald-100 mb-5 flex flex-wrap items-center justify-between gap-3">
         <nav class="sub-tabs-nav flex gap-1 sm:gap-0 sm:space-x-8 sm:flex-wrap overflow-x-auto sm:overflow-visible whitespace-nowrap sm:whitespace-normal flex-1 min-w-0" aria-label="User tabs">
-            <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=citizens<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
+            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=citizens<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'citizens' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-users"></i>
                 Citizens
                 <span class="tab-badge"><?php echo $total_citizens; ?></span>
             </a>
-            <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=barangay<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
+            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=barangay<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'barangay' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-landmark"></i>
                 Barangay Personnel
                 <span class="tab-badge"><?php echo $total_barangay; ?></span>
             </a>
-            <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users&subtab=menro<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
+            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=menro<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'menro' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-crown"></i>
                 MENRO Staff
@@ -589,14 +753,17 @@ function getRoleBadge($user_type, $job_title = '') {
         $report_role    = $users_tab === 'citizens' ? 'citizen' : ($users_tab === 'barangay' ? 'barangay' : 'menro');
         $report_status  = $status_filter !== '' ? urlencode($status_filter) : '';
         $report_brgy    = $barangay_filter > 0 ? (int)$barangay_filter : 0;
+        $report_residency = $residency_filter !== '' ? urlencode($residency_filter) : '';
         $report_url     = '?page=users-report&role=' . $report_role
                         . ($report_status ? '&status=' . $report_status : '')
-                        . ($report_brgy ? '&barangay=' . $report_brgy : '');
+                        . ($report_brgy ? '&barangay=' . $report_brgy : '')
+                        . ($report_residency ? '&residency=' . $report_residency : '');
         ?>
         <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
         <div class="export-dropdown" id="usersExportWrap">
             <button onclick="toggleUsersExport()" id="usersExportBtn" class="btn-export-trigger">
-                <i class="fas fa-download"></i> Export
+                <i class="fas fa-file-export"></i>
+                <span>Export</span>
                 <i class="fas fa-chevron-down"></i>
             </button>
             <div id="usersExportDropdown" class="export-dropdown-menu" style="width:300px;">
@@ -1196,8 +1363,7 @@ function closeProfileModal() {
 // ============================================================
 function applyFilters() {
     const params = new URLSearchParams({
-        page: 'settings',
-        tab: 'users',
+        page: 'manage-users',
         subtab: '<?php echo htmlspecialchars($users_tab); ?>'
     });
     const search = document.getElementById('searchInput')?.value || '';
@@ -1268,8 +1434,7 @@ document.addEventListener('click', function(e) {
 
 function downloadUsersExport(type) {
     var params = new URLSearchParams();
-    params.set('page', 'settings');
-    params.set('tab', 'users');
+    params.set('page', 'manage-users');
     params.set('export_users', type);
     if (type === 'new_accounts') {
         var from = document.getElementById('exportNewFrom').value;
@@ -1284,3 +1449,9 @@ function downloadUsersExport(type) {
     if (btn) btn.classList.remove('active');
 }
 </script>
+
+    </div>
+</div>
+
+</body>
+</html>

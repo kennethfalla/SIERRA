@@ -24,10 +24,11 @@ $from = isset($_GET['from']) ? preg_replace('/[^0-9-]', '', $_GET['from']) : '';
 $to   = isset($_GET['to'])   ? preg_replace('/[^0-9-]/', '', $_GET['to'])   : '';
 $groupBy = ($_GET['group_by'] ?? 'role') === 'user' ? 'user' : 'role';
 $autoprint = !empty($_GET['autoprint']);
-$roleFilter   = in_array($_GET['role'] ?? 'all', ['all', 'menro', 'barangay', 'citizen', 'system'], true) ? $_GET['role'] : 'all';
+$roleFilter   = in_array($_GET['role'] ?? 'all', ['all', 'menro', 'barangay', 'citizen'], true) ? $_GET['role'] : 'all';
 $statusFilter = in_array($_GET['status'] ?? 'all', ['SUCCESS', 'FAILED', 'UNAUTHORIZED_ATTEMPT'], true) ? $_GET['status'] : 'all';
 $actionFilter = isset($_GET['action']) ? trim($_GET['action']) : 'all';
-$userFilter   = isset($_GET['user']) ? (int)$_GET['user'] : 0;
+$residencyFilter = in_array($_GET['residency'] ?? 'all', ['all', 'resident', 'non_resident'], true) ? $_GET['residency'] : 'all';
+$barangayFilter  = isset($_GET['barangay']) ? (int)$_GET['barangay'] : 0;
 $search       = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 function isValidDateStr($s) {
@@ -49,9 +50,14 @@ if ($actionFilter !== '' && $actionFilter !== 'all') {
     $where[] = "a.action = :action";
     $params[':action'] = $actionFilter;
 }
-if ($userFilter > 0) {
-    $where[] = "a.user_id = :user";
-    $params[':user'] = $userFilter;
+if ($residencyFilter === 'resident') {
+    $where[] = "u.is_resident = 1";
+} elseif ($residencyFilter === 'non_resident') {
+    $where[] = "u.is_resident = 0";
+}
+if ($barangayFilter > 0) {
+    $where[] = "u.barangay_id = :barangay";
+    $params[':barangay'] = $barangayFilter;
 }
 if ($search !== '') {
     $where[] = "(a.description LIKE :search OR u.first_name LIKE :search OR u.last_name LIKE :search OR u.email LIKE :search OR a.action LIKE :search OR a.status LIKE :search)";
@@ -71,9 +77,9 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Distinct actions + users for the on-page filter controls.
+// Distinct actions + barangays for the on-page filter controls.
 $actionList = $db->query("SELECT DISTINCT action FROM activity_logs ORDER BY action")->fetchAll(PDO::FETCH_COLUMN);
-$userList = $db->query("SELECT id, first_name, last_name, email FROM users ORDER BY first_name")->fetchAll(PDO::FETCH_ASSOC);
+$barangayList = $db->query("SELECT id, name FROM barangays ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 
 // ------------------------------------------------------------
 // HELPERS
@@ -247,8 +253,9 @@ $generatedBy   = $_SESSION['user_name'] ?? 'System Admin';
 $generatedOn   = date('F j, Y \a\t h:i A');
 
 // PDF Export signatory block + footer (Settings > PDF Export)
-$preparedBy    = SettingsHelper::get('pdf_prepared_by_name', '');
-$preparedTitle = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
+$_pdfCfg       = getPdfExportConfig();
+$preparedBy    = $_pdfCfg['prepared_by'];
+$preparedTitle = $_pdfCfg['prepared_title'];
 $approvedBy    = SettingsHelper::get('pdf_approved_by_name', '');
 $approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
 $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
@@ -264,10 +271,11 @@ $statusLabels = ['SUCCESS' => 'Success', 'FAILED' => 'Failed', 'UNAUTHORIZED_ATT
 $roleFilterText   = $roleFilter === 'all' ? 'All Roles' : roleGroupLabel($roleFilter);
 $statusFilterText = $statusFilter === 'all' ? 'All Statuses' : ($statusLabels[$statusFilter] ?? $statusFilter);
 $actionFilterText = ($actionFilter === '' || $actionFilter === 'all') ? 'All Actions' : $actionFilter;
-$userFilterText = 'All Users';
-if ($userFilter > 0) {
-    foreach ($userList as $u) {
-        if ((int)$u['id'] === $userFilter) { $userFilterText = $u['first_name'] . ' ' . $u['last_name']; break; }
+$residencyText = $residencyFilter === 'resident' ? 'Residents' : ($residencyFilter === 'non_resident' ? 'Non-Residents' : 'All Users');
+$barangayText = 'All Barangays';
+if ($barangayFilter > 0) {
+    foreach ($barangayList as $b) {
+        if ((int)$b['id'] === $barangayFilter) { $barangayText = $b['name']; break; }
     }
 }
 $searchText = $search !== '' ? $search : '';
@@ -478,6 +486,34 @@ $searchText = $search !== '' ? $search : '';
         .report-footer .brand { font-weight: 700; color: #0D8568; }
         .report-footer-note { margin-top: 6px; text-align: center; font-size: 8px; color: #9ca3af; }
 
+        /* ===== Screen-only filter sidebar (main-sidebar style) ===== */
+        .page-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
+        .filter-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid rgba(16,163,127,0.12); box-shadow: 2px 0 20px -8px rgba(16,163,127,0.18); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
+        .sidebar-head { padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
+        .sidebar-head .head-title { font-size: 14px; font-weight: 800; color: #111827; }
+        .sidebar-head .head-sub { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
+        .sidebar-form { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
+        .sidebar-group { display: flex; flex-direction: column; gap: 10px; }
+        .sidebar-group-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+        .filter-field { display: flex; flex-direction: column; gap: 4px; }
+        .filter-field label { font-size: 11px; font-weight: 600; color: #374151; }
+        .filter-field select, .filter-field input { width: 100%; padding: 9px 10px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 12.5px; font-family: inherit; background: #fff; color: #1f2937; transition: all 0.15s ease; }
+        .filter-field select:hover, .filter-field input:hover { border-color: #d1d5db; }
+        .filter-field select:focus, .filter-field input:focus { border-color: #10A37F; outline: none; box-shadow: 0 0 0 3px rgba(16,163,127,0.12); }
+        .section-check-list { display: flex; flex-direction: column; gap: 2px; }
+        .section-check { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; transition: background 0.12s ease; font-size: 12px; color: #374151; font-weight: 500; }
+        .section-check:hover { background: #F0FBF6; }
+        .section-check input { accent-color: #10A37F; width: 15px; height: 15px; cursor: pointer; }
+        .sidebar-footer { padding: 14px 16px; border-top: 1px solid #f3f4f6; background: #fff; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .btn-apply { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
+        .btn-apply:hover { box-shadow: 0 6px 16px rgba(16,163,127,0.35); transform: translateY(-1px); }
+        .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
+        .btn-reset:hover { color: #EF4444; border-color: #EF4444; background: #FEF2F2; }
+        .page-main { flex: 1; min-width: 0; padding: 16px; }
+        @media (max-width: 900px) { .page-wrap { flex-direction: column; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }
+
         @page {
             margin: 10mm 12mm;
         }
@@ -487,7 +523,10 @@ $searchText = $search !== '' ? $search : '';
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            .toolbar, .controls { display: none !important; }
+            .filter-sidebar { display: none !important; }
+            .page-wrap { display: block; padding: 0; }
+            .page-main { padding: 0; }
+            .toolbar { display: none !important; }
             .report {
                 width: 100%;
                 min-height: 0;
@@ -502,63 +541,106 @@ $searchText = $search !== '' ? $search : '';
     </style>
 </head>
 <body>
-    <!-- Screen-only toolbar (hidden on print) -->
-    <div class="toolbar">
-        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
-        <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
-        <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs">&larr; Back to Audit Logs</a>
-        <span class="hint" style="color:#6b7280; font-size:11px;">Tip: choose "Save as PDF" as the printer destination for a PDF export.</span>
-    </div>
+    <div class="page-wrap">
+        <aside class="filter-sidebar">
+            <div class="sidebar-head">
+                <div class="head-icon"><i class="fas fa-sliders-h"></i></div>
+                <div>
+                    <div class="head-title">Filters</div>
+                    <div class="head-sub">Refine report</div>
+                </div>
+            </div>
+            <form class="sidebar-form" method="get" action="<?php echo BASE_URL; ?>index.php">
+                <input type="hidden" name="page" value="audit-logs-report">
+                <div class="sidebar-body">
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Search</div>
+                        <div class="filter-field">
+                            <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Description, user, email, action...">
+                        </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Date</div>
+                        <div class="filter-field">
+                            <label for="sideFrom">Date From</label>
+                            <input type="date" name="from" id="sideFrom" value="<?php echo htmlspecialchars($from); ?>">
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideTo">Date To</label>
+                            <input type="date" name="to" id="sideTo" value="<?php echo htmlspecialchars($to); ?>">
+                        </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Filters</div>
+                        <div class="filter-field">
+                            <label for="sideRole">Role</label>
+                            <select name="role" id="sideRole">
+                                <option value="all" <?php echo $roleFilter === 'all' ? 'selected' : ''; ?>>All Roles</option>
+                                <option value="menro" <?php echo $roleFilter === 'menro' ? 'selected' : ''; ?>>MENRO</option>
+                                <option value="barangay" <?php echo $roleFilter === 'barangay' ? 'selected' : ''; ?>>Barangay Officials</option>
+                                <option value="citizen" <?php echo $roleFilter === 'citizen' ? 'selected' : ''; ?>>Reporters (Citizens)</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideStatus">Status</label>
+                            <select name="status" id="sideStatus">
+                                <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All Statuses</option>
+                                <option value="SUCCESS" <?php echo $statusFilter === 'SUCCESS' ? 'selected' : ''; ?>>Success</option>
+                                <option value="FAILED" <?php echo $statusFilter === 'FAILED' ? 'selected' : ''; ?>>Failed</option>
+                                <option value="UNAUTHORIZED_ATTEMPT" <?php echo $statusFilter === 'UNAUTHORIZED_ATTEMPT' ? 'selected' : ''; ?>>Unauthorized</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideAction">Action</label>
+                            <select name="action" id="sideAction">
+                                <option value="all" <?php echo $actionFilter === 'all' ? 'selected' : ''; ?>>All Actions</option>
+                                <?php foreach ($actionList as $act): ?>
+                                <option value="<?php echo htmlspecialchars($act); ?>" <?php echo $actionFilter === $act ? 'selected' : ''; ?>><?php echo htmlspecialchars($act); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideUser">User</label>
+                            <select name="residency" id="sideUser">
+                                <option value="all" <?php echo $residencyFilter === 'all' ? 'selected' : ''; ?>>All Users</option>
+                                <option value="resident" <?php echo $residencyFilter === 'resident' ? 'selected' : ''; ?>>Resident</option>
+                                <option value="non_resident" <?php echo $residencyFilter === 'non_resident' ? 'selected' : ''; ?>>Non-Resident</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideBarangay">Barangay</label>
+                            <select name="barangay" id="sideBarangay">
+                                <option value="0" <?php echo $barangayFilter === 0 ? 'selected' : ''; ?>>All Barangays</option>
+                                <?php foreach ($barangayList as $b): ?>
+                                <option value="<?php echo (int)$b['id']; ?>" <?php echo $barangayFilter === (int)$b['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($b['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideGroupBy">Group By</label>
+                            <select name="group_by" id="sideGroupBy">
+                                <option value="role" <?php echo $groupBy === 'role' ? 'selected' : ''; ?>>Role</option>
+                                <option value="user" <?php echo $groupBy === 'user' ? 'selected' : ''; ?>>User</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-footer">
+                    <button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Apply Filters</button>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs-report" class="btn-reset"><i class="fas fa-undo"></i> Reset</a>
+                </div>
+            </form>
+        </aside>
 
-    <!-- Screen-only report controls -->
-    <form class="controls" method="get" action="<?php echo BASE_URL; ?>index.php">
-        <input type="hidden" name="page" value="audit-logs-report">
-        <label>Search <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Description, user, email, action..."></label>
-        <label>From <input type="date" name="from" value="<?php echo htmlspecialchars($from); ?>"></label>
-        <label>To <input type="date" name="to" value="<?php echo htmlspecialchars($to); ?>"></label>
-        <label>Role
-            <select name="role">
-                <option value="all" <?php echo $roleFilter === 'all' ? 'selected' : ''; ?>>All Roles</option>
-                <option value="menro" <?php echo $roleFilter === 'menro' ? 'selected' : ''; ?>>MENRO</option>
-                <option value="barangay" <?php echo $roleFilter === 'barangay' ? 'selected' : ''; ?>>Barangay Officials</option>
-                <option value="citizen" <?php echo $roleFilter === 'citizen' ? 'selected' : ''; ?>>Reporters (Citizens)</option>
-                <option value="system" <?php echo $roleFilter === 'system' ? 'selected' : ''; ?>>System</option>
-            </select>
-        </label>
-        <label>Status
-            <select name="status">
-                <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All Statuses</option>
-                <option value="SUCCESS" <?php echo $statusFilter === 'SUCCESS' ? 'selected' : ''; ?>>Success</option>
-                <option value="FAILED" <?php echo $statusFilter === 'FAILED' ? 'selected' : ''; ?>>Failed</option>
-                <option value="UNAUTHORIZED_ATTEMPT" <?php echo $statusFilter === 'UNAUTHORIZED_ATTEMPT' ? 'selected' : ''; ?>>Unauthorized</option>
-            </select>
-        </label>
-        <label>Action
-            <select name="action">
-                <option value="all" <?php echo $actionFilter === 'all' ? 'selected' : ''; ?>>All Actions</option>
-                <?php foreach ($actionList as $act): ?>
-                <option value="<?php echo htmlspecialchars($act); ?>" <?php echo $actionFilter === $act ? 'selected' : ''; ?>><?php echo htmlspecialchars($act); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>User
-            <select name="user">
-                <option value="0" <?php echo $userFilter === 0 ? 'selected' : ''; ?>>All Users</option>
-                <?php foreach ($userList as $u): ?>
-                <option value="<?php echo (int)$u['id']; ?>" <?php echo $userFilter === (int)$u['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($u['first_name'] . ' ' . $u['last_name']); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Group by
-            <select name="group_by">
-                <option value="role" <?php echo $groupBy === 'role' ? 'selected' : ''; ?>>Role</option>
-                <option value="user" <?php echo $groupBy === 'user' ? 'selected' : ''; ?>>User</option>
-            </select>
-        </label>
-        <button type="submit">Generate Report</button>
-    </form>
+        <div class="page-main">
+            <div class="toolbar">
+                <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>Back</a>
+                <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
+                <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
+                <span class="hint" style="color:#6b7280; font-size:11px;">Tip: choose "Save as PDF" as the printer destination for a PDF export.</span>
+            </div>
 
-    <div class="report">
+            <div class="report">
         <!-- ===== Official LGU Header ===== -->
         <header class="report-header">
             <div class="logo-box">
@@ -593,7 +675,8 @@ $searchText = $search !== '' ? $search : '';
                 <span><strong>Role:</strong> <?php echo htmlspecialchars($roleFilterText); ?></span>
                 <span><strong>Status:</strong> <?php echo htmlspecialchars($statusFilterText); ?></span>
                 <span><strong>Action:</strong> <?php echo htmlspecialchars($actionFilterText); ?></span>
-                <span><strong>User:</strong> <?php echo htmlspecialchars($userFilterText); ?></span>
+                <span><strong>User:</strong> <?php echo htmlspecialchars($residencyText); ?></span>
+                <span><strong>Barangay:</strong> <?php echo htmlspecialchars($barangayText); ?></span>
                 <?php if ($searchText !== ''): ?><span><strong>Search:</strong> "<?php echo htmlspecialchars($searchText); ?>"</span><?php endif; ?>
                 <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
@@ -674,6 +757,8 @@ $searchText = $search !== '' ? $search : '';
             <span><?php echo htmlspecialchars($systemName); ?> &middot; Audit Trail</span>
         </footer>
         <div class="report-footer-note"><?php echo htmlspecialchars($footerNote); ?></div>
+            </div>
+        </div>
     </div>
 
     <?php if ($autoprint): ?>

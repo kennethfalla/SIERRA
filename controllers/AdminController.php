@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // CSRF Protection
         if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
             $_SESSION['error'] = "Invalid security token. Please refresh and try again.";
-            header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+            header("Location: " . BASE_URL . "index.php?page=manage-users");
             exit();
         }
 
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($errors)) {
             $_SESSION['errors'] = $errors;
             $redirect_tab = ($user_type === 'barangay_personnel') ? 'barangay' : 'menro';
-            header("Location: " . BASE_URL . "index.php?page=settings&tab=users&subtab=" . $redirect_tab);
+            header("Location: " . BASE_URL . "index.php?page=manage-users&subtab=" . $redirect_tab);
             exit();
         }
 
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $redirect_tab = ($user_type === 'barangay_personnel') ? 'barangay' : 'menro';
-        header("Location: " . BASE_URL . "index.php?page=settings&tab=users&subtab=" . $redirect_tab);
+        header("Location: " . BASE_URL . "index.php?page=manage-users&subtab=" . $redirect_tab);
         exit();
     }
 
@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Invalid user or role";
         }
 
-        header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+        header("Location: " . BASE_URL . "index.php?page=manage-users");
         exit();
     }
 
@@ -178,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Prevent deactivating own account
             if ($user_id == $_SESSION['user_id']) {
                 $_SESSION['error'] = "You cannot deactivate your own account.";
-                header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+                header("Location: " . BASE_URL . "index.php?page=manage-users");
                 exit();
             }
 
@@ -193,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Invalid user ID";
         }
 
-        header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+        header("Location: " . BASE_URL . "index.php?page=manage-users");
         exit();
     }
 
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete_user') {
         if (!PermissionHelper::userHasPermission('can_manage_users') && !PermissionHelper::userHasPermission('can_manage_staff')) {
             $_SESSION['error'] = "You are not permitted to delete users.";
-            header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+            header("Location: " . BASE_URL . "index.php?page=manage-users");
             exit();
         }
 
@@ -213,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Prevent deleting own account
             if ($user_id == $_SESSION['user_id']) {
                 $_SESSION['error'] = "You cannot delete your own account.";
-                header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+                header("Location: " . BASE_URL . "index.php?page=manage-users");
                 exit();
             }
 
@@ -227,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = "Invalid user ID";
         }
 
-        header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+        header("Location: " . BASE_URL . "index.php?page=manage-users");
         exit();
     }
 
@@ -457,6 +457,6 @@ function getUserName($user_id) {
 // IF NO VALID ACTION MATCHED
 // ============================================================
 $_SESSION['error'] = "Invalid action.";
-header("Location: " . BASE_URL . "index.php?page=settings&tab=users");
+header("Location: " . BASE_URL . "index.php?page=manage-users");
 exit();
 ?>

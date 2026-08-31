@@ -33,13 +33,24 @@ $csrf_token    = InputSanitizer::generateCsrfToken();
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
     <title>Notifications - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; overflow-x: hidden; }
 
-        .main-container { padding: 1.25rem; }
+        @media (max-width: 768px) {
+            .ml-72 { margin-left: 0 !important; width: 100%; padding: 0; }
+            .sidebar-mobile { position: fixed; left: -280px; transition: left 0.3s ease; z-index: 1000; }
+            .sidebar-mobile.open { left: 0; }
+        }
+
+        .main-container {
+            padding: 1rem;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        @media (min-width: 640px) { .main-container { padding: 1.5rem; } }
         @media (min-width: 768px) { .main-container { padding: 2rem; } }
 
         .page-title { font-size: 1.5rem; }
@@ -133,9 +144,6 @@ $csrf_token    = InputSanitizer::generateCsrfToken();
                     <i class="fas fa-trash-alt"></i> Clear all
                 </button>
                 <?php endif; ?>
-                <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-action">
-                    <i class="fas fa-arrow-left"></i> Back
-                </a>
             </div>
         </div>
 

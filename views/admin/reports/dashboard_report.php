@@ -1,16 +1,27 @@
 <?php
 // views/admin/reports/dashboard_report.php - DEDICATED PRINT/EXPORT REPORT PAGE
-// A4-portrait printable "Dashboard & Analytics Report" generated from the
-// MENRO Decision Dashboard. Opened in a new tab via:
-//   index.php?page=dashboard-report&range=week|month|year|all|custom&cats=1,2,3[&autoprint=1]
+// A4-portrait printable "MENRO Analytics Report" generated from the MENRO
+// Decision Dashboard. Opened in a new tab via:
+//   index.php?page=dashboard-report&range=week|month|year|all|custom&cats=1,2,3
+//           &sections=kpi,map,severity,...[&format=csv][&autoprint=1]
 //   For custom ranges also pass from=YYYY-MM-DD&to=YYYY-MM-DD (inclusive).
-// Uses a dedicated @media print stylesheet so charts and KPI cards print cleanly.
+// The `sections` parameter controls which analytics blocks are rendered /
+// exported (both PDF and CSV). `format=csv` returns a CSV download instead of HTML.
 
 require_once dirname(__DIR__, 3) . '/config/config.php';
-requireRole('admin');
+if (!isLoggedIn() || !in_array($_SESSION['user_role'] ?? '', ['admin', 'barangay_official'], true)) {
+    http_response_code(403);
+    die('Access Denied');
+}
 
 $database = new Database();
 $db = $database->getConnection();
+
+// Barangay officials are strictly scoped to their own barangay.
+$isBarangay  = (($_SESSION['user_role'] ?? '') === 'barangay_official');
+$barangayId  = $isBarangay ? (int)($_SESSION['barangay_id'] ?? 0) : 0;
+$scopeBarangaySql = $isBarangay ? ' AND r.barangay_id = :scope_barangay' : '';
+$reportBrand = $isBarangay ? 'BARANGAY ANALYTICS REPORT' : 'MENRO ANALYTICS REPORT';
 
 // ------------------------------------------------------------
 // INPUTS
@@ -20,6 +31,8 @@ if (!in_array($range, ['week', 'month', 'year', 'all', 'custom'], true)) $range 
 
 $from = isset($_GET['from']) ? preg_replace('/[^0-9-]/', '', $_GET['from']) : '';
 $to   = isset($_GET['to'])   ? preg_replace('/[^0-9-]/', '', $_GET['to'])   : '';
+
+$format = isset($_GET['format']) && $_GET['format'] === 'csv' ? 'csv' : 'html';
 
 function isValidDateStr($s) {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) return false;
@@ -36,8 +49,7 @@ if (!empty($_GET['cats'])) {
 $autoprint = !empty($_GET['autoprint']);
 
 // ------------------------------------------------------------
-// ADDITIONAL FILTERS (Status / Risk / Barangay) — surfaced via the
-// on-page filter controls, just like the other printable report pages.
+// ADDITIONAL FILTERS (Status / Risk / Barangay)
 // ------------------------------------------------------------
 $validStatuses = ['all','pending','under_review','verified','in_progress','escalated_pending','escalated','resolved','rejected','cancelled'];
 $statusFilter = in_array($_GET['status'] ?? 'all', $validStatuses, true) ? ($_GET['status']) : 'all';
@@ -46,6 +58,37 @@ $validRisks = ['all','low','medium','high','critical'];
 $riskFilter = in_array($_GET['risk'] ?? 'all', $validRisks, true) ? ($_GET['risk']) : 'all';
 
 $barangayFilter = isset($_GET['barangay']) ? (int)$_GET['barangay'] : 0;
+if ($isBarangay) $barangayFilter = 0;
+
+// ------------------------------------------------------------
+// SECTION SELECTION
+// ------------------------------------------------------------
+$sectionLabels = [
+    'kpi'          => 'KPI Summary',
+    'map'          => 'Environmental Hazard Map',
+    'severity'     => 'Severity Distribution',
+    'seasonal'     => 'Seasonal Hazard Trends',
+    'leaderboard'  => 'Barangay Performance Leaderboard',
+    'response'     => 'Average Municipal Response Time',
+    'demographics' => 'Reporter Demographics',
+    'peak'         => 'Peak Reporting Hours & Days',
+    'repeat'       => 'Top 5 Repeat Offender Locations',
+];
+
+$sections = [];
+$rawSections = $_GET['sections'] ?? null;
+if (is_array($rawSections)) {
+    foreach ($rawSections as $sec) {
+        $sec = trim((string)$sec);
+        if (isset($sectionLabels[$sec])) $sections[] = $sec;
+    }
+} elseif (is_string($rawSections) && $rawSections !== '') {
+    foreach (explode(',', $rawSections) as $sec) {
+        $sec = trim($sec);
+        if (isset($sectionLabels[$sec])) $sections[] = $sec;
+    }
+}
+if (empty($sections)) $sections = array_keys($sectionLabels);
 
 // If the on-page filter form supplies an explicit from/to date, treat the
 // report as a custom date range (even if `range` was not set to "custom").
@@ -115,6 +158,11 @@ switch ($range) {
         break;
 }
 
+$rangeText = 'All Time';
+if ($from && $to) $rangeText = date('M j, Y', strtotime($from)) . ' to ' . date('M j, Y', strtotime($to));
+elseif ($from) $rangeText = 'From ' . date('M j, Y', strtotime($from));
+elseif ($to) $rangeText = 'Up to ' . date('M j, Y', strtotime($to));
+
 // Upper-bound clause only for explicit custom ranges; presets end "now".
 $endSql = ($range === 'custom') ? ' AND r.created_at <= :end' : '';
 
@@ -140,6 +188,10 @@ if ($barangayFilter > 0) {
     $filterParams[':barangay'] = $barangayFilter;
 }
 
+// Shared WHERE scope + bound params for every report query.
+$scopeWhere = "r.created_at >= :start $scopeBarangaySql$catSql$filterSql$endSql";
+$scopeParams = [':start' => $startDate] + ($isBarangay ? [':scope_barangay' => $barangayId] : []) + $filterParams + ($endSql ? [':end' => $endDate] : []);
+
 // Load barangay list for the on-page filter dropdown.
 $barangayList = [];
 try {
@@ -156,24 +208,96 @@ $statusLabels = [
 ];
 $riskLabels = ['all' => 'All Risk Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
 
+// KPI / Insights targets (configurable in System Settings → KPI & Insights)
+$kpi_resolution_rate_target = (float)SettingsHelper::get('kpi_resolution_rate_target', 60);
+$kpi_sla_response_hours     = (float)SettingsHelper::get('kpi_sla_response_hours', 48);
+$kpi_hotspot_radius_meters  = (float)SettingsHelper::get('kpi_hotspot_radius_meters', 10);
+$kpi_critical_reports_pct   = (float)SettingsHelper::get('kpi_critical_reports_pct', 30);
+$kpi_repeat_min_reports     = (float)SettingsHelper::get('kpi_repeat_min_reports', 3);
+$kpi_repeat_window_days     = (float)SettingsHelper::get('kpi_repeat_window_days', 30);
+
 // ------------------------------------------------------------
-// 1. TRANSACTIONAL SERIES (grouped by Month)
+// 1. KPI METRICS
+// ------------------------------------------------------------
+// Active status constraint is only applied when no explicit status filter is set.
+$activeStatusSql = ($statusFilter === 'all') ? " AND r.status NOT IN ('resolved','rejected','cancelled')" : '';
+
+$activeHotspots = 0;
+$avgRisk = 0;
+$criticalCount = 0;
+$resolvedHotspots = 0;
+
+try {
+    $kpiStmt = $db->prepare("SELECT COUNT(DISTINCT CASE WHEN spatial_density_count > 0 THEN CONCAT(latitude, ',', longitude) ELSE id END) AS count
+        FROM reports r WHERE $scopeWhere $activeStatusSql AND latitude IS NOT NULL AND longitude IS NOT NULL");
+    $kpiStmt->execute($scopeParams);
+    $activeHotspots = (int)$kpiStmt->fetchColumn();
+} catch (Exception $e) {}
+
+try {
+    $kpiStmt = $db->prepare("SELECT AVG(severity_score) AS avg_score FROM reports r WHERE $scopeWhere $activeStatusSql AND severity_score IS NOT NULL");
+    $kpiStmt->execute($scopeParams);
+    $avgRisk = round((float)$kpiStmt->fetchColumn(), 1);
+} catch (Exception $e) {}
+
+try {
+    $kpiStmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE risk_level = 'critical' AND $scopeWhere $activeStatusSql");
+    $kpiStmt->execute($scopeParams);
+    $criticalCount = (int)$kpiStmt->fetchColumn();
+} catch (Exception $e) {}
+
+try {
+    $kpiStmt = $db->prepare("SELECT COUNT(DISTINCT CONCAT(latitude, ',', longitude)) AS count FROM reports r
+        WHERE status = 'resolved' AND spatial_density_count > 0 AND latitude IS NOT NULL AND longitude IS NOT NULL AND $scopeWhere");
+    $kpiStmt->execute($scopeParams);
+    $resolvedHotspots = (int)$kpiStmt->fetchColumn();
+} catch (Exception $e) {}
+
+// ------------------------------------------------------------
+// 2. ACTIVE HAZARDS (map section)
+// ------------------------------------------------------------
+$activeReports = [];
+try {
+    $mapStmt = $db->prepare("SELECT r.id, r.title, r.severity_score, r.risk_level, r.status, r.location_address,
+            COALESCE(c.name, '') AS category_name, COALESCE(b.name, '') AS barangay_name
+        FROM reports r
+        LEFT JOIN categories c ON c.id = r.category_id
+        LEFT JOIN barangays b ON b.id = r.barangay_id
+        WHERE $scopeWhere $activeStatusSql
+          AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL AND r.latitude != 0 AND r.longitude != 0
+        ORDER BY r.severity_score DESC
+        LIMIT 500");
+    $mapStmt->execute($scopeParams);
+    $activeReports = $mapStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {}
+
+// ------------------------------------------------------------
+// 3. SEVERITY DISTRIBUTION
+// ------------------------------------------------------------
+$severityBands = getSeverityBands();
+$severityTiers = ['low' => 0, 'medium' => 0, 'high' => 0, 'critical' => 0];
+try {
+    $tierStmt = $db->prepare("SELECT severity_score FROM reports r WHERE $scopeWhere $activeStatusSql AND severity_score IS NOT NULL");
+    $tierStmt->execute($scopeParams);
+    while ($row = $tierStmt->fetch(PDO::FETCH_ASSOC)) {
+        $severityTiers[getRiskLevelFromScore($row['severity_score'])]++;
+    }
+} catch (Exception $e) {}
+$severityTotal = array_sum($severityTiers);
+
+// ------------------------------------------------------------
+// 4. SEASONAL / MONTHLY TRENDS
 // ------------------------------------------------------------
 $monthlyCounts = [];
-$monthStmt = $db->prepare("
-    SELECT DATE_FORMAT(r.created_at, '%Y-%m') AS ym, COUNT(*) AS total
-    FROM reports r
-    WHERE r.created_at >= :start $catSql$filterSql$endSql
-    GROUP BY ym
-    ORDER BY ym ASC
-");
-$monthStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
-foreach ($monthStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-    $monthlyCounts[$row['ym']] = (int)$row['total'];
-}
+try {
+    $monthStmt = $db->prepare("SELECT DATE_FORMAT(r.created_at, '%Y-%m') AS ym, COUNT(*) AS total
+        FROM reports r WHERE $scopeWhere GROUP BY ym ORDER BY ym ASC");
+    $monthStmt->execute($scopeParams);
+    foreach ($monthStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $monthlyCounts[$row['ym']] = (int)$row['total'];
+    }
+} catch (Exception $e) {}
 
-// Chart window: 12 months for year/all, 3 months for month/week,
-// and for custom ranges scale with the span (capped at 12 months).
 if ($range === 'custom') {
     $spanMonths  = max(0, (strtotime($to) - strtotime($from)) / (30.4 * 86400));
     $monthWindow = max(3, min(12, (int)ceil($spanMonths)));
@@ -191,66 +315,74 @@ $seriesData = [];
 foreach ($monthKeys as $k) {
     $seriesData[] = $monthlyCounts[$k] ?? 0;
 }
+$totalCount = array_sum($seriesData);
 
 // ------------------------------------------------------------
-// 2. KPI METRICS
+// 5. BARANGAY PERFORMANCE LEADERBOARD
 // ------------------------------------------------------------
-// Total Count (within the selected date window + category filter)
-$totalStmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE r.created_at >= :start $catSql$filterSql$endSql");
-$totalStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
-$totalCount = (int)$totalStmt->fetchColumn();
+$barangayLeaderboard = [];
+try {
+    $lbStmt = $db->prepare("SELECT b.name AS barangay_name,
+            COUNT(*) AS total_assigned,
+            SUM(CASE WHEN r.status = 'resolved' THEN 1 ELSE 0 END) AS total_resolved
+        FROM reports r JOIN barangays b ON b.id = r.barangay_id
+        WHERE $scopeWhere AND r.status NOT IN ('rejected','cancelled')
+        GROUP BY b.id, b.name");
+    $lbStmt->execute($scopeParams);
+    $barangayLeaderboard = $lbStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {}
+foreach ($barangayLeaderboard as &$brgy) {
+    $brgy['total_assigned'] = (int)$brgy['total_assigned'];
+    $brgy['total_resolved'] = (int)$brgy['total_resolved'];
+    $brgy['resolution_rate'] = $brgy['total_assigned'] > 0
+        ? round(($brgy['total_resolved'] / $brgy['total_assigned']) * 100, 1) : 0;
+}
+unset($brgy);
+usort($barangayLeaderboard, function($a, $b) {
+    if ($a['resolution_rate'] == $b['resolution_rate']) return $b['total_resolved'] <=> $a['total_resolved'];
+    return $b['resolution_rate'] <=> $a['resolution_rate'];
+});
 
-// New Period Count
-$newStmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE r.created_at >= :start $catSql$filterSql$endSql");
-$newStmt->execute([':start' => $periodStart] + $filterParams + ($endSql ? [':end' => $endDate] : []));
-$newCount = (int)$newStmt->fetchColumn();
-
-// Category Breakdown (top category)
-$topCategory = null;
-$topStmt = $db->prepare("
-    SELECT COALESCE(c.name, 'Uncategorized') AS category_name, COUNT(*) AS total
-    FROM reports r
-    LEFT JOIN categories c ON r.category_id = c.id
-    WHERE r.created_at >= :start $catSql$filterSql$endSql
-    GROUP BY c.id, c.name
-    ORDER BY total DESC
-    LIMIT 1
-");
-$topStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
-$topRow = $topStmt->fetch(PDO::FETCH_ASSOC);
-if ($topRow) {
-    $topCategory = $topRow;
-    $topCategory['share'] = $totalCount > 0 ? round(($topRow['total'] / $totalCount) * 100, 1) : 0;
+// ------------------------------------------------------------
+// 6. AVERAGE RESOLUTION TIME
+// ------------------------------------------------------------
+$avgResolutionHoursAllTime = 0;
+$avgResolutionHoursThisMonth = 0;
+$avgResolutionHoursLastMonth = 0;
+try {
+    $respScope = $isBarangay ? " AND barangay_id = " . (int)$barangayId : '';
+    $avgResolutionHoursAllTime = (float)$db->query("SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) FROM reports WHERE status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL$respScope")->fetchColumn();
+    $avgResolutionHoursThisMonth = (float)$db->query("SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) FROM reports WHERE status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL AND DATE_FORMAT(resolved_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')$respScope")->fetchColumn();
+    $avgResolutionHoursLastMonth = (float)$db->query("SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) FROM reports WHERE status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL AND DATE_FORMAT(resolved_at, '%Y-%m') = DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 MONTH), '%Y-%m')$respScope")->fetchColumn();
+} catch (Exception $e) {}
+$avgResolutionDaysAllTime = round($avgResolutionHoursAllTime / 24, 1);
+$avgResolutionDaysThisMonth = round($avgResolutionHoursThisMonth / 24, 1);
+$avgResolutionDaysLastMonth = round($avgResolutionHoursLastMonth / 24, 1);
+$resolutionTrend = 'stable';
+if ($avgResolutionDaysLastMonth > 0) {
+    $delta = round($avgResolutionDaysThisMonth - $avgResolutionDaysLastMonth, 1);
+    if ($delta > 0.5) $resolutionTrend = 'worse';
+    elseif ($delta < -0.5) $resolutionTrend = 'better';
 }
 
 // ------------------------------------------------------------
-// 3. REPORTER DEMOGRAPHICS (Resident vs Non-Resident)
+// 7. REPORTER DEMOGRAPHICS
 // ------------------------------------------------------------
 $demographics = ['resident' => 0, 'non_resident' => 0];
 $demographicsAvailable = true;
 try {
-    $demStmt = $db->prepare("
-        SELECT u.residency_status AS status_type, COUNT(*) AS total
-        FROM reports r
-        JOIN users u ON u.id = r.user_id
-        WHERE r.created_at >= :start $catSql$filterSql$endSql
-        GROUP BY u.residency_status
-    ");
-    $demStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
+    $demStmt = $db->prepare("SELECT u.residency_status AS status_type, COUNT(*) AS total
+        FROM reports r JOIN users u ON u.id = r.user_id WHERE $scopeWhere GROUP BY u.residency_status");
+    $demStmt->execute($scopeParams);
     foreach ($demStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $key = (strtolower($row['status_type']) === 'resident') ? 'resident' : 'non_resident';
         $demographics[$key] += (int)$row['total'];
     }
 } catch (Exception $e) {
     try {
-        $demStmt = $db->prepare("
-            SELECT u.is_resident AS status_type, COUNT(*) AS total
-            FROM reports r
-            JOIN users u ON u.id = r.user_id
-            WHERE r.created_at >= :start $catSql$filterSql$endSql
-            GROUP BY u.is_resident
-        ");
-        $demStmt->execute([':start' => $startDate] + $filterParams + ($endSql ? [':end' => $endDate] : []));
+        $demStmt = $db->prepare("SELECT u.is_resident AS status_type, COUNT(*) AS total
+            FROM reports r JOIN users u ON u.id = r.user_id WHERE $scopeWhere GROUP BY u.is_resident");
+        $demStmt->execute($scopeParams);
         foreach ($demStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $key = ((int)$row['status_type'] === 1) ? 'resident' : 'non_resident';
             $demographics[$key] += (int)$row['total'];
@@ -264,74 +396,193 @@ $residentPct    = $demographicsTotal > 0 ? round(($demographics['resident'] / $d
 $nonResidentPct = $demographicsTotal > 0 ? round(($demographics['non_resident'] / $demographicsTotal) * 100, 1) : 0;
 
 // ------------------------------------------------------------
-// 4. DYNAMIC INSIGHTS (trend highlights)
+// 8. PEAK REPORTING HOURS & DAYS
 // ------------------------------------------------------------
-function reportCountForMonth($db, $ym, $catSql, $filterSql = '', $filterParams = []) {
-    $stmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE DATE_FORMAT(r.created_at, '%Y-%m') = :ym $catSql$filterSql");
-    $stmt->execute([':ym' => $ym] + $filterParams);
-    return (int)$stmt->fetchColumn();
-}
-$curCount  = reportCountForMonth($db, date('Y-m'), $catSql, $filterSql, $filterParams);
-$prevCount = reportCountForMonth($db, date('Y-m', strtotime('first day of last month')), $catSql, $filterSql, $filterParams);
+$dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+$dayCounts = array_fill(0, 7, 0);
+$timeBuckets = ['Morning (6AM–12PM)' => 0, 'Afternoon (12PM–6PM)' => 0, 'Night (6PM–6AM)' => 0];
+try {
+    $dayStmt = $db->prepare("SELECT DAYOFWEEK(created_at) AS dow, COUNT(*) AS total FROM reports r WHERE $scopeWhere GROUP BY DAYOFWEEK(created_at)");
+    $dayStmt->execute($scopeParams);
+    while ($row = $dayStmt->fetch(PDO::FETCH_ASSOC)) {
+        $idx = (int)$row['dow'] - 1;
+        if ($idx >= 0 && $idx < 7) $dayCounts[$idx] = (int)$row['total'];
+    }
 
-$insights = [];
-if ($totalCount === 0) {
-    $insights[] = 'No reports were recorded within the selected period and category scope.';
-} else {
-    if ($prevCount > 0) {
-        $momPct = round((($curCount - $prevCount) / $prevCount) * 100, 1);
-        $dir = $momPct >= 0 ? 'increased' : 'decreased';
-        $insights[] = "Report activity {$dir} by " . number_format(abs($momPct), 1) . "% this month compared to the previous month ({$prevCount} \u{2192} {$curCount} reports).";
-    } else {
-        $insights[] = "This month recorded {$curCount} report(s) \u{2014} the first recorded activity within the selected period.";
+    $hourStmt = $db->prepare("SELECT HOUR(created_at) AS hr, COUNT(*) AS total FROM reports r WHERE $scopeWhere GROUP BY HOUR(created_at)");
+    $hourStmt->execute($scopeParams);
+    while ($row = $hourStmt->fetch(PDO::FETCH_ASSOC)) {
+        $hr = (int)$row['hr'];
+        $total = (int)$row['total'];
+        if ($hr >= 6 && $hr < 12) $timeBuckets['Morning (6AM–12PM)'] += $total;
+        elseif ($hr >= 12 && $hr < 18) $timeBuckets['Afternoon (12PM–6PM)'] += $total;
+        else $timeBuckets['Night (6PM–6AM)'] += $total;
     }
-    if ($topCategory) {
-        $insights[] = "{$topCategory['category_name']} is the leading hazard category with {$topCategory['total']} report(s) ({$topCategory['share']}% of the period total).";
-    }
-    if ($demographicsAvailable && $demographicsTotal > 0) {
-        $insights[] = "Reporter demographics are split {$demographics['resident']} resident(s) ({$residentPct}%) and {$demographics['non_resident']} non-resident(s) ({$nonResidentPct}%).";
-    }
+} catch (Exception $e) {}
+
+$peakDayTotal = max($dayCounts);
+$peakDayIndex = array_search($peakDayTotal, $dayCounts);
+$peakDayLabel = ($peakDayTotal > 0 && $peakDayIndex !== false) ? $dayLabels[$peakDayIndex] : 'N/A';
+$peakTimeTotal = max($timeBuckets);
+$peakTimeLabel = ($peakTimeTotal > 0) ? array_search($peakTimeTotal, $timeBuckets) : 'N/A';
+
+// ------------------------------------------------------------
+// 9. TOP 5 REPEAT OFFENDER LOCATIONS
+// ------------------------------------------------------------
+$repeatOffenders = [];
+$hotspot_grid_deg = max(0.000001, ((float)$kpi_hotspot_radius_meters / 100.0) * 0.0009);
+$repeat_min_sql = max(1, (int)$kpi_repeat_min_reports);
+try {
+    $stmt = $db->prepare("
+        SELECT FLOOR(r.latitude / :grid) AS grid_lat_key, FLOOR(r.longitude / :grid) AS grid_lng_key,
+            COUNT(*) AS incident_count, AVG(r.latitude) AS avg_lat, AVG(r.longitude) AS avg_lng,
+            MAX(r.title) AS sample_title, MAX(b.name) AS barangay_name,
+            GROUP_CONCAT(DISTINCT c.name SEPARATOR ', ') AS category_names
+        FROM reports r
+        JOIN categories c ON c.id = r.category_id
+        LEFT JOIN barangays b ON b.id = r.barangay_id
+        WHERE r.status = 'resolved'
+          AND (c.name LIKE '%Dump%' OR c.name LIKE '%Vandal%' OR c.name LIKE '%Litter%' OR c.name LIKE '%Illegal%')
+          AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL AND r.latitude != 0 AND r.longitude != 0
+          AND r.created_at >= :start $scopeBarangaySql$catSql$filterSql$endSql
+        GROUP BY grid_lat_key, grid_lng_key
+        HAVING incident_count > :min
+        ORDER BY incident_count DESC
+        LIMIT 5
+    ");
+    $stmt->bindValue(':grid', $hotspot_grid_deg);
+    $stmt->bindValue(':min', $repeat_min_sql, PDO::PARAM_INT);
+    foreach ($scopeParams as $k => $v) $stmt->bindValue($k, $v);
+    $stmt->execute();
+    $repeatOffenders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $repeatOffenders = [];
 }
 
 // ------------------------------------------------------------
-// 5. ORGANIZATION / PDF EXPORT SETTINGS
+// ORGANIZATION / PDF EXPORT SETTINGS ("Prepared by" = auto account name)
 // ------------------------------------------------------------
-$lguLogo       = SettingsHelper::getLogoUrl();
-$menroLogoPath = SettingsHelper::get('menro_logo', '');
-$menroLogo     = $menroLogoPath ? BASE_URL . $menroLogoPath : '';
-$systemName    = SettingsHelper::get('system_name', 'SIERRA');
-$generatedBy   = $_SESSION['user_name'] ?? 'System Admin';
-$generatedOn   = date('F j, Y \a\t h:i A');
+$pdfCfg        = getPdfExportConfig($db);
+$lguLogo       = $pdfCfg['lgu_logo'];
+$menroLogo     = $pdfCfg['right_logo'];
+$systemName    = $pdfCfg['system_name'];
+$generatedBy   = $pdfCfg['generated_by'];
+$generatedOn   = $pdfCfg['generated_on'];
+$officeName    = $pdfCfg['office_name'];
+$municipality  = $pdfCfg['municipality'];
+$preparedBy    = $pdfCfg['prepared_by'];
+$preparedTitle = $pdfCfg['prepared_title'];
+$approvedBy    = $pdfCfg['approved_by'];
+$approvedTitle = $pdfCfg['approved_title'];
+$footerNote    = $pdfCfg['footer_note'];
 
-// PDF Export settings (Settings > PDF Export)
-$officeName    = SettingsHelper::get('pdf_office_name', 'Municipal Environment and Natural Resources Office');
-$municipality  = SettingsHelper::get('pdf_municipality_name', 'Municipality of San Isidro');
-$preparedBy    = SettingsHelper::get('pdf_prepared_by_name', '');
-$preparedTitle = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
-$approvedBy    = SettingsHelper::get('pdf_approved_by_name', '');
-$approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
-$footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
+$headerLine1 = $pdfCfg['header_lines'][0];
+$headerLine2 = $pdfCfg['header_lines'][1];
+$headerLine3 = $pdfCfg['header_lines'][2];
+$headerLine4 = $pdfCfg['header_lines'][3];
 
-// Determine if this is a barangay user
-$isBarangay = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'barangay_official');
-$barangayName = '';
-if ($isBarangay && isset($_SESSION['barangay_id'])) {
-    $barangayModel = new Barangay($db);
-    $brgyInfo = $barangayModel->getById($_SESSION['barangay_id']);
-    $barangayName = $brgyInfo['name'] ?? '';
-}
+// ------------------------------------------------------------
+// CSV EXPORT
+// ------------------------------------------------------------
+if ($format === 'csv') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . ($isBarangay ? 'barangay' : 'menro') . '_analytics_report_' . date('Y-m-d_His') . '.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
 
-// Header text based on role
-if ($isBarangay) {
-    $headerLine1 = 'Republic of the Philippines';
-    $headerLine2 = 'Province of Nueva Ecija';
-    $headerLine3 = $municipality;
-    $headerLine4 = 'Barangay ' . htmlspecialchars($barangayName);
-} else {
-    $headerLine1 = 'Republic of the Philippines';
-    $headerLine2 = $officeName;
-    $headerLine3 = $municipality;
-    $headerLine4 = 'San Isidro, Nueva Ecija';
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF");
+
+    fputcsv($out, [$reportBrand]);
+    fputcsv($out, ['System', $systemName]);
+    fputcsv($out, ['Generated On', $generatedOn]);
+    fputcsv($out, ['Date Range', $rangeText]);
+    fputcsv($out, ['Period', $periodLabel]);
+    if (!empty($cats)) fputcsv($out, ['Categories', count($cats) . ' selected']);
+    fputcsv($out, []);
+
+    foreach ($sections as $sec) {
+        fputcsv($out, [strtoupper($sectionLabels[$sec])]);
+        switch ($sec) {
+            case 'kpi':
+                fputcsv($out, ['Active Hotspots', $activeHotspots]);
+                fputcsv($out, ['Avg Municipal Risk', $avgRisk]);
+                fputcsv($out, ['Critical Escalations', $criticalCount]);
+                fputcsv($out, ['Resolved Hotspots', $resolvedHotspots]);
+                break;
+            case 'map':
+                fputcsv($out, ['ID', 'Title', 'Category', 'Barangay', 'Severity', 'Risk Level', 'Status', 'Address']);
+                foreach ($activeReports as $r) {
+                    fputcsv($out, [
+                        '#' . str_pad($r['id'], 5, '0', STR_PAD_LEFT),
+                        $r['title'], $r['category_name'], $r['barangay_name'],
+                        $r['severity_score'] ?? 0,
+                        $riskLabels[$r['risk_level']] ?? $r['risk_level'],
+                        $statusLabels[$r['status']] ?? $r['status'],
+                        $r['location_address'] ?? ''
+                    ]);
+                }
+                break;
+            case 'severity':
+                fputcsv($out, ['Risk Level', 'Count', 'Share']);
+                foreach (['low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'] as $lvl => $lbl) {
+                    $share = $severityTotal > 0 ? round(($severityTiers[$lvl] / $severityTotal) * 100, 1) . '%' : '0%';
+                    fputcsv($out, [$lbl, $severityTiers[$lvl], $share]);
+                }
+                break;
+            case 'seasonal':
+                fputcsv($out, ['Month', 'Total Reports']);
+                foreach ($monthKeys as $i => $k) {
+                    fputcsv($out, [date('F Y', strtotime($k . '-01')), $seriesData[$i]]);
+                }
+                break;
+            case 'leaderboard':
+                fputcsv($out, ['Rank', 'Barangay', 'Assigned', 'Resolved', 'Resolution Rate']);
+                foreach ($barangayLeaderboard as $i => $b) {
+                    fputcsv($out, [$i + 1, $b['barangay_name'], $b['total_assigned'], $b['total_resolved'], $b['resolution_rate'] . '%']);
+                }
+                break;
+            case 'response':
+                fputcsv($out, ['Average Resolution Time (All Time, Days)', $avgResolutionDaysAllTime]);
+                fputcsv($out, ['This Month (Days)', $avgResolutionDaysThisMonth]);
+                fputcsv($out, ['Last Month (Days)', $avgResolutionDaysLastMonth]);
+                fputcsv($out, ['Trend', ucfirst($resolutionTrend)]);
+                break;
+            case 'demographics':
+                fputcsv($out, ['Group', 'Count', 'Share']);
+                fputcsv($out, ['Resident', $demographics['resident'], $residentPct . '%']);
+                fputcsv($out, ['Non-Resident', $demographics['non_resident'], $nonResidentPct . '%']);
+                break;
+            case 'peak':
+                fputcsv($out, ['Day of Week', 'Reports']);
+                foreach ($dayLabels as $i => $d) fputcsv($out, [$d, $dayCounts[$i]]);
+                fputcsv($out, []);
+                fputcsv($out, ['Time of Day', 'Reports']);
+                foreach ($timeBuckets as $tb => $c) fputcsv($out, [$tb, $c]);
+                fputcsv($out, ['Peak Day', $peakDayLabel]);
+                fputcsv($out, ['Peak Time', $peakTimeLabel]);
+                break;
+            case 'repeat':
+                fputcsv($out, ['Rank', 'Sample Title', 'Categories', 'Barangay', 'Incidents', 'Latitude', 'Longitude']);
+                foreach ($repeatOffenders as $i => $spot) {
+                    fputcsv($out, [
+                        $i + 1,
+                        $spot['sample_title'] ?? '',
+                        $spot['category_names'] ?? '',
+                        $spot['barangay_name'] ?? '',
+                        (int)($spot['incident_count'] ?? 0),
+                        round((float)($spot['avg_lat'] ?? 0), 5),
+                        round((float)($spot['avg_lng'] ?? 0), 5)
+                    ]);
+                }
+                break;
+        }
+        fputcsv($out, []);
+    }
+
+    fputcsv($out, ['End of report. Generated by SIERRA Environmental Reporting System.']);
+    fclose($out);
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -342,300 +593,212 @@ if ($isBarangay) {
     <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MENRO Environmental Hazard Report - Sierra</title>
+    <title><?php echo $isBarangay ? 'Barangay' : 'MENRO'; ?> Analytics Report - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Manrope', Arial, sans-serif;
-            background: #eef2f1;
-            color: #1f2937;
-            font-size: 12px;
-        }
+        body { font-family: 'Manrope', Arial, sans-serif; background: #eef2f1; color: #1f2937; font-size: 12px; }
 
-        /* ===== Screen-only toolbar ===== */
-        .toolbar {
-            max-width: 210mm;
-            margin: 16px auto 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .toolbar button {
-            background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .toolbar { max-width: 210mm; margin: 16px auto 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .toolbar button { background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
         .toolbar button:hover { box-shadow: 0 4px 12px rgba(16,163,127,0.3); }
-        .toolbar a {
-            color: #374151;
-            font-size: 12px;
-            font-weight: 600;
-            text-decoration: none;
-            padding: 8px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            background: #fff;
-        }
+        .toolbar a { color: #374151; font-size: 12px; font-weight: 600; text-decoration: none; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
         .toolbar .hint { color: #6b7280; font-size: 11px; }
 
-        /* ===== Screen-only filter controls ===== */
-        .controls {
-            max-width: 210mm;
-            margin: 0 auto 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 10px 14px;
-        }
+        .controls { max-width: 210mm; margin: 0 auto 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; }
         .controls label { font-size: 12px; font-weight: 600; color: #374151; }
-        .controls input[type="date"], .controls select {
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            padding: 6px 8px;
-            font-size: 12px;
-            font-family: inherit;
-            background: #fff;
-            color: #1f2937;
-        }
-        .controls .btn-generate {
-            background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .controls input[type="date"], .controls select { border: 1px solid #d1d5db; border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: inherit; background: #fff; color: #1f2937; }
+        .controls .btn-generate { background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
         .controls .btn-generate:hover { box-shadow: 0 4px 12px rgba(16,163,127,0.3); }
-        .filter-summary-bar {
-            max-width: 210mm;
-            margin: 0 auto 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            align-items: center;
-            background: #f4faf7;
-            border: 1px solid #dff0e9;
-            border-radius: 8px;
-            padding: 6px 12px;
-        }
+        .filter-summary-bar { max-width: 210mm; margin: 0 auto 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: #f4faf7; border: 1px solid #dff0e9; border-radius: 8px; padding: 6px 12px; }
         .filter-summary-bar .fs-label { font-size: 10px; font-weight: 700; color: #0D8568; text-transform: uppercase; letter-spacing: 0.05em; }
         .filter-summary-bar .fs-chip { background: #d1fae5; color: #065f46; border-radius: 999px; padding: 2px 10px; font-size: 10px; font-weight: 600; }
 
-        /* ===== Report page (A4 portrait) ===== */
-        .report {
-            width: 210mm;
-            min-height: 297mm;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 12mm 14mm;
-        }
+        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; }
 
-        /* Official LGU header */
-        .report-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #10A37F;
-        }
-        .logo-box {
-            width: 24mm;
-            height: 24mm;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
+        .report-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 10px; border-bottom: 3px solid #10A37F; }
+        .logo-box { width: 24mm; height: 24mm; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .logo-box img { max-width: 24mm; max-height: 24mm; object-fit: contain; }
-        .logo-placeholder {
-            width: 24mm;
-            height: 24mm;
-            border: 1px dashed #d1d5db;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #9ca3af;
-            font-size: 8px;
-            text-align: center;
-        }
+        .logo-placeholder { width: 24mm; height: 24mm; border: 1px dashed #d1d5db; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 8px; text-align: center; }
         .org-block { flex: 1; text-align: center; padding: 0 6px; }
         .org-line1 { font-size: 10px; letter-spacing: 0.12em; color: #4b5563; text-transform: uppercase; }
         .org-name { font-size: 15px; font-weight: 800; color: #111827; margin-top: 2px; line-height: 1.25; }
         .org-muni { font-size: 11px; color: #374151; margin-top: 2px; font-weight: 600; }
-        .org-contact { font-size: 10px; color: #6b7280; margin-top: 2px; }
 
-        /* Title & metadata */
         .report-title-block { text-align: center; margin: 12px 0 14px; }
         .report-title { font-size: 19px; font-weight: 800; letter-spacing: 0.02em; color: #0D8568; }
         .report-subtitle { font-size: 11px; color: #4b5563; margin-top: 3px; font-weight: 600; }
-        .report-meta {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 8px;
-            font-size: 10px;
-            color: #6b7280;
-        }
-        .report-meta span {
-            background: #f4faf7;
-            border: 1px solid #dff0e9;
-            border-radius: 999px;
-            padding: 3px 10px;
-        }
+        .report-meta { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: 10px; color: #6b7280; }
+        .report-meta span { background: #f4faf7; border: 1px solid #dff0e9; border-radius: 999px; padding: 3px 10px; }
 
-        /* KPI stat cards */
-        .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .kpi-card {
-            border: 1px solid #e5e7eb;
-            border-top: 4px solid #10A37F;
-            border-radius: 8px;
-            padding: 10px 12px;
-            background: #fafcfb;
-        }
+        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .kpi-card { border: 1px solid #e5e7eb; border-top: 4px solid #10A37F; border-radius: 8px; padding: 10px 12px; background: #fafcfb; text-align: center; }
         .kpi-card .kpi-label { font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
         .kpi-card .kpi-value { font-size: 24px; font-weight: 800; color: #111827; margin-top: 2px; line-height: 1.1; }
-        .kpi-card .kpi-sub { font-size: 10px; color: #6b7280; margin-top: 2px; }
-        .kpi-blue   { border-top-color: #3B82F6; }
-        .kpi-amber  { border-top-color: #F59E0B; }
 
-        /* Charts */
+        .section { margin-top: 12px; break-inside: avoid; }
+        .section-heading { font-size: 13px; font-weight: 800; color: #0D8568; text-transform: uppercase; letter-spacing: 0.03em; padding: 6px 10px; background: #f4faf7; border: 1px solid #dff0e9; border-left: 5px solid #10A37F; border-radius: 6px; margin-bottom: 8px; }
         .charts-row { display: grid; grid-template-columns: 1.25fr 1fr; gap: 10px; margin-top: 10px; }
         .chart-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; }
         .chart-heading { font-size: 11px; font-weight: 700; color: #1f2937; margin-bottom: 6px; }
         .chart-wrap { height: 210px; position: relative; }
 
-        /* Insights callout */
-        .insight-box {
-            margin-top: 10px;
-            border: 1px solid #fde68a;
-            border-left: 5px solid #F59E0B;
-            background: #fffbeb;
-            border-radius: 8px;
-            padding: 10px 14px;
-        }
-        .insight-label { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: #92400E; text-transform: uppercase; margin-bottom: 4px; }
-        .insight-box ul { margin: 0; padding-left: 16px; }
-        .insight-box li { font-size: 11px; color: #78350F; line-height: 1.55; }
+        table.data { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        table.data th { background: #f4faf7; color: #374151; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; text-align: left; padding: 5px 7px; border: 1px solid #dff0e9; }
+        table.data td { padding: 4px 7px; border: 1px solid #e5e7eb; font-size: 10px; vertical-align: top; }
+        table.data tr:nth-child(even) td { background: #fafcfb; }
+        .mono { font-family: Consolas, monospace; font-size: 9.5px; }
 
-        /* Signature block */
-        .signature-block {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            margin-top: 34px;
-            padding-top: 12px;
-            border-top: 1px solid #e5e7eb;
-        }
+        .badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 8px; font-weight: 700; }
+        .badge-low { background: #d1fae5; color: #065f46; }
+        .badge-medium { background: #fef3c7; color: #92400e; }
+        .badge-high { background: #ffedd5; color: #9a3412; }
+        .badge-critical { background: #fee2e2; color: #991b1b; }
+
+        .empty-note { text-align: center; color: #9ca3af; font-size: 11px; padding: 12px 0; }
+
+        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
         .sig-label { font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
         .sig-line { border-bottom: 1px solid #374151; margin-top: 30px; }
         .sig-name { font-size: 12px; font-weight: 700; color: #111827; margin-top: 4px; text-align: center; }
         .sig-title { font-size: 10px; color: #6b7280; text-align: center; }
 
-        /* Content footer (screen + fallback for print engines without @page margin boxes) */
-        .report-footer {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 22px;
-            padding-top: 8px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 9px;
-            color: #6b7280;
-        }
+        .report-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-top: 22px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #6b7280; }
         .report-footer .brand { font-weight: 700; color: #0D8568; }
-        .report-footer-note {
-            margin-top: 6px;
-            text-align: center;
-            font-size: 8px;
-            color: #9ca3af;
-        }
+        .report-footer-note { margin-top: 6px; text-align: center; font-size: 8px; color: #9ca3af; }
 
-        /* ===== DEDICATED A4 PRINT / EXPORT LAYOUT ===== */
-        @page {
-            size: A4 portrait;
-            margin: 14mm 14mm 20mm;
-        }
+        /* ===== Screen-only filter sidebar (main-sidebar style) ===== */
+        .page-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
+        .filter-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid rgba(16,163,127,0.12); box-shadow: 2px 0 20px -8px rgba(16,163,127,0.18); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
+        .sidebar-head { padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
+        .sidebar-head .head-title { font-size: 14px; font-weight: 800; color: #111827; }
+        .sidebar-head .head-sub { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
+        .sidebar-form { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
+        .sidebar-group { display: flex; flex-direction: column; gap: 10px; }
+        .sidebar-group-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+        .filter-field { display: flex; flex-direction: column; gap: 4px; }
+        .filter-field label { font-size: 11px; font-weight: 600; color: #374151; }
+        .filter-field select, .filter-field input { width: 100%; padding: 9px 10px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 12.5px; font-family: inherit; background: #fff; color: #1f2937; transition: all 0.15s ease; }
+        .filter-field select:hover, .filter-field input:hover { border-color: #d1d5db; }
+        .filter-field select:focus, .filter-field input:focus { border-color: #10A37F; outline: none; box-shadow: 0 0 0 3px rgba(16,163,127,0.12); }
+        .section-check-list { display: flex; flex-direction: column; gap: 2px; }
+        .section-check { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; transition: background 0.12s ease; font-size: 12px; color: #374151; font-weight: 500; }
+        .section-check:hover { background: #F0FBF6; }
+        .section-check input { accent-color: #10A37F; width: 15px; height: 15px; cursor: pointer; }
+        .sidebar-footer { padding: 14px 16px; border-top: 1px solid #f3f4f6; background: #fff; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .btn-apply { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
+        .btn-apply:hover { box-shadow: 0 6px 16px rgba(16,163,127,0.35); transform: translateY(-1px); }
+        .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
+        .btn-reset:hover { color: #EF4444; border-color: #EF4444; background: #FEF2F2; }
+        .page-main { flex: 1; min-width: 0; padding: 16px; }
+        @media (max-width: 900px) { .page-wrap { flex-direction: column; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }
+
+        @page { size: A4 portrait; margin: 14mm 14mm 20mm; }
         @media print {
             body { background: #ffffff !important; }
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .filter-sidebar { display: none !important; }
+            .page-wrap { display: block; padding: 0; }
+            .page-main { padding: 0; }
             .toolbar { display: none !important; }
-            .controls, .filter-summary-bar { display: none !important; }
-            .report {
-                width: 100%;
-                min-height: 0;
-                margin: 0;
-                padding: 0;
-                box-shadow: none;
-            }
-            .kpi-card, .chart-card, .insight-box, .signature-block, .report-header, .report-title-block { break-inside: avoid; }
+            .filter-summary-bar { display: none !important; }
+            .report { width: 100%; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
+            .kpi-card, .chart-card, .section, .signature-block, .report-header, .report-title-block { break-inside: avoid; }
             .chart-wrap { height: 200px; }
         }
     </style>
-    </head>
+</head>
 <body>
-    <!-- Screen-only toolbar (hidden on print) -->
-    <div class="toolbar">
-        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
-        <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
-        <a href="<?php echo BASE_URL; ?>index.php?page=dashboard">&larr; Back to Dashboard</a>
-        <span class="hint">Tip: choose "Save as PDF" as the printer destination for an A4 PDF export.</span>
-    </div>
+    <div class="page-wrap">
+        <aside class="filter-sidebar">
+            <div class="sidebar-head">
+                <div class="head-icon"><i class="fas fa-sliders-h"></i></div>
+                <div>
+                    <div class="head-title">Filters</div>
+                    <div class="head-sub">Refine report</div>
+                </div>
+            </div>
+            <form class="sidebar-form" method="get" action="<?php echo BASE_URL; ?>index.php" onsubmit="return validateSections()">
+                <input type="hidden" name="page" value="<?php echo $isBarangay ? 'barangay-dashboard-report' : 'dashboard-report'; ?>">
+                <input type="hidden" name="range" value="<?php echo htmlspecialchars($range); ?>">
+                <input type="hidden" name="cats" value="<?php echo htmlspecialchars(implode(',', $cats)); ?>">
+                <div class="sidebar-body">
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Analytics to include</div>
+                        <label class="section-check">
+                            <input type="checkbox" id="sectionAll" <?php echo count($sections) === count($sectionLabels) ? 'checked' : ''; ?>>
+                            <strong>Select All</strong>
+                        </label>
+                        <div class="section-check-list">
+                            <?php foreach ($sectionLabels as $secId => $secLabel): ?>
+                            <label class="section-check">
+                                <input type="checkbox" class="section-cb" name="sections[]" value="<?php echo htmlspecialchars($secId); ?>" <?php echo in_array($secId, $sections, true) ? 'checked' : ''; ?>>
+                                <?php echo htmlspecialchars($secLabel); ?>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Date</div>
+                        <div class="filter-field">
+                            <label for="sideFrom">Date From</label>
+                            <input type="date" name="from" id="sideFrom" value="<?php echo htmlspecialchars($from); ?>">
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideTo">Date To</label>
+                            <input type="date" name="to" id="sideTo" value="<?php echo htmlspecialchars($to); ?>">
+                        </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Filters</div>
+                        <div class="filter-field">
+                            <label for="sideStatus">Status</label>
+                            <select name="status" id="sideStatus">
+                                <?php foreach ($statusLabels as $val => $label): ?>
+                                <option value="<?php echo htmlspecialchars($val); ?>" <?php echo $statusFilter === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideRisk">Risk</label>
+                            <select name="risk" id="sideRisk">
+                                <?php foreach ($riskLabels as $val => $label): ?>
+                                <option value="<?php echo htmlspecialchars($val); ?>" <?php echo $riskFilter === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php if (!$isBarangay): ?>
+                        <div class="filter-field">
+                            <label for="sideBarangay">Barangay</label>
+                            <select name="barangay" id="sideBarangay">
+                                <option value="0" <?php echo $barangayFilter === 0 ? 'selected' : ''; ?>>All Barangays</option>
+                                <?php foreach ($barangayList as $brgy): ?>
+                                <option value="<?php echo (int)$brgy['id']; ?>" <?php echo $barangayFilter === (int)$brgy['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($brgy['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="sidebar-footer">
+                    <button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Apply Filters</button>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=<?php echo $isBarangay ? 'barangay-dashboard-report' : 'dashboard-report'; ?>&range=<?php echo htmlspecialchars($range); ?>&cats=<?php echo htmlspecialchars(implode(',', $cats)); ?>" class="btn-reset"><i class="fas fa-undo"></i> Reset</a>
+                </div>
+            </form>
+        </aside>
 
-    <!-- Screen-only filter controls (hidden on print) -->
-    <form class="controls" method="get" action="<?php echo BASE_URL; ?>index.php">
-        <input type="hidden" name="page" value="dashboard-report">
-        <input type="hidden" name="range" value="<?php echo htmlspecialchars($range); ?>">
-        <label>From <input type="date" name="from" value="<?php echo htmlspecialchars($from); ?>"></label>
-        <label>To <input type="date" name="to" value="<?php echo htmlspecialchars($to); ?>"></label>
-        <label>Status
-            <select name="status">
-                <?php foreach ($statusLabels as $val => $label): ?>
-                <option value="<?php echo htmlspecialchars($val); ?>" <?php echo $statusFilter === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Risk
-            <select name="risk">
-                <?php foreach ($riskLabels as $val => $label): ?>
-                <option value="<?php echo htmlspecialchars($val); ?>" <?php echo $riskFilter === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Barangay
-            <select name="barangay">
-                <option value="0" <?php echo $barangayFilter === 0 ? 'selected' : ''; ?>>All Barangays</option>
-                <?php foreach ($barangayList as $brgy): ?>
-                <option value="<?php echo (int)$brgy['id']; ?>" <?php echo $barangayFilter === (int)$brgy['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($brgy['name']); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <button type="submit" class="btn-generate"><i class="fas fa-sync-alt" style="margin-right:6px;"></i>Generate Report</button>
-    </form>
+        <div class="page-main">
+            <div class="toolbar">
+                <a href="<?php echo BASE_URL; ?>index.php?page=dashboard"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>Back</a>
+                <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
+                <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
+                <span class="hint">Tip: choose "Save as PDF" as the printer destination for an A4 PDF export.</span>
+            </div>
 
     <?php
     $filterChips = [];
@@ -661,14 +824,9 @@ if ($isBarangay) {
     <?php endif; ?>
 
     <div class="report">
-        <!-- ===== Official LGU Header ===== -->
         <header class="report-header">
             <div class="logo-box">
-                <?php if ($lguLogo): ?>
-                    <img src="<?php echo htmlspecialchars($lguLogo); ?>" alt="LGU Logo">
-                <?php else: ?>
-                    <div class="logo-placeholder">LGU<br>Logo</div>
-                <?php endif; ?>
+                <?php if ($lguLogo): ?><img src="<?php echo htmlspecialchars($lguLogo); ?>" alt="LGU Logo"><?php else: ?><div class="logo-placeholder">LGU<br>Logo</div><?php endif; ?>
             </div>
             <div class="org-block">
                 <div class="org-line1"><?php echo $headerLine1; ?></div>
@@ -677,86 +835,176 @@ if ($isBarangay) {
                 <div class="org-muni"><?php echo $headerLine4; ?></div>
             </div>
             <div class="logo-box">
-                <?php if ($menroLogo): ?>
-                    <img src="<?php echo htmlspecialchars($menroLogo); ?>" alt="MENRO Logo">
-                <?php else: ?>
-                    <div class="logo-placeholder">MENRO<br>Logo</div>
-                <?php endif; ?>
+                <?php if ($menroLogo): ?><img src="<?php echo htmlspecialchars($menroLogo); ?>" alt="<?php echo htmlspecialchars($pdfCfg['right_logo_alt']); ?> Logo"><?php else: ?><div class="logo-placeholder"><?php echo htmlspecialchars($pdfCfg['right_logo_alt']); ?><br>Logo</div><?php endif; ?>
             </div>
         </header>
 
-        <!-- ===== Report Title & Metadata ===== -->
         <div class="report-title-block">
-            <div class="report-title">MENRO ENVIRONMENTAL HAZARD REPORT</div>
+            <div class="report-title"><?php echo htmlspecialchars($reportBrand); ?></div>
             <div class="report-subtitle"><?php echo htmlspecialchars($rangeLabel); ?> Decision Support Report &middot; <?php echo htmlspecialchars($municipality); ?></div>
             <div class="report-meta">
-                <span><strong>Date Range:</strong> <?php echo date('M j, Y', strtotime($startDate)); ?> &ndash; <?php echo date('M j, Y', strtotime($endDate)); ?></span>
+                <span><strong>Date Range:</strong> <?php echo htmlspecialchars($rangeText); ?></span>
                 <span><strong>Period:</strong> <?php echo htmlspecialchars($periodLabel); ?></span>
-                <?php if ($statusFilter !== 'all'): ?><span><strong>Status:</strong> <?php echo htmlspecialchars($statusLabels[$statusFilter]); ?></span><?php endif; ?>
-                <?php if ($riskFilter !== 'all'): ?><span><strong>Risk:</strong> <?php echo htmlspecialchars($riskLabels[$riskFilter]); ?></span><?php endif; ?>
-                <?php if ($barangayFilter > 0): ?>
-                    <?php $brgyNameForMeta = ''; foreach ($barangayList as $b) { if ((int)$b['id'] === $barangayFilter) { $brgyNameForMeta = $b['name']; break; } } ?>
-                    <span><strong>Barangay:</strong> <?php echo htmlspecialchars($brgyNameForMeta); ?></span>
-                <?php endif; ?>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
                 <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
             </div>
         </div>
 
-        <!-- ===== KPI Stat Cards ===== -->
-        <div class="kpi-row">
-            <div class="kpi-card">
-                <div class="kpi-label">Total Count</div>
-                <div class="kpi-value"><?php echo number_format($totalCount); ?></div>
-                <div class="kpi-sub">Reports in selected period</div>
-            </div>
-            <div class="kpi-card kpi-blue">
-                <div class="kpi-label">New <?php echo htmlspecialchars($periodLabel); ?></div>
-                <div class="kpi-value"><?php echo number_format($newCount); ?></div>
-                <div class="kpi-sub"><?php echo htmlspecialchars($periodLabel); ?> new reports</div>
-            </div>
-            <div class="kpi-card kpi-amber">
-                <div class="kpi-label">Category Breakdown</div>
-                <div class="kpi-value" style="font-size:16px; padding-top:6px;"><?php echo $topCategory ? htmlspecialchars($topCategory['category_name']) : '&mdash;'; ?></div>
-                <div class="kpi-sub"><?php echo $topCategory ? 'Top category &middot; ' . number_format($topCategory['total']) . ' report(s) &middot; ' . $topCategory['share'] . '% of total' : 'No category data'; ?></div>
+        <?php if (in_array('kpi', $sections, true)): ?>
+        <div class="section">
+            <div class="section-heading"><?php echo htmlspecialchars($sectionLabels['kpi']); ?></div>
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">Active Hotspots</div><div class="kpi-value"><?php echo $activeHotspots; ?></div></div>
+                <div class="kpi-card"><div class="kpi-label">Avg Municipal Risk</div><div class="kpi-value"><?php echo $avgRisk; ?></div></div>
+                <div class="kpi-card"><div class="kpi-label">Critical Escalations</div><div class="kpi-value"><?php echo $criticalCount; ?></div></div>
+                <div class="kpi-card"><div class="kpi-label">Resolved Hotspots</div><div class="kpi-value"><?php echo $resolvedHotspots; ?></div></div>
             </div>
         </div>
+        <?php endif; ?>
 
-        <!-- ===== Charts: Monthly Transactional + Demographics ===== -->
+        <?php if (in_array('map', $sections, true)): ?>
+        <div class="section">
+            <div class="section-heading"><?php echo htmlspecialchars($sectionLabels['map']); ?></div>
+            <?php if (empty($activeReports)): ?>
+                <div class="empty-note">No active hazards match the selected filters.</div>
+            <?php else: ?>
+            <table class="data">
+                <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Barangay</th><th>Severity</th><th>Risk</th><th>Status</th></tr></thead>
+                <tbody>
+                    <?php foreach ($activeReports as $r): ?>
+                    <tr>
+                        <td class="mono">#<?php echo str_pad($r['id'], 5, '0', STR_PAD_LEFT); ?></td>
+                        <td><?php echo htmlspecialchars($r['title']); ?></td>
+                        <td><?php echo htmlspecialchars($r['category_name']); ?></td>
+                        <td><?php echo htmlspecialchars($r['barangay_name']); ?></td>
+                        <td><?php echo $r['severity_score'] ?? 0; ?></td>
+                        <td><span class="badge badge-<?php echo $r['risk_level']; ?>"><?php echo $riskLabels[$r['risk_level']] ?? ucfirst($r['risk_level']); ?></span></td>
+                        <td><?php echo htmlspecialchars($statusLabels[$r['status']] ?? $r['status']); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (in_array('severity', $sections, true) || in_array('seasonal', $sections, true)): ?>
         <div class="charts-row">
+            <?php if (in_array('severity', $sections, true)): ?>
             <div class="chart-card">
-                <div class="chart-heading"><i class="fas fa-chart-bar" style="color:#10A37F; margin-right:6px;"></i>Transactional Report &mdash; Grouped by Month</div>
-                <div class="chart-wrap"><canvas id="monthlyChart"></canvas></div>
+                <div class="chart-heading"><i class="fas fa-chart-pie" style="color:#10A37F; margin-right:6px;"></i><?php echo htmlspecialchars($sectionLabels['severity']); ?></div>
+                <div class="chart-wrap"><canvas id="severityChart"></canvas></div>
             </div>
+            <?php endif; ?>
+            <?php if (in_array('seasonal', $sections, true)): ?>
             <div class="chart-card">
-                <div class="chart-heading"><i class="fas fa-chart-pie" style="color:#10A37F; margin-right:6px;"></i>Reporter Demographics</div>
-                <div class="chart-wrap">
-                    <?php if ($demographicsAvailable && $demographicsTotal > 0): ?>
-                        <canvas id="demographicsChart"></canvas>
-                    <?php else: ?>
-                        <div style="height:100%; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:11px; text-align:center;">Demographic data not available.</div>
-                    <?php endif; ?>
-                </div>
-                <?php if ($demographicsAvailable && $demographicsTotal > 0): ?>
-                <div style="display:flex; justify-content:center; gap:16px; margin-top:6px; font-size:10px;">
-                    <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10A37F; margin-right:4px;"></span>Resident (<?php echo $residentPct; ?>%)</span>
-                    <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#F59E0B; margin-right:4px;"></span>Non-Resident (<?php echo $nonResidentPct; ?>%)</span>
-                </div>
-                <?php endif; ?>
+                <div class="chart-heading"><i class="fas fa-chart-line" style="color:#10A37F; margin-right:6px;"></i><?php echo htmlspecialchars($sectionLabels['seasonal']); ?></div>
+                <div class="chart-wrap"><canvas id="seasonalChart"></canvas></div>
             </div>
+            <?php endif; ?>
         </div>
+        <?php endif; ?>
 
-        <!-- ===== Dynamic Insights Block ===== -->
-        <div class="insight-box">
-            <div class="insight-label"><i class="fas fa-lightbulb" style="margin-right:6px;"></i>Insight</div>
-            <ul>
-                <?php foreach ($insights as $insight): ?>
-                    <li><?php echo htmlspecialchars($insight); ?></li>
-                <?php endforeach; ?>
-            </ul>
+        <?php if (in_array('leaderboard', $sections, true)): ?>
+        <div class="section">
+            <div class="section-heading"><?php echo htmlspecialchars($sectionLabels['leaderboard']); ?></div>
+            <?php if (empty($barangayLeaderboard)): ?>
+                <div class="empty-note">No barangay data available.</div>
+            <?php else: ?>
+            <table class="data">
+                <thead><tr><th>Rank</th><th>Barangay</th><th>Assigned</th><th>Resolved</th><th>Resolution Rate</th></tr></thead>
+                <tbody>
+                    <?php foreach ($barangayLeaderboard as $i => $b): ?>
+                    <tr>
+                        <td><?php echo $i + 1; ?></td>
+                        <td><?php echo htmlspecialchars($b['barangay_name']); ?></td>
+                        <td><?php echo $b['total_assigned']; ?></td>
+                        <td><?php echo $b['total_resolved']; ?></td>
+                        <td><?php echo $b['resolution_rate']; ?>%</td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
         </div>
+        <?php endif; ?>
 
-        <!-- ===== Formal Sign-off ===== -->
+        <?php if (in_array('response', $sections, true)): ?>
+        <div class="section">
+            <div class="section-heading"><?php echo htmlspecialchars($sectionLabels['response']); ?></div>
+            <table class="data">
+                <tbody>
+                    <tr><td>All-Time Average</td><td><?php echo $avgResolutionDaysAllTime; ?> days</td></tr>
+                    <tr><td>This Month</td><td><?php echo $avgResolutionDaysThisMonth; ?> days</td></tr>
+                    <tr><td>Last Month</td><td><?php echo $avgResolutionDaysLastMonth; ?> days</td></tr>
+                    <tr><td>Trend</td><td><?php echo ucfirst($resolutionTrend); ?></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
+
+        <?php if (in_array('demographics', $sections, true)): ?>
+        <div class="section">
+            <div class="section-heading"><?php echo htmlspecialchars($sectionLabels['demographics']); ?></div>
+            <?php if (!$demographicsAvailable || $demographicsTotal === 0): ?>
+                <div class="empty-note">Demographic data not available.</div>
+            <?php else: ?>
+            <div class="charts-row" style="grid-template-columns: 1fr 1fr;">
+                <div class="chart-card">
+                    <div class="chart-wrap"><canvas id="demographicsChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <table class="data">
+                        <tbody>
+                            <tr><td>Resident</td><td><?php echo $demographics['resident']; ?> (<?php echo $residentPct; ?>%)</td></tr>
+                            <tr><td>Non-Resident</td><td><?php echo $demographics['non_resident']; ?> (<?php echo $nonResidentPct; ?>%)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (in_array('peak', $sections, true)): ?>
+        <div class="section">
+            <div class="section-heading"><?php echo htmlspecialchars($sectionLabels['peak']); ?></div>
+            <div class="chart-card">
+                <div class="chart-wrap"><canvas id="peakChart"></canvas></div>
+            </div>
+            <table class="data">
+                <tbody>
+                    <tr><td>Peak Day</td><td><?php echo htmlspecialchars($peakDayLabel); ?></td></tr>
+                    <tr><td>Peak Time</td><td><?php echo htmlspecialchars($peakTimeLabel); ?></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
+
+        <?php if (in_array('repeat', $sections, true)): ?>
+        <div class="section">
+            <div class="section-heading"><?php echo htmlspecialchars($sectionLabels['repeat']); ?></div>
+            <?php if (empty($repeatOffenders)): ?>
+                <div class="empty-note">No repeat-offender locations identified.</div>
+            <?php else: ?>
+            <table class="data">
+                <thead><tr><th>Rank</th><th>Sample Title</th><th>Categories</th><th>Barangay</th><th>Incidents</th></tr></thead>
+                <tbody>
+                    <?php foreach ($repeatOffenders as $i => $spot): ?>
+                    <tr>
+                        <td><?php echo $i + 1; ?></td>
+                        <td><?php echo htmlspecialchars($spot['sample_title'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($spot['category_names'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($spot['barangay_name'] ?? ''); ?></td>
+                        <td><?php echo (int)($spot['incident_count'] ?? 0); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
         <div class="signature-block">
             <div>
                 <div class="sig-label">Prepared by:</div>
@@ -772,70 +1020,79 @@ if ($isBarangay) {
             </div>
         </div>
 
-        <!-- ===== Audit Trail Footer ===== -->
         <footer class="report-footer">
             <span>Date Printed: <?php echo date('F j, Y'); ?></span>
             <span>Time Printed: <?php echo date('h:i A'); ?></span>
             <span class="brand"><?php echo htmlspecialchars($systemName); ?> &middot; Web-Based Environmental Reporting System</span>
         </footer>
         <div class="report-footer-note"><?php echo htmlspecialchars($footerNote); ?></div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // ------------------------------------------------------------
-        // CHARTS
-        // ------------------------------------------------------------
+        // ---- Section selection (sidebar checkboxes) ----
+        const sectionAll = document.getElementById('sectionAll');
+        const sectionCbs = document.querySelectorAll('.section-cb');
+        function syncSelectAll() {
+            if (!sectionAll) return;
+            sectionAll.checked = Array.from(sectionCbs).every(cb => cb.checked);
+        }
+        if (sectionAll) {
+            sectionAll.addEventListener('change', function() {
+                sectionCbs.forEach(cb => { cb.checked = this.checked; });
+            });
+            sectionCbs.forEach(cb => cb.addEventListener('change', syncSelectAll));
+        }
+        window.validateSections = function() {
+            const anyChecked = Array.from(sectionCbs).some(cb => cb.checked);
+            if (!anyChecked) {
+                alert('Please select at least one analytics section to include.');
+                return false;
+            }
+            return true;
+        };
+
+        const severityData = <?php echo json_encode(array_values($severityTiers)); ?>;
+        const severityLabels = <?php echo json_encode(['Low', 'Medium', 'High', 'Critical']); ?>;
         const monthlyLabels = <?php echo json_encode($monthLabels); ?>;
         const monthlyData = <?php echo json_encode($seriesData); ?>;
-
-        new Chart(document.getElementById('monthlyChart'), {
-            type: 'bar',
-            data: {
-                labels: monthlyLabels,
-                datasets: [{
-                    label: 'Reports',
-                    data: monthlyData,
-                    backgroundColor: '#10A37F',
-                    borderRadius: 3,
-                    maxBarThickness: 34
-                }]
-            },
-            options: {
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: '#e5e7eb' }, ticks: { precision: 0, font: { size: 10 } } },
-                    x: { grid: { display: false }, ticks: { font: { size: 10 } } }
-                },
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-
-        <?php if ($demographicsAvailable && $demographicsTotal > 0): ?>
         const demographicsData = <?php echo json_encode([$demographics['resident'], $demographics['non_resident']]); ?>;
-        new Chart(document.getElementById('demographicsChart'), {
+        const dayLabels = <?php echo json_encode($dayLabels); ?>;
+        const dayCounts = <?php echo json_encode($dayCounts); ?>;
+
+        <?php if (in_array('severity', $sections, true)): ?>
+        new Chart(document.getElementById('severityChart'), {
             type: 'doughnut',
-            data: {
-                labels: ['Resident', 'Non-Resident'],
-                datasets: [{
-                    data: demographicsData,
-                    backgroundColor: ['#10A37F', '#F59E0B'],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                cutout: '62%',
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
-                responsive: true,
-                maintainAspectRatio: false
-            }
+            data: { labels: severityLabels, datasets: [{ data: severityData, backgroundColor: ['#10B981', '#F59E0B', '#F97316', '#EF4444'], borderWidth: 2, borderColor: '#ffffff' }] },
+            options: { cutout: '62%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }, responsive: true, maintainAspectRatio: false }
         });
         <?php endif; ?>
 
-        // ------------------------------------------------------------
-        // AUTO-PRINT (when launched via "Export as PDF")
-        // ------------------------------------------------------------
+        <?php if (in_array('seasonal', $sections, true)): ?>
+        new Chart(document.getElementById('seasonalChart'), {
+            type: 'line',
+            data: { labels: monthlyLabels, datasets: [{ label: 'Reports', data: monthlyData, borderColor: '#10A37F', backgroundColor: 'rgba(16,163,127,0.12)', tension: 0.3, fill: true, pointBackgroundColor: '#10A37F' }] },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#e5e7eb' }, ticks: { precision: 0, font: { size: 10 } } }, x: { grid: { display: false }, ticks: { font: { size: 10 } } } }, responsive: true, maintainAspectRatio: false }
+        });
+        <?php endif; ?>
+
+        <?php if (in_array('demographics', $sections, true) && $demographicsAvailable && $demographicsTotal > 0): ?>
+        new Chart(document.getElementById('demographicsChart'), {
+            type: 'doughnut',
+            data: { labels: ['Resident', 'Non-Resident'], datasets: [{ data: demographicsData, backgroundColor: ['#10A37F', '#F59E0B'], borderWidth: 2, borderColor: '#ffffff' }] },
+            options: { cutout: '62%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }, responsive: true, maintainAspectRatio: false }
+        });
+        <?php endif; ?>
+
+        <?php if (in_array('peak', $sections, true)): ?>
+        new Chart(document.getElementById('peakChart'), {
+            type: 'bar',
+            data: { labels: dayLabels, datasets: [{ label: 'Reports by Day', data: dayCounts, backgroundColor: '#10A37F', borderRadius: 4, maxBarThickness: 32 }] },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#e5e7eb' }, ticks: { font: { size: 10 }, precision: 0 } }, x: { grid: { display: false }, ticks: { font: { size: 10 } } } }, responsive: true, maintainAspectRatio: false }
+        });
+        <?php endif; ?>
+
         <?php if ($autoprint): ?>
         window.addEventListener('load', function() {
             setTimeout(function() { window.print(); }, 700);

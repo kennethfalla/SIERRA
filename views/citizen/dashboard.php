@@ -842,6 +842,27 @@ if (is_dir($barangays_dir)) {
         #reportDetailModal.open .rdm-sheet {
             transform: translateY(0);
         }
+        /* Desktop: side panel instead of bottom sheet */
+        @media (min-width: 1024px) {
+            #reportDetailModal {
+                align-items: stretch;
+                justify-content: flex-end;
+            }
+            .rdm-sheet {
+                border-radius: 0;
+                width: 460px;
+                max-width: 460px;
+                max-height: 100vh;
+                transform: translateX(100%);
+                transition: transform 0.35s cubic-bezier(0.34,1.22,0.64,1);
+                box-shadow: -8px 0 40px rgba(0,0,0,0.15);
+            }
+            #reportDetailModal.open .rdm-sheet {
+                transform: translateX(0);
+            }
+            .rdm-handle { display: none; }
+        }
+
         .rdm-handle {
             width: 40px;
             height: 4px;
@@ -2516,12 +2537,12 @@ function openReportDetail(reportId) {
             html += '<span class="rdm-status-badge" style="background:'+bgColor+';color:'+color+';"><i class="fas fa-circle" style="font-size:0.5rem;"></i>' + _escHtml(statusLabel) + '</span>';
             html += '<span style="font-size:0.72rem;color:#9ca3af;"><i class="far fa-calendar-alt" style="margin-right:4px;"></i>' + dateStr + '</span>';
             html += '</div>';
-            // Meta row
+            // Meta row (no severity score for citizen view)
             html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">';
             html += '<span style="font-size:0.72rem;color:#5b7a68;"><i class="fas fa-tag" style="color:#10A37F;margin-right:4px;"></i>' + _escHtml(r.category_name||'General') + '</span>';
             html += '<span style="font-size:0.72rem;color:#5b7a68;"><i class="fas fa-map-marker-alt" style="color:#10A37F;margin-right:4px;"></i>' + _escHtml(r.barangay_name||'San Isidro') + '</span>';
-            if (r.severity_score) html += '<span style="font-size:0.72rem;color:#5b7a68;"><i class="fas fa-exclamation-triangle" style="color:#F59E0B;margin-right:4px;"></i>Severity: ' + _escHtml(r.severity_score) + '/10</span>';
             html += '</div>';
+
             // Description
             if (r.description) {
                 html += '<div style="background:#f8fafc;border-radius:10px;padding:12px 14px;margin-bottom:14px;">';

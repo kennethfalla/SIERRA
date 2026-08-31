@@ -6,8 +6,9 @@ $menro_logo          = SettingsHelper::get('menro_logo', '');
 $menro_logo_url      = $menro_logo ? BASE_URL . $menro_logo : '';
 $pdf_office_name     = SettingsHelper::get('pdf_office_name', 'Municipal Environment and Natural Resources Office');
 $pdf_municipality    = SettingsHelper::get('pdf_municipality_name', 'Municipality of San Isidro');
-$pdf_prepared_by     = SettingsHelper::get('pdf_prepared_by_name', '');
-$pdf_prepared_title  = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
+$pdf_prepared_cfg   = getPdfExportConfig();
+$pdf_prepared_by    = $pdf_prepared_cfg['prepared_by'];
+$pdf_prepared_title = $pdf_prepared_cfg['prepared_title'];
 $pdf_approved_by     = SettingsHelper::get('pdf_approved_by_name', '');
 $pdf_approved_title  = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
 $pdf_footer_note     = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
@@ -94,24 +95,15 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <i class="fas fa-signature text-[#10A37F]"></i> Signatory Block (Footer)
     </h4>
 
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-sm text-amber-800 flex items-start gap-3">
+        <i class="fas fa-user-check text-amber-500 mt-0.5"></i>
+        <div>
+            <p class="font-semibold">Prepared by is automatic</p>
+            <p class="text-amber-700 text-xs mt-1">The "Prepared by" name on exported PDFs is always the signed-in account's name (with their job title). It cannot be edited here.</p>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="form-group">
-            <label class="form-label" for="pdf_prepared_by_name">
-                Prepared by — Name
-                <span class="text-xs font-normal text-gray-400 ml-1">(System Admin / MENRO Staff)</span>
-            </label>
-            <input type="text" name="pdf_prepared_by_name" id="pdf_prepared_by_name"
-                   value="<?php echo htmlspecialchars($pdf_prepared_by); ?>"
-                   class="form-input"
-                   placeholder="e.g., Juan Dela Cruz">
-        </div>
-        <div class="form-group">
-            <label class="form-label" for="pdf_prepared_by_title">Prepared by — Title</label>
-            <input type="text" name="pdf_prepared_by_title" id="pdf_prepared_by_title"
-                   value="<?php echo htmlspecialchars($pdf_prepared_title); ?>"
-                   class="form-input"
-                   placeholder="MENRO Data Analyst / Administrator">
-        </div>
         <div class="form-group">
             <label class="form-label" for="pdf_approved_by_name">
                 Noted and Approved by — Name
@@ -252,8 +244,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     bindPreview('pdf_office_name', 'previewOfficeName');
     bindPreview('pdf_municipality_name', 'previewMunicipality');
-    bindPreview('pdf_prepared_by_name', 'previewPreparedName', '____________________');
-    bindPreview('pdf_prepared_by_title', 'previewPreparedTitle');
     bindPreview('pdf_approved_by_name', 'previewApprovedName', '____________________');
     bindPreview('pdf_approved_by_title', 'previewApprovedTitle');
     bindPreview('pdf_footer_note', 'previewFooterNote');

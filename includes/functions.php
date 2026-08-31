@@ -366,4 +366,116 @@ function hasActiveFilters($filters) {
     }
     return false;
 }
+
+// ============================================
+// PDF EXPORT CONFIGURATION (single source of truth)
+// ============================================
+// Every printable report (MENRO + Barangay) resolves its official header and
+// signatory block through this helper so the rules stay consistent:
+//
+//   * "Prepared by" is ALWAYS the signed-in account's name (auto, NOT editable).
+//     Its title comes from the account's job_title, falling back to the role.
+//   * "Approved by" (name + title) and the right-side logo remain editable:
+//       - MENRO    -> Settings > PDF Export (global, shared by all MENRO staff)
+//       - Barangay -> Profile > PDF Export Settings (stored per account)
+//
+// @param PDO|null $db  Optional database connection (used to read job_title /
+//                      barangay name). If omitted, a connection is created.
+
+function getPdfExportConfig($db = null) {
+    if (!class_exists('SettingsHelper')) {
+        require_once BASE_PATH . 'helpers/SettingsHelper.php';
+    }
+
+    $isBarangay = (($_SESSION['user_role'] ?? '') === 'barangay_official');
+    $userId     = (int)($_SESSION['user_id'] ?? 0);
+
+    $officeName   = SettingsHelper::get('pdf_office_name', 'Municipal Environment and Natural Resources Office');
+    $municipality = SettingsHelper::get('pdf_municipality_name', 'Municipality of San Isidro');
+    $systemName   = SettingsHelper::get('system_name', 'SIERRA');
+    $footerNote   = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
+
+    $lguLogo = SettingsHelper::getLogoUrl();
+
+    // ---- "Prepared by" — always the account name (auto, not editable) ----
+    $preparedBy = $_SESSION['user_name'] ?? 'System User';
+
+    $preparedTitle = '';
+    if ($userId) {
+        if ($db === null) {
+            try { $db = (new Database())->getConnection(); } catch (Exception $e) { $db = null; }
+        }
+        if ($db) {
+            try {
+                $st = $db->prepare("SELECT job_title FROM users WHERE id = ?");
+                $st->execute([$userId]);
+                $preparedTitle = (string)($st->fetchColumn() ?: '');
+            } catch (Exception $e) {
+                $preparedTitle = '';
+            }
+        }
+    }
+    if ($preparedTitle === '') {
+        $preparedTitle = $isBarangay ? 'Barangay Official' : 'MENRO Data Analyst / Administrator';
+    }
+
+    // ---- "Approved by" + right-side logo (editable) ----
+    $barangayName = '';
+    if ($isBarangay) {
+        $approvedBy    = SettingsHelper::get('brgy_pdf_approved_by_name_' . $userId, '');
+        $approvedTitle = SettingsHelper::get('brgy_pdf_approved_by_title_' . $userId, 'Punong Barangay');
+        $rightLogoPath = SettingsHelper::get('brgy_pdf_logo_' . $userId, '');
+        $rightLogoAlt  = 'Barangay';
+        if ($db === null) {
+            try { $db = (new Database())->getConnection(); } catch (Exception $e) { $db = null; }
+        }
+        if ($db) {
+            try {
+                $st = $db->prepare("SELECT name FROM barangays WHERE id = ?");
+                $st->execute([(int)($_SESSION['barangay_id'] ?? 0)]);
+                $barangayName = (string)($st->fetchColumn() ?: '');
+            } catch (Exception $e) {
+                $barangayName = '';
+            }
+        }
+        $headerLines = [
+            'Republic of the Philippines',
+            'Province of Nueva Ecija',
+            $municipality,
+            'Barangay ' . ($barangayName ?: ''),
+        ];
+    } else {
+        $approvedBy    = SettingsHelper::get('pdf_approved_by_name', '');
+        $approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
+        $rightLogoPath = SettingsHelper::get('menro_logo', '');
+        $rightLogoAlt  = 'MENRO';
+        $headerLines = [
+            'Republic of the Philippines',
+            $officeName,
+            $municipality,
+            'San Isidro, Nueva Ecija',
+        ];
+    }
+
+    $rightLogo = $rightLogoPath ? BASE_URL . $rightLogoPath : '';
+
+    return [
+        'is_barangay'    => $isBarangay,
+        'barangay_name'  => $barangayName,
+        'lgu_logo'       => $lguLogo,
+        'right_logo'     => $rightLogo,
+        'right_logo_alt' => $rightLogoAlt,
+        'office_name'    => $officeName,
+        'municipality'   => $municipality,
+        'system_name'    => $systemName,
+        'prepared_by'    => $preparedBy,
+        'prepared_title' => $preparedTitle,
+        'approved_by'    => $approvedBy,
+        'approved_title' => $approvedTitle,
+        'footer_note'    => $footerNote,
+        'header_lines'   => $headerLines,
+        'generated_by'   => $_SESSION['user_name'] ?? 'System User',
+        'generated_on'   => date('F j, Y \a\t h:i A'),
+    ];
+}
 ?>

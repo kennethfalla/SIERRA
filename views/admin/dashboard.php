@@ -24,6 +24,28 @@ $kpi_repeat_min_reports     = (float)SettingsHelper::get('kpi_repeat_min_reports
 $kpi_repeat_window_days     = (float)SettingsHelper::get('kpi_repeat_window_days', 30);
 
 // ------------------------------------------------------------
+// 0b. ANALYTICS DATE FILTER — read from GET params
+// ------------------------------------------------------------
+$analytics_date_from = isset($_GET['date_from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_from']) ? $_GET['date_from'] : null;
+$analytics_date_to   = isset($_GET['date_to'])   && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_to'])   ? $_GET['date_to']   : null;
+
+// Build a reusable SQL date condition for created_at
+$date_sql_clause = '';
+$date_sql_params = [];
+if ($analytics_date_from && $analytics_date_to) {
+    $date_sql_clause = ' AND r.created_at BETWEEN :date_from AND :date_to_end';
+    $date_sql_params = [':date_from' => $analytics_date_from . ' 00:00:00', ':date_to_end' => $analytics_date_to . ' 23:59:59'];
+} elseif ($analytics_date_from) {
+    $date_sql_clause = ' AND r.created_at >= :date_from';
+    $date_sql_params = [':date_from' => $analytics_date_from . ' 00:00:00'];
+} elseif ($analytics_date_to) {
+    $date_sql_clause = ' AND r.created_at <= :date_to_end';
+    $date_sql_params = [':date_to_end' => $analytics_date_to . ' 23:59:59'];
+}
+// Simple version for inline queries (no join alias)
+$date_sql_simple = str_replace(' r.created_at', ' created_at', $date_sql_clause);
+
+// ------------------------------------------------------------
 // 1. ALGORITHMIC KPI CALCULATIONS (back-end)
 // ------------------------------------------------------------
 
@@ -962,7 +984,8 @@ function getDecisionBadge($classification) {
                 <!-- Export Analytics -->
                 <div class="export-dropdown" id="exportDropdownWrap">
                     <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
-                        <i class="fas fa-download"></i> Export
+                        <i class="fas fa-file-export"></i>
+                        <span>Export</span>
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div id="exportDropdown" class="export-dropdown-menu" style="width:280px;">
@@ -988,6 +1011,25 @@ function getDecisionBadge($classification) {
                 </div>
             </div>
         </div>
+
+        <!-- Active Analytics Date Filter Banner -->
+        <?php if ($analytics_date_from || $analytics_date_to): ?>
+        <div class="mb-4 flex items-center gap-3 bg-[#10A37F]/8 border border-[#10A37F]/25 rounded-xl px-4 py-2.5 text-sm text-[#0D8568] font-medium">
+            <i class="fas fa-calendar-check text-[#10A37F]"></i>
+            <span>Analytics filtered:
+                <?php if ($analytics_date_from && $analytics_date_to): ?>
+                    <strong><?php echo htmlspecialchars($analytics_date_from); ?></strong> to <strong><?php echo htmlspecialchars($analytics_date_to); ?></strong>
+                <?php elseif ($analytics_date_from): ?>
+                    from <strong><?php echo htmlspecialchars($analytics_date_from); ?></strong>
+                <?php else: ?>
+                    up to <strong><?php echo htmlspecialchars($analytics_date_to); ?></strong>
+                <?php endif; ?>
+            </span>
+            <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition">
+                <i class="fas fa-times"></i> Clear Filter
+            </a>
+        </div>
+        <?php endif; ?>
 
         <!-- ============================================================ -->
         <!-- 1. ALGORITHMIC KPI WIDGETS -->
@@ -1128,6 +1170,9 @@ function getDecisionBadge($classification) {
                         <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
                         <span class="text-xs text-gray-400">to</span>
                         <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
+                        <button onclick="applyAnalyticsDateFilter()" class="bg-[#10A37F] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#0D8568] transition flex items-center gap-1" title="Reload page with selected date range to update all KPIs and charts">
+                            <i class="fas fa-sync-alt"></i> Apply to Analytics
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1249,13 +1294,23 @@ function getDecisionBadge($classification) {
                 </table>
             </div>
             <?php
-                $worst = end($barangayLeaderboard);
-                reset($barangayLeaderboard);
+                $below_target = array_filter($barangayLeaderboard, function($b) use ($kpi_resolution_rate_target) {
+                    return $b['resolution_rate'] < $kpi_resolution_rate_target;
+                });
+                if (!empty($below_target)):
+                    $below_names = array_map(function($b){ return htmlspecialchars($b['barangay_name']); }, $below_target);
+                    $below_rates = array_map(function($b){ return $b['barangay_name'] . ' (' . $b['resolution_rate'] . '%)'; }, $below_target);
             ?>
-            <?php if ($worst && $worst['resolution_rate'] < $kpi_resolution_rate_target): ?>
             <div class="rec-box rec-critical mt-4">
                 <i class="fas fa-lightbulb mr-2"></i>
-                <strong>Recommendation:</strong> Brgy. <?php echo htmlspecialchars($worst['barangay_name']); ?> has cleared only <?php echo $worst['resolution_rate']; ?>% of its reports. Send extra staff to help clear the backlog.
+                <strong>Recommendation:</strong>
+                <?php if (count($below_target) === 1): $b = reset($below_target); ?>
+                    Brgy. <?php echo htmlspecialchars($b['barangay_name']); ?> has cleared only <?php echo $b['resolution_rate']; ?>% of its reports — below the <?php echo $kpi_resolution_rate_target; ?>% target. Send extra staff to clear the backlog.
+                <?php else: ?>
+                    <?php echo count($below_target); ?> barangays are below the <?php echo $kpi_resolution_rate_target; ?>% resolution target:
+                    <strong><?php echo implode(', ', array_map(function($b){ return htmlspecialchars($b['barangay_name']) . ' (' . $b['resolution_rate'] . '%)'; }, $below_target)); ?></strong>.
+                    Prioritize these areas and deploy additional staff to clear backlogs.
+                <?php endif; ?>
             </div>
             <?php endif; ?>
             <?php endif; ?>
@@ -1671,6 +1726,16 @@ function updateFilterSummary(mode, count) {
 // REPORT FILTER TOOLBAR — client-side filter callback
 // (shared report_filter_toolbar.php calls this via FT.callback)
 // ------------------------------------------------------------
+// ===== ANALYTICS DATE FILTER (reloads page with GET params for PHP chart/KPI refresh) =====
+function applyAnalyticsDateFilter() {
+    var from = document.getElementById('rangeFrom') ? document.getElementById('rangeFrom').value : '';
+    var to   = document.getElementById('rangeTo')   ? document.getElementById('rangeTo').value   : '';
+    var url = new URL(window.location.href);
+    if (from) url.searchParams.set('date_from', from); else url.searchParams.delete('date_from');
+    if (to)   url.searchParams.set('date_to',   to);   else url.searchParams.delete('date_to');
+    window.location.href = url.toString();
+}
+
 function applyDashboardFilters() {
     const s = document.getElementById('dashSearchInput');
     const st = document.getElementById('dashStatusFilter');
@@ -2261,6 +2326,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const period = document.getElementById('seasonalPeriodSelect');
     if (sev) sev.addEventListener('change', renderSeasonalChart);
     if (period) period.addEventListener('change', renderSeasonalChart);
+
+    // Auto-populate date inputs from GET params (analytics date filter)
+    const urlParams = new URLSearchParams(window.location.search);
+    const dateFrom = urlParams.get('date_from');
+    const dateTo   = urlParams.get('date_to');
+    if (dateFrom || dateTo) {
+        // Switch to Custom mode
+        const customBtn = document.querySelector('#timeframeToggle [data-range="custom"]');
+        if (customBtn) customBtn.click();
+        setTimeout(function() {
+            if (dateFrom) { const f = document.getElementById('rangeFrom'); if (f) f.value = dateFrom; }
+            if (dateTo)   { const t = document.getElementById('rangeTo');   if (t) t.value = dateTo; }
+        }, 100);
+    }
 });
 
 // ------------------------------------------------------------

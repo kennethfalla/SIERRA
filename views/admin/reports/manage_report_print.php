@@ -29,21 +29,23 @@ $statusLabels = [
 ];
 $statusText = $statusLabels[$report['status']] ?? ucfirst($report['status']);
 
-$lguLogo       = SettingsHelper::getLogoUrl();
-$menroLogoPath = SettingsHelper::get('menro_logo', '');
-$menroLogo     = $menroLogoPath ? BASE_URL . $menroLogoPath : '';
-$officeName    = SettingsHelper::get('pdf_office_name', 'Municipal Environment and Natural Resources Office');
-$municipality  = SettingsHelper::get('pdf_municipality_name', 'Municipality of San Isidro');
-$systemName    = SettingsHelper::get('system_name', 'SIERRA');
-$generatedBy   = $_SESSION['user_name'] ?? 'System User';
-$generatedOn   = date('F j, Y \a\t h:i A');
+$pdfCfg        = getPdfExportConfig();
+$lguLogo       = $pdfCfg['lgu_logo'];
+$menroLogo     = $pdfCfg['right_logo'];
+$rightLogoAlt  = $pdfCfg['right_logo_alt'];
+$officeName    = $pdfCfg['office_name'];
+$municipality  = $pdfCfg['municipality'];
+$systemName    = $pdfCfg['system_name'];
+$generatedBy   = $pdfCfg['generated_by'];
+$generatedOn   = $pdfCfg['generated_on'];
+$headerLines   = $pdfCfg['header_lines'];
 
-// PDF Export signatory block + footer (Settings > PDF Export)
-$preparedBy    = SettingsHelper::get('pdf_prepared_by_name', '');
-$preparedTitle = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
-$approvedBy    = SettingsHelper::get('pdf_approved_by_name', '');
-$approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
-$footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
+// PDF Export signatory block + footer ("Prepared by" = auto account name)
+$preparedBy    = $pdfCfg['prepared_by'];
+$preparedTitle = $pdfCfg['prepared_title'];
+$approvedBy    = $pdfCfg['approved_by'];
+$approvedTitle = $pdfCfg['approved_title'];
+$footerNote    = $pdfCfg['footer_note'];
 
 $reportNo = str_pad($report['id'], 6, '0', STR_PAD_LEFT);
 $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (float)$report['latitude'] != 0 && (float)$report['longitude'] != 0;
@@ -257,6 +259,30 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
         .report-footer .brand { font-weight: 700; color: #0D8568; }
         .report-footer-note { margin-top: 6px; text-align: center; font-size: 8px; color: #9ca3af; }
 
+        /* ===== Screen-only filter sidebar (main-sidebar style) ===== */
+        .page-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
+        .filter-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid rgba(16,163,127,0.12); box-shadow: 2px 0 20px -8px rgba(16,163,127,0.18); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
+        .sidebar-head { padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
+        .sidebar-head .head-title { font-size: 14px; font-weight: 800; color: #111827; }
+        .sidebar-head .head-sub { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
+        .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
+        .sidebar-group { display: flex; flex-direction: column; gap: 10px; }
+        .sidebar-group-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+        .sidebar-summary { display: flex; flex-direction: column; gap: 2px; }
+        .sidebar-summary .ss-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 7px 0; border-bottom: 1px solid #f3f4f6; }
+        .sidebar-summary .ss-label { color: #6b7280; font-weight: 600; }
+        .sidebar-summary .ss-value { color: #111827; font-weight: 700; text-align: right; }
+        .sidebar-footer { padding: 14px 16px; border-top: 1px solid #f3f4f6; background: #fff; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .btn-apply { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
+        .btn-apply:hover { box-shadow: 0 6px 16px rgba(16,163,127,0.35); transform: translateY(-1px); }
+        .btn-apply.secondary { background: #fff; color: #374151; border: 1.5px solid #e5e7eb; }
+        .btn-apply.secondary:hover { border-color: #10A37F; color: #10A37F; box-shadow: none; transform: none; }
+        .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
+        .btn-reset:hover { color: #EF4444; border-color: #EF4444; background: #FEF2F2; }
+        .page-main { flex: 1; min-width: 0; padding: 16px; }
+        @media (max-width: 900px) { .page-wrap { flex-direction: column; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }
+
         @page {
             margin: 10mm 12mm;
         }
@@ -266,6 +292,9 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
+            .filter-sidebar { display: none !important; }
+            .page-wrap { display: block; padding: 0; }
+            .page-main { padding: 0; }
             .toolbar { display: none !important; }
             .report { width: 100%; margin: 0; padding: 0; }
             .section, .report-title-block, .signature-block, .report-header { break-inside: avoid; }
@@ -275,15 +304,37 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
     </style>
 </head>
 <body>
-    <!-- Screen-only toolbar (hidden on print) -->
-    <div class="toolbar">
-        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
-        <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
-        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo (int)$report['id']; ?>">&larr; Back to Report</a>
-        <span class="hint">Tip: choose "Save as PDF" as the printer destination for a PDF export.</span>
-    </div>
+    <div class="page-wrap">
+        <aside class="filter-sidebar">
+            <div class="sidebar-head">
+                <div class="head-icon"><i class="fas fa-file-alt"></i></div>
+                <div>
+                    <div class="head-title">Report Summary</div>
+                    <div class="head-sub">Report #<?php echo $reportNo; ?></div>
+                </div>
+            </div>
+            <div class="sidebar-body">
+                <div class="sidebar-group">
+                    <div class="sidebar-group-label">Details</div>
+                    <div class="sidebar-summary">
+                        <div class="ss-row"><span class="ss-label">Status</span><span class="ss-value"><?php echo htmlspecialchars($statusText); ?></span></div>
+                        <div class="ss-row"><span class="ss-label">Risk</span><span class="ss-value"><?php echo htmlspecialchars(ucfirst($report['risk_level'] ?? 'low')); ?></span></div>
+                        <div class="ss-row"><span class="ss-label">Category</span><span class="ss-value"><?php echo htmlspecialchars($report['category_name'] ?? '—'); ?></span></div>
+                        <div class="ss-row"><span class="ss-label">Barangay</span><span class="ss-value"><?php echo htmlspecialchars($report['barangay_name'] ?? '—'); ?></span></div>
+                        <div class="ss-row"><span class="ss-label">Submitted</span><span class="ss-value"><?php echo date('M d, Y', strtotime($report['created_at'])); ?></span></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
 
-    <div class="report">
+        <div class="page-main">
+            <div class="toolbar">
+                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo (int)$report['id']; ?>"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>Back</a>
+                <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
+                <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
+            </div>
+
+            <div class="report">
         <!-- ===== Official LGU Header ===== -->
         <header class="report-header">
             <div class="logo-box">
@@ -294,15 +345,16 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
                 <?php endif; ?>
             </div>
             <div class="org-block">
-                <div class="org-line1">Republic of the Philippines</div>
-                <div class="org-name"><?php echo htmlspecialchars($officeName); ?></div>
-                <div class="org-muni"><?php echo htmlspecialchars($municipality); ?></div>
+                <div class="org-line1"><?php echo htmlspecialchars($headerLines[0]); ?></div>
+                <div class="org-name"><?php echo htmlspecialchars($headerLines[1]); ?></div>
+                <div class="org-muni"><?php echo htmlspecialchars($headerLines[2]); ?></div>
+                <div class="org-muni"><?php echo htmlspecialchars($headerLines[3]); ?></div>
             </div>
             <div class="logo-box">
                 <?php if ($menroLogo): ?>
-                    <img src="<?php echo htmlspecialchars($menroLogo); ?>" alt="MENRO Logo">
+                    <img src="<?php echo htmlspecialchars($menroLogo); ?>" alt="<?php echo htmlspecialchars($rightLogoAlt); ?> Logo">
                 <?php else: ?>
-                    <div class="logo-placeholder">MENRO<br>Logo</div>
+                    <div class="logo-placeholder"><?php echo htmlspecialchars($rightLogoAlt); ?><br>Logo</div>
                 <?php endif; ?>
             </div>
         </header>
@@ -488,6 +540,8 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
             <span><?php echo htmlspecialchars($systemName); ?> &middot; Web-Based Environmental Reporting System</span>
         </footer>
         <div class="report-footer-note"><?php echo htmlspecialchars($footerNote); ?></div>
+            </div>
+        </div>
     </div>
 
     <?php if (!empty($_GET['autoprint'])): ?>

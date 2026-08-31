@@ -1,0 +1,7 @@
+{
+  "name": "environmental-reporting-app",
+  "private": true,
+  "scripts": {
+    "build:css": "npx tailwindcss@3.4.17 -i assets/css/input.css -o assets/css/tailwind.css --minify"
+  }
+}

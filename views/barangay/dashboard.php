@@ -1108,6 +1108,28 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         </div>
 
         <!-- ============================================================ -->
+        <!-- DASHBOARD DATE RANGE FILTER -->
+        <!-- ============================================================ -->
+        <div class="bg-white border border-gray-200 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-3 shadow-sm">
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+                <i class="far fa-calendar-alt text-[#10A37F]"></i>
+                <span class="font-semibold text-gray-600 text-xs uppercase tracking-wide">Date Range:</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="date" id="dashDateFrom" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:border-[#10A37F] transition" title="From date">
+                <span class="text-xs text-gray-400 font-medium">to</span>
+                <input type="date" id="dashDateTo" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:border-[#10A37F] transition" title="To date">
+            </div>
+            <button onclick="applyDashboardDateFilter()" class="bg-[#10A37F] text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-[#0D8568] transition flex items-center gap-1.5">
+                <i class="fas fa-filter"></i> Apply
+            </button>
+            <button onclick="resetDashboardDateFilter()" class="bg-gray-100 text-gray-600 text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-gray-200 transition flex items-center gap-1.5">
+                <i class="fas fa-times"></i> Reset
+            </button>
+            <span id="dashDateFilterLabel" class="text-xs text-gray-400 ml-auto"></span>
+        </div>
+
+        <!-- ============================================================ -->
         <!-- REPORT FILTER TOOLBAR + EXPORT (like MENRO) -->
         <!-- ============================================================ -->
         <div class="bg-white border border-gray-200 rounded-xl p-3 mb-6 flex flex-wrap items-center gap-3 shadow-sm">
@@ -1171,10 +1193,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-3 text-xs">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $criticalBands['yellow'] - 1; ?>)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (<?php echo $criticalBands['yellow']; ?>-<?php echo $criticalBands['orange'] - 1; ?>)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $criticalBands['orange']; ?>-<?php echo $criticalBands['critical'] - 1; ?>)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $criticalBands['critical']; ?>-20)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical</span>
                 </div>
             </div>
 
@@ -1569,16 +1591,38 @@ function buildBarangayReportUrl(format) {
     return url;
 }
 
+function buildDashboardPrintUrl(format) {
+    let url = '<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-print';
+    if (selectedStatus && selectedStatus !== 'all') url += '&status=' + encodeURIComponent(selectedStatus);
+    if (selectedRisk && selectedRisk !== 'all') url += '&risk=' + encodeURIComponent(selectedRisk);
+    if (selectedRange === 'custom') {
+        if (selectedFrom) url += '&date_from=' + encodeURIComponent(selectedFrom);
+        if (selectedTo)   url += '&date_to='   + encodeURIComponent(selectedTo);
+    } else if (selectedRange && selectedRange !== 'all') {
+        // Convert preset ranges to date_from so dashboard_print filters correctly
+        var now = new Date();
+        var fromDate = new Date();
+        if (selectedRange === 'week')  fromDate.setDate(now.getDate() - 7);
+        else if (selectedRange === 'month') fromDate.setMonth(now.getMonth() - 1);
+        else if (selectedRange === 'year')  fromDate.setFullYear(now.getFullYear() - 1);
+        var pad = function(n) { return String(n).padStart(2, '0'); };
+        var fmt = function(d) { return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); };
+        url += '&date_from=' + encodeURIComponent(fmt(fromDate)) + '&date_to=' + encodeURIComponent(fmt(now));
+    }
+    if (format) url += '&format=' + encodeURIComponent(format);
+    return url;
+}
+
 function exportDashboardPdf() {
     document.getElementById('exportMenu').classList.remove('open');
-    window.open('<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-print&autoprint=1', '_blank');
+    window.open(buildDashboardPrintUrl('') + '&autoprint=1', '_blank');
 }
 
 function exportDashboardCsv() {
     document.getElementById('exportMenu').classList.remove('open');
     var iframe = document.createElement('iframe');
     iframe.style.display = 'none';
-    iframe.src = '<?php echo BASE_URL; ?>index.php?page=barangay-dashboard-print&format=csv';
+    iframe.src = buildDashboardPrintUrl('csv');
     document.body.appendChild(iframe);
     setTimeout(function() { iframe.remove(); }, 8000);
 }
@@ -1853,7 +1897,17 @@ function getFilteredData(mode) {
         const searchOk = !q
             || String(report.title || '').toLowerCase().includes(q)
             || String(report.description || '').toLowerCase().includes(q);
-        return categoryOk && rangeOk && statusOk && riskOk && searchOk;
+        // Dashboard date range filter
+        let dashDateOk = true;
+        if (_dashDateFrom || _dashDateTo) {
+            const d = report[dateField] ? new Date(report[dateField]) : null;
+            if (!d) { dashDateOk = false; }
+            else {
+                if (_dashDateFrom && d < _dashDateFrom) dashDateOk = false;
+                if (_dashDateTo   && d > _dashDateTo)   dashDateOk = false;
+            }
+        }
+        return categoryOk && rangeOk && statusOk && riskOk && searchOk && dashDateOk;
     });
 }
 
@@ -2103,15 +2157,9 @@ function openDrillPanel(reportId) {
 }
 
 function renderDrillPanel(report) {
-    const score = parseInt(report.severity_score) || 0;
-    const tier = getSeverityTier(score);
-    const riskLevel = getRiskLevelFromScore(score);
-    const recClass = 'rec-' + riskLevel;
-    const recText = getRiskRecommendation(score);
-
-    const baseWeight = report.base_weight || 5;
-    const impactModifier = report.impact_modifier || 0;
-    const densityPoints = report.spatial_density_factor || 0;
+    const riskLevel = (report.risk_level || 'low').toLowerCase();
+    const recClass = 'rec-' + (riskLevel === 'critical' ? 'critical' : riskLevel === 'high' ? 'high' : riskLevel === 'medium' ? 'medium' : 'low');
+    const recText = getRiskRecommendation(parseInt(report.severity_score) || 0);
 
     const html = `
         <div class="flex justify-between items-center mb-4">
@@ -2120,19 +2168,20 @@ function renderDrillPanel(report) {
         </div>
 
         <div class="mb-4">
-            <div class="flex items-center justify-between p-3 rounded-xl ${riskLevel === 'low' ? 'bg-green-50 text-green-800' : riskLevel === 'medium' ? 'bg-yellow-50 text-yellow-800' : riskLevel === 'high' ? 'bg-orange-50 text-orange-800' : 'bg-red-50 text-red-800'}">
-                <span class="font-bold">Severity Score</span>
-                <span class="text-2xl font-extrabold">${score} / 20</span>
-            </div>
+            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold
+                ${riskLevel === 'low' ? 'bg-green-50 text-green-700' : riskLevel === 'medium' ? 'bg-yellow-50 text-yellow-700' : riskLevel === 'high' ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-700'}">
+                <i class="fas fa-circle text-xs"></i>
+                ${riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1)} Risk
+            </span>
         </div>
 
-        <div class="bg-gray-50 rounded-xl p-4 mb-4">
-            <h4 class="font-semibold text-gray-700 mb-2">Score Breakdown</h4>
-            <div class="score-row"><span class="label">Base Weight (Category)</span><span class="value">${baseWeight} pts</span></div>
-            <div class="score-row"><span class="label">Impact Modifier</span><span class="value">${impactModifier} pts</span></div>
-            <div class="score-row"><span class="label">Spatial Density (${report.spatial_density_count || 0} nearby)</span><span class="value">${densityPoints} pts</span></div>
-            <div class="score-row border-t border-gray-300 pt-2 mt-2 font-bold"><span>Total</span><span>${score} / 20</span></div>
-        </div>
+        ${report.description ? `
+        <div class="mb-4">
+            <h4 class="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide"><i class="fas fa-align-left mr-2 text-[#10A37F]"></i>Description</h4>
+            <div class="bg-gray-50 rounded-xl p-4">
+                <p class="text-sm text-gray-600 leading-relaxed">${escapeHtml(report.description)}</p>
+            </div>
+        </div>` : ''}
 
         <div class="rec-box ${recClass}">
             <i class="fas fa-lightbulb mr-2"></i>
@@ -2140,13 +2189,9 @@ function renderDrillPanel(report) {
         </div>
 
         <div class="mt-4">
-            <h4 class="font-semibold text-gray-700 mb-2">Citizen Evidence (${report.spatial_density_count || 0} reports)</h4>
-            <p class="text-sm text-gray-500">View full report for complete evidence list.</p>
-            <div class="mt-2">
-                <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" target="_blank" class="text-[#10A37F] hover:underline text-sm">
-                    <i class="fas fa-external-link-alt mr-1"></i>Open in Verify Reports
-                </a>
-            </div>
+            <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" target="_blank" class="text-[#10A37F] hover:underline text-sm">
+                <i class="fas fa-external-link-alt mr-1"></i>Open in Manage Reports
+            </a>
         </div>
 
         <div class="mt-4 text-xs text-gray-400">
@@ -2162,6 +2207,39 @@ function closeDrillPanel() {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeDrillPanel();
 });
+
+// ========== DASHBOARD DATE RANGE FILTER ==========
+var _dashDateFrom = null, _dashDateTo = null;
+
+function applyDashboardDateFilter() {
+    var from = document.getElementById('dashDateFrom').value;
+    var to   = document.getElementById('dashDateTo').value;
+    if (!from && !to) { resetDashboardDateFilter(); return; }
+    _dashDateFrom = from ? new Date(from + 'T00:00:00') : null;
+    _dashDateTo   = to   ? new Date(to   + 'T23:59:59') : null;
+    var label = document.getElementById('dashDateFilterLabel');
+    if (label) {
+        var parts = [];
+        if (from) parts.push('From: ' + from);
+        if (to)   parts.push('To: ' + to);
+        label.textContent = parts.join(' — ');
+    }
+    _applyAllMapDateFilter();
+}
+
+function resetDashboardDateFilter() {
+    _dashDateFrom = null; _dashDateTo = null;
+    document.getElementById('dashDateFrom').value = '';
+    document.getElementById('dashDateTo').value   = '';
+    var label = document.getElementById('dashDateFilterLabel');
+    if (label) label.textContent = '';
+    _applyAllMapDateFilter();
+}
+
+function _applyAllMapDateFilter() {
+    // Re-apply the existing map filters to respect date range
+    if (typeof applyFilters === 'function') applyFilters();
+}
 
 // ========== CHARTS ==========
 <?php if(!empty($risk_data) && $risk_total > 0): ?>

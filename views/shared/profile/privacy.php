@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // views/shared/profile/privacy.php - partial, included by views/shared/profile/profile.php
 ?>
                     <!-- ========== PRIVACY NOTICE ========== -->
@@ -8,7 +8,6 @@
                             <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Privacy Notice</h3>
                         </div>
                         <div class="legal-content">
-                            <p><strong>Effective Date:</strong> [Insert Date]</p>
                             <p>Your privacy is critically important to us. This Privacy Notice outlines how the <?php echo htmlspecialchars($system_name); ?> Platform collects, uses, protects, and shares your personal information in strict compliance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>
                             <div>
                                 <h4>1. Information We Collect</h4>

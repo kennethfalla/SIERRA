@@ -43,6 +43,7 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $risk_filter = isset($_GET['risk']) ? $_GET['risk'] : '';
 $category_filter = isset($_GET['category']) ? (int)$_GET['category'] : 0;
 $date_range = isset($_GET['date_range']) ? (int)$_GET['date_range'] : 0;
+$residency_filter = in_array($_GET['residency'] ?? '', ['resident', 'non_resident'], true) ? $_GET['residency'] : '';
 $search_keyword = isset($_GET['search']) ? trim($_GET['search']) : '';
 $sort_order = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -81,6 +82,11 @@ if ($category_filter > 0) {
 if ($date_range > 0) {
     $where .= " AND r.created_at >= DATE_SUB(NOW(), INTERVAL :date_range DAY)";
     $params[':date_range'] = $date_range;
+}
+if ($residency_filter === 'resident') {
+    $where .= " AND u.is_resident = 1";
+} elseif ($residency_filter === 'non_resident') {
+    $where .= " AND u.is_resident = 0";
 }
 if ($search_keyword != '') {
     $search = "%$search_keyword%";
@@ -207,6 +213,7 @@ if ($status_filter != '') $active_filters++;
 if ($risk_filter != '') $active_filters++;
 if ($category_filter > 0) $active_filters++;
 if ($date_range > 0) $active_filters++;
+if ($residency_filter != '') $active_filters++;
 if (!empty($search_keyword)) $active_filters++;
 
 // Helper labels
@@ -222,6 +229,7 @@ $status_labels = [
 ];
 $risk_labels = ['low' => 'Low Risk', 'medium' => 'Medium Risk', 'high' => 'High Risk', 'critical' => 'Critical Risk'];
 $date_range_labels = [7 => 'Last 7 days', 30 => 'Last 30 days', 90 => 'Last 3 months'];
+$residency_labels = ['resident' => 'Reported by Resident', 'non_resident' => 'Reported by Non-Resident'];
 $active_category_name = ($category_filter > 0 && isset($category_name_map[$category_filter])) ? $category_name_map[$category_filter] : '';
 ?>
 <!DOCTYPE html>
@@ -234,7 +242,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Manage Reports - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
@@ -1191,7 +1199,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div id="exportMenu" class="export-dropdown-menu">
-                            <button class="export-dropdown-item" onclick="window.print()">
+                            <button class="export-dropdown-item" onclick="exportReportsPdf()">
                                 <i class="fas fa-file-pdf"></i>
                                 <span>Export as PDF</span>
                             </button>
@@ -1263,6 +1271,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         if ($risk_filter != '') $ft_popover_count++;
         if ($category_filter > 0) $ft_popover_count++;
         if ($date_range > 0) $ft_popover_count++;
+        if ($residency_filter != '') $ft_popover_count++;
 
         $ft_chips = [];
         if (!empty($search_keyword)) $ft_chips[] = '<span class="filter-chip">"' . htmlspecialchars($search_keyword) . '" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>';
@@ -1270,6 +1279,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         if ($risk_filter != '') $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($risk_labels[$risk_filter] ?? ucfirst($risk_filter)) . ' <span class="chip-remove" data-filter="risk"><i class="fas fa-times"></i></span></span>';
         if ($category_filter > 0) $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($active_category_name) . ' <span class="chip-remove" data-filter="category"><i class="fas fa-times"></i></span></span>';
         if ($date_range > 0) $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($date_range_labels[$date_range] ?? $date_range . ' days') . ' <span class="chip-remove" data-filter="date"><i class="fas fa-times"></i></span></span>';
+        if ($residency_filter != '') $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($residency_labels[$residency_filter] ?? $residency_filter) . ' <span class="chip-remove" data-filter="residency"><i class="fas fa-times"></i></span></span>';
 
         $ft_cat_options = ['0' => 'All Categories'];
         foreach ($categories as $cat) { $ft_cat_options[(string)$cat['id']] = $cat['name']; }
@@ -1288,7 +1298,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 ],
             ],
             'filter_by'          => [
-                'active' => ($risk_filter != '' || $category_filter > 0 || $date_range > 0),
+                'active' => ($risk_filter != '' || $category_filter > 0 || $date_range > 0 || $residency_filter != ''),
                 'count'  => $ft_popover_count,
             ],
             'popover_fields'     => [
@@ -1297,6 +1307,8 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 ['kind' => 'select', 'id' => 'popoverCategory', 'label' => 'Category', 'value' => $category_filter, 'default' => '0', 'options' => $ft_cat_options],
                 ['kind' => 'select', 'id' => 'popoverDateRange', 'label' => 'Date Range', 'value' => $date_range, 'default' => '0',
                  'options' => ['0' => 'All Time', '7' => 'Last 7 Days', '30' => 'Last 30 Days', '90' => 'Last 90 Days']],
+                ['kind' => 'select', 'id' => 'popoverResidency', 'label' => 'Reported By', 'value' => $residency_filter, 'default' => '',
+                 'options' => ['' => 'All Reporters', 'resident' => 'Resident', 'non_resident' => 'Non-Resident']],
             ],
             'view_toggle'        => [
                 'active' => $view_mode,
@@ -1318,6 +1330,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 'risk'     => ['el' => 'popoverRisk', 'clear' => ''],
                 'category' => ['el' => 'popoverCategory', 'clear' => '0'],
                 'date'     => ['el' => 'popoverDateRange', 'clear' => '0'],
+                'residency'=> ['el' => 'popoverResidency', 'clear' => ''],
             ],
             'callback'           => 'applyFilters',
         ];
@@ -1374,7 +1387,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                             <span class="severity-badge header-badge severity-<?php echo strtolower($r['decision_pin'] ?? 'Green'); ?>">
                                 <i class="fas fa-chart-line text-[10px] sm:text-xs"></i>
                                 <?php echo $r['decision_classification']; ?>
-                                <span class="text-[8px] sm:text-[9px] font-mono opacity-75">(<?php echo $r['severity_score'] ?? 0; ?>)</span>
                             </span>
                             <?php endif; ?>
                         </div>
@@ -1391,12 +1403,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                                 <div class="meta-icon"><i class="fas fa-tag text-gray-400 text-[10px] sm:text-xs"></i></div>
                                 <span><?php echo htmlspecialchars($r['category_name']); ?></span>
                             </div>
-                            <?php if (isset($r['impact_modifier'])): ?>
-                            <div class="meta-item">
-                                <div class="meta-icon"><i class="fas fa-exclamation-triangle text-gray-400 text-[10px] sm:text-xs"></i></div>
-                                <span>Impact: <?php echo $r['impact_modifier']==4?'Severe':($r['impact_modifier']==2?'Moderate':'Localized'); ?></span>
-                            </div>
-                            <?php endif; ?>
                         </div>
 
                         <div class="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-3">
@@ -1530,22 +1536,38 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// ===== EXPORT CSV (honors current filters) =====
-function exportCSV() {
+// ===== EXPORT CSV / PDF (open the dedicated print/export view, honoring filters) =====
+function buildPrintUrl(format) {
     const params = new URLSearchParams();
-    params.append('page', 'verify-reports');
-    params.append('export', 'csv');
+    params.append('page', 'barangay-manage-reports-print');
     const status = document.getElementById('toolbarStatus')?.value || '';
     const risk = document.getElementById('popoverRisk')?.value || '';
     const category = document.getElementById('popoverCategory')?.value || '0';
     const dateRange = document.getElementById('popoverDateRange')?.value || '0';
+    const residency = document.getElementById('popoverResidency')?.value || '';
     const search = document.getElementById('searchInput')?.value || '';
     if (status) params.append('status', status);
     if (risk) params.append('risk', risk);
     if (parseInt(category) > 0) params.append('category', category);
     if (parseInt(dateRange) > 0) params.append('date_range', dateRange);
+    if (residency) params.append('residency', residency);
     if (search) params.append('search', search);
-    window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
+    if (format) params.append('format', format);
+    return params.toString();
+}
+
+function exportReportsPdf() {
+    document.getElementById('exportMenu').classList.remove('open');
+    window.open('<?php echo BASE_URL; ?>index.php?' + buildPrintUrl('') + '&autoprint=1', '_blank');
+}
+
+function exportCSV() {
+    document.getElementById('exportMenu').classList.remove('open');
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = '<?php echo BASE_URL; ?>index.php?' + buildPrintUrl('csv');
+    document.body.appendChild(iframe);
+    setTimeout(function() { iframe.remove(); }, 8000);
 }
 
 // ===== EXPORT DROPDOWN =====
@@ -1566,6 +1588,7 @@ function applyFilters() {
     params.append('risk', document.getElementById('popoverRisk').value);
     params.append('category', document.getElementById('popoverCategory').value);
     params.append('date_range', document.getElementById('popoverDateRange').value);
+    params.append('residency', document.getElementById('popoverResidency').value);
     params.append('search', document.getElementById('searchInput').value);
     params.append('sort', document.getElementById('toolbarSort').value);
     params.append('scope', 'barangay');
@@ -1601,6 +1624,7 @@ function updateActiveFilters() {
     const risk = document.getElementById('popoverRisk').value;
     const category = document.getElementById('popoverCategory').value;
     const dateRange = document.getElementById('popoverDateRange').value;
+    const residency = document.getElementById('popoverResidency').value;
     const search = document.getElementById('searchInput').value;
     const container = document.querySelector('.active-filters-row');
     const toolbar = document.querySelector('.reports-toolbar');
@@ -1610,6 +1634,7 @@ function updateActiveFilters() {
     if (risk) activeCount++;
     if (parseInt(category) > 0) activeCount++;
     if (parseInt(dateRange) > 0) activeCount++;
+    if (residency) activeCount++;
     if (search) activeCount++;
     
     if (activeCount === 0) {
@@ -1650,6 +1675,10 @@ function updateActiveFilters() {
             const dateLabels = { '7': 'Last 7 Days', '30': 'Last 30 Days', '90': 'Last 90 Days' };
             html += `<span class="filter-chip">${dateLabels[dateRange] || dateRange+' days'} <span class="chip-remove" data-filter="date"><i class="fas fa-times"></i></span></span>`;
         }
+        if (residency) {
+            const residencyLabels = { 'resident': 'Reported by Resident', 'non_resident': 'Reported by Non-Resident' };
+            html += `<span class="filter-chip">${residencyLabels[residency] || residency} <span class="chip-remove" data-filter="residency"><i class="fas fa-times"></i></span></span>`;
+        }
         html += `<a href="#" class="chips-clear-all" id="clearAllFilters">Clear all</a>`;
         container.innerHTML = html;
 
@@ -1668,6 +1697,7 @@ function goToPage(page) {
     params.append('risk', document.getElementById('popoverRisk').value);
     params.append('category', document.getElementById('popoverCategory').value);
     params.append('date_range', document.getElementById('popoverDateRange').value);
+    params.append('residency', document.getElementById('popoverResidency').value);
     params.append('search', document.getElementById('searchInput').value);
     params.append('sort', document.getElementById('toolbarSort').value);
     params.append('scope', 'barangay');

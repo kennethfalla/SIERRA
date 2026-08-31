@@ -575,6 +575,14 @@ if (is_dir($barangays_dir)) {
         .custom-map-container.fullscreen #mapTipTooltip {
             bottom: 40px !important;
         }
+
+        /* Push Leaflet layer control below the fullscreen button */
+        #mapContainer .leaflet-top.leaflet-right {
+            top: 58px;
+        }
+        .custom-map-container.fullscreen .leaflet-top.leaflet-right {
+            top: 76px;
+        }
         
         /* Tablet responsive */
         @media (max-width: 1024px) and (min-width: 769px) {
@@ -1544,12 +1552,7 @@ if (is_dir($barangays_dir)) {
                                 </button>
                             </div>
 
-                            <div class="absolute top-4 right-4 z-[10] bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm">
-                                <div class="flex items-center space-x-2 text-xs text-gray-600">
-                                    <i class="fas fa-hand-pointer text-[#10A37F]"></i>
-                                    <span>Click on map to pin location</span>
-                                </div>
-                            </div>
+
                         </div>
 
                         <input type="hidden" name="latitude" id="latitude">

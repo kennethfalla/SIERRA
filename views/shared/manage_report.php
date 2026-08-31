@@ -37,7 +37,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Manage Report - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -647,6 +647,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div class="info-row"><span class="info-label">Category</span><span class="info-value"><?php echo htmlspecialchars($report['category_name']); ?></span></div>
                     <div class="info-row"><span class="info-label">Barangay</span><span class="info-value"><?php echo htmlspecialchars($report['barangay_name']); ?></span></div>
                     <div class="info-row"><span class="info-label">Risk Level</span><span class="info-value"><?php echo ucfirst($report['risk_level']); ?></span></div>
+                    <?php if ($user_role === 'admin' || $user_role === 'menro_staff'): ?>
                     <div class="info-row"><span class="info-label">Impact Modifier</span><span class="info-value">
                         <?php
                         $imp = $report['impact_modifier'] ?? 0;
@@ -661,6 +662,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     $mgr_color = ($mgr_level == 'critical') ? 'text-red-600' : (($mgr_level == 'high') ? 'text-orange-600' : (($mgr_level == 'medium') ? 'text-amber-600' : 'text-emerald-600'));
                     ?>
                     <div class="info-row"><span class="info-label">Severity Score</span><span class="info-value font-bold <?php echo $mgr_color; ?>"><?php echo $mgr_score; ?></span></div>
+                    <?php endif; ?>
                     <div class="info-row"><span class="info-label">Classification</span><span class="info-value"><?php echo $report['decision_classification'] ?? 'Pending'; ?></span></div>
                 </div>
             </div>
@@ -705,7 +707,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
 
             <div class="card">
-                <div class="card-header"><i class="fas fa-map-pin"></i> Geographic Location</div>
+                <div class="card-header"><i class="fas fa-map-marker-alt"></i> Geographic Location</div>
                 <?php if ($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
                     <div id="map"></div>
                     <p class="text-xs text-gray-500 mt-2 flex flex-wrap items-center gap-x-1 gap-y-1">

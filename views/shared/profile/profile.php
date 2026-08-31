@@ -526,10 +526,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
 }
 
 // ============================================================
+// POST: Barangay PDF export settings (per account)
+// "Prepared by" is auto (account name); only "Approved by" + logo editable.
+// ============================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_pdf_export'])) {
+    $csrf_ok = isset($_POST['csrf_token']) && InputSanitizer::validateCsrfToken($_POST['csrf_token']);
+    if (!$csrf_ok) {
+        $_SESSION['errors'] = ['Invalid security token. Please refresh and try again.'];
+    } elseif (($_SESSION['user_role'] ?? '') !== 'barangay_official') {
+        $_SESSION['errors'] = ['You are not permitted to change PDF export settings.'];
+    } else {
+        $approved_by = InputSanitizer::sanitizeString($_POST['brgy_pdf_approved_by_name'] ?? '');
+        $approved_title = InputSanitizer::sanitizeString($_POST['brgy_pdf_approved_by_title'] ?? 'Punong Barangay');
+
+        SettingsHelper::set('brgy_pdf_approved_by_name_' . $user_id, $approved_by);
+        SettingsHelper::set('brgy_pdf_approved_by_title_' . $user_id, $approved_title);
+
+        if (isset($_FILES['brgy_pdf_logo']) && $_FILES['brgy_pdf_logo']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['brgy_pdf_logo'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            if (in_array($ext, $allowed) && $file['size'] <= 5242880) {
+                $upload_dir = BASE_PATH . 'uploads/settings/';
+                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+                $old = SettingsHelper::get('brgy_pdf_logo_' . $user_id, '');
+                if ($old && file_exists(BASE_PATH . $old)) {
+                    @unlink(BASE_PATH . $old);
+                }
+                $new_filename = 'brgy_pdf_' . $user_id . '_' . time() . '.' . $ext;
+                if (move_uploaded_file($file['tmp_name'], $upload_dir . $new_filename)) {
+                    SettingsHelper::set('brgy_pdf_logo_' . $user_id, 'uploads/settings/' . $new_filename);
+                } else {
+                    $_SESSION['errors'] = ['Barangay logo upload failed.'];
+                }
+            } else {
+                $_SESSION['errors'] = ['Invalid logo file. Allowed: JPG, PNG, GIF, WebP (max 5MB).'];
+            }
+        }
+
+        if (!isset($_SESSION['errors'])) {
+            SettingsHelper::clearCache();
+            $_SESSION['success'] = 'PDF export settings saved successfully!';
+        }
+    }
+    header("Location: " . BASE_URL . "index.php?page=profile&section=pdf-export-settings");
+    exit();
+}
+
+// ============================================================
 // Determine which section to display
 // ============================================================
 $section = $_GET['section'] ?? '';
-$valid_sections = ['personal-information', 'change-password', 'about', 'terms', 'privacy', 'faqs', 'help'];
+$valid_sections = ['personal-information', 'change-password', 'pdf-export-settings', 'about', 'terms', 'privacy', 'faqs', 'help'];
 if ($section && !in_array($section, $valid_sections)) {
     $section = ''; // treat as no section
 }
@@ -548,7 +596,7 @@ if (count($name_parts) >= 2) {
 }
 
 $user_type = $user['user_type'] ?? null;
-$role_display = ['admin' => 'Admin', 'menro_staff' => 'MENRO Staff', 'barangay_personnel' => 'Barangay Official'][$user_type] ?? 'Citizen';
+$role_display = ['admin' => 'Admin', 'menro_staff' => 'MENRO Staff', 'barangay_personnel' => 'Barangay Official'][$user_type] ?? (($user['is_resident'] ?? 1) == 1 ? 'Resident' : 'Non-Resident');
 $role_badge_color = in_array($user_type, ['admin', 'menro_staff']) ? 'bg-purple-100 text-purple-700' :
                     ($user_type === 'barangay_personnel' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700');
 $join_date = date('F Y', strtotime($user['created_at']));
@@ -575,7 +623,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title><?php echo $section ? ucwords(str_replace('-', ' ', $section)) : 'My Profile'; ?> - <?php echo htmlspecialchars($system_name); ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
@@ -1150,6 +1198,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <span class="menu-label">Change Password</span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
+                    <?php if (($_SESSION['user_role'] ?? '') === 'barangay_official'): ?>
+                    <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=pdf-export-settings">
+                        <span class="menu-icon"><i class="fas fa-file-pdf"></i></span>
+                        <span class="menu-label">PDF Export Settings</span>
+                        <i class="fas fa-chevron-right menu-chevron"></i>
+                    </a>
+                    <?php endif; ?>
                     
                     <!-- Legal & About -->
                     <div class="profile-menu-group-label">Legal &amp; About</div>
@@ -1210,6 +1265,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             break;
                         case 'change-password':
                             include __DIR__ . '/change_password.php';
+                            break;
+                        case 'pdf-export-settings':
+                            include __DIR__ . '/pdf_export.php';
                             break;
                         case 'about':
                             include __DIR__ . '/about.php';

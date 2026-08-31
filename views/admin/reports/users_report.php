@@ -24,7 +24,18 @@ $db = $database->getConnection();
 $status   = in_array($_GET['status'] ?? 'all', ['all', 'active', 'inactive'], true) ? $_GET['status'] : 'all';
 $barangay = isset($_GET['barangay']) ? (int)$_GET['barangay'] : 0;
 $role     = in_array($_GET['role'] ?? 'all', ['all', 'citizen', 'barangay', 'menro'], true) ? $_GET['role'] : 'all';
+$residency = in_array($_GET['residency'] ?? 'all', ['all', 'resident', 'non_resident'], true) ? $_GET['residency'] : 'all';
+$created_from = isset($_GET['created_from']) ? preg_replace('/[^0-9-]/', '', $_GET['created_from']) : '';
+$created_to   = isset($_GET['created_to'])   ? preg_replace('/[^0-9-]/', '', $_GET['created_to'])   : '';
 $autoprint = !empty($_GET['autoprint']);
+
+function isValidUserDate($s) {
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) return false;
+    [$y, $m, $d] = array_map('intval', explode('-', $s));
+    return checkdate($m, $d, $y);
+}
+if ($created_from && !isValidUserDate($created_from)) $created_from = '';
+if ($created_to   && !isValidUserDate($created_to))   $created_to   = '';
 
 // ------------------------------------------------------------
 // QUERY USERS
@@ -40,6 +51,13 @@ if ($barangay > 0) {
 if ($role === 'citizen')  { $where[] = "(u.user_type IS NULL OR u.user_type = '')"; }
 elseif ($role === 'barangay') { $where[] = "u.user_type = 'barangay_personnel'"; }
 elseif ($role === 'menro')    { $where[] = "u.user_type IN ('menro_staff', 'admin')"; }
+if ($residency === 'resident') {
+    $where[] = "u.is_resident = 1";
+} elseif ($residency === 'non_resident') {
+    $where[] = "u.is_resident = 0";
+}
+if ($created_from !== '') { $where[] = "DATE(u.created_at) >= :created_from"; $params[':created_from'] = $created_from; }
+if ($created_to !== '')   { $where[] = "DATE(u.created_at) <= :created_to";   $params[':created_to']   = $created_to;   }
 
 $sql = "SELECT u.id, u.first_name, u.last_name, u.email, u.contact_number,
                u.user_type, u.is_active, u.is_resident, u.non_resident_address,
@@ -78,8 +96,13 @@ $nonResidents = count(array_filter($users, fn($u) => isset($u['is_resident']) &&
 $activePct = $totalUsers > 0 ? round(($activeUsers / $totalUsers) * 100) : 0;
 
 $statusText = $status === 'active' ? 'Active Only' : ($status === 'inactive' ? 'Inactive Only' : 'All Statuses');
-$roleText = $role === 'citizen' ? 'Reporters / Residents' : ($role === 'barangay' ? 'Barangay Officials' : ($role === 'menro' ? 'MENRO Staff & Admins' : 'All Roles'));
+$roleText = $role === 'citizen' ? 'Reporters (Resident & Non-Resident)' : ($role === 'barangay' ? 'Barangay Users' : ($role === 'menro' ? 'MENRO Users' : 'All Users'));
 $barangayText = $barangay > 0 ? $barangayName : 'All Barangays';
+$residencyText = $residency === 'resident' ? 'Residents Only' : ($residency === 'non_resident' ? 'Non-Residents Only' : 'All');
+$createdText = 'All Time';
+if ($created_from && $created_to) $createdText = date('M j, Y', strtotime($created_from)) . ' to ' . date('M j, Y', strtotime($created_to));
+elseif ($created_from) $createdText = 'From ' . date('M j, Y', strtotime($created_from));
+elseif ($created_to)   $createdText = 'Up to ' . date('M j, Y', strtotime($created_to));
 
 // ------------------------------------------------------------
 // ORGANIZATION / REPORT SETTINGS
@@ -94,8 +117,9 @@ $generatedBy   = $_SESSION['user_name'] ?? 'System Admin';
 $generatedOn   = date('F j, Y \a\t h:i A');
 
 // PDF Export signatory block + footer (Settings > PDF Export)
-$preparedBy    = SettingsHelper::get('pdf_prepared_by_name', '');
-$preparedTitle = SettingsHelper::get('pdf_prepared_by_title', 'MENRO Data Analyst / Administrator');
+$_pdfCfg       = getPdfExportConfig();
+$preparedBy    = $_pdfCfg['prepared_by'];
+$preparedTitle = $_pdfCfg['prepared_title'];
 $approvedBy    = SettingsHelper::get('pdf_approved_by_name', '');
 $approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environment and Natural Resources Officer');
 $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
@@ -325,6 +349,34 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
         .report-footer .brand { font-weight: 700; color: #0D8568; }
         .report-footer-note { margin-top: 6px; text-align: center; font-size: 8px; color: #9ca3af; }
 
+        /* ===== Screen-only filter sidebar (main-sidebar style) ===== */
+        .page-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
+        .filter-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid rgba(16,163,127,0.12); box-shadow: 2px 0 20px -8px rgba(16,163,127,0.18); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
+        .sidebar-head { padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
+        .sidebar-head .head-title { font-size: 14px; font-weight: 800; color: #111827; }
+        .sidebar-head .head-sub { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
+        .sidebar-form { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
+        .sidebar-group { display: flex; flex-direction: column; gap: 10px; }
+        .sidebar-group-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+        .filter-field { display: flex; flex-direction: column; gap: 4px; }
+        .filter-field label { font-size: 11px; font-weight: 600; color: #374151; }
+        .filter-field select, .filter-field input { width: 100%; padding: 9px 10px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 12.5px; font-family: inherit; background: #fff; color: #1f2937; transition: all 0.15s ease; }
+        .filter-field select:hover, .filter-field input:hover { border-color: #d1d5db; }
+        .filter-field select:focus, .filter-field input:focus { border-color: #10A37F; outline: none; box-shadow: 0 0 0 3px rgba(16,163,127,0.12); }
+        .section-check-list { display: flex; flex-direction: column; gap: 2px; }
+        .section-check { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; transition: background 0.12s ease; font-size: 12px; color: #374151; font-weight: 500; }
+        .section-check:hover { background: #F0FBF6; }
+        .section-check input { accent-color: #10A37F; width: 15px; height: 15px; cursor: pointer; }
+        .sidebar-footer { padding: 14px 16px; border-top: 1px solid #f3f4f6; background: #fff; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .btn-apply { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
+        .btn-apply:hover { box-shadow: 0 6px 16px rgba(16,163,127,0.35); transform: translateY(-1px); }
+        .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
+        .btn-reset:hover { color: #EF4444; border-color: #EF4444; background: #FEF2F2; }
+        .page-main { flex: 1; min-width: 0; padding: 16px; }
+        @media (max-width: 900px) { .page-wrap { flex-direction: column; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }
+
         @page {
             margin: 10mm 12mm;
         }
@@ -334,7 +386,10 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            .toolbar, .controls { display: none !important; }
+            .filter-sidebar { display: none !important; }
+            .page-wrap { display: block; padding: 0; }
+            .page-main { padding: 0; }
+            .toolbar { display: none !important; }
             .report {
                 width: 100%;
                 min-height: 0;
@@ -348,44 +403,83 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
     </style>
 </head>
 <body>
-    <!-- Screen-only toolbar (hidden on print) -->
-    <div class="toolbar">
-        <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
-        <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
-        <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=users">&larr; Back to User Management</a>
-        <span class="hint" style="color:#6b7280; font-size:11px;">Tip: choose "Save as PDF" as the printer destination for a PDF export.</span>
-    </div>
+    <div class="page-wrap">
+        <aside class="filter-sidebar">
+            <div class="sidebar-head">
+                <div class="head-icon"><i class="fas fa-sliders-h"></i></div>
+                <div>
+                    <div class="head-title">Filters</div>
+                    <div class="head-sub">Refine report</div>
+                </div>
+            </div>
+            <form class="sidebar-form" method="get" action="<?php echo BASE_URL; ?>index.php">
+                <input type="hidden" name="page" value="users-report">
+                <div class="sidebar-body">
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Account</div>
+                        <div class="filter-field">
+                            <label for="sideRole">User Group</label>
+                            <select name="role" id="sideRole">
+                                <option value="all" <?php echo $role === 'all' ? 'selected' : ''; ?>>All Users</option>
+                                <option value="menro" <?php echo $role === 'menro' ? 'selected' : ''; ?>>MENRO Users</option>
+                                <option value="barangay" <?php echo $role === 'barangay' ? 'selected' : ''; ?>>Barangay Users</option>
+                                <option value="citizen" <?php echo $role === 'citizen' ? 'selected' : ''; ?>>Reporters (Resident &amp; Non-Resident)</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideResidency">Residency</label>
+                            <select name="residency" id="sideResidency">
+                                <option value="all" <?php echo $residency === 'all' ? 'selected' : ''; ?>>All</option>
+                                <option value="resident" <?php echo $residency === 'resident' ? 'selected' : ''; ?>>Residents Only</option>
+                                <option value="non_resident" <?php echo $residency === 'non_resident' ? 'selected' : ''; ?>>Non-Residents Only</option>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideBarangay">Barangay</label>
+                            <select name="barangay" id="sideBarangay">
+                                <option value="0" <?php echo $barangay === 0 ? 'selected' : ''; ?>>All Barangays</option>
+                                <?php foreach ($barangays as $b): ?>
+                                <option value="<?php echo (int)$b['id']; ?>" <?php echo $barangay === (int)$b['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($b['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideStatus">Account Status</label>
+                            <select name="status" id="sideStatus">
+                                <option value="all" <?php echo $status === 'all' ? 'selected' : ''; ?>>All Statuses</option>
+                                <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>Active</option>
+                                <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Newly Created Accounts</div>
+                        <div class="filter-field">
+                            <label for="sideCreatedFrom">Created From</label>
+                            <input type="date" name="created_from" id="sideCreatedFrom" value="<?php echo htmlspecialchars($created_from); ?>">
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideCreatedTo">Created To</label>
+                            <input type="date" name="created_to" id="sideCreatedTo" value="<?php echo htmlspecialchars($created_to); ?>">
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-footer">
+                    <button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Apply Filters</button>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=users-report" class="btn-reset"><i class="fas fa-undo"></i> Reset</a>
+                </div>
+            </form>
+        </aside>
 
-    <!-- Screen-only report controls -->
-    <form class="controls" method="get" action="<?php echo BASE_URL; ?>index.php">
-        <input type="hidden" name="page" value="users-report">
-        <label>Status
-            <select name="status">
-                <option value="all" <?php echo $status === 'all' ? 'selected' : ''; ?>>All</option>
-                <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>Active</option>
-                <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
-            </select>
-        </label>
-        <label>Role
-            <select name="role">
-                <option value="all" <?php echo $role === 'all' ? 'selected' : ''; ?>>All Roles</option>
-                <option value="citizen" <?php echo $role === 'citizen' ? 'selected' : ''; ?>>Reporters / Residents</option>
-                <option value="barangay" <?php echo $role === 'barangay' ? 'selected' : ''; ?>>Barangay Officials</option>
-                <option value="menro" <?php echo $role === 'menro' ? 'selected' : ''; ?>>MENRO Staff & Admins</option>
-            </select>
-        </label>
-        <label>Barangay
-            <select name="barangay">
-                <option value="0" <?php echo $barangay === 0 ? 'selected' : ''; ?>>All Barangays</option>
-                <?php foreach ($barangays as $b): ?>
-                <option value="<?php echo (int)$b['id']; ?>" <?php echo $barangay === (int)$b['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($b['name']); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <button type="submit">Generate Report</button>
-    </form>
+        <div class="page-main">
+            <div class="toolbar">
+                <a href="<?php echo BASE_URL; ?>index.php?page=manage-users"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>Back</a>
+                <button type="button" onclick="window.print()"><i class="fas fa-print" style="margin-right:6px;"></i>Print</button>
+                <button type="button" onclick="window.print()"><i class="fas fa-file-pdf" style="margin-right:6px;"></i>Save as PDF</button>
+                <span class="hint" style="color:#6b7280; font-size:11px;">Tip: choose "Save as PDF" as the printer destination for a PDF export.</span>
+            </div>
 
-    <div class="report">
+            <div class="report">
         <!-- ===== Official LGU Header ===== -->
         <header class="report-header">
             <div class="logo-box">
@@ -414,9 +508,11 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
             <div class="report-title">USER / ACCOUNT REPORT</div>
             <div class="report-subtitle">Registered Users in the System &middot; <?php echo htmlspecialchars($municipality); ?></div>
             <div class="report-meta">
-                <span><strong>Status:</strong> <?php echo htmlspecialchars($statusText); ?></span>
-                <span><strong>Role:</strong> <?php echo htmlspecialchars($roleText); ?></span>
+                <span><strong>Group:</strong> <?php echo htmlspecialchars($roleText); ?></span>
+                <span><strong>Residency:</strong> <?php echo htmlspecialchars($residencyText); ?></span>
                 <span><strong>Barangay:</strong> <?php echo htmlspecialchars($barangayText); ?></span>
+                <span><strong>Status:</strong> <?php echo htmlspecialchars($statusText); ?></span>
+                <span><strong>Created:</strong> <?php echo htmlspecialchars($createdText); ?></span>
                 <span><strong>Total Users:</strong> <?php echo number_format($totalUsers); ?></span>
                 <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
@@ -524,6 +620,8 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
             <span><?php echo htmlspecialchars($systemName); ?> &middot; Web-Based Environmental Reporting System</span>
         </footer>
         <div class="report-footer-note"><?php echo htmlspecialchars($footerNote); ?></div>
+            </div>
+        </div>
     </div>
 
     <?php if ($autoprint): ?>
