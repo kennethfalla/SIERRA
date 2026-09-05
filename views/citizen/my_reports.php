@@ -108,6 +108,7 @@ if ($active_tab === 'supported') {
     $sql = "SELECT r.*, c.name as category_name, b.name as barangay_name,
                    r.user_id,
                    r.verification_count,
+                   (SELECT ri.image_path FROM report_images ri WHERE ri.report_id = r.id AND LOWER(ri.image_path) REGEXP '\\.(jpg|jpeg|png|gif|webp)$' ORDER BY ri.is_primary DESC, ri.id ASC LIMIT 1) as cover_image,
                    1 as is_verified_by_user,
                    rv.created_at as supported_at,
                    CONCAT(ou.first_name, ' ', ou.last_name) as owner_name
@@ -123,6 +124,7 @@ if ($active_tab === 'supported') {
     $sql = "SELECT r.*, c.name as category_name, b.name as barangay_name,
                    r.user_id,
                    r.verification_count,
+                   (SELECT ri.image_path FROM report_images ri WHERE ri.report_id = r.id AND LOWER(ri.image_path) REGEXP '\\.(jpg|jpeg|png|gif|webp)$' ORDER BY ri.is_primary DESC, ri.id ASC LIMIT 1) as cover_image,
                    (SELECT COUNT(*) FROM report_verifications WHERE report_id = r.id AND user_id = $user_id) as is_verified_by_user
             FROM reports r
             JOIN categories c ON r.category_id = c.id
@@ -143,16 +145,8 @@ while ($row = $risk_result->fetch(PDO::FETCH_ASSOC)) {
 }
 
 // ============================================================
-// STATS FOR SUMMARY CARDS (unfiltered counts for user's reports)
+// HELPER LABELS
 // ============================================================
-$stats_total = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id")->fetchColumn();
-$stats_pending = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status = 'pending'")->fetchColumn();
-$stats_under_review = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status = 'under_review'")->fetchColumn();
-$stats_in_progress = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status = 'in_progress'")->fetchColumn();
-$stats_escalated = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status IN ('escalated_pending','escalated')")->fetchColumn();
-$stats_resolved = $db->query("SELECT COUNT(*) FROM reports WHERE user_id = $user_id AND status = 'resolved'")->fetchColumn();
-
-// Helper labels for chips
 $status_labels = [
     'pending' => 'Pending',
     'under_review' => 'Under Review',
@@ -232,6 +226,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             background: linear-gradient(90deg, #10A37F 0%, #0D8568 100%);
             padding: 1rem 1rem 0.75rem;
             color: white;
+        }
+        .report-card-grid .report-card-header.has-cover {
+            min-height: 9rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
         }
         .report-card-grid .report-card-header .header-label {
             font-size: 0.7rem;
@@ -1136,6 +1136,26 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             padding: 1rem 1rem 0.75rem;
             border-bottom: 2px solid rgba(10, 126, 107, 0.1);
         }
+        .supported-card .card-header.has-cover {
+            min-height: 9rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            border-bottom-color: rgba(255, 255, 255, 0.25);
+        }
+        .supported-card .card-header.has-cover .header-title { color: #fff; }
+        .supported-card .card-header.has-cover .header-meta { color: #fff; opacity: 0.9; }
+        .supported-card .card-header.has-cover .supported-banner {
+            background: rgba(13, 133, 104, 0.9);
+            border-color: rgba(255, 255, 255, 0.6);
+            color: #fff;
+        }
+        .supported-card .card-header.has-cover .header-badge {
+            background: rgba(255, 255, 255, 0.22);
+            border-color: rgba(255, 255, 255, 0.28);
+            color: #fff;
+        }
+        .supported-card .card-header.has-cover .header-badge i { color: #fff; }
         .supported-card .card-header .supported-banner {
             display: inline-flex;
             align-items: center;
@@ -1257,30 +1277,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         </div>
 
-        <!-- ===== STATISTICS CARDS (matching all_reports.php design) ===== -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
-            <?php
-            $stats_metrics = [
-                ['label' => 'Total', 'value' => $stats_total, 'color' => 'text-[#10A37F]', 'icon' => 'fa-flag', 'iconBg' => 'bg-[#10A37F]/10', 'iconColor' => 'text-[#10A37F]'],
-                ['label' => 'Pending', 'value' => $stats_pending, 'color' => 'text-yellow-600', 'icon' => 'fa-clock', 'iconBg' => 'bg-yellow-100', 'iconColor' => 'text-yellow-700'],
-                ['label' => 'Under Review', 'value' => $stats_under_review, 'color' => 'text-blue-600', 'icon' => 'fa-search', 'iconBg' => 'bg-blue-100', 'iconColor' => 'text-blue-700'],
-                ['label' => 'In Progress', 'value' => $stats_in_progress, 'color' => 'text-pink-600', 'icon' => 'fa-spinner', 'iconBg' => 'bg-pink-100', 'iconColor' => 'text-pink-700'],
-                ['label' => 'Escalated', 'value' => $stats_escalated, 'color' => 'text-orange-600', 'icon' => 'fa-exclamation-triangle', 'iconBg' => 'bg-orange-100', 'iconColor' => 'text-orange-700'],
-                ['label' => 'Resolved', 'value' => $stats_resolved, 'color' => 'text-[#10A37F]', 'icon' => 'fa-check-circle', 'iconBg' => 'bg-green-100', 'iconColor' => 'text-[#10A37F]'],
-            ];
-            foreach($stats_metrics as $m): ?>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full <?php echo $m['iconBg']; ?> flex items-center justify-center <?php echo $m['iconColor']; ?> flex-shrink-0">
-                    <i class="fas <?php echo $m['icon']; ?> text-sm md:text-base"></i>
-                </div>
-                <div>
-                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $m['value']; ?></div>
-                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider"><?php echo $m['label']; ?></div>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-
         <!-- Tab Switcher -->
         <div class="tab-switcher">
             <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="tab-btn <?php echo $active_tab === 'my' ? 'active' : ''; ?>">
@@ -1377,8 +1373,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php if ($active_tab === 'supported'): ?>
                     <!-- ===== ENHANCED SUPPORTED REPORTS CARDS (matching own card spacing) ===== -->
                     <?php foreach($reports as $report): ?>
+                    <?php
+                        $cover_src = !empty($report['cover_image']) ? BASE_URL . htmlspecialchars($report['cover_image'], ENT_QUOTES, 'UTF-8') : '';
+                        $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(13,133,104,0.30) 0%, rgba(8,78,62,0.92) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
+                    ?>
                     <div class="supported-card" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'">
-                        <div class="card-header">
+                        <div class="card-header<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
                             <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
                                 <div class="space-y-2">
                                     <div class="supported-banner">
@@ -1386,10 +1386,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                         You Supported This
                                     </div>
                                     <h3 class="header-title"><?php echo htmlspecialchars($report['title']); ?></h3>
-                                    <div class="flex items-center gap-1 text-xs text-gray-500">
-                                        <i class="fas fa-user-circle"></i>
-                                        <span>by <?php echo htmlspecialchars($report['owner_name'] ?? 'Unknown'); ?></span>
-                                    </div>
                                 </div>
                                 <div class="text-right flex-shrink-0">
                                     <div class="header-meta">#<?php echo str_pad($report['id'], 6, '0', STR_PAD_LEFT); ?></div>
@@ -1454,8 +1450,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php else: ?>
                     <!-- ===== MY REPORTS CARDS ===== -->
                     <?php foreach($reports as $report): ?>
+                    <?php
+                        $cover_src = !empty($report['cover_image']) ? BASE_URL . htmlspecialchars($report['cover_image'], ENT_QUOTES, 'UTF-8') : '';
+                        $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(13,133,104,0.30) 0%, rgba(8,78,62,0.92) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
+                    ?>
                     <div class="report-card-grid" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'" style="cursor:pointer;">
-                        <div class="report-card-header rounded-t-2xl">
+                        <div class="report-card-header rounded-t-2xl<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
                             <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
                                 <div class="space-y-2">
                                     <div class="flex items-center gap-2">

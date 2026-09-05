@@ -216,6 +216,44 @@ function sendReportStatusEmail($db, $report_id, $templateKey, $subjectLabel, $ac
 }
 
 // ============================================
+// HELPER: Send a simple styled notification email
+// (used by notifyBarangayOfficials / notifyMenro so every
+// in-app notification is ALSO delivered by email)
+// ============================================
+function sendNotificationEmail($email, $name, $title, $message, $link = '') {
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+    $system_name = SettingsHelper::get('system_name', 'Sierra');
+    $subject     = $system_name . ' - ' . $title;
+    $button      = $link ? "<a href='" . htmlspecialchars($link, ENT_QUOTES) . "' target='_blank' style='display:inline-block;background:#10A37F;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 30px;border-radius:8px;'>View Details</a>" : '';
+
+    $html = "
+    <html>
+    <head><style>body { font-family: 'Manrope', Arial, sans-serif; background:#f9fbfa; color:#1a2e1a; margin:0; padding:0; }</style></head>
+    <body>
+        <div style='max-width:600px;margin:0 auto;'>
+            <div style='background:#10A37F;color:white;padding:20px;text-align:center;border-radius:12px 12px 0 0;'>
+                <h2 style='margin:0;'>" . htmlspecialchars($system_name) . "</h2>
+                <p style='margin:5px 0 0;opacity:.9;'>Notification</p>
+            </div>
+            <div style='background:#ffffff;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 12px 12px;'>
+                <h3 style='margin-top:0;color:#1f2937;'>" . htmlspecialchars($title) . "</h3>
+                <p style='color:#374151;line-height:1.6;'>" . nl2br(htmlspecialchars($message)) . "</p>
+                " . ($button ? "<div style='text-align:center;margin:25px 0;'>$button</div>" : '') . "
+            </div>
+            <div style='text-align:center;color:#6b7280;font-size:12px;margin-top:20px;'>
+                <p>© " . date('Y') . " " . htmlspecialchars($system_name) . " - LGU San Isidro</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    ";
+
+    return SettingsHelper::sendEmail($email, $name, $subject, $html);
+}
+
+// ============================================
 // HELPER: Create an in-app notification for the report owner
 // (feeds the citizen notification bell / notifications page)
 // ============================================
@@ -245,19 +283,51 @@ function notifyReportOwner($db, $report_id, $title, $message, $icon = 'fa-bell',
 // ============================================
 // HELPER: Create an in-app notification for every active official of a barangay
 // (feeds the barangay notification bell / notifications page)
+// Also emails each official so notifications arrive even when they are offline.
 // ============================================
 function notifyBarangayOfficials($db, $barangay_id, $title, $message, $icon = 'fa-bell', $color = '#10A37F', $link = '') {
     try {
         if (empty($barangay_id)) return;
-        $stmt = $db->prepare("SELECT id FROM users WHERE is_active = 1 AND user_type = 'barangay_personnel' AND barangay_id = ?");
+        $stmt = $db->prepare("SELECT id, email, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE is_active = 1 AND user_type = 'barangay_personnel' AND barangay_id = ?");
         $stmt->execute([(int)$barangay_id]);
-        $official_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        if (!empty($official_ids)) {
+        $officials = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (!empty($officials)) {
+            $official_ids = array_column($officials, 'id');
             $notif = new Notification($db);
             $notif->createForMany($official_ids, $title, $message, 'report', $icon, $color, $link);
+            foreach ($officials as $o) {
+                if (!empty($o['email'])) {
+                    sendNotificationEmail($o['email'], $o['full_name'], $title, $message, $link);
+                }
+            }
         }
     } catch (Exception $e) {
         error_log("Barangay notification creation failed for barangay #$barangay_id: " . $e->getMessage());
+    }
+}
+
+// ============================================
+// HELPER: Create an in-app notification for every active MENRO staff / admin.
+// MENRO had no notification source before; this feeds their bell/toast and
+// also emails each MENRO user so nothing is missed.
+// ============================================
+function notifyMenro($db, $title, $message, $icon = 'fa-bell', $color = '#10A37F', $link = '') {
+    try {
+        $stmt = $db->prepare("SELECT id, email, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE is_active = 1 AND user_type IN ('admin', 'menro_staff')");
+        $stmt->execute();
+        $menro = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (!empty($menro)) {
+            $menro_ids = array_column($menro, 'id');
+            $notif = new Notification($db);
+            $notif->createForMany($menro_ids, $title, $message, 'report', $icon, $color, $link);
+            foreach ($menro as $m) {
+                if (!empty($m['email'])) {
+                    sendNotificationEmail($m['email'], $m['full_name'], $title, $message, $link);
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log("MENRO notification creation failed: " . $e->getMessage());
     }
 }
 
@@ -1046,6 +1116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $activityLog->log($user_id, 'Escalate Report', "Escalated report #$report_id to MENRO. Reason: $reason");
         sendReportStatusEmail($db, $report_id, 'template_escalated', 'Report Escalated to MENRO', $activityLog, $user_id);
         notifyReportOwner($db, $report_id, 'Escalated to MENRO', 'Your report #' . $report_id . ' has been escalated to MENRO for further action.', 'fa-shield-alt', '#EF4444');
+        notifyMenro($db, 'Escalation Requested', 'Report #' . $report_id . ' has been escalated by the barangay and is waiting for your approval.', 'fa-shield-alt', '#EF4444', manageReportUrl($report_id));
         $_SESSION['success'] = "Report #$report_id escalated to MENRO.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -1755,6 +1826,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'fa-clock',
                 '#F59E0B',
                 BASE_URL . 'index.php?page=verify-reports'
+            );
+
+            // Notify MENRO so the intake is visible at the municipal level too.
+            notifyMenro(
+                $db,
+                'New Report Submitted',
+                'A new report "' . ($newReport['title'] ?? 'Report #' . $report_id) . '" (#'.$report_id.') was just submitted by a citizen.',
+                'fa-clock',
+                '#F59E0B',
+                manageReportUrl($report_id)
             );
 
             $_SESSION['success'] = "Report submitted successfully with " . count($image_paths) . " photo(s)/video(s)!";

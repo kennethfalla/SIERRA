@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ===== Global responsive scaling =====
+   All Tailwind rem-based sizes (fonts, padding, gaps, widths) scale
+   fluidly with the viewport so the app compact on phones, natural on
+   tablets, and full-size on desktops without hard 16px jumps. */
+html {
+    font-size: clamp(14px, 0.35vw + 13.5px, 16px);
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Page-level horizontal scroll guard (wide tables/cards scroll inside
+   their own containers instead of breaking the page layout). */
+body {
+    overflow-x: hidden;
+}
+
+/* Keep form fields at >=16px on touch devices so iOS Safari does not
+   auto-zoom into the field when focused (fluid root is <16px on phones). */
+@media (pointer: coarse) {
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}

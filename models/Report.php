@@ -724,6 +724,7 @@ class Report {
         $radiusKm = $radiusMeters / 1000;
         $sql = "
             SELECT r.id, r.title, r.description, r.status, r.created_at, r.category_id,
+                   r.latitude, r.longitude, r.verification_count,
                    c.name as category_name,
                    CONCAT(u.first_name, ' ', u.last_name) as reporter_name,
                    (SELECT GROUP_CONCAT(image_path ORDER BY is_primary DESC, uploaded_at DESC SEPARATOR ',')

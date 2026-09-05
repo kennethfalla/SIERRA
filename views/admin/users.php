@@ -209,6 +209,23 @@ $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
 $barangay_filter = isset($_GET['barangay']) ? (int)$_GET['barangay'] : 0;
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $residency_filter = isset($_GET['residency']) ? $_GET['residency'] : '';
+$registered_filter = in_array($_GET['registered'] ?? '', ['today', 'week', 'month', 'year'], true) ? $_GET['registered'] : '';
+
+// Quick "newly registered" ranges drive the regular created_at filter.
+$registered_from = '';
+$registered_to = '';
+if ($registered_filter === 'today') {
+    $registered_from = $registered_to = date('Y-m-d');
+} elseif ($registered_filter === 'week') {
+    $registered_from = date('Y-m-d', strtotime('monday this week'));
+    $registered_to = date('Y-m-d');
+} elseif ($registered_filter === 'month') {
+    $registered_from = date('Y-m-01');
+    $registered_to = date('Y-m-d');
+} elseif ($registered_filter === 'year') {
+    $registered_from = date('Y-01-01');
+    $registered_to = date('Y-m-d');
+}
 
 // ============================================================
 // FETCH USERS FROM DATABASE
@@ -230,7 +247,7 @@ while($user = $all_users->fetch(PDO::FETCH_ASSOC)) {
 // ============================================================
 // FILTER FUNCTION
 // ============================================================
-function applyFilters($users, $search_query, $barangay_filter, $status_filter, $residency_filter) {
+function applyFilters($users, $search_query, $barangay_filter, $status_filter, $residency_filter, $registered_from, $registered_to) {
     $filtered = $users;
 
     if (!empty($search_query)) {
@@ -268,6 +285,15 @@ function applyFilters($users, $search_query, $barangay_filter, $status_filter, $
         });
     }
 
+    if ($registered_from !== '') {
+        $reg_from = $registered_from . ' 00:00:00';
+        $reg_to   = ($registered_to !== '' ? $registered_to : date('Y-m-d')) . ' 23:59:59';
+        $filtered = array_filter($filtered, function($user) use ($reg_from, $reg_to) {
+            $created = $user['created_at'] ?? '';
+            return $created !== '' && $created >= $reg_from && $created <= $reg_to;
+        });
+    }
+
     return $filtered;
 }
 
@@ -287,9 +313,9 @@ $menro_staff = array_filter($all_users_data, function($user) {
 });
 
 // Apply filters to each group
-$filtered_citizens = applyFilters($citizens, $search_query, $barangay_filter, $status_filter, $residency_filter);
-$filtered_barangay = applyFilters($barangay_personnel, $search_query, $barangay_filter, $status_filter, $residency_filter);
-$filtered_menro = applyFilters($menro_staff, $search_query, $barangay_filter, $status_filter, $residency_filter);
+$filtered_citizens = applyFilters($citizens, $search_query, $barangay_filter, $status_filter, $residency_filter, $registered_from, $registered_to);
+$filtered_barangay = applyFilters($barangay_personnel, $search_query, $barangay_filter, $status_filter, $residency_filter, $registered_from, $registered_to);
+$filtered_menro = applyFilters($menro_staff, $search_query, $barangay_filter, $status_filter, $residency_filter, $registered_from, $registered_to);
 
 // ============================================================
 // STATISTICS
@@ -416,16 +442,57 @@ function getRoleBadge($user_type, $job_title = '') {
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
 
-        <!-- Header -->
-        <div class="mb-6">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-users-cog text-[#10A37F] text-sm"></i>
+        <!-- ===== PAGE HEADER (with Export button, matching other pages) ===== -->
+        <?php
+        $report_role      = $users_tab === 'citizens' ? 'citizen' : ($users_tab === 'barangay' ? 'barangay' : 'menro');
+        $report_status    = $status_filter !== '' ? urlencode($status_filter) : '';
+        $report_brgy      = $barangay_filter > 0 ? (int)$barangay_filter : 0;
+        $report_residency = $residency_filter !== '' ? urlencode($residency_filter) : '';
+        $report_url       = '?page=users-report&role=' . $report_role
+                            . ($report_status ? '&status=' . $report_status : '')
+                            . ($report_brgy ? '&barangay=' . $report_brgy : '')
+                            . ($report_residency ? '&residency=' . $report_residency : '')
+                            . ($registered_from ? '&created_from=' . $registered_from : '')
+                            . ($registered_to ? '&created_to=' . $registered_to : '');
+        $export_csv_type  = $users_tab === 'citizens' ? 'reporters' : ($users_tab === 'barangay' ? 'barangay' : 'menro');
+        ?>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users-cog text-[#10A37F] text-sm"></i>
+                    </div>
+                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Administration</span>
                 </div>
-                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Administration</span>
+                <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
+                <p class="text-gray-500 text-sm mt-1">Manage citizens, barangay personnel, and MENRO staff accounts</p>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
-            <p class="text-gray-500 text-sm mt-1">Manage citizens, barangay personnel, and MENRO staff accounts</p>
+            <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
+            <div class="export-dropdown" id="usersExportWrap">
+                <button onclick="toggleUsersExport()" id="usersExportBtn" class="btn-export-trigger">
+                    <i class="fas fa-file-export"></i>
+                    <span>Export</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div id="usersExportDropdown" class="export-dropdown-menu" style="width:280px;">
+                    <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php<?php echo $report_url; ?>', '_blank')">
+                        <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
+                        <div class="item-text">
+                            <div class="item-title">Export as PDF</div>
+                            <div class="item-desc">Preview and save as PDF</div>
+                        </div>
+                    </button>
+                    <div class="export-dropdown-divider"></div>
+                    <button class="export-dropdown-item" onclick="downloadUsersExport('<?php echo $export_csv_type; ?>')">
+                        <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
+                        <div class="item-text">
+                            <div class="item-title">Export as CSV</div>
+                            <div class="item-desc">Users from the <?php echo $users_tab; ?> tab</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Flash Messages -->
@@ -730,97 +797,25 @@ function getRoleBadge($user_type, $job_title = '') {
     <!-- ===== SUB-TABS ===== -->
     <div class="border-b border-emerald-100 mb-5 flex flex-wrap items-center justify-between gap-3">
         <nav class="sub-tabs-nav flex gap-1 sm:gap-0 sm:space-x-8 sm:flex-wrap overflow-x-auto sm:overflow-visible whitespace-nowrap sm:whitespace-normal flex-1 min-w-0" aria-label="User tabs">
-            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=citizens<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
+            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=citizens<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?><?php echo $registered_filter !== '' ? '&registered='.$registered_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'citizens' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-users"></i>
                 Citizens
                 <span class="tab-badge"><?php echo $total_citizens; ?></span>
             </a>
-            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=barangay<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
+            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=barangay<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?><?php echo $registered_filter !== '' ? '&registered='.$registered_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'barangay' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-landmark"></i>
                 Barangay Personnel
                 <span class="tab-badge"><?php echo $total_barangay; ?></span>
             </a>
-            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=menro<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?>"
+            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=menro<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?><?php echo $registered_filter !== '' ? '&registered='.$registered_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'menro' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-crown"></i>
                 MENRO Staff
                 <span class="tab-badge"><?php echo $total_menro; ?></span>
             </a>
         </nav>
-        <?php
-        $report_role    = $users_tab === 'citizens' ? 'citizen' : ($users_tab === 'barangay' ? 'barangay' : 'menro');
-        $report_status  = $status_filter !== '' ? urlencode($status_filter) : '';
-        $report_brgy    = $barangay_filter > 0 ? (int)$barangay_filter : 0;
-        $report_residency = $residency_filter !== '' ? urlencode($residency_filter) : '';
-        $report_url     = '?page=users-report&role=' . $report_role
-                        . ($report_status ? '&status=' . $report_status : '')
-                        . ($report_brgy ? '&barangay=' . $report_brgy : '')
-                        . ($report_residency ? '&residency=' . $report_residency : '');
-        ?>
-        <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
-        <div class="export-dropdown" id="usersExportWrap">
-            <button onclick="toggleUsersExport()" id="usersExportBtn" class="btn-export-trigger">
-                <i class="fas fa-file-export"></i>
-                <span>Export</span>
-                <i class="fas fa-chevron-down"></i>
-            </button>
-            <div id="usersExportDropdown" class="export-dropdown-menu" style="width:300px;">
-                <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php<?php echo $report_url; ?>', '_blank')">
-                    <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
-                    <div class="item-text"><div class="item-title">Export as PDF</div><div class="item-desc">Preview and save as PDF</div></div>
-                </button>
-                <div class="export-dropdown-divider"></div>
-                <div class="export-dropdown-header">
-                    <p><i class="fas fa-file-csv"></i> Export Users as CSV</p>
-                    <div class="sub">Download accounts by category</div>
-                </div>
-                <button class="export-dropdown-item" onclick="downloadUsersExport('all')">
-                    <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-users"></i></div>
-                    <div class="item-text"><div class="item-title">All Users</div></div>
-                </button>
-                <button class="export-dropdown-item" onclick="downloadUsersExport('menro')">
-                    <div class="item-icon" style="background:#EDE9FE; color:#7C3AED;"><i class="fas fa-crown"></i></div>
-                    <div class="item-text"><div class="item-title">All MENRO Users</div></div>
-                </button>
-                <button class="export-dropdown-item" onclick="downloadUsersExport('barangay')">
-                    <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-map-marker-alt"></i></div>
-                    <div class="item-text"><div class="item-title">All Barangay Users</div></div>
-                </button>
-                <button class="export-dropdown-item" onclick="downloadUsersExport('reporters')">
-                    <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-bullhorn"></i></div>
-                    <div class="item-text"><div class="item-title">All Reporters</div><div class="item-desc">Resident &amp; Non-Resident</div></div>
-                </button>
-                <button class="export-dropdown-item" onclick="downloadUsersExport('residents')">
-                    <div class="item-icon" style="background:#D1FAE5; color:#059669;"><i class="fas fa-home"></i></div>
-                    <div class="item-text"><div class="item-title">Residents Only</div></div>
-                </button>
-                <button class="export-dropdown-item" onclick="downloadUsersExport('non_residents')">
-                    <div class="item-icon" style="background:#FEF3C7; color:#B45309;"><i class="fas fa-road"></i></div>
-                    <div class="item-text"><div class="item-title">Non-Residents Only</div></div>
-                </button>
-                <div class="export-dropdown-divider"></div>
-                <div class="export-dropdown-footer">
-                    <div class="footer-label"><i class="fas fa-calendar"></i> New Accounts</div>
-                    <div style="display:flex; gap:8px; margin-bottom:8px;">
-                        <input type="date" id="exportNewFrom" class="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-[#10A37F]" placeholder="From">
-                        <input type="date" id="exportNewTo" class="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-[#10A37F]" placeholder="To">
-                    </div>
-                    <button class="btn-export-primary" onclick="downloadUsersExport('new_accounts')">
-                        <i class="fas fa-download"></i> Export New Accounts
-                    </button>
-                </div>
-                <div class="export-dropdown-divider"></div>
-                <div class="export-dropdown-footer">
-                    <div class="footer-label"><i class="fas fa-toggle-on"></i> Account Status</div>
-                    <button class="btn-export-primary" onclick="downloadUsersExport('status')">
-                        <i class="fas fa-file-csv"></i> Export Status Report
-                    </button>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
 
     <!-- ===== FILTER TOOLBAR (shared report toolbar design) ===== -->
@@ -844,8 +839,18 @@ function getRoleBadge($user_type, $job_title = '') {
     }
     if ($status_filter !== '') $ft_chips[] = '<span class="filter-chip">' . ($status_filter === 'active' ? 'Active' : 'Suspended') . ' <span class="chip-remove" data-filter="status"><i class="fas fa-times"></i></span></span>';
     if ($residency_filter !== '') $ft_chips[] = '<span class="filter-chip">' . ($residency_filter === 'resident' ? 'Resident' : 'Non-Resident') . ' <span class="chip-remove" data-filter="residency"><i class="fas fa-times"></i></span></span>';
+    if ($registered_filter !== '') {
+        $registered_labels = ['today' => 'Registered Today', 'week' => 'Registered This Week', 'month' => 'Registered This Month', 'year' => 'Registered This Year'];
+        $ft_chips[] = '<span class="filter-chip">' . ($registered_labels[$registered_filter] ?? 'Registered') . ' <span class="chip-remove" data-filter="registered"><i class="fas fa-times"></i></span></span>';
+    }
 
     $ft_inline_selects = [];
+    $ft_inline_selects[] = [
+        'id'        => 'toolbarRegistered',
+        'value'     => $registered_filter,
+        'min_width' => '190px',
+        'options'   => ['' => 'All Time', 'today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'],
+    ];
     if ($show_status_filter) {
         $ft_inline_selects[] = [
             'id'        => 'toolbarStatus',
@@ -884,18 +889,19 @@ function getRoleBadge($user_type, $job_title = '') {
         'popover_fields'     => $ft_popover_fields,
         'trailing_select'    => null,
         'view_toggle'        => null,
-        'active_filters'     => (int)((!empty($search_query) ? 1 : 0) + ($barangay_filter > 0 ? 1 : 0) + ($status_filter !== '' ? 1 : 0) + ($residency_filter !== '' ? 1 : 0)),
+        'active_filters'     => (int)((!empty($search_query) ? 1 : 0) + ($barangay_filter > 0 ? 1 : 0) + ($status_filter !== '' ? 1 : 0) + ($residency_filter !== '' ? 1 : 0) + ($registered_filter !== '' ? 1 : 0)),
         'chips'              => array_values(array_filter($ft_chips)),
         'chips_clear_all'    => true,
         'chip_clear_map'     => [
             'search'   => ['el' => 'searchInput', 'clear' => ''],
             'status'   => ['el' => 'toolbarStatus', 'clear' => ''],
             'residency' => ['el' => 'toolbarResidency', 'clear' => ''],
+            'registered' => ['el' => 'toolbarRegistered', 'clear' => ''],
             'barangay' => ['el' => 'popoverBarangay', 'clear' => '0'],
         ],
         'callback'           => 'applyFilters',
     ];
-    include __DIR__ . '/../../../shared/report_filter_toolbar.php';
+    include __DIR__ . '/../shared/report_filter_toolbar.php';
     ?>
 
     <!-- ===== USERS TABLE ===== -->
@@ -1369,11 +1375,13 @@ function applyFilters() {
     const search = document.getElementById('searchInput')?.value || '';
     const status = document.getElementById('toolbarStatus')?.value || '';
     const residency = document.getElementById('toolbarResidency')?.value || '';
+    const registered = document.getElementById('toolbarRegistered')?.value || '';
     const barangay = document.getElementById('popoverBarangay')?.value || '0';
 
     if (search) params.set('search', search);
     if (status) params.set('status', status);
     if (residency) params.set('residency', residency);
+    if (registered) params.set('registered', registered);
     if (parseInt(barangay, 10) > 0) params.set('barangay', barangay);
 
     window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
@@ -1436,12 +1444,6 @@ function downloadUsersExport(type) {
     var params = new URLSearchParams();
     params.set('page', 'manage-users');
     params.set('export_users', type);
-    if (type === 'new_accounts') {
-        var from = document.getElementById('exportNewFrom').value;
-        var to = document.getElementById('exportNewTo').value;
-        if (from) params.set('export_from', from);
-        if (to) params.set('export_to', to);
-    }
     window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
     var dd = document.getElementById('usersExportDropdown');
     var btn = document.getElementById('usersExportBtn');

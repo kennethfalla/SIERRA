@@ -24,26 +24,45 @@ $kpi_repeat_min_reports     = (float)SettingsHelper::get('kpi_repeat_min_reports
 $kpi_repeat_window_days     = (float)SettingsHelper::get('kpi_repeat_window_days', 30);
 
 // ------------------------------------------------------------
-// 0b. ANALYTICS DATE FILTER — read from GET params
+// 0b. ANALYTICS FILTERS — read from GET params (toolbar reloads here)
 // ------------------------------------------------------------
 $analytics_date_from = isset($_GET['date_from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_from']) ? $_GET['date_from'] : null;
 $analytics_date_to   = isset($_GET['date_to'])   && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_to'])   ? $_GET['date_to']   : null;
 
-// Build a reusable SQL date condition for created_at
-$date_sql_clause = '';
-$date_sql_params = [];
-if ($analytics_date_from && $analytics_date_to) {
-    $date_sql_clause = ' AND r.created_at BETWEEN :date_from AND :date_to_end';
-    $date_sql_params = [':date_from' => $analytics_date_from . ' 00:00:00', ':date_to_end' => $analytics_date_to . ' 23:59:59'];
-} elseif ($analytics_date_from) {
-    $date_sql_clause = ' AND r.created_at >= :date_from';
-    $date_sql_params = [':date_from' => $analytics_date_from . ' 00:00:00'];
-} elseif ($analytics_date_to) {
-    $date_sql_clause = ' AND r.created_at <= :date_to_end';
-    $date_sql_params = [':date_to_end' => $analytics_date_to . ' 23:59:59'];
+$f_know_status = ['pending','under_review','verified','in_progress','escalated_pending','escalated','resolved','rejected','cancelled'];
+$f_know_risk   = ['low','medium','high','critical'];
+$f_status   = (isset($_GET['status']) && in_array($_GET['status'], $f_know_status, true)) ? $_GET['status'] : 'all';
+$f_risk     = (isset($_GET['risk'])   && in_array($_GET['risk'],   $f_know_risk,   true)) ? $_GET['risk']   : 'all';
+$f_barangay = isset($_GET['barangay']) ? trim((string)$_GET['barangay']) : '';
+$f_search   = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
+
+function _build_af($alias, $date_col, $with_date, $f_status, $f_risk, $f_barangay, $f_search) {
+    $clause = '';
+    $params = [];
+    $p = function ($col) use ($alias) { return $alias === '' ? $col : $alias . '.' . $col; };
+    if ($with_date && !empty($GLOBALS['analytics_date_from'])) { $clause .= ' AND ' . $p($date_col) . ' >= ?';           $params[] = $GLOBALS['analytics_date_from'] . ' 00:00:00'; }
+    if ($with_date && !empty($GLOBALS['analytics_date_to']))   { $clause .= ' AND ' . $p($date_col) . ' <= ?';           $params[] = $GLOBALS['analytics_date_to']   . ' 23:59:59'; }
+    if ($f_status !== 'all')  { $clause .= ' AND ' . $p('status') . ' = ?';                                             $params[] = $f_status; }
+    if ($f_risk   !== 'all')  { $clause .= ' AND ' . $p('risk_level') . ' = ?';                                         $params[] = $f_risk; }
+    if ($f_barangay !== '')   { $clause .= ' AND ' . $p('barangay_id') . ' IN (SELECT id FROM barangays WHERE name = ?)'; $params[] = $f_barangay; }
+    if ($f_search !== '')     { $clause .= ' AND (' . $p('title') . ' LIKE ? OR ' . $p('description') . ' LIKE ?)';     $params[] = "%$f_search%"; $params[] = "%$f_search%"; }
+    return [$clause, $params];
 }
-// Simple version for inline queries (no join alias)
-$date_sql_simple = str_replace(' r.created_at', ' created_at', $date_sql_clause);
+
+// created_at-based clauses (default analytics)
+list($fragC_plain, $fragC_plain_params) = _build_af('', 'created_at', true, $f_status, $f_risk, $f_barangay, $f_search);
+list($fragC_r,     $fragC_r_params)     = _build_af('r', 'created_at', true, $f_status, $f_risk, $f_barangay, $f_search);
+// resolved_at-based clauses (resolution metrics)
+list($fragR_plain, $fragR_plain_params) = _build_af('', 'resolved_at', true, $f_status, $f_risk, $f_barangay, $f_search);
+list($fragR_r,     $fragR_r_params)     = _build_af('r', 'resolved_at', true, $f_status, $f_risk, $f_barangay, $f_search);
+// status+risk+barangay+search only (no date) — for inherently time-scoped cards
+list($fragSR_plain, $fragSR_plain_params) = _build_af('', 'created_at', false, $f_status, $f_risk, $f_barangay, $f_search);
+list($fragSR_r,     $fragSR_r_params)     = _build_af('r', 'created_at', false, $f_status, $f_risk, $f_barangay, $f_search);
+
+// Back-compat alias (used by the $ft config below)
+$date_sql_clause = $fragC_r;
+$date_sql_params = $fragC_r_params;
+$date_sql_simple = $fragC_plain;
 
 // ------------------------------------------------------------
 // 1. ALGORITHMIC KPI CALCULATIONS (back-end)
@@ -51,7 +70,7 @@ $date_sql_simple = str_replace(' r.created_at', ' created_at', $date_sql_clause)
 
 // Total active hotspots = unique clusters (spatial density > 0) among active reports
 // We'll count reports with spatial_density_count > 0 (i.e., overlapping within 50m)
-$activeHotspots = $db->query("
+$activeHotspotsStmt = $db->prepare("
     SELECT COUNT(DISTINCT 
         CASE 
             WHEN spatial_density_count > 0 THEN CONCAT(latitude, ',', longitude)
@@ -61,41 +80,53 @@ $activeHotspots = $db->query("
     FROM reports
     WHERE status NOT IN ('resolved', 'rejected', 'cancelled')
       AND latitude IS NOT NULL AND longitude IS NOT NULL
-")->fetchColumn();
+      {$fragC_plain}
+");
+$activeHotspotsStmt->execute($fragC_plain_params);
+$activeHotspots = $activeHotspotsStmt->fetchColumn();
 
 // Average Municipal Risk Level = average severity_score of active reports
-$avgRisk = $db->query("
+$avgRiskStmt = $db->prepare("
     SELECT AVG(severity_score) as avg_score
     FROM reports
     WHERE status NOT IN ('resolved', 'rejected', 'cancelled')
       AND severity_score IS NOT NULL
-")->fetchColumn() ?: 0;
+      {$fragC_plain}
+");
+$avgRiskStmt->execute($fragC_plain_params);
+$avgRisk = $avgRiskStmt->fetchColumn() ?: 0;
 $avgRisk = round($avgRisk, 1);
 
 // Critical Escalations = active reports in the Critical risk band (>= configured threshold)
-$criticalCount = $db->query("
+$criticalCountStmt = $db->prepare("
     SELECT COUNT(*) FROM reports
     WHERE risk_level = 'critical'
       AND status NOT IN ('resolved', 'rejected', 'cancelled')
-")->fetchColumn();
+      {$fragC_plain}
+");
+$criticalCountStmt->execute($fragC_plain_params);
+$criticalCount = $criticalCountStmt->fetchColumn();
 
 // Resolved Hotspots (historical) = clusters that were resolved in the last year
 // We count unique locations of resolved reports that had spatial density > 0
-$resolvedHotspots = $db->query("
+$resolvedHotspotsStmt = $db->prepare("
     SELECT COUNT(DISTINCT CONCAT(latitude, ',', longitude)) as count
     FROM reports
     WHERE status = 'resolved'
       AND resolved_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)
       AND spatial_density_count > 0
       AND latitude IS NOT NULL AND longitude IS NOT NULL
-")->fetchColumn();
+      {$fragR_plain}
+");
+$resolvedHotspotsStmt->execute($fragR_plain_params);
+$resolvedHotspots = $resolvedHotspotsStmt->fetchColumn();
 
 // ------------------------------------------------------------
 // 2. DATA FOR HEATMAP – Active & Historical
 // ------------------------------------------------------------
 
 // Active reports (exclude resolved/rejected/cancelled)
-$activeReports = $db->query("
+$activeReportsStmt = $db->prepare("
         SELECT 
                 r.id, r.title, r.description, r.latitude, r.longitude, r.severity_score,
                 r.spatial_density_count,
@@ -114,8 +145,11 @@ $activeReports = $db->query("
         WHERE r.status NOT IN ('resolved', 'rejected', 'cancelled')
             AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
             AND r.latitude != 0 AND r.longitude != 0
+            {$fragC_r}
         ORDER BY r.severity_score DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+");
+$activeReportsStmt->execute($fragC_r_params);
+$activeReports = $activeReportsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Attach opaque tokens so dashboard drill links never expose raw report IDs
 foreach ($activeReports as &$drill_row) {
@@ -124,7 +158,7 @@ foreach ($activeReports as &$drill_row) {
 unset($drill_row);
 
 // Historical (resolved) reports for the toggle
-$historicalReports = $db->query("
+$historicalReportsStmt = $db->prepare("
         SELECT 
                 r.id, r.title, r.description, r.latitude, r.longitude, r.severity_score,
                 r.spatial_density_count,
@@ -144,9 +178,12 @@ $historicalReports = $db->query("
         WHERE r.status = 'resolved'
             AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
             AND r.latitude != 0 AND r.longitude != 0
+            {$fragR_r}
         ORDER BY r.resolved_at DESC
         LIMIT 500
-")->fetchAll(PDO::FETCH_ASSOC);
+");
+$historicalReportsStmt->execute($fragR_r_params);
+$historicalReports = $historicalReportsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Attach opaque tokens so dashboard drill links never expose raw report IDs
 foreach ($historicalReports as &$drill_row) {
@@ -184,11 +221,13 @@ $severityTiers = [
     'high'     => ['label' => 'High (' . $severityBands['orange'] . '-' . ($severityBands['critical'] - 1) . ')', 'count' => 0],
     'critical' => ['label' => 'Critical (' . $severityBands['critical'] . '-20)', 'count' => 0],
 ];
-$tierQuery = $db->query("
+$tierQuery = $db->prepare("
     SELECT severity_score FROM reports
     WHERE status NOT IN ('resolved', 'rejected', 'cancelled')
       AND severity_score IS NOT NULL
+      {$fragC_plain}
 ");
+$tierQuery->execute($fragC_plain_params);
 while ($row = $tierQuery->fetch(PDO::FETCH_ASSOC)) {
     $level = getRiskLevelFromScore($row['severity_score']);
     $severityTiers[$level]['count']++;
@@ -209,13 +248,17 @@ for ($i = 11; $i >= 0; $i--) {
         $seasonalByLevel[$k][$month] = 0;
     }
 }
-$seasonalRows = $db->query("
+$seasonalStmt = $db->prepare("
     SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, risk_level, COUNT(*) AS total
     FROM reports
     WHERE status NOT IN ('resolved', 'rejected', 'cancelled')
-      AND DATE_FORMAT(created_at, '%Y-%m') >= '{$seasonalMonths[0]}'
+      AND DATE_FORMAT(created_at, '%Y-%m') >= ?
+      {$fragC_plain}
     GROUP BY ym, risk_level
-")->fetchAll(PDO::FETCH_ASSOC);
+");
+$seasonalParams = array_merge([$seasonalMonths[0]], $fragC_plain_params);
+$seasonalStmt->execute($seasonalParams);
+$seasonalRows = $seasonalStmt->fetchAll(PDO::FETCH_ASSOC);
 foreach ($seasonalRows as $row) {
     $ym = $row['ym'];
     $lvl = in_array($row['risk_level'], ['low', 'medium', 'high', 'critical'], true) ? $row['risk_level'] : 'low';
@@ -235,7 +278,7 @@ $surgeAlert = null;
 $currentMonth = date('Y-m');
 $prevMonth = date('Y-m', strtotime('last month'));
 try {
-    $surgeStmt = $db->query("
+    $surgeStmt = $db->prepare("
         SELECT c.name AS category_name,
                SUM(CASE WHEN DATE_FORMAT(r.created_at, '%Y-%m') = '$currentMonth' THEN 1 ELSE 0 END) AS current_count,
                SUM(CASE WHEN DATE_FORMAT(r.created_at, '%Y-%m') = '$prevMonth' THEN 1 ELSE 0 END) AS previous_count
@@ -243,8 +286,10 @@ try {
         JOIN categories c ON r.category_id = c.id
         WHERE r.severity_score >= {$severityBands['orange']}
           AND r.status NOT IN ('resolved', 'rejected', 'cancelled')
+          {$fragC_r}
         GROUP BY c.id, c.name
     ");
+    $surgeStmt->execute($fragC_r_params);
     foreach ($surgeStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $current_count = (int)$row['current_count'];
         $previous_count = (int)$row['previous_count'];
@@ -272,27 +317,31 @@ try {
 // text reports.barangay column if no barangays lookup table exists.
 $barangayLeaderboard = [];
 try {
-    $stmt = $db->query("
+    $stmt = $db->prepare("
         SELECT b.name AS barangay_name,
                COUNT(*) AS total_assigned,
                SUM(CASE WHEN r.status = 'resolved' THEN 1 ELSE 0 END) AS total_resolved
         FROM reports r
         JOIN barangays b ON b.id = r.barangay_id
         WHERE r.status NOT IN ('rejected', 'cancelled')
+          {$fragC_r}
         GROUP BY b.id, b.name
     ");
+    $stmt->execute($fragC_r_params);
     $barangayLeaderboard = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     try {
-        $stmt = $db->query("
+        $stmt = $db->prepare("
             SELECT barangay AS barangay_name,
                    COUNT(*) AS total_assigned,
                    SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) AS total_resolved
             FROM reports
             WHERE status NOT IN ('rejected', 'cancelled')
               AND barangay IS NOT NULL AND barangay != ''
+              {$fragC_plain}
             GROUP BY barangay
         ");
+        $stmt->execute($fragC_plain_params);
         $barangayLeaderboard = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e2) {
         $barangayLeaderboard = [];
@@ -318,34 +367,38 @@ usort($barangayLeaderboard, function($a, $b) {
 // recommendation to point the MENRO Chief at where the delay is concentrated.
 $slowestBarangay = null;
 try {
-    $slowStmt = $db->query("
+    $slowStmt = $db->prepare("
         SELECT b.name AS barangay_name,
                AVG(TIMESTAMPDIFF(HOUR, r.created_at, r.resolved_at)) AS avg_hours
         FROM reports r
         JOIN barangays b ON b.id = r.barangay_id
         WHERE r.status = 'resolved' AND r.resolved_at IS NOT NULL AND r.created_at IS NOT NULL
+          {$fragR_r}
         GROUP BY b.id, b.name
         HAVING avg_hours IS NOT NULL
         ORDER BY avg_hours DESC
         LIMIT 1
     ");
+    $slowStmt->execute($fragR_r_params);
     $slowRow = $slowStmt->fetch(PDO::FETCH_ASSOC);
     if ($slowRow) {
         $slowestBarangay = $slowRow;
     }
 } catch (Exception $e) {
     try {
-        $slowStmt = $db->query("
+        $slowStmt = $db->prepare("
             SELECT barangay AS barangay_name,
                    AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) AS avg_hours
             FROM reports
             WHERE status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL
               AND barangay IS NOT NULL AND barangay != ''
+              {$fragR_plain}
             GROUP BY barangay
             HAVING avg_hours IS NOT NULL
             ORDER BY avg_hours DESC
             LIMIT 1
         ");
+        $slowStmt->execute($fragR_plain_params);
         $slowRow = $slowStmt->fetch(PDO::FETCH_ASSOC);
         if ($slowRow) {
             $slowestBarangay = $slowRow;
@@ -361,27 +414,36 @@ if ($slowestBarangay) {
 // ------------------------------------------------------------
 // 6. AVERAGE RESOLUTION TIME (Speed Tracking)
 // ------------------------------------------------------------
-$avgResolutionHoursAllTime = $db->query("
+$avgResAllStmt = $db->prepare("
     SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) AS avg_hours
     FROM reports
     WHERE status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL
-")->fetchColumn() ?: 0;
+      {$fragR_plain}
+");
+$avgResAllStmt->execute($fragR_plain_params);
+$avgResolutionHoursAllTime = $avgResAllStmt->fetchColumn() ?: 0;
 $avgResolutionDaysAllTime = round($avgResolutionHoursAllTime / 24, 1);
 
-$avgResolutionHoursThisMonth = $db->query("
+$avgResMonthStmt = $db->prepare("
     SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) AS avg_hours
     FROM reports
     WHERE status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL
       AND DATE_FORMAT(resolved_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
-")->fetchColumn() ?: 0;
+      {$fragR_plain}
+");
+$avgResMonthStmt->execute($fragR_plain_params);
+$avgResolutionHoursThisMonth = $avgResMonthStmt->fetchColumn() ?: 0;
 $avgResolutionDaysThisMonth = round($avgResolutionHoursThisMonth / 24, 1);
 
-$avgResolutionHoursLastMonth = $db->query("
+$avgResLastStmt = $db->prepare("
     SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) AS avg_hours
     FROM reports
     WHERE status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL
       AND DATE_FORMAT(resolved_at, '%Y-%m') = DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 MONTH), '%Y-%m')
-")->fetchColumn() ?: 0;
+      {$fragR_plain}
+");
+$avgResLastStmt->execute($fragR_plain_params);
+$avgResolutionHoursLastMonth = $avgResLastStmt->fetchColumn() ?: 0;
 $avgResolutionDaysLastMonth = round($avgResolutionHoursLastMonth / 24, 1);
 
 $resolutionTrend = 'stable';
@@ -400,24 +462,28 @@ if ($avgResolutionDaysLastMonth > 0) {
 $demographics = ['resident' => 0, 'non_resident' => 0];
 $demographicsAvailable = true;
 try {
-    $stmt = $db->query("
+    $stmt = $db->prepare("
         SELECT u.residency_status AS status_type, COUNT(*) AS total
         FROM reports r
         JOIN users u ON u.id = r.user_id
+        WHERE 1=1 {$fragC_r}
         GROUP BY u.residency_status
     ");
+    $stmt->execute($fragC_r_params);
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $key = (strtolower($row['status_type']) === 'resident') ? 'resident' : 'non_resident';
         $demographics[$key] += (int)$row['total'];
     }
 } catch (Exception $e) {
     try {
-        $stmt = $db->query("
+        $stmt = $db->prepare("
             SELECT u.is_resident AS status_type, COUNT(*) AS total
             FROM reports r
             JOIN users u ON u.id = r.user_id
+            WHERE 1=1 {$fragC_r}
             GROUP BY u.is_resident
         ");
+        $stmt->execute($fragC_r_params);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $key = ((int)$row['status_type'] === 1) ? 'resident' : 'non_resident';
             $demographics[$key] += (int)$row['total'];
@@ -435,24 +501,28 @@ $nonResidentPct = $demographicsTotal > 0 ? round(($demographics['non_resident'] 
 // ------------------------------------------------------------
 $dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 $dayCounts = array_fill(0, 7, 0);
-$dayStmt = $db->query("
+$dayStmt = $db->prepare("
     SELECT DAYOFWEEK(created_at) AS dow, COUNT(*) AS total
     FROM reports
     WHERE created_at IS NOT NULL
+      {$fragC_plain}
     GROUP BY DAYOFWEEK(created_at)
 ");
+$dayStmt->execute($fragC_plain_params);
 while ($row = $dayStmt->fetch(PDO::FETCH_ASSOC)) {
     $idx = (int)$row['dow'] - 1; // MySQL DAYOFWEEK: 1 = Sunday
     if ($idx >= 0 && $idx < 7) $dayCounts[$idx] = (int)$row['total'];
 }
 
 $timeBuckets = ['Morning (6AM–12PM)' => 0, 'Afternoon (12PM–6PM)' => 0, 'Night (6PM–6AM)' => 0];
-$hourStmt = $db->query("
+$hourStmt = $db->prepare("
     SELECT HOUR(created_at) AS hr, COUNT(*) AS total
     FROM reports
     WHERE created_at IS NOT NULL
+      {$fragC_plain}
     GROUP BY HOUR(created_at)
 ");
+$hourStmt->execute($fragC_plain_params);
 while ($row = $hourStmt->fetch(PDO::FETCH_ASSOC)) {
     $hr = (int)$row['hr'];
     $total = (int)$row['total'];
@@ -483,7 +553,7 @@ $hotspot_grid_deg = max(0.000001, ((float)$kpi_hotspot_radius_meters / 100.0) * 
 $repeat_window_sql = max(1, (int)$kpi_repeat_window_days);
 $repeat_min_sql = max(1, (int)$kpi_repeat_min_reports);
 try {
-    $stmt = $db->query("
+    $stmt = $db->prepare("
         SELECT 
             FLOOR(r.latitude / {$hotspot_grid_deg}) AS grid_lat_key,
             FLOOR(r.longitude / {$hotspot_grid_deg}) AS grid_lng_key,
@@ -500,17 +570,19 @@ try {
           AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
           AND r.latitude != 0 AND r.longitude != 0
           AND r.created_at >= DATE_SUB(NOW(), INTERVAL {$repeat_window_sql} DAY)
+          {$fragC_r}
         GROUP BY grid_lat_key, grid_lng_key
         HAVING incident_count > {$repeat_min_sql}
         ORDER BY incident_count DESC
         LIMIT 5
     ");
+    $stmt->execute($fragC_r_params);
     $repeatOffenders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     try {
         // Fallback for schemas without a text `barangay` column: derive the
         // barangay name via the barangays lookup table on barangay_id.
-        $stmt = $db->query("
+        $stmt = $db->prepare("
             SELECT 
                 FLOOR(r.latitude / {$hotspot_grid_deg}) AS grid_lat_key,
                 FLOOR(r.longitude / {$hotspot_grid_deg}) AS grid_lng_key,
@@ -528,11 +600,13 @@ try {
               AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
               AND r.latitude != 0 AND r.longitude != 0
               AND r.created_at >= DATE_SUB(NOW(), INTERVAL {$repeat_window_sql} DAY)
+              {$fragC_r}
             GROUP BY grid_lat_key, grid_lng_key
             HAVING incident_count > {$repeat_min_sql}
             ORDER BY incident_count DESC
             LIMIT 5
         ");
+        $stmt->execute($fragC_r_params);
         $repeatOffenders = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e2) {
         $repeatOffenders = [];
@@ -650,7 +724,7 @@ function getDecisionBadge($classification) {
             .ml-72 { margin-left: 0 !important; width: 100%; padding: 0; }
         }
 
-        .main-container { max-width: 1600px; margin: 0 auto; padding: 1rem; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
         @media (min-width: 640px) { .main-container { padding: 1.5rem; } }
         @media (min-width: 768px) { .main-container { padding: 2rem; } }
 
@@ -699,6 +773,28 @@ function getDecisionBadge($classification) {
         .kpi-hotspot { border-left: 4px solid #F59E0B; }
         .kpi-risk { border-left: 4px solid #3B82F6; }
 
+        /* KPI widget grid - always horizontal (4-across), compacted on mobile */
+        .analytics-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .analytics-kpi-box {
+            min-width: 0;
+            width: 100%;
+            padding: 1.25rem;
+        }
+        @media (max-width: 560px) {
+            .analytics-kpi-grid { gap: 0.5rem; margin-bottom: 1rem; }
+            .analytics-kpi-box { padding: 0.5rem; }
+            .analytics-kpi-box .w-10 { display: none; }
+            .analytics-kpi-box .uppercase { font-size: 0.58rem; letter-spacing: 0.03em; }
+            .analytics-kpi-box .text-2xl { font-size: 1.05rem; }
+            .analytics-kpi-box .text-base { font-size: 0.85rem; }
+            .analytics-kpi-box [class~="mt-1"], .analytics-kpi-box [class~="mt-1.5"] { font-size: 0.55rem; }
+        }
+
         /* Map container */
         #map-container {
             background: white;
@@ -714,6 +810,37 @@ function getDecisionBadge($classification) {
             z-index: 1;
         }
         @media (max-width: 768px) { #map { height: 350px; } }
+
+        /* Severity hotspot pin with category label (shown when zoomed in) */
+        .sev-marker-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            line-height: 1;
+        }
+        .sev-marker-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        }
+        .sev-marker-label {
+            font-family: 'Manrope', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: #0F3B2E;
+            background: rgba(255,255,255,0.92);
+            padding: 2px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            border: 1px solid rgba(16,163,127,0.25);
+        }
 
         /* Map toggle */
         .map-toggle {
@@ -1034,30 +1161,46 @@ function getDecisionBadge($classification) {
         <!-- ============================================================ -->
         <!-- 1. ALGORITHMIC KPI WIDGETS -->
         <!-- ============================================================ -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div class="kpi-card kpi-hotspot">
-                <div class="kpi-icon"><i class="fas fa-map-pin"></i></div>
-                <div class="kpi-label">Active Hotspots</div>
-                <div class="kpi-value text-amber-600"><?php echo $activeHotspots; ?></div>
-                <div class="kpi-sub">Unique clusters with density > 0</div>
+        <div class="analytics-kpi-grid">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div class="min-w-0">
+                    <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Active Hotspots</p>
+                    <p class="text-2xl font-extrabold text-amber-600 tracking-tight"><?php echo $activeHotspots; ?></p>
+                    <p class="text-xs text-gray-400 mt-1">Unique clusters with density > 0</p>
+                </div>
+                <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-map-pin text-amber-600"></i>
+                </div>
             </div>
-            <div class="kpi-card kpi-risk">
-                <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
-                <div class="kpi-label">Avg Municipal Risk</div>
-                <div class="kpi-value text-blue-600"><?php echo $avgRisk; ?></div>
-                <div class="kpi-sub">out of 20 severity score</div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div class="min-w-0">
+                    <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Avg Municipal Risk</p>
+                    <p class="text-2xl font-extrabold text-blue-600 tracking-tight"><?php echo $avgRisk; ?></p>
+                    <p class="text-xs text-gray-400 mt-1">out of 20 severity score</p>
+                </div>
+                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-chart-line text-blue-600"></i>
+                </div>
             </div>
-            <div class="kpi-card kpi-critical">
-                <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="kpi-label">Critical Escalations</div>
-                <div class="kpi-value text-red-600"><?php echo $criticalCount; ?></div>
-                <div class="kpi-sub">Score <?php echo $severityBands['critical']; ?>-20 · require immediate action</div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div class="min-w-0">
+                    <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Critical Escalations</p>
+                    <p class="text-2xl font-extrabold text-red-600 tracking-tight"><?php echo $criticalCount; ?></p>
+                    <p class="text-xs text-gray-400 mt-1">Score <?php echo $severityBands['critical']; ?>-20 · require immediate action</p>
+                </div>
+                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                </div>
             </div>
-            <div class="kpi-card kpi-resolved">
-                <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
-                <div class="kpi-label">Resolved Hotspots</div>
-                <div class="kpi-value text-emerald-600"><?php echo $resolvedHotspots; ?></div>
-                <div class="kpi-sub">Clusters resolved this year</div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div class="min-w-0">
+                    <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Resolved Hotspots</p>
+                    <p class="text-2xl font-extrabold text-emerald-600 tracking-tight"><?php echo $resolvedHotspots; ?></p>
+                    <p class="text-xs text-gray-400 mt-1">Clusters resolved this year</p>
+                </div>
+                <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-check-circle text-emerald-600"></i>
+                </div>
             </div>
         </div>
 
@@ -1072,6 +1215,8 @@ function getDecisionBadge($classification) {
             'resolved' => 'Resolved', 'rejected' => 'Rejected', 'cancelled' => 'Cancelled'
         ];
         $dash_risk_options = ['all' => 'All Risk Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+        $dash_date_preset = in_array($_GET['date_preset'] ?? '', ['today', 'week', 'month', 'year'], true) ? $_GET['date_preset'] : '';
+        $dash_date_preset_options = ['' => 'All Dates', 'today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'];
 
         $dash_barangay_options = ['' => 'All Barangays'];
         try {
@@ -1085,19 +1230,25 @@ function getDecisionBadge($classification) {
 
         $ft = [
             'search_id'          => 'dashSearchInput',
-            'search_value'       => '',
+            'search_value'       => $f_search,
             'search_placeholder' => 'Search reports by title or description...',
             'inline_selects'     => [
-                ['id' => 'dashStatusFilter', 'value' => 'all', 'min_width' => '150px', 'options' => $dash_status_options],
-                ['id' => 'dashRiskFilter', 'value' => 'all', 'min_width' => '150px', 'options' => $dash_risk_options],
+                ['id' => 'dashStatusFilter', 'value' => $f_status, 'min_width' => '150px', 'options' => $dash_status_options],
+                ['id' => 'dashRiskFilter', 'value' => $f_risk, 'min_width' => '150px', 'options' => $dash_risk_options],
             ],
             'filter_by'          => ['active' => false, 'count' => 0],
             'popover_fields'     => [
-                ['kind' => 'select', 'id' => 'dashBarangayFilter', 'label' => 'Barangay', 'value' => '', 'default' => '', 'options' => $dash_barangay_options],
+                ['kind' => 'select', 'span' => 'full', 'id' => 'dashBarangayFilter', 'label' => 'Barangay', 'value' => $f_barangay, 'default' => '', 'options' => $dash_barangay_options],
+                ['kind' => 'date', 'id' => 'popoverDateFrom', 'label' => 'Date From', 'value' => $dash_date_preset ? '' : $analytics_date_from, 'default' => ''],
+                ['kind' => 'date', 'id' => 'popoverDateTo',   'label' => 'Date To',   'value' => $dash_date_preset ? '' : $analytics_date_to,   'default' => ''],
             ],
-            'active_filters'     => 0,
+            'active_filters'     => (int)(($f_status !== 'all' ? 1 : 0) + ($f_risk !== 'all' ? 1 : 0) + ($f_barangay !== '' ? 1 : 0) + ($f_search !== '' ? 1 : 0) + ($analytics_date_from ? 1 : 0) + ($analytics_date_to ? 1 : 0) + ($dash_date_preset !== '' ? 1 : 0)),
             'chips'              => [],
             'chips_clear_all'    => false,
+            'trailing_select'    => [
+                'id' => 'dashDatePreset', 'value' => $dash_date_preset, 'min_width' => '150px',
+                'options' => $dash_date_preset_options,
+            ],
             'callback'           => 'applyDashboardFilters',
         ];
         include BASE_PATH . 'views/shared/report_filter_toolbar.php';
@@ -1160,6 +1311,7 @@ function getDecisionBadge($classification) {
                 <!-- Timeframe Selector + Custom Date Range -->
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="map-toggle" id="timeframeToggle">
+                        <button data-range="today">Today</button>
                         <button data-range="week">This Week</button>
                         <button data-range="month">This Month</button>
                         <button data-range="year">This Year</button>
@@ -1490,6 +1642,7 @@ const activeReports = <?php echo json_encode($activeReports); ?>;
 const historicalReports = <?php echo json_encode($historicalReports); ?>;
 const boundaryData = <?php echo json_encode($boundary_data); ?>;
 const barangayData = <?php echo json_encode($barangay_data); ?>;
+const mapDefaults = <?php echo json_encode(SettingsHelper::getMapSettings()); ?>;
 const severityData = <?php echo json_encode(array_values(array_column($severityTiers, 'count'))); ?>;
 const severityLabels = <?php echo json_encode(array_values(array_column($severityTiers, 'label'))); ?>;
 const seasonalData = <?php echo json_encode($seasonalData); ?>;
@@ -1508,7 +1661,7 @@ const timeBucketData = <?php echo json_encode(array_values($timeBuckets)); ?>;
 // FILTER STATE (Category Filter + Timeframe Selector)
 // ------------------------------------------------------------
 let selectedCategories = new Set(allCategories.map(c => String(c.id))); // all checked by default
-let selectedRange = 'all'; // 'week' | 'month' | 'year' | 'custom' | 'all' — starts on "All Time" so the default master-cluster view shows everything
+let selectedRange = 'all'; // 'today' | 'week' | 'month' | 'year' | 'custom' | 'all' — starts on "All Time" so the default master-cluster view shows everything
 let selectedFrom = ''; // 'YYYY-MM-DD' — used when selectedRange === 'custom'
 let selectedTo = '';   // 'YYYY-MM-DD' — used when selectedRange === 'custom'
 let searchQuery = '';  // from the report filter toolbar
@@ -1521,6 +1674,7 @@ let selectedRisk = 'all';   // from the report filter toolbar
 let map;
 let currentLayer = null;
 let currentMode = 'active'; // 'active' or 'historical'
+let initialFitApplied = false; // preserve the saved default view on first load
 
 // Barangay polygon layer state
 let barangayLayer = null;
@@ -1530,8 +1684,8 @@ let spotlightMask = null;
 const barangayDefaultStyle = MapLayers.dashedBoundaryStyle(1.5);
 
 function initMap() {
-    const center = [15.3092, 120.9033];
-    map = L.map('map').setView(center, 13);
+    const center = [mapDefaults.default_lat, mapDefaults.default_lng];
+    map = L.map('map').setView(center, mapDefaults.default_zoom);
 
     MapLayers.addControl(map);
 
@@ -1586,8 +1740,6 @@ function addBarangayLayers() {
             });
         }
     }).addTo(map);
-
-    try { map.fitBounds(barangayLayer.getBounds(), { padding: [20, 20], maxZoom: 13 }); } catch(e) {}
 }
 
 // Clicking a barangay filters the report markers to only that barangay.
@@ -1663,6 +1815,11 @@ function isWithinRange(dateStr, range) {
         return true;
     }
     const now = new Date();
+    if (range === 'today') {
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+        return date >= todayStart;
+    }
     if (range === 'week') {
         const weekAgo = new Date(now);
         weekAgo.setDate(now.getDate() - 7);
@@ -1706,7 +1863,7 @@ function getFilteredData(mode) {
 }
 
 function updateFilterSummary(mode, count) {
-    const rangeLabels = { week: 'this week', month: 'this month', year: 'this year', all: 'all time' };
+    const rangeLabels = { today: 'today', week: 'this week', month: 'this month', year: 'this year', all: 'all time' };
     let rangeLabel = rangeLabels[selectedRange] || selectedRange;
     if (selectedRange === 'custom') {
         rangeLabel = 'custom (' + (selectedFrom || '?') + ' to ' + (selectedTo || '?') + ')';
@@ -1733,6 +1890,7 @@ function applyAnalyticsDateFilter() {
     var url = new URL(window.location.href);
     if (from) url.searchParams.set('date_from', from); else url.searchParams.delete('date_from');
     if (to)   url.searchParams.set('date_to',   to);   else url.searchParams.delete('date_to');
+    url.searchParams.delete('date_preset');
     window.location.href = url.toString();
 }
 
@@ -1741,21 +1899,40 @@ function applyDashboardFilters() {
     const st = document.getElementById('dashStatusFilter');
     const rk = document.getElementById('dashRiskFilter');
     const brgy = document.getElementById('dashBarangayFilter');
+    const dateFrom = document.getElementById('popoverDateFrom');
+    const dateTo   = document.getElementById('popoverDateTo');
+    const presetEl = document.getElementById('dashDatePreset');
 
-    searchQuery = s ? s.value : '';
-    selectedStatus = st ? st.value : 'all';
-    selectedRisk = rk ? rk.value : 'all';
+    const url = new URL(window.location.href);
+    const set = (k, v) => {
+        if (v && v !== 'all' && v !== '') url.searchParams.set(k, String(v).trim());
+        else url.searchParams.delete(k);
+    };
+    set('search', s ? s.value : '');
+    set('status', st ? st.value : 'all');
+    set('risk', rk ? rk.value : 'all');
+    set('barangay', brgy ? brgy.value : '');
 
-    const brgyVal = brgy ? brgy.value : '';
-    if (brgyVal !== (selectedBarangay || '')) {
-        selectedBarangay = brgyVal || null;
-        if (selectedBarangayLayer) { selectedBarangayLayer.setStyle(barangayDefaultStyle); }
-        selectedBarangayLayer = null;
-        if (spotlightMask) { map.removeLayer(spotlightMask); spotlightMask = null; }
-        updateBarangayFilterChip();
+    let df = dateFrom ? dateFrom.value : '';
+    let dt = dateTo ? dateTo.value : '';
+    let preset = presetEl ? presetEl.value : '';
+    if (df || dt) {
+        preset = '';
+        if (presetEl) presetEl.value = '';
     }
-
-    loadMapData(currentMode);
+    if (preset) {
+        const today = new Date();
+        const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        let f = today, t = today;
+        if (preset === 'week') { f = new Date(today); f.setDate(today.getDate() - 6); }
+        else if (preset === 'month') { f = new Date(today.getFullYear(), today.getMonth(), 1); }
+        else if (preset === 'year') { f = new Date(today.getFullYear(), 0, 1); }
+        df = ymd(f); dt = ymd(t);
+    }
+    set('date_preset', preset);
+    set('date_from', df);
+    set('date_to', dt);
+    window.location.href = url.toString();
 }
 
 function loadMapData(mode) {
@@ -1816,9 +1993,14 @@ function loadMapData(mode) {
             </div>
         `;
 
+        const catName = report.category_name || 'General';
         const icon = L.divIcon({
-            html: `<div style="background: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>`,
-            iconSize: [24, 24],
+            html: `<div class="sev-marker-wrap">
+                     <div class="sev-marker-dot" style="background:${color};"></div>
+                     <div class="sev-marker-label">${escapeHtml(catName)}</div>
+                   </div>`,
+            iconSize: [120, 40],
+            iconAnchor: [60, 12],
             className: 'severity-marker'
         });
 
@@ -1836,10 +2018,11 @@ function loadMapData(mode) {
     currentLayer = clusterGroup;
     map.addLayer(clusterGroup);
     // Fit bounds
-    if (data.length > 0) {
+    if (data.length > 0 && initialFitApplied) {
         const bounds = L.latLngBounds(data.map(r => [r.latitude, r.longitude]));
         map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
     }
+    initialFitApplied = true;
 }
 
 // ------------------------------------------------------------

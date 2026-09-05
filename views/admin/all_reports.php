@@ -793,7 +793,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
 
         .main-container {
             padding: 1rem;
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         @media (min-width: 640px) {
@@ -905,65 +905,65 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
         </div>
 
         <!-- ===== STATS SUMMARY CARDS ===== -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
             <!-- Total -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-[#10A37F]/10 flex items-center justify-center text-[#10A37F] flex-shrink-0">
-                    <i class="fas fa-flag text-sm md:text-base"></i>
-                </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
                 <div>
-                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $totalReports; ?></div>
-                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">Total</div>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Total</p>
+                    <p class="text-xl md:text-2xl font-extrabold text-[#10A37F] tracking-tight"><?php echo $totalReports; ?></p>
+                </div>
+                <div class="w-10 h-10 bg-[#10A37F]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-flag text-[#10A37F]"></i>
                 </div>
             </div>
             <!-- Pending -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-yellow-400 transition-all duration-200">
-                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 flex-shrink-0">
-                    <i class="fas fa-clock text-sm md:text-base"></i>
-                </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-yellow-400 transition-all duration-200">
                 <div>
-                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $pendingCount; ?></div>
-                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">Pending</div>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Pending</p>
+                    <p class="text-xl md:text-2xl font-extrabold text-yellow-600 tracking-tight"><?php echo $pendingCount; ?></p>
+                </div>
+                <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-clock text-yellow-600"></i>
                 </div>
             </div>
             <!-- Under Review -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-blue-400 transition-all duration-200">
-                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 flex-shrink-0">
-                    <i class="fas fa-search text-sm md:text-base"></i>
-                </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-blue-400 transition-all duration-200">
                 <div>
-                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $underReviewCount; ?></div>
-                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">Under Review</div>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Under Review</p>
+                    <p class="text-xl md:text-2xl font-extrabold text-blue-600 tracking-tight"><?php echo $underReviewCount; ?></p>
+                </div>
+                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-search text-blue-600"></i>
                 </div>
             </div>
             <!-- In Progress -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-pink-400 transition-all duration-200">
-                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-700 flex-shrink-0">
-                    <i class="fas fa-spinner text-sm md:text-base"></i>
-                </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-pink-400 transition-all duration-200">
                 <div>
-                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $inProgressCount; ?></div>
-                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">In Progress</div>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">In Progress</p>
+                    <p class="text-xl md:text-2xl font-extrabold text-pink-600 tracking-tight"><?php echo $inProgressCount; ?></p>
+                </div>
+                <div class="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-spinner text-pink-600"></i>
                 </div>
             </div>
             <!-- Escalated -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-orange-400 transition-all duration-200">
-                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-sm md:text-base"></i>
-                </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-orange-400 transition-all duration-200">
                 <div>
-                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $escalatedCount; ?></div>
-                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">Escalated</div>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Escalated</p>
+                    <p class="text-xl md:text-2xl font-extrabold text-orange-600 tracking-tight"><?php echo $escalatedCount; ?></p>
+                </div>
+                <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-orange-600"></i>
                 </div>
             </div>
             <!-- High Risk -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-red-400 transition-all duration-200">
-                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-red-100 flex items-center justify-center text-red-700 flex-shrink-0">
-                    <i class="fas fa-exclamation-circle text-sm md:text-base"></i>
-                </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-red-400 transition-all duration-200">
                 <div>
-                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $highRiskCount; ?></div>
-                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">High Risk</div>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">High Risk</p>
+                    <p class="text-xl md:text-2xl font-extrabold text-red-600 tracking-tight"><?php echo $highRiskCount; ?></p>
+                </div>
+                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-exclamation-circle text-red-600"></i>
                 </div>
             </div>
         </div>

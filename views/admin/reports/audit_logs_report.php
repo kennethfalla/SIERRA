@@ -496,6 +496,19 @@ $searchText = $search !== '' ? $search : '';
         .sidebar-form { flex: 1; display: flex; flex-direction: column; min-height: 0; }
         .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
         .sidebar-group { display: flex; flex-direction: column; gap: 10px; }
+        .quick-range { display: flex; flex-wrap: wrap; gap: 5px; }
+        .quick-range a {
+            padding: 4px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 999px;
+            background: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            color: #374151;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .quick-range a:hover { border-color: #10A37F; color: #10A37F; background: #F0FBF6; }
         .sidebar-group-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
         .filter-field { display: flex; flex-direction: column; gap: 4px; }
         .filter-field label { font-size: 11px; font-weight: 600; color: #374151; }
@@ -561,6 +574,12 @@ $searchText = $search !== '' ? $search : '';
                     </div>
                     <div class="sidebar-group">
                         <div class="sidebar-group-label">Date</div>
+                        <div class="quick-range">
+                            <a href="#" onclick="setQuickReportRange('today'); return false;">Today</a>
+                            <a href="#" onclick="setQuickReportRange('week'); return false;">This Week</a>
+                            <a href="#" onclick="setQuickReportRange('month'); return false;">This Month</a>
+                            <a href="#" onclick="setQuickReportRange('year'); return false;">This Year</a>
+                        </div>
                         <div class="filter-field">
                             <label for="sideFrom">Date From</label>
                             <input type="date" name="from" id="sideFrom" value="<?php echo htmlspecialchars($from); ?>">
@@ -768,5 +787,24 @@ $searchText = $search !== '' ? $search : '';
         });
     </script>
     <?php endif; ?>
+    <script>
+        function setQuickReportRange(range) {
+            var f = document.getElementById('sideFrom');
+            var t = document.getElementById('sideTo');
+            if (!f || !t) return;
+            var r = document.getElementById('sideDateRange');
+            if (r) r.value = '0';
+            var today = new Date();
+            var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+            var from = today, to = today;
+            if (range === 'week') { from = new Date(today); from.setDate(today.getDate() - 6); }
+            else if (range === 'month') { from = new Date(today.getFullYear(), today.getMonth(), 1); }
+            else if (range === 'year') { from = new Date(today.getFullYear(), 0, 1); }
+            f.value = ymd(from);
+            t.value = ymd(to);
+            var form = f.closest('form');
+            if (form) { if (form.requestSubmit) form.requestSubmit(); else form.submit(); }
+        }
+    </script>
 </body>
 </html>

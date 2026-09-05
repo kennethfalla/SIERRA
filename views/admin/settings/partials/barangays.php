@@ -295,6 +295,14 @@ if (!isset($csrf_token)) {
         display: none;
     }
     
+    @media (max-width: 440px) {
+        .barangay-toast {
+            right: 12px;
+            left: 12px;
+            width: auto;
+        }
+    }
+    
     .barangay-toast.error {
         border-left-color: #ef4444;
     }

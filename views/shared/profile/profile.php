@@ -1025,7 +1025,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             margin-bottom: 20px;
         }
         @media (max-width: 420px) {
-            .avatar-picker-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+            .avatar-picker-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        }
+        @media (max-width: 360px) {
+            .avatar-picker-grid { grid-template-columns: repeat(2, 1fr); }
         }
         .avatar-option {
             position: relative;

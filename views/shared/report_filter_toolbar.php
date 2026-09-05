@@ -192,6 +192,7 @@ foreach ($ft_popover_fields as $pf) {
         box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.12), 0 4px 12px -4px rgba(0, 0, 0, 0.06);
         padding: 16px;
         min-width: 320px;
+        max-width: calc(100vw - 32px);
         display: none;
         animation: ftPopoverIn 0.2s ease;
     }
@@ -226,6 +227,9 @@ foreach ($ft_popover_fields as $pf) {
         margin-bottom: 4px;
         text-transform: uppercase;
         letter-spacing: 0.03em;
+    }
+    .ft-toolbar .popover-field.span-full {
+        grid-column: 1 / -1;
     }
     .ft-toolbar .popover-field select {
         width: 100%;
@@ -448,6 +452,13 @@ foreach ($ft_popover_fields as $pf) {
             flex: 1 1 auto;
             min-width: 0;
         }
+        /* Popover must fit small phones: drop the 320px min-width and stack date fields */
+        .ft-toolbar .filter-popover {
+            min-width: 0;
+        }
+        .ft-toolbar .popover-grid {
+            grid-template-columns: 1fr;
+        }
         /* View toggle gets JS-repositioned to sit right after search on mobile */
         .ft-toolbar .view-toggle {
             flex-shrink: 0;
@@ -621,7 +632,7 @@ foreach ($ft_popover_fields as $pf) {
                     <div class="popover-title">Refine Results</div>
                     <div class="popover-grid<?php echo count($ft_popover_fields) <= 1 ? ' full-width' : ''; ?>">
                         <?php foreach ($ft_popover_fields as $pf): ?>
-                            <div class="popover-field">
+                            <div class="popover-field<?php echo (($pf['span'] ?? '') === 'full') ? ' span-full' : ''; ?>">
                                 <label><?php echo htmlspecialchars($pf['label'] ?? ''); ?></label>
                                 <?php if (($pf['kind'] ?? 'date') === 'select'): ?>
                                     <select id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>">
@@ -744,6 +755,7 @@ foreach ($ft_popover_fields as $pf) {
         moreBtn && moreBtn.classList.remove('active');
         moreBtn && moreBtn.setAttribute('aria-expanded', 'false');
         filterPopover && filterPopover.classList.remove('open');
+        if (filterPopover) { filterPopover.style.position = ''; filterPopover.style.left = ''; filterPopover.style.top = ''; }
     }
     moreBtn && moreBtn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -824,20 +836,42 @@ foreach ($ft_popover_fields as $pf) {
         if (e.key === 'Enter') { clearTimeout(searchTimer); ftRun(); }
     });
 
-    // Popover toggle
+    // Popover toggle + viewport clamping (keep fully on screen)
     filterBtn && filterBtn.addEventListener('click', function (e) {
         e.stopPropagation();
+        var willOpen = !filterPopover.classList.contains('open');
+        if (willOpen && filterPopover) {
+            // Use fixed positioning so left/top are viewport-relative
+            filterPopover.style.position = 'fixed';
+            var btnRect = filterBtn.getBoundingClientRect();
+            var popW = filterPopover.offsetWidth || 320;
+            var popH = filterPopover.offsetHeight;
+            var viewW = window.innerWidth || document.documentElement.clientWidth;
+            var viewH = window.innerHeight || document.documentElement.clientHeight;
+            var left = btnRect.left;
+            if (left + popW > viewW - 8) left = Math.max(8, viewW - popW - 8);
+            var top = btnRect.bottom + 8;
+            if (top + popH > viewH - 8) top = Math.max(8, btnRect.top - popH - 8);
+            filterPopover.style.left = left + 'px';
+            filterPopover.style.top = top + 'px';
+        }
         filterPopover.classList.toggle('open');
     });
     document.addEventListener('click', function (e) {
         if (filterPopover && !filterPopover.contains(e.target) && e.target !== filterBtn) {
             filterPopover.classList.remove('open');
+            filterPopover.style.position = '';
+            filterPopover.style.left = '';
+            filterPopover.style.top = '';
         }
     });
     filterPopover && filterPopover.addEventListener('click', function (e) { e.stopPropagation(); });
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && filterPopover && filterPopover.classList.contains('open')) {
             filterPopover.classList.remove('open');
+            filterPopover.style.position = '';
+            filterPopover.style.left = '';
+            filterPopover.style.top = '';
         }
     });
 
@@ -845,6 +879,9 @@ foreach ($ft_popover_fields as $pf) {
     var applyBtn = document.getElementById('popoverApply');
     applyBtn && applyBtn.addEventListener('click', function () {
         filterPopover.classList.remove('open');
+        filterPopover.style.position = '';
+        filterPopover.style.left = '';
+        filterPopover.style.top = '';
         ftRun();
     });
     var resetBtn = document.getElementById('popoverReset');
@@ -855,6 +892,9 @@ foreach ($ft_popover_fields as $pf) {
         });
         if (typeof window.ftResetPopover === 'function') window.ftResetPopover();
         filterPopover.classList.remove('open');
+        filterPopover.style.position = '';
+        filterPopover.style.left = '';
+        filterPopover.style.top = '';
         ftRun();
     });
 

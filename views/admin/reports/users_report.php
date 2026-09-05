@@ -104,6 +104,30 @@ if ($created_from && $created_to) $createdText = date('M j, Y', strtotime($creat
 elseif ($created_from) $createdText = 'From ' . date('M j, Y', strtotime($created_from));
 elseif ($created_to)   $createdText = 'Up to ' . date('M j, Y', strtotime($created_to));
 
+// Report title reflects the primary filter applied (barangay takes precedence).
+$reportTitle = 'USER / ACCOUNT REPORT';
+if ($barangay > 0 && $barangayName !== '') {
+    $reportTitle = 'USERS IN ' . strtoupper($barangayName);
+} elseif ($role === 'menro') {
+    $reportTitle = 'MENRO USERS REPORT';
+} elseif ($role === 'barangay') {
+    $reportTitle = 'BARANGAY USERS REPORT';
+} elseif ($role === 'citizen') {
+    $reportTitle = 'REPORTERS / RESIDENTS REPORT';
+}
+
+// Quick preset ranges ("All date filters apply Today / This Week / This Month / This Year").
+$quickRanges = [
+    'today' => ['name' => 'Today',      'from' => date('Y-m-d'),                          'to' => date('Y-m-d')],
+    'week'  => ['name' => 'This Week',  'from' => date('Y-m-d', strtotime('monday this week')), 'to' => date('Y-m-d')],
+    'month' => ['name' => 'This Month', 'from' => date('Y-m-01'),                         'to' => date('Y-m-d')],
+    'year'  => ['name' => 'This Year',  'from' => date('Y-01-01'),                        'to' => date('Y-m-d')],
+];
+$baseQuery = '?page=users-report&role=' . urlencode($role)
+             . ($status !== 'all' ? '&status=' . urlencode($status) : '')
+             . ($barangay > 0 ? '&barangay=' . (int)$barangay : '')
+             . ($residency !== 'all' ? '&residency=' . urlencode($residency) : '');
+
 // ------------------------------------------------------------
 // ORGANIZATION / REPORT SETTINGS
 // ------------------------------------------------------------
@@ -359,6 +383,19 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
         .sidebar-form { flex: 1; display: flex; flex-direction: column; min-height: 0; }
         .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
         .sidebar-group { display: flex; flex-direction: column; gap: 10px; }
+        .quick-range { display: flex; flex-wrap: wrap; gap: 5px; }
+        .quick-range a {
+            padding: 4px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 999px;
+            background: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            color: #374151;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .quick-range a:hover { border-color: #10A37F; color: #10A37F; background: #F0FBF6; }
         .sidebar-group-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
         .filter-field { display: flex; flex-direction: column; gap: 4px; }
         .filter-field label { font-size: 11px; font-weight: 600; color: #374151; }
@@ -454,6 +491,11 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
                     </div>
                     <div class="sidebar-group">
                         <div class="sidebar-group-label">Newly Created Accounts</div>
+                        <div class="quick-range">
+                            <?php foreach ($quickRanges as $qr): ?>
+                            <a href="<?php echo BASE_URL; ?>index.php<?php echo $baseQuery . '&created_from=' . $qr['from'] . '&created_to=' . $qr['to']; ?>"><?php echo htmlspecialchars($qr['name']); ?></a>
+                            <?php endforeach; ?>
+                        </div>
                         <div class="filter-field">
                             <label for="sideCreatedFrom">Created From</label>
                             <input type="date" name="created_from" id="sideCreatedFrom" value="<?php echo htmlspecialchars($created_from); ?>">
@@ -505,7 +547,7 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
 
         <!-- ===== Report Title & Metadata ===== -->
         <div class="report-title-block">
-            <div class="report-title">USER / ACCOUNT REPORT</div>
+            <div class="report-title"><?php echo htmlspecialchars($reportTitle); ?></div>
             <div class="report-subtitle">Registered Users in the System &middot; <?php echo htmlspecialchars($municipality); ?></div>
             <div class="report-meta">
                 <span><strong>Group:</strong> <?php echo htmlspecialchars($roleText); ?></span>

@@ -153,6 +153,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         body.settings-nav-hidden .settings-sidebar {
             display: none;
         }
+        /* Compact page header button on small phones */
+        @media (max-width: 480px) {
+            #navToggleLabel { display: none; }
+            #navToggleBtn { padding: 0.5rem 0.65rem; }
+        }
         
         /* ===== CONTAINER ===== */
         .main-container {
@@ -552,7 +557,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="main-container max-w-7xl mx-auto">
         
         <!-- ===== PAGE HEADER ===== -->
-        <div class="mb-6 flex items-start justify-between gap-4">
+        <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
                 <div class="flex items-center gap-2 mb-2">
                     <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">

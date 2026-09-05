@@ -13,6 +13,9 @@ $report = new Report($db);
 $user_id = $_SESSION['user_id'];
 $user_name = $_SESSION['user_name'];
 $barangay_id = $_SESSION['barangay_id'] ?? null;
+// Residency: residents have a barangay_id and is_resident=1; non-residents (visitors)
+// have no barangay_id. Defaults to resident when the flag is missing for safety.
+$is_resident = (int)($_SESSION['is_resident'] ?? (($barangay_id !== null) ? 1 : 0));
 
 $reports_stmt = $report->getReportsByUser($user_id);
 $reports = $reports_stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -40,7 +43,7 @@ if ($current_hour < 12) {
     $greeting_color = "text-yellow-200";
 } elseif ($current_hour < 18) {
     $greeting = "Good Afternoon";
-    $greeting_icon = "fa-cloud-sun";
+    $greeting_icon = "fa-cloud";
     $greeting_color = "text-orange-200";
 } else {
     $greeting = "Good Evening";
@@ -60,27 +63,50 @@ $notifications = $notifModel->getForUser($user_id, 10);
 $unread_count = $notifModel->getUnreadCount($user_id);
 
 // ========== LATEST ANNOUNCEMENT ==========
-$announcement_sql = "
-    SELECT a.*, 
-           CONCAT(u.first_name, ' ', u.last_name) as author_name,
-           b.name as barangay_name,
-           COALESCE(a.is_public, 1) as is_public,
-           a.created_by_role,
-           (SELECT COUNT(*) FROM announcement_images WHERE announcement_id = a.id) as image_count
-    FROM announcements a
-    JOIN users u ON a.created_by = u.id
-    LEFT JOIN barangays b ON a.barangay_id = b.id
-    WHERE a.is_active = 1 AND a.is_archived = 0 
-    AND (a.expires_at IS NULL OR a.expires_at > NOW())
-    AND (
-        a.broadcast_type = 'global_public' 
-        OR (a.broadcast_type = 'localized_public' AND a.barangay_id = :barangay_id)
-    )
-    ORDER BY a.created_at DESC
-    LIMIT 1
-";
+// Non-residents (visitors) see ONLY municipality-wide announcements; residents
+// additionally see their own barangay's localized announcements.
+if ($is_resident) {
+    $announcement_sql = "
+        SELECT a.*, 
+               CONCAT(u.first_name, ' ', u.last_name) as author_name,
+               b.name as barangay_name,
+               COALESCE(a.is_public, 1) as is_public,
+               a.created_by_role,
+               (SELECT COUNT(*) FROM announcement_images WHERE announcement_id = a.id) as image_count
+        FROM announcements a
+        JOIN users u ON a.created_by = u.id
+        LEFT JOIN barangays b ON a.barangay_id = b.id
+        WHERE a.is_active = 1 AND a.is_archived = 0 
+        AND (a.expires_at IS NULL OR a.expires_at > NOW())
+        AND (
+            a.broadcast_type = 'global_public' 
+            OR (a.broadcast_type = 'localized_public' AND a.barangay_id = :barangay_id)
+        )
+        ORDER BY a.created_at DESC
+        LIMIT 1
+    ";
+} else {
+    $announcement_sql = "
+        SELECT a.*, 
+               CONCAT(u.first_name, ' ', u.last_name) as author_name,
+               b.name as barangay_name,
+               COALESCE(a.is_public, 1) as is_public,
+               a.created_by_role,
+               (SELECT COUNT(*) FROM announcement_images WHERE announcement_id = a.id) as image_count
+        FROM announcements a
+        JOIN users u ON a.created_by = u.id
+        LEFT JOIN barangays b ON a.barangay_id = b.id
+        WHERE a.is_active = 1 AND a.is_archived = 0 
+        AND (a.expires_at IS NULL OR a.expires_at > NOW())
+        AND a.broadcast_type = 'global_public'
+        ORDER BY a.created_at DESC
+        LIMIT 1
+    ";
+}
 $ann_stmt = $db->prepare($announcement_sql);
-$ann_stmt->bindParam(':barangay_id', $barangay_id);
+if ($is_resident) {
+    $ann_stmt->bindParam(':barangay_id', $barangay_id);
+}
 $ann_stmt->execute();
 $latest_announcement = $ann_stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -914,6 +940,94 @@ if (is_dir($barangays_dir)) {
             border: 2px solid #e5e7eb;
         }
         .rdm-media-grid img:hover { transform: scale(1.04); border-color: #10A37F; }
+
+        /* ===== Enhanced report detail body ===== */
+        .rdm-body { padding-top: 0.25rem; }
+        .rdm-topline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .rdm-cat-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            color: #047857;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 999px;
+            letter-spacing: 0.02em;
+        }
+        .rdm-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .rdm-title {
+            font-weight: 800;
+            font-size: 1.2rem;
+            line-height: 1.3;
+            color: #0f172a;
+            margin-bottom: 10px;
+            padding-right: 2rem;
+            word-break: break-word;
+        }
+        .rdm-sub {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .rdm-sub span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .rdm-sub i { color: #10A37F; width: 14px; text-align: center; }
+        .rdm-desc {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #10A37F;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+        }
+        .rdm-desc p {
+            font-size: 0.825rem;
+            color: #334155;
+            line-height: 1.7;
+            margin: 0;
+            white-space: pre-line;
+        }
+        .rdm-section-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 8px;
+        }
+        .rdm-section-label i { color: #10A37F; }
+        .rdm-panel {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 10px;
+        }
+
         /* Lightbox for detail modal images */
         #rdmLightbox {
             display: none;
@@ -961,6 +1075,32 @@ if (is_dir($barangays_dir)) {
             border: 2px solid #10A37F;
             animation: mine-pulse 1.8s ease-out infinite;
         }
+
+        /* Category label under each community hotspot dot (shown when zoomed in) */
+        .sev-marker-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            line-height: 1;
+        }
+        .sev-marker-label {
+            font-family: 'Manrope', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: #0F3B2E;
+            background: rgba(255,255,255,0.92);
+            padding: 2px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+            max-width: 130px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            border: 1px solid rgba(16,163,127,0.25);
+        }
+        .community-report-marker .sev-marker-label { display: none; }
+        .communityMap-zoomed .community-report-marker .sev-marker-label { display: block; }
 
         .notification-bell { 
             cursor: pointer; 
@@ -1831,7 +1971,6 @@ if (is_dir($barangays_dir)) {
                 </a>
             </div>
         </div>
-
         <!-- ===== TWO COLUMN: COMMUNITY MAP (LEFT) | ECO CTA + STATS (RIGHT) ===== -->
         <div class="two-col">
             <!-- LEFT: Community Reports Map (admin design, citizen data) -->
@@ -2358,7 +2497,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var mapEl = document.getElementById('communityMap');
     if (!mapEl) return;
 
-    var communityMap = L.map('communityMap', { scrollWheelZoom: false }).setView([15.3092, 120.9033], 13);
+    var communityMap = L.map('communityMap', { scrollWheelZoom: true }).setView([15.3092, 120.9033], 13);
 
     MapLayers.addControl(communityMap);
 
@@ -2453,33 +2592,29 @@ document.addEventListener('DOMContentLoaded', function() {
         var color      = statusColors[r.status] || '#10A37F';
         var isMine     = parseInt(r.is_mine) === 1;
         var markerSize = isMine ? 26 : 22;
-        var markerHtml = isMine
+        var categoryName = esc(r.category_name || 'General');
+        var dotHtml = isMine
             ? '<div class="mine-marker-wrap"><div class="mine-marker-ring"></div>'
               + '<div style="background:'+color+';width:'+markerSize+'px;height:'+markerSize+'px;border-radius:50%;border:3px solid #ffffff;box-shadow:0 2px 8px rgba(16,163,127,0.45);"></div></div>'
             : '<div style="background:'+color+';width:'+markerSize+'px;height:'+markerSize+'px;border-radius:50%;border:2px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>';
+        var markerHtml = '<div class="sev-marker-wrap">' + dotHtml + '<div class="sev-marker-label">' + categoryName + '</div></div>';
 
         var icon = L.divIcon({
             html: markerHtml,
-            iconSize:   [markerSize, markerSize],
-            iconAnchor: [markerSize/2, markerSize/2],
+            iconSize:   [130, markerSize + 18],
+            iconAnchor: [65, markerSize/2],
             className:  'community-report-marker'
         });
 
-        // --- Build popup ---
+        // --- Build popup (compact snippet; full details via View Details) ---
         var title       = esc(r.title || 'Untitled Report');
         var statusLabel = statusLabels[r.status] || esc(r.status);
-        var dateStr     = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-        var desc        = String(r.description || '');
-        if (desc.length > 120) desc = desc.substring(0,120)+'…';
 
         var html = '';
         if (isMine) html += '<div class="map-popup-mine-badge"><i class="fas fa-star" style="font-size:0.6rem;"></i> Your Report</div>';
         html += '<div class="map-popup-title">' + title + '</div>';
         html += '<div class="map-popup-meta"><i class="fas fa-tag"></i>' + esc(r.category_name||'General') + '</div>';
-        html += '<div class="map-popup-meta"><i class="fas fa-map-marker-alt"></i>' + esc(r.barangay_name||'San Isidro') + '</div>';
         html += '<div class="map-popup-meta"><i class="fas fa-circle" style="color:'+color+';"></i>' + statusLabel + '</div>';
-        if (dateStr) html += '<div class="map-popup-meta"><i class="far fa-calendar-alt"></i>' + dateStr + '</div>';
-        if (desc)    html += '<div class="map-popup-desc">' + esc(desc) + '</div>';
         html += '<button class="map-popup-view-btn" onclick="openReportDetail('+r.id+')"><i class="fas fa-expand-alt" style="margin-right:5px;"></i>View Details</button>';
 
         var marker = L.marker([lat, lng], { icon: icon })
@@ -2489,6 +2624,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     communityMap.addLayer(markersLayer);
+
+    // Reveal category labels under hotspots only when zoomed in (clean UX,
+    // matching the MENRO/Barangay behaviour where labels appear on individual pins).
+    function updateCommunityLabels() {
+        var el = communityMap.getContainer();
+        if (communityMap.getZoom() >= 15) el.classList.add('communityMap-zoomed');
+        else el.classList.remove('communityMap-zoomed');
+    }
+    communityMap.on('zoomend', updateCommunityLabels);
+    updateCommunityLabels();
 
     if (barangayLayer) {
         try { communityMap.fitBounds(barangayLayer.getBounds(),{padding:[20,20],maxZoom:13}); } catch(e){}
@@ -2528,36 +2673,37 @@ function openReportDetail(reportId) {
             var html = '';
             // Mine badge
             if (parseInt(r.is_mine)===1) {
-                html += '<div style="margin-bottom:10px;"><span class="map-popup-mine-badge"><i class="fas fa-star" style="font-size:0.65rem;"></i> Your Report</span></div>';
+                html += '<div style="margin-bottom:12px;"><span class="map-popup-mine-badge"><i class="fas fa-star" style="font-size:0.65rem;"></i> Your Report</span></div>';
             }
-            // Title
-            html += '<h2 style="font-weight:800;font-size:1.1rem;color:#111827;line-height:1.3;margin-bottom:8px;padding-right:2rem;">' + _escHtml(r.title||'Untitled Report') + '</h2>';
-            // Status + Date
-            html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:14px;">';
-            html += '<span class="rdm-status-badge" style="background:'+bgColor+';color:'+color+';"><i class="fas fa-circle" style="font-size:0.5rem;"></i>' + _escHtml(statusLabel) + '</span>';
-            html += '<span style="font-size:0.72rem;color:#9ca3af;"><i class="far fa-calendar-alt" style="margin-right:4px;"></i>' + dateStr + '</span>';
+            html += '<div class="rdm-body">';
+            // Topline: category chip + status badge
+            html += '<div class="rdm-topline">';
+            html += '<span class="rdm-cat-chip"><i class="fas fa-tag"></i>' + _escHtml(r.category_name||'General') + '</span>';
+            html += '<span class="rdm-status" style="background:'+bgColor+';color:'+color+';"><i class="fas fa-circle" style="font-size:0.5rem;"></i>' + _escHtml(statusLabel) + '</span>';
             html += '</div>';
-            // Meta row (no severity score for citizen view)
-            html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">';
-            html += '<span style="font-size:0.72rem;color:#5b7a68;"><i class="fas fa-tag" style="color:#10A37F;margin-right:4px;"></i>' + _escHtml(r.category_name||'General') + '</span>';
-            html += '<span style="font-size:0.72rem;color:#5b7a68;"><i class="fas fa-map-marker-alt" style="color:#10A37F;margin-right:4px;"></i>' + _escHtml(r.barangay_name||'San Isidro') + '</span>';
+            // Title
+            html += '<h2 class="rdm-title">' + _escHtml(r.title||'Untitled Report') + '</h2>';
+            // Sub meta: date + barangay
+            html += '<div class="rdm-sub">';
+            html += '<span><i class="far fa-calendar-alt"></i>' + dateStr + '</span>';
+            html += '<span><i class="fas fa-map-marker-alt"></i>' + _escHtml(r.barangay_name||'San Isidro') + '</span>';
             html += '</div>';
 
             // Description
             if (r.description) {
-                html += '<div style="background:#f8fafc;border-radius:10px;padding:12px 14px;margin-bottom:14px;">';
-                html += '<p style="font-size:0.8rem;color:#374151;line-height:1.65;margin:0;">' + _escHtml(r.description) + '</p>';
-                html += '</div>';
+                html += '<div class="rdm-desc"><p>' + _escHtml(r.description) + '</p></div>';
             }
             // Photos / Videos
             if (data.images && data.images.length > 0) {
-                html += '<div style="margin-bottom:4px;"><p style="font-size:0.72rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;"><i class="fas fa-images" style="margin-right:5px;color:#10A37F;"></i>Evidence Photos</p>';
+                html += '<div class="rdm-panel">';
+                html += '<p class="rdm-section-label"><i class="fas fa-images"></i>Evidence Photos (' + data.images.length + ')</p>';
                 html += '<div class="rdm-media-grid">';
                 data.images.forEach(function(img, idx) {
                     html += '<img src="' + BASE_URL_JS + _escAttr(img) + '" data-rdm-src="' + BASE_URL_JS + _escAttr(img) + '" alt="Evidence photo ' + (idx+1) + '" loading="lazy">';
                 });
                 html += '</div></div>';
             }
+            html += '</div>';
 
             _rdmCache[reportId] = html;
             content.innerHTML = html;

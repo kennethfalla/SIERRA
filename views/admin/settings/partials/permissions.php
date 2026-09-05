@@ -628,7 +628,8 @@ $permissionRisk = [
 @media (max-width: 640px) {
     .perm-hero { flex-wrap: wrap; }
     .perm-hero-stats { margin-left: 0; width: 100%; }
-    .perm-hero-stat { flex: 1; }
+    .perm-hero-stat { flex: 1; min-width: 76px; padding: 0.6rem 0.7rem; }
+    .perm-hero-stat small { white-space: normal; }
     .perm-row { grid-template-columns: 1fr; gap: 0.5rem; }
     .perm-toggle-wrap { justify-content: flex-start; }
     .role-item-head { flex-wrap: wrap; }

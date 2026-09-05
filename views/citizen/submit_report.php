@@ -2620,7 +2620,9 @@ if (is_dir($barangays_dir)) {
     
     async function checkNearbyReports(lat, lng) {
         if (isDuplicateCheckDone) return;
-        const categoryId = document.getElementById('category_id').value || 0;
+        // Show any active nearby report within the admin radius, regardless of category,
+        // so the "did you mean...?" popup appears whenever there is a nearby report.
+        const categoryId = 0;
         const mapContainer = document.getElementById('mapContainer');
         const isFullscreen = mapContainer && mapContainer.classList.contains('fullscreen');
         
@@ -2644,6 +2646,9 @@ if (is_dir($barangays_dir)) {
             }
         } catch (error) {
             console.error('Duplicate check error:', error);
+            if (typeof showToast === 'function') {
+                showToast('Unable to check for nearby reports. Please try again.', 'error');
+            }
         }
     }
     

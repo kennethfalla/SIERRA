@@ -37,7 +37,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="form-group">
             <label class="form-label">MENRO Logo</label>
-            <div class="flex items-start gap-4">
+            <div class="flex flex-col sm:flex-row items-start gap-4">
                 <div class="flex-shrink-0">
                     <div class="logo-preview flex items-center justify-center bg-gray-50 border border-gray-200">
                         <?php if ($menro_logo_url): ?>
@@ -94,14 +94,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <h4 class="text-sm font-bold text-gray-700 mb-3 mt-6 flex items-center gap-2">
         <i class="fas fa-signature text-[#10A37F]"></i> Signatory Block (Footer)
     </h4>
-
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-sm text-amber-800 flex items-start gap-3">
-        <i class="fas fa-user-check text-amber-500 mt-0.5"></i>
-        <div>
-            <p class="font-semibold">Prepared by is automatic</p>
-            <p class="text-amber-700 text-xs mt-1">The "Prepared by" name on exported PDFs is always the signed-in account's name (with their job title). It cannot be edited here.</p>
-        </div>
-    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="form-group">
@@ -167,20 +159,20 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         <!-- Signatory preview -->
         <div class="bg-white rounded-lg border border-gray-200 p-4">
-            <div class="flex justify-between gap-8 mb-3">
-                <div class="flex-1">
+            <div class="flex flex-col sm:flex-row justify-between gap-8 mb-3">
+                <div class="flex-1 min-w-0">
                     <div class="text-xs font-bold text-gray-600">Prepared by:</div>
                     <div class="h-11"></div>
                     <div class="text-center">
-                        <div class="font-bold text-gray-800 text-sm" id="previewPreparedName"><?php echo htmlspecialchars($pdf_prepared_by ?: '____________________'); ?></div>
+                        <div class="font-bold text-gray-800 text-sm break-all" id="previewPreparedName"><?php echo htmlspecialchars($pdf_prepared_by ?: '____________________'); ?></div>
                         <div class="text-xs text-gray-500" id="previewPreparedTitle"><?php echo htmlspecialchars($pdf_prepared_title); ?></div>
                     </div>
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <div class="text-xs font-bold text-gray-600">Noted and Approved by:</div>
                     <div class="h-11"></div>
                     <div class="text-center">
-                        <div class="font-bold text-gray-800 text-sm" id="previewApprovedName"><?php echo htmlspecialchars($pdf_approved_by ?: '____________________'); ?></div>
+                        <div class="font-bold text-gray-800 text-sm break-all" id="previewApprovedName"><?php echo htmlspecialchars($pdf_approved_by ?: '____________________'); ?></div>
                         <div class="text-xs text-gray-500" id="previewApprovedTitle"><?php echo htmlspecialchars($pdf_approved_title); ?></div>
                     </div>
                 </div>

@@ -108,6 +108,26 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
         display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
         padding: 1rem; background: white; border: 1px solid #E5E7EB; border-radius: 0.75rem; margin-bottom: 1rem;
     }
+    @media (max-width: 640px) {
+        .setting-row {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        .setting-row form {
+            width: 100%;
+            flex-shrink: 1;
+            flex-wrap: wrap;
+        }
+        .setting-row form .form-input {
+            width: 100%;
+        }
+        .setting-row form .btn-primary,
+        .setting-row form .btn-secondary {
+            justify-content: center;
+            width: auto;
+            flex: 1 1 auto;
+        }
+    }
     .setting-row .setting-title { font-weight: 600; color: #1F2937; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
     .setting-row .setting-desc { font-size: 0.8rem; color: #6B7280; margin-top: 0.2rem; line-height: 1.5; }
     .badge-active { background: #D1FAE5; color: #065F46; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.25rem; }
@@ -171,6 +191,16 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     .archive-modal {
         background: white; border-radius: 1rem; max-width: 560px; width: 100%; max-height: 85vh;
         overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    }
+    @media (max-width: 768px) {
+        .archive-modal-backdrop {
+            align-items: flex-end;
+            padding: 0;
+        }
+        .archive-modal {
+            border-radius: 1.25rem 1.25rem 0 0;
+            max-height: 88vh;
+        }
     }
     .archive-modal-header {
         display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem;

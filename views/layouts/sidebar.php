@@ -713,27 +713,20 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
     });
 </script>
 
-<!-- ===== GLOBAL LIVE REFRESH (Messenger-style silent sync) ===== -->
+<!-- ===== REALTIME NOTIFICATIONS (polling + top-center toast, all pages) ===== -->
 <script>
 (function () {
     'use strict';
     var LIVE_URL = '<?php echo BASE_URL; ?>controllers/LiveSyncController.php';
-    var POLL_MS = 10000;          // check for updates every 10 seconds
-    var AUTO_RELOAD_MS = 6000;    // auto-refresh delay once a new update is found
-    var IDLE_WINDOW_MS = 4000;    // cancel auto-refresh if the user is active
+    var POLL_MS = 10000;   // check for new notifications every 10 seconds
+    var TOAST_MS = 6000;   // how long each toast stays on screen
 
     var baselineVersion = null;
     var baselineSeq = null;
     var lastUnread = -1;
-    var pillActive = false;
-    var pillDismissed = false;
-    var autoReloadTimer = null;
-    var countdownTimer = null;
     var pageVisible = true;
-    var lastActivity = Date.now();
     var polling = false;
-
-    function markActivity() { lastActivity = Date.now(); }
+    var seenIds = {};
 
     function timeAgo(ts) {
         var d = new Date(String(ts).replace(/-/g, '/').replace(/\.\d+/, ''));
@@ -749,7 +742,7 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
         var badge = document.getElementById('notificationBadge');
         if (unread > 0) {
             if (!badge) {
-                var bell = document.querySelector('.notification-bell');
+                var bell = document.querySelector('.notification-bell, .rt-bell');
                 if (!bell) return;
                 badge = document.createElement('span');
                 badge.id = 'notificationBadge';
@@ -763,84 +756,77 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
         }
     }
 
-    function hidePill() {
-        clearTimeout(autoReloadTimer);
-        clearInterval(countdownTimer);
-        var p = document.getElementById('liveSyncPill');
-        if (p) p.remove();
-        pillActive = false;
-    }
-
-    function showPill() {
-        if (pillActive || pillDismissed) return;
-        pillActive = true;
-
-        var pill = document.createElement('div');
-        pill.id = 'liveSyncPill';
-        pill.style.cssText = 'position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;align-items:center;gap:10px;background:#ffffff;border:1px solid #10A37F;box-shadow:0 8px 24px rgba(16,163,127,.25);border-radius:12px;padding:10px 14px;font-family:inherit;font-size:13px;color:#111827;';
-
-        var icon = document.createElement('i');
-        icon.className = 'fas fa-bolt';
-        icon.style.color = '#10A37F';
-
-        var label = document.createElement('span');
-        label.id = 'liveSyncPillLabel';
-        label.textContent = 'New update';
-
-        var refreshBtn = document.createElement('button');
-        refreshBtn.textContent = 'Refresh now';
-        refreshBtn.style.cssText = 'border:none;background:#10A37F;color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;';
-        refreshBtn.addEventListener('click', function () { window.location.reload(); });
-
-        var closeBtn = document.createElement('button');
-        closeBtn.textContent = '\u00d7';
-        closeBtn.style.cssText = 'border:none;background:transparent;color:#9CA3AF;font-size:18px;cursor:pointer;padding:0 2px;';
-        closeBtn.addEventListener('click', function () { pillDismissed = true; hidePill(); });
-
-        pill.appendChild(icon);
-        pill.appendChild(label);
-        pill.appendChild(refreshBtn);
-        pill.appendChild(closeBtn);
-        document.body.appendChild(pill);
-
-        var remaining = Math.ceil(AUTO_RELOAD_MS / 1000);
-        label.textContent = 'New update \u00b7 refreshing in ' + remaining + 's';
-        countdownTimer = setInterval(function () {
-            remaining -= 1;
-            if (remaining < 0) remaining = 0;
-            label.textContent = 'New update \u00b7 refreshing in ' + remaining + 's';
-        }, 1000);
-
-        autoReloadTimer = setTimeout(function () {
-            if (!pageVisible) { hidePill(); return; }
-            if (Date.now() - lastActivity < IDLE_WINDOW_MS) { hidePill(); showPill(); return; }
-            var active = document.activeElement;
-            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable)) { hidePill(); return; }
-            window.location.reload();
-        }, AUTO_RELOAD_MS);
-    }
-
     function showToast(latest) {
         if (!latest || !latest.title) return;
+        var key = latest.id || (latest.title + latest.created_at);
+        if (seenIds[key]) return;
+        seenIds[key] = true;
+
+        // stack toasts, newest on top, centered at the top of the page
+        var wrapper = document.getElementById('rtToastWrapper');
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.id = 'rtToastWrapper';
+            wrapper.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1000000;display:flex;flex-direction:column;gap:10px;width:min(92vw,420px);pointer-events:none;';
+            document.body.appendChild(wrapper);
+        }
+
         var toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed;bottom:18px;left:18px;z-index:9999;max-width:300px;background:#ffffff;border-left:4px solid #10A37F;box-shadow:0 8px 24px rgba(0,0,0,.15);border-radius:10px;padding:12px 14px;font-family:inherit;cursor:pointer;';
+        toast.style.cssText = 'pointer-events:auto;display:flex;align-items:flex-start;gap:12px;background:#ffffff;border:1px solid #e2e8f0;border-left:4px solid ' + (latest.color || '#10A37F') + ';border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:14px 16px;font-family:inherit;cursor:pointer;opacity:0;transform:translateY(-16px);animation:rtToastIn .35s cubic-bezier(.16,1,.3,1) forwards;';
+
+        var icon = document.createElement('div');
+        icon.style.cssText = 'width:38px;height:38px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (latest.color || '#10A37F') + '1f;';
+        var i = document.createElement('i');
+        i.className = 'fas ' + (latest.icon || 'fa-bell');
+        i.style.cssText = 'color:' + (latest.color || '#10A37F') + ';font-size:1.05rem;';
+        icon.appendChild(i);
+
+        var body = document.createElement('div');
+        body.style.cssText = 'flex:1;min-width:0;';
+
         var t = document.createElement('div');
-        t.style.cssText = 'font-weight:600;font-size:13px;color:#111827;margin-bottom:2px;';
+        t.style.cssText = 'font-weight:700;font-size:0.85rem;color:#111827;line-height:1.3;margin-bottom:2px;';
         t.textContent = latest.title;
+
         var m = document.createElement('div');
-        m.style.cssText = 'font-size:12px;color:#6B7280;line-height:1.35;';
+        m.style.cssText = 'font-size:0.78rem;color:#6B7280;line-height:1.4;margin-bottom:4px;word-wrap:break-word;';
         m.textContent = latest.message;
+
         var meta = document.createElement('div');
-        meta.style.cssText = 'font-size:11px;color:#9CA3AF;margin-top:6px;';
-        meta.textContent = timeAgo(latest.created_at);
-        toast.appendChild(t);
-        toast.appendChild(m);
-        toast.appendChild(meta);
+        meta.style.cssText = 'font-size:0.68rem;color:#9CA3AF;display:flex;align-items:center;gap:4px;';
+        var ci = document.createElement('i');
+        ci.className = 'far fa-clock';
+        ci.style.fontSize = '0.68rem';
+        meta.appendChild(ci);
+        meta.appendChild(document.createTextNode(' ' + timeAgo(latest.created_at)));
+
+        body.appendChild(t);
+        body.appendChild(m);
+        body.appendChild(meta);
+
+        var close = document.createElement('button');
+        close.innerHTML = '&times;';
+        close.style.cssText = 'flex-shrink:0;border:none;background:transparent;color:#9CA3AF;font-size:1.1rem;line-height:1;cursor:pointer;padding:0 2px;';
+        close.addEventListener('click', function (e) { e.stopPropagation(); dismiss(toast); });
+
+        toast.appendChild(icon);
+        toast.appendChild(body);
+        toast.appendChild(close);
+
         if (latest.link) {
             toast.addEventListener('click', function () { window.location.href = latest.link; });
         }
-        document.body.appendChild(toast);
-        setTimeout(function () { if (toast.parentNode) toast.remove(); }, 5000);
+        wrapper.appendChild(toast);
+
+        setTimeout(function () { dismiss(toast); }, TOAST_MS);
+    }
+
+    function dismiss(toast) {
+        if (!toast || !toast.parentNode) return;
+        toast.style.transition = 'opacity .28s ease, transform .28s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-16px)';
+        setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 280);
     }
 
     function tick() {
@@ -862,21 +848,12 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                     showToast(data.latest);
                 }
                 lastUnread = unread;
-                var changed = (data.data_version && baselineVersion && data.data_version !== baselineVersion) ||
-                              (typeof data.notif_seq === 'number' && typeof baselineSeq === 'number' && data.notif_seq !== baselineSeq);
-                if (changed) {
-                    baselineVersion = data.data_version;
-                    baselineSeq = data.notif_seq;
-                    showPill();
-                }
+                if (data.data_version && data.data_version !== baselineVersion) baselineVersion = data.data_version;
+                if (typeof data.notif_seq === 'number') baselineSeq = data.notif_seq;
             })
             .catch(function () {})
             .then(function () { polling = false; });
     }
-
-    ['click', 'keydown', 'scroll', 'wheel', 'touchstart'].forEach(function (ev) {
-        window.addEventListener(ev, markActivity, { passive: true });
-    });
 
     document.addEventListener('visibilitychange', function () {
         pageVisible = !document.hidden;
@@ -891,3 +868,9 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
     setInterval(tick, POLL_MS);
 })();
 </script>
+<style>
+@keyframes rtToastIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+</style>

@@ -165,7 +165,8 @@ if ($page > $total_pages) $page = $total_pages;
 $offset = ($page - 1) * $limit;
 
 // Fetch reports
-$sql = "SELECT r.*, c.name as category_name, CONCAT(u.first_name, ' ', u.last_name) as user_name
+$sql = "SELECT r.*, c.name as category_name, CONCAT(u.first_name, ' ', u.last_name) as user_name,
+               (SELECT ri.image_path FROM report_images ri WHERE ri.report_id = r.id AND LOWER(ri.image_path) REGEXP '\\.(jpg|jpeg|png|gif|webp)$' ORDER BY ri.is_primary DESC, ri.id ASC LIMIT 1) as cover_image
         FROM reports r
         JOIN categories c ON r.category_id = c.id
         JOIN users u ON r.user_id = u.id
@@ -829,6 +830,12 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             padding: 1rem 1rem 0.75rem;
             color: white;
         }
+        .report-card-grid .report-card-header.has-cover {
+            min-height: 9rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
         .report-card-grid .report-card-header .header-label {
             font-size: 0.7rem;
             letter-spacing: 0.12em;
@@ -1189,9 +1196,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                     <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Review and manage environmental reports from your barangay</p>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <span class="location-badge inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-xs text-[#10A37F] font-semibold">
-                        <i class="fas fa-map-marker-alt mr-1.5"></i>San Isidro, Nueva Ecija
-                    </span>
                     <div class="export-dropdown">
                         <button onclick="toggleExportMenu()" class="btn-export-trigger">
                             <i class="fas fa-file-export"></i>
@@ -1233,25 +1237,25 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         <?php endif; ?>
         
         <!-- ===== STATISTICS CARDS (updated to match all_reports.php design) ===== -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
             <?php
-            // Define stats array (matches all_reports.php style)
+            // Define stats array (stat-card style like admin user management)
             $stats_metrics = [
-                ['label' => 'Total', 'value' => $total, 'color' => 'text-[#10A37F]', 'icon' => 'fa-flag', 'iconBg' => 'bg-[#10A37F]/10', 'iconColor' => 'text-[#10A37F]'],
-                ['label' => 'Pending', 'value' => $pending, 'color' => 'text-yellow-600', 'icon' => 'fa-clock', 'iconBg' => 'bg-yellow-100', 'iconColor' => 'text-yellow-700'],
-                ['label' => 'Under Review', 'value' => $under_review, 'color' => 'text-blue-600', 'icon' => 'fa-search', 'iconBg' => 'bg-blue-100', 'iconColor' => 'text-blue-700'],
-                ['label' => 'In Progress', 'value' => $progress, 'color' => 'text-pink-600', 'icon' => 'fa-spinner', 'iconBg' => 'bg-pink-100', 'iconColor' => 'text-pink-700'],
-                ['label' => 'Escalated', 'value' => $escalated, 'color' => 'text-orange-600', 'icon' => 'fa-exclamation-triangle', 'iconBg' => 'bg-orange-100', 'iconColor' => 'text-orange-700'],
-                ['label' => 'Resolved', 'value' => $resolved, 'color' => 'text-[#10A37F]', 'icon' => 'fa-check-circle', 'iconBg' => 'bg-green-100', 'iconColor' => 'text-[#10A37F]'],
+                ['label' => 'Total',          'value' => $total,        'color' => 'text-emerald-600', 'chip' => 'bg-emerald-100',   'icon' => 'fa-flag'],
+                ['label' => 'Pending',        'value' => $pending,      'color' => 'text-yellow-600',  'chip' => 'bg-yellow-100',    'icon' => 'fa-clock'],
+                ['label' => 'Under Review',   'value' => $under_review, 'color' => 'text-blue-600',    'chip' => 'bg-blue-100',      'icon' => 'fa-search'],
+                ['label' => 'In Progress',    'value' => $progress,     'color' => 'text-pink-600',    'chip' => 'bg-pink-100',      'icon' => 'fa-spinner'],
+                ['label' => 'Escalated',      'value' => $escalated,    'color' => 'text-orange-600',  'chip' => 'bg-orange-100',    'icon' => 'fa-exclamation-triangle'],
+                ['label' => 'Resolved',       'value' => $resolved,     'color' => 'text-emerald-600', 'chip' => 'bg-green-100',     'icon' => 'fa-check-circle'],
             ];
             foreach($stats_metrics as $m): ?>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-4 flex items-center gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div class="w-9 h-9 md:w-10 md:h-10 rounded-full <?php echo $m['iconBg']; ?> flex items-center justify-center <?php echo $m['iconColor']; ?> flex-shrink-0">
-                    <i class="fas <?php echo $m['icon']; ?> text-sm md:text-base"></i>
-                </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
                 <div>
-                    <div class="text-xl md:text-2xl font-bold text-gray-800"><?php echo $m['value']; ?></div>
-                    <div class="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider"><?php echo $m['label']; ?></div>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo $m['label']; ?></p>
+                    <p class="text-xl md:text-2xl font-extrabold <?php echo $m['color']; ?> tracking-tight"><?php echo $m['value']; ?></p>
+                </div>
+                <div class="w-10 h-10 <?php echo $m['chip']; ?> rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas <?php echo $m['icon']; ?> <?php echo $m['color']; ?>"></i>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -1356,7 +1360,11 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                     $needs_attention = $isEscalatedPending || in_array($r['status'], ['pending', 'under_review']);
                 ?>
                 <div class="report-card-grid <?php echo $isEscalatedPending ? 'border-2 border-orange-300' : ''; ?>" data-report-id="<?php echo $r['id']; ?>">
-                    <div class="report-card-header rounded-t-2xl">
+                    <?php
+                    $cover_src = !empty($r['cover_image']) ? BASE_URL . htmlspecialchars($r['cover_image'], ENT_QUOTES, 'UTF-8') : '';
+                    $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(13,133,104,0.30) 0%, rgba(8,78,62,0.92) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
+                    ?>
+                    <div class="report-card-header rounded-t-2xl<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
                         <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
                             <div class="space-y-2">
                                 <div class="flex items-center gap-2">

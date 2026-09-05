@@ -320,9 +320,11 @@ foreach ($barangay_boundaries as $bid => $bb) {
         showNotification('Click anywhere on the preview map to set the default center', 'info');
     }
 
-    document.getElementById('map_default_lat').addEventListener('change', renderSettingsPreview);
-    document.getElementById('map_default_lng').addEventListener('change', renderSettingsPreview);
-    document.getElementById('map_default_zoom').addEventListener('change', renderSettingsPreview);
+    ['map_default_lat', 'map_default_lng', 'map_default_zoom'].forEach(function(id) {
+        const el = document.getElementById(id);
+        el.addEventListener('input', renderSettingsPreview);
+        el.addEventListener('change', renderSettingsPreview);
+    });
 
     document.addEventListener('DOMContentLoaded', renderSettingsPreview);
     // In case this tab is loaded via AJAX after DOMContentLoaded already fired:

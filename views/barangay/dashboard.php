@@ -80,15 +80,15 @@ $current_date = date('F j, Y');
 if ($current_hour < 12) {
     $greeting = "Good Morning";
     $greeting_icon = "fa-sun";
-    $greeting_color = "text-amber-500";
+    $greeting_color = "text-yellow-200";
 } elseif ($current_hour < 18) {
     $greeting = "Good Afternoon";
-    $greeting_icon = "fa-cloud-sun";
-    $greeting_color = "text-orange-500";
+    $greeting_icon = "fa-cloud";
+    $greeting_color = "text-orange-200";
 } else {
     $greeting = "Good Evening";
     $greeting_icon = "fa-moon";
-    $greeting_color = "text-indigo-500";
+    $greeting_color = "text-indigo-200";
 }
 
 // ========== NOTIFICATIONS SECTION ==========
@@ -103,18 +103,90 @@ $notifModel = new Notification($db);
 $notifications = $notifModel->getForUser($user_id, 10);
 $unread_count = $notifModel->getUnreadCount($user_id);
 
-// ========== BASIC STATUS-BREAKDOWN STATISTICS (kept for the secondary row) ==========
-$total_reports = $reportModel->getTotalCount($barangay_id);
-$pending_count = $reportModel->getReportsByStatus('pending', $barangay_id);
-$in_progress_count = $reportModel->getReportsByStatus('in_progress', $barangay_id);
-$resolved_count = $reportModel->getReportsByStatus('resolved', $barangay_id);
-$rejected_count = $reportModel->getReportsByStatus('rejected', $barangay_id);
+// ============================================================
+// ========== DASHBOARD ANALYTICS FILTERS (from URL) ==========
+// The shared filter toolbar writes date_from/date_to/status/risk
+// into the URL and reloads, so every KPI + chart below respects them.
+// ============================================================
+$f_ok_date = function ($v) { return is_string($v) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $v); };
+$f_date_from = (isset($_GET['date_from']) && $f_ok_date($_GET['date_from'])) ? $_GET['date_from'] : null;
+$f_date_to   = (isset($_GET['date_to'])   && $f_ok_date($_GET['date_to']))   ? $_GET['date_to']   : null;
+$f_know_status = ['pending','under_review','verified','in_progress','escalated_pending','escalated','resolved','rejected','cancelled'];
+$f_know_risk   = ['low','medium','high','critical'];
+$f_status = (isset($_GET['status']) && in_array($_GET['status'], $f_know_status, true)) ? $_GET['status'] : 'all';
+$f_risk   = (isset($_GET['risk'])   && in_array($_GET['risk'],   $f_know_risk,   true)) ? $_GET['risk']   : 'all';
+$f_search = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
+// Search condition (title/description LIKE) against alias r.
+$f_search_sql = '';
+$f_search_params = [];
+if ($f_search !== '') {
+    $f_search_sql = ' AND (r.title LIKE ? OR r.description LIKE ?)';
+    $f_like = '%' . $f_search . '%';
+    $f_search_params = [$f_like, $f_like];
+}
 
+// WHERE fragments against the reports table (aliased r), keyed by date column.
+// $fC_* : filter by report CREATED date (created_at)
+// $fR_* : filter by report RESOLVED date (resolved_at) — for resolution metrics
+$fC_sql = '';
+$fC_params = [$barangay_id];
+if ($f_date_from) { $fC_sql .= ' AND r.created_at >= ?';                                   $fC_params[] = $f_date_from . ' 00:00:00'; }
+if ($f_date_to)   { $fC_sql .= ' AND r.created_at <= ?';                                   $fC_params[] = $f_date_to   . ' 23:59:59'; }
+if ($f_status !== 'all') { $fC_sql .= ' AND r.status = ?';                                 $fC_params[] = $f_status; }
+if ($f_risk   !== 'all') { $fC_sql .= ' AND r.risk_level = ?';                             $fC_params[] = $f_risk; }
+$fC_sql .= $f_search_sql; $fC_params = array_merge($fC_params, $f_search_params);
+
+$fR_sql = '';
+$fR_params = [$barangay_id];
+if ($f_date_from) { $fR_sql .= ' AND r.resolved_at >= ?';                                  $fR_params[] = $f_date_from . ' 00:00:00'; }
+if ($f_date_to)   { $fR_sql .= ' AND r.resolved_at <= ?';                                  $fR_params[] = $f_date_to   . ' 23:59:59'; }
+if ($f_status !== 'all') { $fR_sql .= ' AND r.status = ?';                                 $fR_params[] = $f_status; }
+if ($f_risk   !== 'all') { $fR_sql .= ' AND r.risk_level = ?';                             $fR_params[] = $f_risk; }
+$fR_sql .= $f_search_sql; $fR_params = array_merge($fR_params, $f_search_params);
+
+// Status + risk only (no date) — for inherently time-scoped cards (weekly trends).
+$fSR_sql = '';
+$fSR_params = [$barangay_id];
+if ($f_status !== 'all') { $fSR_sql .= ' AND r.status = ?';                                $fSR_params[] = $f_status; }
+if ($f_risk   !== 'all') { $fSR_sql .= ' AND r.risk_level = ?';                            $fSR_params[] = $f_risk; }
+$fSR_sql .= $f_search_sql; $fSR_params = array_merge($fSR_params, $f_search_params);
+
+// ========== BASIC STATUS-BREAKDOWN STATISTICS (kept for the secondary row) ==========
+// Respect the date + risk filters (the status legend itself is not further
+// restricted by the status dropdown so every status row stays visible).
+$fLegend_sql = $fC_sql;
+$fLegend_params = $fC_params;
+// Rebuild legend params WITHOUT the status condition.
+$fLegend_sql = '';
+$fLegend_params = [$barangay_id];
+if ($f_date_from) { $fLegend_sql .= ' AND r.created_at >= ?'; $fLegend_params[] = $f_date_from . ' 00:00:00'; }
+if ($f_date_to)   { $fLegend_sql .= ' AND r.created_at <= ?'; $fLegend_params[] = $f_date_to   . ' 23:59:59'; }
+if ($f_risk   !== 'all') { $fLegend_sql .= ' AND r.risk_level = ?'; $fLegend_params[] = $f_risk; }
+$fLegend_sql .= $f_search_sql; $fLegend_params = array_merge($fLegend_params, $f_search_params);
+
+$status_count_sql = function ($status) use ($db, $barangay_id, $fLegend_sql, $fLegend_params) {
+    $p = $fLegend_params;
+    $p[] = $status;
+    $s = $db->prepare("SELECT COUNT(*) AS c FROM reports r WHERE r.barangay_id = ? AND r.status = ? {$fLegend_sql}");
+    $s->execute($p);
+    return (int)$s->fetch(PDO::FETCH_ASSOC)['c'];
+};
+$total_reports = $status_count_sql('pending')
+               + $status_count_sql('under_review') + $status_count_sql('verified')
+               + $status_count_sql('in_progress') + $status_count_sql('escalated_pending')
+               + $status_count_sql('escalated') + $status_count_sql('resolved') + $status_count_sql('rejected');
+$pending_count = $status_count_sql('pending');
+$in_progress_count = $status_count_sql('in_progress');
+$resolved_count = $status_count_sql('resolved');
+$rejected_count = $status_count_sql('rejected');
+
+$escalated_to_menro_params = $fLegend_params;
 $escalated_to_menro_query = $db->prepare("
-    SELECT COUNT(*) as count FROM reports 
-    WHERE barangay_id = ? AND (status = 'escalated' OR status = 'escalated_pending' OR escalated_to_menro = 1)
+    SELECT COUNT(*) as count FROM reports r
+    WHERE r.barangay_id = ? AND (r.status = 'escalated' OR r.status = 'escalated_pending' OR r.escalated_to_menro = 1)
+    {$fLegend_sql}
 ");
-$escalated_to_menro_query->execute([$barangay_id]);
+$escalated_to_menro_query->execute($escalated_to_menro_params);
 $escalated_to_menro_count = $escalated_to_menro_query->fetch(PDO::FETCH_ASSOC)['count'];
 
 $resolution_rate = $total_reports > 0 ? round(($resolved_count / $total_reports) * 100) : 0;
@@ -133,43 +205,55 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_count / $total_reports)
 //    algorithm's "Critical" tier (severity_score >= critical threshold)
 //    among this barangay's active (non-resolved/rejected/cancelled) reports.
 $criticalBands = getSeverityBands();
+$criticalHotspots_params = $fC_params;
 $criticalHotspotsCount = $db->prepare("
-    SELECT COUNT(DISTINCT CONCAT(FLOOR(latitude / 0.00045), ',', FLOOR(longitude / 0.00045))) AS count
-    FROM reports
-    WHERE barangay_id = ?
-      AND risk_level = 'critical'
-      AND status NOT IN ('resolved', 'rejected', 'cancelled')
-      AND latitude IS NOT NULL AND longitude IS NOT NULL
-      AND latitude != 0 AND longitude != 0
+    SELECT COUNT(DISTINCT CONCAT(FLOOR(r.latitude / 0.00045), ',', FLOOR(r.longitude / 0.00045))) AS count
+    FROM reports r
+    WHERE r.barangay_id = ?
+      AND r.risk_level = 'critical'
+      AND r.status NOT IN ('resolved', 'rejected', 'cancelled')
+      AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
+      AND r.latitude != 0 AND r.longitude != 0
+      {$fC_sql}
 ");
-$criticalHotspotsCount->execute([$barangay_id]);
+$criticalHotspotsCount->execute($criticalHotspots_params);
 $criticalHotspotsCount = (int)$criticalHotspotsCount->fetch(PDO::FETCH_ASSOC)['count'];
 
 // 3. Average Resolution Speed (all-time, this month, last month) - barangay scoped
+$avgResAll_params = $fR_params;
 $avgResHoursAllTime = $db->prepare("
-    SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) AS avg_hours
-    FROM reports
-    WHERE barangay_id = ? AND status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL
+    SELECT AVG(TIMESTAMPDIFF(HOUR, r.created_at, r.resolved_at)) AS avg_hours
+    FROM reports r
+    WHERE r.barangay_id = ? AND r.status = 'resolved' AND r.resolved_at IS NOT NULL AND r.created_at IS NOT NULL
+    {$fR_sql}
 ");
-$avgResHoursAllTime->execute([$barangay_id]);
+$avgResHoursAllTime->execute($avgResAll_params);
 $avgResolutionDaysAllTime = round(($avgResHoursAllTime->fetch(PDO::FETCH_ASSOC)['avg_hours'] ?: 0) / 24, 1);
 
+// This/last month are fixed-month scoped: apply only status + risk filters.
+$fTrend_sql = '';
+$fTrend_params = [$barangay_id];
+if ($f_status !== 'all') { $fTrend_sql .= ' AND r.status = ?'; $fTrend_params[] = $f_status; }
+if ($f_risk   !== 'all') { $fTrend_sql .= ' AND r.risk_level = ?'; $fTrend_params[] = $f_risk; }
+
 $avgResHoursThisMonth = $db->prepare("
-    SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) AS avg_hours
-    FROM reports
-    WHERE barangay_id = ? AND status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL
-      AND DATE_FORMAT(resolved_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+    SELECT AVG(TIMESTAMPDIFF(HOUR, r.created_at, r.resolved_at)) AS avg_hours
+    FROM reports r
+    WHERE r.barangay_id = ? AND r.status = 'resolved' AND r.resolved_at IS NOT NULL AND r.created_at IS NOT NULL
+      AND DATE_FORMAT(r.resolved_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+      {$fTrend_sql}
 ");
-$avgResHoursThisMonth->execute([$barangay_id]);
+$avgResHoursThisMonth->execute($fTrend_params);
 $avgResolutionDaysThisMonth = round(($avgResHoursThisMonth->fetch(PDO::FETCH_ASSOC)['avg_hours'] ?: 0) / 24, 1);
 
 $avgResHoursLastMonth = $db->prepare("
-    SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) AS avg_hours
-    FROM reports
-    WHERE barangay_id = ? AND status = 'resolved' AND resolved_at IS NOT NULL AND created_at IS NOT NULL
-      AND DATE_FORMAT(resolved_at, '%Y-%m') = DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 MONTH), '%Y-%m')
+    SELECT AVG(TIMESTAMPDIFF(HOUR, r.created_at, r.resolved_at)) AS avg_hours
+    FROM reports r
+    WHERE r.barangay_id = ? AND r.status = 'resolved' AND r.resolved_at IS NOT NULL AND r.created_at IS NOT NULL
+      AND DATE_FORMAT(r.resolved_at, '%Y-%m') = DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 1 MONTH), '%Y-%m')
+      {$fTrend_sql}
 ");
-$avgResHoursLastMonth->execute([$barangay_id]);
+$avgResHoursLastMonth->execute($fTrend_params);
 $avgResolutionDaysLastMonth = round(($avgResHoursLastMonth->fetch(PDO::FETCH_ASSOC)['avg_hours'] ?: 0) / 24, 1);
 
 $resolutionSpeedTrend = 'stable';
@@ -183,21 +267,25 @@ if ($avgResolutionDaysLastMonth > 0) {
 // 4. Resolution Rate (THIS MONTH) = % of hazards assigned this month that this
 //    barangay has already marked [Resolved]. "Assigned this month" = created
 //    this month OR resolved this month (covers carry-over backlog too).
+$assignedThisMonth_params = $fTrend_params;
 $assignedThisMonthQ = $db->prepare("
-    SELECT COUNT(*) AS count FROM reports
-    WHERE barangay_id = ?
-      AND (DATE_FORMAT(created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
-           OR DATE_FORMAT(resolved_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m'))
+    SELECT COUNT(*) AS count FROM reports r
+    WHERE r.barangay_id = ?
+      AND (DATE_FORMAT(r.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+           OR DATE_FORMAT(r.resolved_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m'))
+      {$fTrend_sql}
 ");
-$assignedThisMonthQ->execute([$barangay_id]);
+$assignedThisMonthQ->execute($assignedThisMonth_params);
 $assignedThisMonth = (int)$assignedThisMonthQ->fetch(PDO::FETCH_ASSOC)['count'];
 
+$resolvedThisMonth_params = $fTrend_params;
 $resolvedThisMonthQ = $db->prepare("
-    SELECT COUNT(*) AS count FROM reports
-    WHERE barangay_id = ? AND status = 'resolved'
-      AND DATE_FORMAT(resolved_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+    SELECT COUNT(*) AS count FROM reports r
+    WHERE r.barangay_id = ? AND r.status = 'resolved'
+      AND DATE_FORMAT(r.resolved_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+      {$fTrend_sql}
 ");
-$resolvedThisMonthQ->execute([$barangay_id]);
+$resolvedThisMonthQ->execute($resolvedThisMonth_params);
 $resolvedThisMonth = (int)$resolvedThisMonthQ->fetch(PDO::FETCH_ASSOC)['count'];
 
 $resolutionRateThisMonth = $assignedThisMonth > 0 ? round(($resolvedThisMonth / $assignedThisMonth) * 100) : 0;
@@ -205,46 +293,47 @@ $resolutionRateThisMonth = $assignedThisMonth > 0 ? round(($resolvedThisMonth / 
 // ========== WEEKLY RESOLUTION STATS (kept - powers the secondary Weekly Trends card) ==========
 $weekly_stats = $db->prepare("
     SELECT 
-        DATE_FORMAT(created_at, '%W') as day,
+        DATE_FORMAT(r.created_at, '%W') as day,
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved
-    FROM reports 
-    WHERE barangay_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-    GROUP BY DAYOFWEEK(created_at)
-    ORDER BY DAYOFWEEK(created_at)
+        SUM(CASE WHEN r.status = 'resolved' THEN 1 ELSE 0 END) as resolved
+    FROM reports r
+    WHERE r.barangay_id = ? AND r.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    {$fSR_sql}
+    GROUP BY DAYOFWEEK(r.created_at)
+    ORDER BY DAYOFWEEK(r.created_at)
 ");
-$weekly_stats->execute([$barangay_id]);
+$weekly_stats->execute($fSR_params);
 $weekly_data = $weekly_stats->fetchAll(PDO::FETCH_ASSOC);
 
 // ========== CATEGORY DISTRIBUTION (kept - powers the secondary Category card) ==========
 $category_stats = $db->prepare("
     SELECT c.name, COUNT(r.id) as count
     FROM categories c
-    LEFT JOIN reports r ON c.id = r.category_id AND r.barangay_id = ?
+    LEFT JOIN reports r ON c.id = r.category_id AND r.barangay_id = ? {$fC_sql}
     GROUP BY c.id
     HAVING COUNT(r.id) > 0
     ORDER BY count DESC
 ");
-$category_stats->execute([$barangay_id]);
+$category_stats->execute($fC_params);
 $category_data = $category_stats->fetchAll(PDO::FETCH_ASSOC);
 
 // ========== RISK LEVEL DISTRIBUTION (kept - powers the secondary Risk card) ==========
 $risk_stats = $db->prepare("
     SELECT 
-        COALESCE(risk_level, 'low') as risk_level,
+        COALESCE(r.risk_level, 'low') as risk_level,
         COUNT(*) as count
-    FROM reports 
-    WHERE barangay_id = ?
-    GROUP BY risk_level
+    FROM reports r
+    WHERE r.barangay_id = ? {$fC_sql}
+    GROUP BY r.risk_level
     ORDER BY 
-        CASE risk_level 
+        CASE r.risk_level 
             WHEN 'critical' THEN 1 
             WHEN 'high' THEN 2 
             WHEN 'medium' THEN 3 
             WHEN 'low' THEN 4 
         END
 ");
-$risk_stats->execute([$barangay_id]);
+$risk_stats->execute($fC_params);
 $risk_data = $risk_stats->fetchAll(PDO::FETCH_ASSOC);
 $risk_total = array_sum(array_column($risk_data, 'count'));
 
@@ -254,16 +343,19 @@ $risk_total = array_sum(array_column($risk_data, 'count'));
 // MENRO map so the clustering/coloring algorithm is identical.
 // ============================================================
 $activeMapQuery = $db->prepare("
-    SELECT id, title, latitude, longitude, severity_score, spatial_density_count,
-           decision_classification, category_id, status, risk_level, created_at
-    FROM reports
-    WHERE barangay_id = ?
-      AND status NOT IN ('resolved', 'rejected', 'cancelled')
-      AND latitude IS NOT NULL AND longitude IS NOT NULL
-      AND latitude != 0 AND longitude != 0
-    ORDER BY severity_score DESC
+    SELECT r.id, r.title, r.latitude, r.longitude, r.severity_score, r.spatial_density_count,
+           r.decision_classification, r.category_id, r.status, r.risk_level, r.created_at,
+           COALESCE(c.name, '') AS category_name
+    FROM reports r
+    LEFT JOIN categories c ON r.category_id = c.id
+    WHERE r.barangay_id = ?
+      AND r.status NOT IN ('resolved', 'rejected', 'cancelled')
+      AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
+      AND r.latitude != 0 AND r.longitude != 0
+      {$fC_sql}
+    ORDER BY r.severity_score DESC
 ");
-$activeMapQuery->execute([$barangay_id]);
+$activeMapQuery->execute($fC_params);
 $activeReports = $activeMapQuery->fetchAll(PDO::FETCH_ASSOC);
 
 // Attach opaque tokens so dashboard drill links never expose raw report IDs
@@ -273,17 +365,20 @@ foreach ($activeReports as &$drill_row) {
 unset($drill_row);
 
 $historicalMapQuery = $db->prepare("
-    SELECT id, title, latitude, longitude, severity_score, spatial_density_count,
-           decision_classification, category_id, status, risk_level, created_at, resolved_at
-    FROM reports
-    WHERE barangay_id = ?
-      AND status = 'resolved'
-      AND latitude IS NOT NULL AND longitude IS NOT NULL
-      AND latitude != 0 AND longitude != 0
-    ORDER BY resolved_at DESC
+    SELECT r.id, r.title, r.latitude, r.longitude, r.severity_score, r.spatial_density_count,
+           r.decision_classification, r.category_id, r.status, r.risk_level, r.created_at, r.resolved_at,
+           COALESCE(c.name, '') AS category_name
+    FROM reports r
+    LEFT JOIN categories c ON r.category_id = c.id
+    WHERE r.barangay_id = ?
+      AND r.status = 'resolved'
+      AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
+      AND r.latitude != 0 AND r.longitude != 0
+      {$fR_sql}
+    ORDER BY r.resolved_at DESC
     LIMIT 500
 ");
-$historicalMapQuery->execute([$barangay_id]);
+$historicalMapQuery->execute($fR_params);
 $historicalReports = $historicalMapQuery->fetchAll(PDO::FETCH_ASSOC);
 
 // Attach opaque tokens so dashboard drill links never expose raw report IDs
@@ -312,10 +407,10 @@ try {
         SELECT u.residency_status AS status_type, COUNT(*) AS total
         FROM reports r
         JOIN users u ON u.id = r.user_id
-        WHERE r.barangay_id = ?
+        WHERE r.barangay_id = ? {$fC_sql}
         GROUP BY u.residency_status
     ");
-    $stmt->execute([$barangay_id]);
+    $stmt->execute($fC_params);
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         $key = (strtolower($row['status_type']) === 'resident') ? 'resident' : 'non_resident';
         $demographics[$key] += (int)$row['total'];
@@ -326,10 +421,10 @@ try {
             SELECT u.is_resident AS status_type, COUNT(*) AS total
             FROM reports r
             JOIN users u ON u.id = r.user_id
-            WHERE r.barangay_id = ?
+            WHERE r.barangay_id = ? {$fC_sql}
             GROUP BY u.is_resident
         ");
-        $stmt->execute([$barangay_id]);
+        $stmt->execute($fC_params);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $key = ((int)$row['status_type'] === 1) ? 'resident' : 'non_resident';
             $demographics[$key] += (int)$row['total'];
@@ -348,12 +443,12 @@ $nonResidentPct = $demographicsTotal > 0 ? round(($demographics['non_resident'] 
 $dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 $dayCounts = array_fill(0, 7, 0);
 $dayStmt = $db->prepare("
-    SELECT DAYOFWEEK(created_at) AS dow, COUNT(*) AS total
-    FROM reports
-    WHERE barangay_id = ? AND created_at IS NOT NULL
-    GROUP BY DAYOFWEEK(created_at)
+    SELECT DAYOFWEEK(r.created_at) AS dow, COUNT(*) AS total
+    FROM reports r
+    WHERE r.barangay_id = ? AND r.created_at IS NOT NULL {$fC_sql}
+    GROUP BY DAYOFWEEK(r.created_at)
 ");
-$dayStmt->execute([$barangay_id]);
+$dayStmt->execute($fC_params);
 while ($row = $dayStmt->fetch(PDO::FETCH_ASSOC)) {
     $idx = (int)$row['dow'] - 1; // MySQL DAYOFWEEK: 1 = Sunday
     if ($idx >= 0 && $idx < 7) $dayCounts[$idx] = (int)$row['total'];
@@ -373,8 +468,19 @@ function getSeverityTierPHP($score) {
 }
 
 // ========== GET RECENT REPORTS (kept - powers the Recent Reports table) ==========
-$recent_reports = $reportModel->getAllReports($barangay_id);
-$recent_reports->execute();
+$recent_reports = $db->prepare("
+    SELECT r.*, c.name as category_name, c.icon_class, b.name as barangay_name,
+           u.id as user_id, u.first_name, u.last_name, u.email, u.contact_number,
+           CONCAT(u.first_name, ' ', u.last_name) as full_name,
+           (SELECT COUNT(*) FROM report_images WHERE report_id = r.id) as image_count
+    FROM reports r
+    JOIN categories c ON r.category_id = c.id
+    JOIN barangays b ON r.barangay_id = b.id
+    JOIN users u ON r.user_id = u.id
+    WHERE r.barangay_id = ? AND r.status != 'cancelled' {$fC_sql}
+    ORDER BY r.created_at DESC
+");
+$recent_reports->execute($fC_params);
 $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
 
 // ============================================================
@@ -455,7 +561,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; overflow-x: hidden; }
 
-        .main-container { max-width: 1600px; margin: 0 auto; padding: 1rem; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
         @media (min-width: 640px) { .main-container { padding: 1.5rem; } }
         @media (min-width: 768px) { .main-container { padding: 2rem; } }
 
@@ -502,10 +608,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             font-weight: 600; 
         }
         .status-pending { background: #FEF3C7; color: #D97706; }
+        .status-under_review { background: #DBEAFE; color: #2563EB; }
         .status-verified { background: #DBEAFE; color: #2563EB; }
         .status-in_progress { background: #FCE7F3; color: #DB2777; }
+        .status-escalated_pending { background: #FFEDD5; color: #EA580C; }
+        .status-escalated { background: #FEE2E2; color: #DC2626; }
         .status-resolved { background: #D1FAE5; color: #10A37F; }
         .status-rejected { background: #FEE2E2; color: #DC2626; }
+        .status-cancelled { background: #E5E7EB; color: #4B5563; }
         
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(30px); }
@@ -764,6 +874,28 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .kpi-speed { border-left: 4px solid #3B82F6; }
         .kpi-rate { border-left: 4px solid #10B981; }
 
+        /* KPI widget grid - always horizontal (4-across), compacted on mobile */
+        .analytics-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .analytics-kpi-box {
+            min-width: 0;
+            width: 100%;
+            padding: 1.25rem;
+        }
+        @media (max-width: 560px) {
+            .analytics-kpi-grid { gap: 0.5rem; margin-bottom: 1rem; }
+            .analytics-kpi-box { padding: 0.5rem; }
+            .analytics-kpi-box .w-10 { display: none; }
+            .analytics-kpi-box .uppercase { font-size: 0.58rem; letter-spacing: 0.03em; }
+            .analytics-kpi-box .text-2xl { font-size: 1.05rem; }
+            .analytics-kpi-box .text-base { font-size: 0.85rem; }
+            .analytics-kpi-box [class~="mt-1"], .analytics-kpi-box [class~="mt-1.5"] { font-size: 0.55rem; }
+        }
+
         /* ========== CENTERPIECE DECISION-SUPPORT MAP ========== */
         #map-container {
             background: white;
@@ -779,6 +911,37 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             z-index: 1;
         }
         @media (max-width: 768px) { #map { height: 350px; } }
+
+        /* Severity hotspot pin with category label (shown when zoomed in) */
+        .sev-marker-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            line-height: 1;
+        }
+        .sev-marker-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        }
+        .sev-marker-label {
+            font-family: 'Manrope', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: #0F3B2E;
+            background: rgba(255,255,255,0.92);
+            padding: 2px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            border: 1px solid rgba(16,163,127,0.25);
+        }
 
         .map-toggle {
             display: flex;
@@ -805,25 +968,27 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         }
         .map-toggle button:hover:not(.active) { color: #10A37F; }
 
-        /* Drill-down panel */
+        /* ENHANCED DRILL-DOWN PANEL (matches MENRO dashboard) */
         #drillPanel {
             position: fixed;
             top: 0;
-            right: -480px;
-            width: 480px;
+            right: -520px;
+            width: 520px;
             height: 100%;
             background: white;
             box-shadow: -4px 0 24px rgba(0,0,0,0.1);
             z-index: 1000;
             transition: right 0.3s ease;
             overflow-y: auto;
-            padding: 1.5rem;
+            padding: 0;
         }
         #drillPanel.open { right: 0; }
+        #drillPanel .drill-body { padding: 1rem 1.5rem 1.5rem; }
         #drillPanel .close-btn {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
+            position: sticky;
+            top: 0;
+            float: right;
+            margin: 1rem 1rem 0 0;
             background: #f1f5f9;
             border: none;
             border-radius: 50%;
@@ -835,8 +1000,101 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             align-items: center;
             justify-content: center;
             transition: 0.2s;
+            z-index: 10;
         }
         #drillPanel .close-btn:hover { background: #e2e8f0; }
+
+        .drill-photo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .drill-photo-grid img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            transition: transform 0.2s;
+        }
+        .drill-photo-grid video {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            transition: transform 0.2s;
+            background: #111827;
+        }
+        .drill-photo-grid img:hover,
+        .drill-photo-grid video:hover { transform: scale(1.02); }
+        .drill-photo-grid .no-photo {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            padding: 1.5rem 0;
+            background: #f9fafb;
+            border-radius: 0.5rem;
+        }
+
+        .drill-score-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+        .drill-score-row .label { color: #64748b; }
+        .drill-score-row .value { font-weight: 600; }
+
+        .drill-rec-box {
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-top: 0.75rem;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        .drill-rec-low { background: #D1FAE5; color: #065F46; border-left: 4px solid #10B981; }
+        .drill-rec-medium { background: #FEF3C7; color: #92400E; border-left: 4px solid #F59E0B; }
+        .drill-rec-high { background: #FFEDD5; color: #9A3412; border-left: 4px solid #F97316; }
+        .drill-rec-critical { background: #FEE2E2; color: #991B1B; border-left: 4px solid #EF4444; }
+
+        .drill-open-btn {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1.25rem;
+            background: #10A37F;
+            color: white;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .drill-open-btn:hover {
+            background: #0D8568;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16,163,127,0.25);
+        }
+
+        /* Risk badges (drill panel) */
+        .risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .risk-low { background: #D1FAE5; color: #059669; }
+        .risk-medium { background: #FEF3C7; color: #D97706; }
+        .risk-high { background: #FFEDD5; color: #EA580C; }
+        .risk-critical { background: #FEE2E2; color: #DC2626; }
 
         .score-row {
             display: flex;
@@ -892,7 +1150,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         @media (max-width: 768px) {
             .ml-72 { margin-left: 0; }
             .notification-dropdown { right: 8px; left: 8px; width: auto; max-width: none; }
-            #drillPanel { width: 100%; right: -100%; padding: 1rem; }
+            #drillPanel { width: 100%; right: -100%; }
             .kpi-card .kpi-value { font-size: 1.5rem; }
             .map-toggle { flex-wrap: wrap; }
             .map-toggle button { padding: 0.3rem 0.8rem; font-size: 0.7rem; }
@@ -1072,102 +1330,116 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <!-- ============================================================ -->
         <!-- 1. TOP ROW: ALGORITHMIC KPI WIDGETS (Local Health) -->
         <!-- ============================================================ -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div class="kpi-card kpi-pending">
-                <div class="kpi-icon"><i class="fas fa-inbox"></i></div>
-                <div class="kpi-label">Pending Acknowledgment</div>
-                <div class="kpi-value text-red-600"><?php echo $pending_count; ?></div>
-                <div class="kpi-sub">Submitted reports awaiting review</div>
-            </div>
-            <div class="kpi-card kpi-hotspot">
-                <div class="kpi-icon"><i class="fas fa-map-pin"></i></div>
-                <div class="kpi-label">Critical Local Hotspots</div>
-                <div class="kpi-value text-amber-600"><?php echo $criticalHotspotsCount; ?></div>
-                <div class="kpi-sub">Clusters scoring 16+ / 20</div>
-            </div>
-            <div class="kpi-card kpi-speed">
-                <div class="kpi-icon"><i class="fas fa-stopwatch"></i></div>
-                <div class="kpi-label">Avg Resolution Speed</div>
-                <div class="kpi-value text-blue-600"><?php echo $avgResolutionDaysAllTime; ?><span class="text-base font-bold">d</span></div>
-                <div class="kpi-sub">
-                    <?php if ($resolutionSpeedTrend === 'worse'): ?>
-                        <span class="text-red-500 font-semibold"><i class="fas fa-arrow-up"></i> <?php echo abs($resolutionSpeedDelta); ?>d slower vs last month</span>
-                    <?php elseif ($resolutionSpeedTrend === 'better'): ?>
-                        <span class="text-emerald-500 font-semibold"><i class="fas fa-arrow-down"></i> <?php echo abs($resolutionSpeedDelta); ?>d faster vs last month</span>
-                    <?php else: ?>
-                        Stable vs last month
-                    <?php endif; ?>
+        <div class="analytics-kpi-grid">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Pending Acknowledgment</p>
+                    <p class="text-2xl font-extrabold text-red-600 tracking-tight"><?php echo $pending_count; ?></p>
+                    <p class="text-xs text-gray-400 mt-1.5">Submitted reports awaiting review</p>
+                </div>
+                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-inbox text-red-600"></i>
                 </div>
             </div>
-            <div class="kpi-card kpi-rate">
-                <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
-                <div class="kpi-label">Resolution Rate (This Month)</div>
-                <div class="kpi-value text-emerald-600"><?php echo $resolutionRateThisMonth; ?>%</div>
-                <div class="kpi-sub"><?php echo $resolvedThisMonth; ?> of <?php echo $assignedThisMonth; ?> assigned this month</div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Critical Local Hotspots</p>
+                    <p class="text-2xl font-extrabold text-amber-600 tracking-tight"><?php echo $criticalHotspotsCount; ?></p>
+                    <p class="text-xs text-gray-400 mt-1.5">Clusters scoring 16+ / 20</p>
+                </div>
+                <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-map-pin text-amber-600"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Avg Resolution Speed</p>
+                    <p class="text-2xl font-extrabold text-blue-600 tracking-tight"><?php echo $avgResolutionDaysAllTime; ?><span class="text-base font-bold">d</span></p>
+                    <p class="text-xs mt-1.5">
+                        <?php if ($resolutionSpeedTrend === 'worse'): ?>
+                            <span class="text-red-500 font-semibold"><i class="fas fa-arrow-up"></i> <?php echo abs($resolutionSpeedDelta); ?>d slower vs last month</span>
+                        <?php elseif ($resolutionSpeedTrend === 'better'): ?>
+                            <span class="text-emerald-500 font-semibold"><i class="fas fa-arrow-down"></i> <?php echo abs($resolutionSpeedDelta); ?>d faster vs last month</span>
+                        <?php else: ?>
+                            <span class="text-gray-400">Stable vs last month</span>
+                        <?php endif; ?>
+                    </p>
+                </div>
+                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-stopwatch text-blue-600"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Resolution Rate (This Month)</p>
+                    <p class="text-2xl font-extrabold text-emerald-600 tracking-tight"><?php echo $resolutionRateThisMonth; ?>%</p>
+                    <p class="text-xs text-gray-400 mt-1.5"><?php echo $resolvedThisMonth; ?> of <?php echo $assignedThisMonth; ?> assigned this month</p>
+                </div>
+                <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-chart-line text-emerald-600"></i>
+                </div>
             </div>
         </div>
 
         <!-- ============================================================ -->
-        <!-- DASHBOARD DATE RANGE FILTER -->
+        <!-- REPORT FILTER TOOLBAR (shared partial with Filter By popover) -->
         <!-- ============================================================ -->
-        <div class="bg-white border border-gray-200 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-3 shadow-sm">
-            <div class="flex items-center gap-2 text-sm text-gray-600">
-                <i class="far fa-calendar-alt text-[#10A37F]"></i>
-                <span class="font-semibold text-gray-600 text-xs uppercase tracking-wide">Date Range:</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="date" id="dashDateFrom" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:border-[#10A37F] transition" title="From date">
-                <span class="text-xs text-gray-400 font-medium">to</span>
-                <input type="date" id="dashDateTo" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:border-[#10A37F] transition" title="To date">
-            </div>
-            <button onclick="applyDashboardDateFilter()" class="bg-[#10A37F] text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-[#0D8568] transition flex items-center gap-1.5">
-                <i class="fas fa-filter"></i> Apply
-            </button>
-            <button onclick="resetDashboardDateFilter()" class="bg-gray-100 text-gray-600 text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-gray-200 transition flex items-center gap-1.5">
-                <i class="fas fa-times"></i> Reset
-            </button>
-            <span id="dashDateFilterLabel" class="text-xs text-gray-400 ml-auto"></span>
-        </div>
+        <?php
+        $analytics_date_from = isset($_GET['date_from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_from']) ? $_GET['date_from'] : null;
+        $analytics_date_to   = isset($_GET['date_to'])   && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_to'])   ? $_GET['date_to']   : null;
 
-        <!-- ============================================================ -->
-        <!-- REPORT FILTER TOOLBAR + EXPORT (like MENRO) -->
-        <!-- ============================================================ -->
-        <div class="bg-white border border-gray-200 rounded-xl p-3 mb-6 flex flex-wrap items-center gap-3 shadow-sm">
-            <div class="relative flex-1 min-w-[200px]">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                <input id="barangaySearchInput" type="text" placeholder="Search reports by title or description..." class="w-full border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-[#10A37F]">
-            </div>
-            <select id="barangayStatusFilter" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#10A37F] bg-white">
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="under_review">Under Review</option>
-                <option value="verified">Verified</option>
-                <option value="in_progress">In Progress</option>
-                <option value="escalated_pending">Escalated Pending</option>
-                <option value="escalated">Escalated</option>
-                <option value="resolved">Resolved</option>
-                <option value="rejected">Rejected</option>
-                <option value="cancelled">Cancelled</option>
-            </select>
-            <select id="barangayRiskFilter" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#10A37F] bg-white">
-                <option value="all">All Risk Levels</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-            </select>
-            <div class="export-dropdown ml-auto">
-                <button onclick="toggleExportMenu()" class="btn-export-trigger">
+        $dash_status_options = [
+            'all' => 'All Statuses', 'pending' => 'Pending', 'under_review' => 'Under Review',
+            'verified' => 'Verified', 'in_progress' => 'In Progress',
+            'escalated_pending' => 'Escalated Pending', 'escalated' => 'Escalated',
+            'resolved' => 'Resolved', 'rejected' => 'Rejected', 'cancelled' => 'Cancelled'
+        ];
+        $dash_risk_options = ['all' => 'All Risk Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+        $dash_date_preset = in_array($_GET['date_preset'] ?? '', ['today', 'week', 'month', 'year'], true) ? $_GET['date_preset'] : '';
+        $dash_date_preset_options = ['' => 'All Dates', 'today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'];
+
+        $ft = [
+            'search_id'          => 'barangaySearchInput',
+            'search_value'       => $f_search,
+            'search_placeholder' => 'Search reports by title or description...',
+            'inline_selects'     => [
+                ['id' => 'barangayStatusFilter', 'value' => $f_status, 'min_width' => '150px', 'options' => $dash_status_options],
+                ['id' => 'barangayRiskFilter', 'value' => $f_risk, 'min_width' => '150px', 'options' => $dash_risk_options],
+            ],
+            'filter_by'          => ['active' => false, 'count' => 0],
+            'popover_fields'     => [
+                ['kind' => 'date', 'id' => 'popoverDateFrom', 'label' => 'Date From', 'value' => $dash_date_preset ? '' : $f_date_from, 'default' => ''],
+                ['kind' => 'date', 'id' => 'popoverDateTo',   'label' => 'Date To',   'value' => $dash_date_preset ? '' : $f_date_to,   'default' => ''],
+            ],
+            'active_filters'     => (int)(($f_status !== 'all' ? 1 : 0) + ($f_risk !== 'all' ? 1 : 0) + ($f_search !== '' ? 1 : 0) + ($analytics_date_from ? 1 : 0) + ($analytics_date_to ? 1 : 0) + ($dash_date_preset !== '' ? 1 : 0)),
+            'chips'              => [],
+            'chips_clear_all'    => false,
+            'trailing_select'    => [
+                'id' => 'dashDatePreset', 'value' => $dash_date_preset, 'min_width' => '150px',
+                'options' => $dash_date_preset_options,
+            ],
+            'callback'           => 'applyDashboardFilters',
+        ];
+        ?>
+        <style>
+            .barangay-toolbar-row { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 1.5rem; }
+            .barangay-toolbar-row > .ft-toolbar { flex: 1 1 0; min-width: 280px; }
+            .barangay-toolbar-row .export-dropdown { margin-top: 6px; }
+        </style>
+        <div class="barangay-toolbar-row">
+            <?php include BASE_PATH . 'views/shared/report_filter_toolbar.php'; ?>
+            <div class="export-dropdown">
+                <button onclick="toggleExportMenu()" class="btn-export-trigger" type="button">
                     <i class="fas fa-file-export"></i>
                     <span>Export</span>
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div id="exportMenu" class="export-dropdown-menu">
-                    <button class="export-dropdown-item" onclick="exportDashboardPdf()">
+                    <button class="export-dropdown-item" onclick="exportDashboardPdf()" type="button">
                         <i class="fas fa-file-pdf"></i>
                         <span>Export as PDF</span>
                     </button>
-                    <button class="export-dropdown-item" onclick="exportDashboardCsv()">
+                    <button class="export-dropdown-item" onclick="exportDashboardCsv()" type="button">
                         <i class="fas fa-file-csv"></i>
                         <span>Export as CSV</span>
                     </button>
@@ -1233,6 +1505,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <!-- Timeframe Selector + Custom Date Range -->
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="map-toggle" id="timeframeToggle">
+                        <button data-range="today">Today</button>
                         <button data-range="week">This Week</button>
                         <button data-range="month">This Month</button>
                         <button data-range="year">This Year</button>
@@ -1246,7 +1519,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     </div>
                 </div>
 
-                <p class="text-xs text-gray-400 font-medium">📍 <?php echo count($activeReports); ?> active reports in your barangay</p>
             </div>
 
             <div id="map"></div>
@@ -1260,7 +1532,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <!-- Drill-down panel -->
         <div id="drillPanel">
             <button class="close-btn" onclick="closeDrillPanel()"><i class="fas fa-times"></i></button>
-            <div id="drillContent"></div>
+            <div id="drillContent" class="drill-body"></div>
         </div>
 
         <!-- ============================================================ -->
@@ -1771,6 +2043,7 @@ const barangayCenter = [
     <?php echo $barangay_info['longitude'] ?? 120.9033; ?>
 ];
 const barangayBoundary = <?php echo json_encode($barangay_boundary); ?>;
+const mapDefaults = <?php echo json_encode(SettingsHelper::getMapSettings()); ?>;
 
 // ========== FILTER STATE (Category Filter + Active/Historical toggle) ==========
 let selectedCategories = new Set(allCategories.map(c => String(c.id)));
@@ -1827,13 +2100,14 @@ function escapeHtml(text) {
 // ========== LOCAL DECISION-SUPPORT MAP ==========
 let map;
 let currentLayer = null;
+let initialFitApplied = false; // preserve the saved default view on first load
 
 function initMap() {
     // The map loads standard San Isidro tiles, but every marker below is
     // already strictly filtered server-side WHERE barangay_id = ? — the
     // PHP only ever sent this barangay's reports, so Auto-Fit Bounds
     // naturally zooms to just their local pins.
-    map = L.map('map').setView(barangayCenter, 15);
+    map = L.map('map').setView(barangayCenter, mapDefaults.default_zoom);
 
     MapLayers.addControl(map);
 
@@ -1849,8 +2123,9 @@ function initMap() {
             }
         }).addTo(map);
 
-        // Frame the map on the barangay polygon so the whole jurisdiction is visible.
-        try { map.fitBounds(brgyLayer.getBounds(), { padding: [30, 30], maxZoom: 16 }); } catch(e) {}
+        // Frame the map on the barangay polygon so the whole jurisdiction is visible,
+        // but never zoom past the configured default zoom level.
+        try { map.fitBounds(brgyLayer.getBounds(), { padding: [30, 30], maxZoom: mapDefaults.default_zoom }); } catch(e) {}
     }
 
     loadMapData('active');
@@ -1872,6 +2147,11 @@ function isWithinRange(dateStr, range) {
         return true;
     }
     const now = new Date();
+    if (range === 'today') {
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+        return date >= todayStart;
+    }
     if (range === 'week') {
         const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7); return date >= weekAgo;
     }
@@ -1897,22 +2177,12 @@ function getFilteredData(mode) {
         const searchOk = !q
             || String(report.title || '').toLowerCase().includes(q)
             || String(report.description || '').toLowerCase().includes(q);
-        // Dashboard date range filter
-        let dashDateOk = true;
-        if (_dashDateFrom || _dashDateTo) {
-            const d = report[dateField] ? new Date(report[dateField]) : null;
-            if (!d) { dashDateOk = false; }
-            else {
-                if (_dashDateFrom && d < _dashDateFrom) dashDateOk = false;
-                if (_dashDateTo   && d > _dashDateTo)   dashDateOk = false;
-            }
-        }
-        return categoryOk && rangeOk && statusOk && riskOk && searchOk && dashDateOk;
+        return categoryOk && rangeOk && statusOk && riskOk && searchOk;
     });
 }
 
 function updateFilterSummary(mode, count) {
-    const rangeLabels = { week: 'this week', month: 'this month', year: 'this year', all: 'all time' };
+    const rangeLabels = { today: 'today', week: 'this week', month: 'this month', year: 'this year', all: 'all time' };
     let rangeLabel = rangeLabels[selectedRange] || selectedRange;
     if (selectedRange === 'custom') {
         rangeLabel = 'custom (' + (selectedFrom || '?') + ' to ' + (selectedTo || '?') + ')';
@@ -1938,7 +2208,7 @@ function loadMapData(mode) {
         // Keep the barangay boundary in view; only recenter to the saved map
         // center when no boundary polygon was drawn.
         if (!barangayBoundary || !barangayBoundary.features) {
-            map.setView(barangayCenter, 15);
+            map.setView(barangayCenter, mapDefaults.default_zoom);
         }
         return;
     }
@@ -1982,9 +2252,14 @@ function loadMapData(mode) {
             </div>
         `;
 
+        const catName = report.category_name || 'General';
         const icon = L.divIcon({
-            html: `<div style="background: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>`,
-            iconSize: [24, 24],
+            html: `<div class="sev-marker-wrap">
+                     <div class="sev-marker-dot" style="background:${color};"></div>
+                     <div class="sev-marker-label">${escapeHtml(catName)}</div>
+                   </div>`,
+            iconSize: [120, 40],
+            iconAnchor: [60, 12],
             className: 'severity-marker'
         });
 
@@ -1996,9 +2271,13 @@ function loadMapData(mode) {
     currentLayer = clusterGroup;
     map.addLayer(clusterGroup);
 
-    // Auto-fit bounds to just this barangay's pins
-    const bounds = L.latLngBounds(data.map(r => [r.latitude, r.longitude]));
-    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 17 });
+    // Auto-fit bounds to just this barangay's pins (skip on the very first load
+    // so the saved default zoom from Map Settings is honored).
+    if (initialFitApplied && data.length > 0) {
+        const bounds = L.latLngBounds(data.map(r => [r.latitude, r.longitude]));
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: mapDefaults.default_zoom });
+    }
+    initialFitApplied = true;
 }
 
 // ========== TIME MACHINE TOGGLE (Active Hazards vs Historical/Resolved) ==========
@@ -2157,48 +2436,185 @@ function openDrillPanel(reportId) {
 }
 
 function renderDrillPanel(report) {
-    const riskLevel = (report.risk_level || 'low').toLowerCase();
-    const recClass = 'rec-' + (riskLevel === 'critical' ? 'critical' : riskLevel === 'high' ? 'high' : riskLevel === 'medium' ? 'medium' : 'low');
-    const recText = getRiskRecommendation(parseInt(report.severity_score) || 0);
+    const score = parseInt(report.severity_score) || 0;
+    const riskLevel = getRiskLevelFromScore(score);
+    const recClass = 'drill-rec-' + riskLevel;
+    const recText = getRiskRecommendation(score);
+
+    // Get category name
+    const categoryName = report.category_name || 'Uncategorized';
+
+    // Build photo gallery HTML
+    const baseUrl = '<?php echo BASE_URL; ?>';
+    const isVideoFile = p => /\.(mp4|webm|mov|m4v|avi)$/i.test(p);
+    const buildMediaHtml = p => {
+        const mediaUrl = baseUrl + p.trim();
+        if (isVideoFile(mediaUrl)) {
+            return `<video src="${mediaUrl}" muted playsinline preload="metadata" onclick="window.open('${mediaUrl}','_blank')"></video>`;
+        }
+        return `<img src="${mediaUrl}" onclick="window.open('${mediaUrl}','_blank')" alt="Evidence photo" loading="lazy" onerror="this.style.display='none'">`;
+    };
+    let photoHtml = '';
+    if (report.image_paths) {
+        const paths = report.image_paths.split(',').filter(p => p && p.trim());
+        const maxPhotos = 3;
+        const displayPhotos = paths.slice(0, maxPhotos);
+        photoHtml = displayPhotos.map(buildMediaHtml).join('');
+        if (displayPhotos.length === 0) {
+            photoHtml = '<div class="no-photo"><i class="fas fa-image text-2xl block mb-1"></i>No photos available</div>';
+        } else if (displayPhotos.length < paths.length) {
+            photoHtml += `<div class="flex items-center justify-center bg-gray-100 rounded-lg text-gray-500 text-sm font-bold">+${paths.length - displayPhotos.length}</div>`;
+        }
+    } else {
+        photoHtml = '<div class="no-photo"><i class="fas fa-image text-2xl block mb-1"></i>No photos available</div>';
+    }
+
+    // Build resolution evidence gallery HTML
+    let resolutionHtml = '';
+    if (report.resolution_evidence_paths) {
+        const resPaths = report.resolution_evidence_paths.split(',').filter(p => p && p.trim());
+        resolutionHtml = resPaths.map(buildMediaHtml).join('');
+        if (resPaths.length === 0) {
+            resolutionHtml = '<div class="no-photo"><i class="fas fa-check-circle text-2xl block mb-1"></i>No resolution evidence</div>';
+        }
+    } else {
+        resolutionHtml = '<div class="no-photo"><i class="fas fa-check-circle text-2xl block mb-1"></i>No resolution evidence</div>';
+    }
+
+    // Build location text
+    let locationText = '';
+    if (report.location_address) {
+        locationText = report.location_address;
+    } else if (report.latitude && report.longitude) {
+        locationText = `${parseFloat(report.latitude).toFixed(6)}, ${parseFloat(report.longitude).toFixed(6)}`;
+    } else {
+        locationText = 'No location data';
+    }
 
     const html = `
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">${escapeHtml(report.title)}</h3>
-            <span class="text-sm font-mono bg-gray-100 px-2 py-1 rounded">#${String(report.id).padStart(5,'0')}</span>
+            <span class="text-sm font-mono bg-gray-100 px-2 py-1 rounded">#${String(report.id).padStart(6,'0')}</span>
         </div>
 
-        <div class="mb-4">
-            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold
-                ${riskLevel === 'low' ? 'bg-green-50 text-green-700' : riskLevel === 'medium' ? 'bg-yellow-50 text-yellow-700' : riskLevel === 'high' ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-700'}">
-                <i class="fas fa-circle text-xs"></i>
-                ${riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1)} Risk
-            </span>
+        <!-- Status Badges -->
+        <div class="flex flex-wrap gap-2 mb-4">
+            ${getStatusBadgeHTML(report.status)}
+            ${getRiskBadgeHTML(report.risk_level || 'low')}
         </div>
 
-        ${report.description ? `
-        <div class="mb-4">
-            <h4 class="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide"><i class="fas fa-align-left mr-2 text-[#10A37F]"></i>Description</h4>
-            <div class="bg-gray-50 rounded-xl p-4">
-                <p class="text-sm text-gray-600 leading-relaxed">${escapeHtml(report.description)}</p>
+        <!-- Quick Overview -->
+        <div class="space-y-3 mb-4">
+            <div class="flex items-start gap-2">
+                <span class="text-gray-500 text-sm w-24 flex-shrink-0 font-medium">Category:</span>
+                <span class="text-gray-800 font-semibold">${escapeHtml(categoryName)}</span>
             </div>
-        </div>` : ''}
+            <div class="flex items-start gap-2">
+                <span class="text-gray-500 text-sm w-24 flex-shrink-0 font-medium">Description:</span>
+                <span class="text-gray-700 text-sm">${escapeHtml(report.description ? report.description.substring(0, 150) : 'No description')}${report.description && report.description.length > 150 ? '...' : ''}</span>
+            </div>
+            <div class="flex items-start gap-2">
+                <span class="text-gray-500 text-sm w-24 flex-shrink-0 font-medium">Location:</span>
+                <span class="text-gray-700 text-sm">${escapeHtml(locationText)}</span>
+            </div>
+        </div>
 
-        <div class="rec-box ${recClass}">
+        <!-- Photo Evidence -->
+        <div class="mb-4">
+            <p class="text-sm font-semibold text-gray-700 mb-2">Photo Evidence</p>
+            <div class="drill-photo-grid">
+                ${photoHtml}
+            </div>
+        </div>
+
+        <!-- Resolution Evidence -->
+        <div class="mb-4">
+            <p class="text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-check-circle text-emerald-500 mr-1"></i>Resolution Evidence
+            </p>
+            <div class="drill-photo-grid">
+                ${resolutionHtml}
+            </div>
+        </div>
+
+        <!-- Severity Score -->
+        <div class="bg-gray-50 rounded-xl p-4 mb-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-gray-700">Severity Score</p>
+                    <p class="text-2xl font-extrabold ${riskLevel === 'critical' ? 'text-red-600' : (riskLevel === 'high' ? 'text-orange-600' : (riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600'))}">${score} / 20</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-400">Classification</p>
+                    <p class="text-sm font-semibold text-gray-700">${report.decision_classification || 'Pending'}</p>
+                </div>
+            </div>
+            <div class="mt-2 flex gap-1">
+                ${Array.from({length: 20}, (_, i) => {
+                    const filled = i < score;
+                    return `<div class="h-2 flex-1 rounded-full ${filled ? (riskLevel === 'critical' ? 'bg-red-500' : (riskLevel === 'high' ? 'bg-orange-500' : (riskLevel === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'))) : 'bg-gray-200'}"></div>`;
+                }).join('')}
+            </div>
+        </div>
+
+        <!-- Recommendation -->
+        <div class="drill-rec-box ${recClass}">
             <i class="fas fa-lightbulb mr-2"></i>
-            <strong>System Recommendation:</strong> ${recText}
+            <strong>Recommendation:</strong> ${recText}
         </div>
 
-        <div class="mt-4">
-            <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" target="_blank" class="text-[#10A37F] hover:underline text-sm">
-                <i class="fas fa-external-link-alt mr-1"></i>Open in Manage Reports
-            </a>
-        </div>
+        <!-- Open Full Report -->
+        <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" target="_blank" class="drill-open-btn">
+            <i class="fas fa-external-link-alt mr-2"></i> Open Full Report
+        </a>
 
-        <div class="mt-4 text-xs text-gray-400">
-            <i class="far fa-calendar-alt mr-1"></i>Reported: ${new Date(report.created_at).toLocaleString()}
+        <div class="mt-4 text-xs text-gray-400 flex gap-4">
+            <span><i class="far fa-calendar-alt mr-1"></i>Reported: ${new Date(report.created_at).toLocaleString()}</span>
+            <span><i class="far fa-clock mr-1"></i>${timeAgo(report.created_at)}</span>
         </div>
     `;
+
     document.getElementById('drillContent').innerHTML = html;
+}
+
+// Helper: Get status badge HTML
+function getStatusBadgeHTML(status) {
+    const statusMap = {
+        'pending': { label: 'Pending', class: 'status-pending', icon: 'fa-clock' },
+        'under_review': { label: 'Under Review', class: 'status-under_review', icon: 'fa-search' },
+        'verified': { label: 'Verified', class: 'status-verified', icon: 'fa-check-circle' },
+        'in_progress': { label: 'In Progress', class: 'status-in_progress', icon: 'fa-spinner fa-pulse' },
+        'escalated_pending': { label: 'Escalated Pending', class: 'status-escalated_pending', icon: 'fa-hourglass-half' },
+        'escalated': { label: 'Escalated', class: 'status-escalated', icon: 'fa-shield-alt' },
+        'resolved': { label: 'Resolved', class: 'status-resolved', icon: 'fa-check-circle' },
+        'rejected': { label: 'Rejected', class: 'status-rejected', icon: 'fa-times-circle' },
+        'cancelled': { label: 'Cancelled', class: 'status-cancelled', icon: 'fa-ban' }
+    };
+    const info = statusMap[status] || { label: status, class: 'status-pending', icon: 'fa-circle' };
+    return `<span class="status-badge ${info.class}"><i class="fas ${info.icon} text-xs"></i> ${info.label}</span>`;
+}
+
+// Helper: Get risk badge HTML
+function getRiskBadgeHTML(risk) {
+    const riskMap = {
+        'low': { label: 'Low', class: 'risk-low', icon: 'fa-seedling' },
+        'medium': { label: 'Medium', class: 'risk-medium', icon: 'fa-exclamation-triangle' },
+        'high': { label: 'High', class: 'risk-high', icon: 'fa-fire' },
+        'critical': { label: 'Critical', class: 'risk-critical', icon: 'fa-skull-crossbones' }
+    };
+    const info = riskMap[risk] || { label: risk, class: 'risk-low', icon: 'fa-circle' };
+    return `<span class="risk-badge ${info.class}"><i class="fas ${info.icon} text-xs"></i> ${info.label}</span>`;
+}
+
+// Time ago helper
+function timeAgo(dateStr) {
+    const now = new Date();
+    const then = new Date(dateStr);
+    const diff = Math.floor((now - then) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+    return Math.floor(diff / 86400) + ' days ago';
 }
 
 function closeDrillPanel() {
@@ -2209,36 +2625,48 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ========== DASHBOARD DATE RANGE FILTER ==========
-var _dashDateFrom = null, _dashDateTo = null;
 
-function applyDashboardDateFilter() {
-    var from = document.getElementById('dashDateFrom').value;
-    var to   = document.getElementById('dashDateTo').value;
-    if (!from && !to) { resetDashboardDateFilter(); return; }
-    _dashDateFrom = from ? new Date(from + 'T00:00:00') : null;
-    _dashDateTo   = to   ? new Date(to   + 'T23:59:59') : null;
-    var label = document.getElementById('dashDateFilterLabel');
-    if (label) {
-        var parts = [];
-        if (from) parts.push('From: ' + from);
-        if (to)   parts.push('To: ' + to);
-        label.textContent = parts.join(' — ');
+// Build a URL carrying all analytics filters (date + status + risk + search). The PHP
+// page reads these back and rebuilds every KPI + chart server-side.
+function _buildAnalyticsUrl() {
+    var url = new URL(window.location.href);
+    var sEl = document.getElementById('barangayStatusFilter');
+    var rkEl = document.getElementById('barangayRiskFilter');
+    var from = document.getElementById('popoverDateFrom');
+    var to   = document.getElementById('popoverDateTo');
+    var presetEl = document.getElementById('dashDatePreset');
+    var searchInput = document.getElementById('barangaySearchInput');
+    var status = sEl ? sEl.value : 'all';
+    var risk   = rkEl ? rkEl.value : 'all';
+    var f = (from && from.value) ? from.value : '';
+    var t = (to   && to.value)   ? to.value   : '';
+    var preset = (presetEl && presetEl.value) ? presetEl.value : '';
+    if (f || t) {
+        preset = '';
+        if (presetEl) presetEl.value = '';
     }
-    _applyAllMapDateFilter();
+    if (preset) {
+        var today = new Date();
+        var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+        var pf = today, pt = today;
+        if (preset === 'week') { pf = new Date(today); pf.setDate(today.getDate() - 6); }
+        else if (preset === 'month') { pf = new Date(today.getFullYear(), today.getMonth(), 1); }
+        else if (preset === 'year') { pf = new Date(today.getFullYear(), 0, 1); }
+        f = ymd(pf); t = ymd(pt);
+    }
+    var q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+    if (f) url.searchParams.set('date_from', f); else url.searchParams.delete('date_from');
+    if (t) url.searchParams.set('date_to', t);   else url.searchParams.delete('date_to');
+    if (preset) url.searchParams.set('date_preset', preset); else url.searchParams.delete('date_preset');
+    if (status && status !== 'all') url.searchParams.set('status', status); else url.searchParams.delete('status');
+    if (risk   && risk   !== 'all') url.searchParams.set('risk',   risk);   else url.searchParams.delete('risk');
+    if (q) url.searchParams.set('search', q); else url.searchParams.delete('search');
+    return url;
 }
 
-function resetDashboardDateFilter() {
-    _dashDateFrom = null; _dashDateTo = null;
-    document.getElementById('dashDateFrom').value = '';
-    document.getElementById('dashDateTo').value   = '';
-    var label = document.getElementById('dashDateFilterLabel');
-    if (label) label.textContent = '';
-    _applyAllMapDateFilter();
-}
-
-function _applyAllMapDateFilter() {
-    // Re-apply the existing map filters to respect date range
-    if (typeof applyFilters === 'function') applyFilters();
+// Toolbar Filter By popover / search / status / risk callback (shared partial)
+function applyDashboardFilters() {
+    window.location.href = _buildAnalyticsUrl().toString();
 }
 
 // ========== CHARTS ==========

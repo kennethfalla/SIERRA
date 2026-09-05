@@ -23,6 +23,10 @@ $is_admin = ($user_role === 'admin');
 $is_barangay = ($user_role === 'barangay_official');
 $is_citizen = ($user_role === 'citizen');
 
+// Residency: residents have a barangay_id and is_resident=1. Non-residents (visitors)
+// have no barangay_id. Defaults to resident when the flag is missing for safety.
+$is_resident = (int)($_SESSION['is_resident'] ?? (($barangay_id !== null) ? 1 : 0));
+
 $can_create = ($is_admin || $is_barangay);
 $can_edit = function($announcement) use ($user_id, $is_admin, $is_barangay) {
     if ($is_admin) return true;
@@ -72,10 +76,15 @@ if ($is_admin) {
     $params[] = $user_id;
     $params[] = $barangay_id;
 } elseif ($is_citizen) {
-    // Resident sees only public broadcasts: municipality-wide or their own barangay.
-    // Internal (LGU-only) broadcasts are always hidden from residents.
-    $where .= " AND (a.broadcast_type = 'global_public' OR (a.broadcast_type = 'localized_public' AND a.barangay_id = ?))";
-    $params[] = $barangay_id;
+    // Citizens see only public broadcasts, never internal (LGU-only) ones.
+    // Non-residents (visitors) see ONLY municipality-wide announcements;
+    // residents additionally see their own barangay's localized announcements.
+    if ($is_resident) {
+        $where .= " AND (a.broadcast_type = 'global_public' OR (a.broadcast_type = 'localized_public' AND a.barangay_id = ?))";
+        $params[] = $barangay_id;
+    } else {
+        $where .= " AND a.broadcast_type = 'global_public'";
+    }
 } else {
     $where .= " AND 1=0";
 }
@@ -632,6 +641,12 @@ if ($date_to != '') $active_filters++;
         .fab-create:active {
             transform: scale(0.94);
             box-shadow: 0 3px 10px rgba(16, 163, 127, 0.35);
+        }
+        /* Floating + is mobile-only; the header Create Post button covers desktop/tablet.
+           Explicit media query (page CSS loads after tailwind.css) so the sm:hidden utility
+           always applies regardless of stylesheet order. */
+        @media (min-width: 640px) {
+            .fab-create { display: none; }
         }
         /* keep clear of safe-area on modern phones */
         @supports (bottom: env(safe-area-inset-bottom)) {

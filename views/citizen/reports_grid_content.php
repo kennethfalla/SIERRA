@@ -3,9 +3,11 @@
         $risk_level = isset($row['risk_level']) ? $row['risk_level'] : 'low';
         $risk_labels = ['low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
         $risk_icons = ['low' => 'fa-seedling', 'medium' => 'fa-exclamation-triangle', 'high' => 'fa-fire', 'critical' => 'fa-skull-crossbones'];
+        $cover_src = !empty($row['cover_image']) ? BASE_URL . htmlspecialchars($row['cover_image'], ENT_QUOTES, 'UTF-8') : '';
+        $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(13,133,104,0.30) 0%, rgba(8,78,62,0.92) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
     ?>
     <div class="report-card">
-        <div class="report-card-header bg-gradient-to-r from-[#10A37F] to-[#0D8568] rounded-t-2xl p-4 md:p-5 text-white">
+        <div class="report-card-header bg-gradient-to-r from-[#10A37F] to-[#0D8568] rounded-t-2xl p-4 md:p-5 text-white<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
             <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
                 <div class="space-y-2">
                     <div class="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] opacity-90 font-semibold">
