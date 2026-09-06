@@ -786,7 +786,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     );
                 }
 
-                $_SESSION['success'] = "Welcome back, " . htmlspecialchars($row['first_name']) . "!";
                 header("Location: " . BASE_URL . "index.php?page=dashboard");
                 exit();
 

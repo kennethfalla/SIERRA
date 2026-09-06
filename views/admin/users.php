@@ -444,7 +444,7 @@ function getRoleBadge($user_type, $job_title = '') {
 
         <!-- ===== PAGE HEADER (with Export button, matching other pages) ===== -->
         <?php
-        $report_role      = $users_tab === 'citizens' ? 'citizen' : ($users_tab === 'barangay' ? 'barangay' : 'menro');
+        $report_role      = 'all';
         $report_status    = $status_filter !== '' ? urlencode($status_filter) : '';
         $report_brgy      = $barangay_filter > 0 ? (int)$barangay_filter : 0;
         $report_residency = $residency_filter !== '' ? urlencode($residency_filter) : '';

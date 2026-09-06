@@ -106,12 +106,15 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
         .toolbar a:hover { border-color: #10A37F; color: #10A37F; }
         .toolbar .hint { color: #6b7280; font-size: 11px; }
 
-        /* ===== Report page (paper-agnostic) ===== */
+        /* ===== Report page (fixed A4 portrait paper) ===== */
         .report {
-            width: 100%;
+            width: 210mm;
+            min-height: 297mm;
             margin: 0 auto;
             background: #ffffff;
-            padding: 10mm 12mm;
+            padding: 12mm 14mm;
+            display: flex;
+            flex-direction: column;
         }
 
         .report-header {
@@ -236,7 +239,7 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 40px;
-            margin-top: 30px;
+            margin-top: auto;
             padding-top: 12px;
             border-top: 1px solid #e5e7eb;
         }

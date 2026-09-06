@@ -29,6 +29,14 @@ $created_from = isset($_GET['created_from']) ? preg_replace('/[^0-9-]/', '', $_G
 $created_to   = isset($_GET['created_to'])   ? preg_replace('/[^0-9-]/', '', $_GET['created_to'])   : '';
 $autoprint = !empty($_GET['autoprint']);
 
+// Non-residents do not belong to any barangay, so a barangay filter must not
+// be applied to them.
+if ($residency === 'non_resident') $barangay = 0;
+
+// Residency only applies to Reporters, so it is only effective (and shown)
+// when the User Group filter is set to "Reporters".
+if ($role !== 'citizen') $residency = 'all';
+
 function isValidUserDate($s) {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) return false;
     [$y, $m, $d] = array_map('intval', explode('-', $s));
@@ -100,21 +108,10 @@ $roleText = $role === 'citizen' ? 'Reporters (Resident & Non-Resident)' : ($role
 $barangayText = $barangay > 0 ? $barangayName : 'All Barangays';
 $residencyText = $residency === 'resident' ? 'Residents Only' : ($residency === 'non_resident' ? 'Non-Residents Only' : 'All');
 $createdText = 'All Time';
-if ($created_from && $created_to) $createdText = date('M j, Y', strtotime($created_from)) . ' to ' . date('M j, Y', strtotime($created_to));
+if ($created_from && $created_to && $created_from === $created_to) $createdText = date('M j, Y', strtotime($created_from));
+elseif ($created_from && $created_to) $createdText = date('M j, Y', strtotime($created_from)) . ' to ' . date('M j, Y', strtotime($created_to));
 elseif ($created_from) $createdText = 'From ' . date('M j, Y', strtotime($created_from));
 elseif ($created_to)   $createdText = 'Up to ' . date('M j, Y', strtotime($created_to));
-
-// Report title reflects the primary filter applied (barangay takes precedence).
-$reportTitle = 'USER / ACCOUNT REPORT';
-if ($barangay > 0 && $barangayName !== '') {
-    $reportTitle = 'USERS IN ' . strtoupper($barangayName);
-} elseif ($role === 'menro') {
-    $reportTitle = 'MENRO USERS REPORT';
-} elseif ($role === 'barangay') {
-    $reportTitle = 'BARANGAY USERS REPORT';
-} elseif ($role === 'citizen') {
-    $reportTitle = 'REPORTERS / RESIDENTS REPORT';
-}
 
 // Quick preset ranges ("All date filters apply Today / This Week / This Month / This Year").
 $quickRanges = [
@@ -123,6 +120,49 @@ $quickRanges = [
     'month' => ['name' => 'This Month', 'from' => date('Y-m-01'),                         'to' => date('Y-m-d')],
     'year'  => ['name' => 'This Year',  'from' => date('Y-01-01'),                        'to' => date('Y-m-d')],
 ];
+
+// Report title reflects the applied filters — user group + residency + barangay.
+// When a date filter is set the title becomes "NEWLY REGISTERED <PERIOD> [- <SCOPE>]".
+$dateActive = ($created_from !== '' || $created_to !== '');
+
+$periodDesc = '';
+if ($dateActive) {
+    foreach ($quickRanges as $k => $qr) {
+        if ($created_from === $qr['from'] && $created_to === $qr['to']) { $periodDesc = $qr['name']; break; }
+    }
+    if ($periodDesc === '') $periodDesc = $createdText; // custom range
+}
+
+$roleSet   = $role !== 'all';
+$resSet    = $residency !== 'all';
+$brgySet   = ($barangay > 0 && $barangayName !== '');
+$scopeCount = (int)$roleSet + (int)$resSet + (int)$brgySet;
+
+if ($scopeCount === 0) {
+    $scopeLabel = 'ALL ACCOUNTS';
+} elseif ($scopeCount === 1) {
+    if ($resSet && $residency === 'non_resident') $scopeLabel = 'NON-RESIDENT ACCOUNTS';
+    elseif ($resSet && $residency === 'resident') $scopeLabel = 'RESIDENT ACCOUNTS';
+    elseif ($roleSet && $role === 'menro')        $scopeLabel = 'MENRO ACCOUNTS';
+    elseif ($roleSet && $role === 'barangay')     $scopeLabel = 'BARANGAY ACCOUNTS';
+    elseif ($roleSet && $role === 'citizen')      $scopeLabel = 'REPORTERS ACCOUNTS';
+    else                                          $scopeLabel = 'ACCOUNTS IN ' . strtoupper($barangayName);
+} else {
+    $parts = [];
+    if ($resSet) $parts[] = $residency === 'resident' ? 'RESIDENT' : 'NON-RESIDENT';
+    if ($roleSet) $parts[] = $role === 'menro' ? 'MENRO USERS' : ($role === 'barangay' ? 'BARANGAY USERS' : 'REPORTERS');
+    else          $parts[] = 'ACCOUNTS';
+    if ($brgySet) $parts[] = 'IN ' . strtoupper($barangayName);
+    $scopeLabel = implode(' ', $parts);
+}
+
+if ($dateActive) {
+    $reportTitle = 'NEWLY REGISTERED ' . $periodDesc . ($scopeCount > 0 ? ' - ' . $scopeLabel : '');
+} else {
+    $reportTitle = $scopeLabel;
+    if ($scopeCount === 0 || ($scopeCount === 1 && !$brgySet)) $reportTitle .= ' REPORT';
+}
+$reportTitle = strtoupper($reportTitle);
 $baseQuery = '?page=users-report&role=' . urlencode($role)
              . ($status !== 'all' ? '&status=' . urlencode($status) : '')
              . ($barangay > 0 ? '&barangay=' . (int)$barangay : '')
@@ -221,13 +261,15 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
             color: #1f2937;
         }
 
-        /* ===== Report page (paper-agnostic) ===== */
+        /* ===== Report page (fixed A4 portrait paper) ===== */
         .report {
-            width: 100%;
-            min-height: 0;
+            width: 210mm;
+            min-height: 297mm;
             margin: 0 auto;
             background: #ffffff;
-            padding: 10mm 12mm;
+            padding: 12mm 14mm;
+            display: flex;
+            flex-direction: column;
         }
 
         .report-header {
@@ -350,7 +392,7 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 40px;
-            margin-top: 30px;
+            margin-top: auto;
             padding-top: 12px;
             border-top: 1px solid #e5e7eb;
         }
@@ -415,7 +457,8 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
         @media (max-width: 900px) { .page-wrap { flex-direction: column; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }
 
         @page {
-            margin: 10mm 12mm;
+            size: A4 portrait;
+            margin: 12mm 14mm 16mm;
         }
         @media print {
             body { background: #ffffff !important; }
@@ -463,7 +506,7 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
                                 <option value="citizen" <?php echo $role === 'citizen' ? 'selected' : ''; ?>>Reporters (Resident &amp; Non-Resident)</option>
                             </select>
                         </div>
-                        <div class="filter-field">
+                        <div class="filter-field" id="residencyField" style="<?php echo $role === 'citizen' ? '' : 'display:none;'; ?>">
                             <label for="sideResidency">Residency</label>
                             <select name="residency" id="sideResidency">
                                 <option value="all" <?php echo $residency === 'all' ? 'selected' : ''; ?>>All</option>
@@ -490,12 +533,15 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
                         </div>
                     </div>
                     <div class="sidebar-group">
-                        <div class="sidebar-group-label">Newly Created Accounts</div>
+                        <div class="sidebar-group-label">Date</div>
                         <div class="quick-range">
                             <?php foreach ($quickRanges as $qr): ?>
                             <a href="<?php echo BASE_URL; ?>index.php<?php echo $baseQuery . '&created_from=' . $qr['from'] . '&created_to=' . $qr['to']; ?>"><?php echo htmlspecialchars($qr['name']); ?></a>
                             <?php endforeach; ?>
                         </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Date Range</div>
                         <div class="filter-field">
                             <label for="sideCreatedFrom">Created From</label>
                             <input type="date" name="created_from" id="sideCreatedFrom" value="<?php echo htmlspecialchars($created_from); ?>">
@@ -550,43 +596,9 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
             <div class="report-title"><?php echo htmlspecialchars($reportTitle); ?></div>
             <div class="report-subtitle">Registered Users in the System &middot; <?php echo htmlspecialchars($municipality); ?></div>
             <div class="report-meta">
-                <span><strong>Group:</strong> <?php echo htmlspecialchars($roleText); ?></span>
-                <span><strong>Residency:</strong> <?php echo htmlspecialchars($residencyText); ?></span>
-                <span><strong>Barangay:</strong> <?php echo htmlspecialchars($barangayText); ?></span>
-                <span><strong>Status:</strong> <?php echo htmlspecialchars($statusText); ?></span>
-                <span><strong>Created:</strong> <?php echo htmlspecialchars($createdText); ?></span>
-                <span><strong>Total Users:</strong> <?php echo number_format($totalUsers); ?></span>
-                <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
+                <span><strong>Date Range:</strong> <?php echo htmlspecialchars($createdText); ?></span>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
-            </div>
-        </div>
-
-        <!-- ===== KPI Stat Cards ===== -->
-        <div class="kpi-row">
-            <div class="kpi-card">
-                <div class="kpi-label">Total Users</div>
-                <div class="kpi-value"><?php echo number_format($totalUsers); ?></div>
-                <div class="kpi-sub">Registered accounts</div>
-            </div>
-            <div class="kpi-card kpi-green">
-                <div class="kpi-label">Active</div>
-                <div class="kpi-value" style="color:#059669;"><?php echo number_format($activeUsers); ?></div>
-                <div class="kpi-sub"><?php echo $activePct; ?>% of total</div>
-            </div>
-            <div class="kpi-card kpi-red">
-                <div class="kpi-label">Inactive</div>
-                <div class="kpi-value" style="color:#dc2626;"><?php echo number_format($inactiveUsers); ?></div>
-                <div class="kpi-sub">Suspended accounts</div>
-            </div>
-            <div class="kpi-card kpi-blue">
-                <div class="kpi-label">Residents</div>
-                <div class="kpi-value"><?php echo number_format($residents); ?></div>
-                <div class="kpi-sub">Resident accounts</div>
-            </div>
-            <div class="kpi-card kpi-amber">
-                <div class="kpi-label">Non-Residents</div>
-                <div class="kpi-value"><?php echo number_format($nonResidents); ?></div>
-                <div class="kpi-sub">Non-resident accounts</div>
+                <span><strong>Total Users:</strong> <?php echo number_format($totalUsers); ?></span>
             </div>
         </div>
 
@@ -673,5 +685,20 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
         });
     </script>
     <?php endif; ?>
+
+    <script>
+        // Residency only applies to Reporters — toggle the field live with the User Group.
+        (function () {
+            var role = document.getElementById('sideRole');
+            var field = document.getElementById('residencyField');
+            var residency = document.getElementById('sideResidency');
+            if (!role || !field || !residency) return;
+            role.addEventListener('change', function () {
+                var show = role.value === 'citizen';
+                field.style.display = show ? '' : 'none';
+                if (!show) residency.value = 'all';
+            });
+        })();
+    </script>
 </body>
 </html>

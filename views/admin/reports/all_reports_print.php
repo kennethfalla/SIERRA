@@ -113,8 +113,18 @@ if ($category_filter > 0) { $catQ = $db->prepare("SELECT name FROM categories WH
 if ($barangay_filter > 0) { $brgQ = $db->prepare("SELECT name FROM barangays WHERE id = ?"); $brgQ->execute([$barangay_filter]); $brgRow = $brgQ->fetch(); $filterSummary[] = 'Barangay: ' . ($brgRow['name'] ?? ''); }
 if ($risk_filter) $filterSummary[] = 'Risk: ' . ($riskLabels[$risk_filter] ?? $risk_filter);
 if ($search) $filterSummary[] = 'Search: "' . htmlspecialchars($search) . '"';
-if ($date_from) $filterSummary[] = 'From: ' . date('M j, Y', strtotime($date_from));
-if ($date_to) $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
+
+// Date range text for the header meta.
+$rangeText = 'All Time';
+if ($date_from && $date_to && $date_from === $date_to) {
+    $rangeText = date('M j, Y', strtotime($date_from));
+} elseif ($date_from && $date_to) {
+    $rangeText = date('M j, Y', strtotime($date_from)) . ' to ' . date('M j, Y', strtotime($date_to));
+} elseif ($date_from) {
+    $rangeText = 'From ' . date('M j, Y', strtotime($date_from));
+} elseif ($date_to) {
+    $rangeText = 'Up to ' . date('M j, Y', strtotime($date_to));
+}
 
 // Dynamic report title built from the active filters.
 $titleCategory = '';
@@ -132,18 +142,29 @@ if ($barangay_filter > 0) {
 $titleStatus = $status_filter ? ($statusLabels[$status_filter] ?? str_replace('_', ' ', $status_filter)) : '';
 $titleRisk = $risk_filter ? ($riskLabels[$risk_filter] ?? $risk_filter) : '';
 
-$reportTitle = 'All Reports';
-if ($titleCategory !== '' && $titleBarangay !== '') {
-    $reportTitle = 'Reports for ' . $titleCategory . ' in Barangay ' . $titleBarangay;
-} elseif ($titleCategory !== '') {
-    $reportTitle = 'Reports for ' . $titleCategory;
-} elseif ($titleBarangay !== '') {
-    $reportTitle = 'All Reports in Barangay ' . $titleBarangay;
-} elseif ($titleStatus !== '') {
-    $reportTitle = $titleStatus . ' Reports';
-} elseif ($titleRisk !== '') {
-    $reportTitle = $titleRisk . ' Risk Reports';
+// Period descriptor matching the quick presets (Today / This Week / This Month / This Year).
+$quickRangeMap = [
+    'today' => [date('Y-m-d'), date('Y-m-d')],
+    'week'  => [date('Y-m-d', strtotime('-6 days')), date('Y-m-d')],
+    'month' => [date('Y-m-01'), date('Y-m-d')],
+    'year'  => [date('Y-01-01'), date('Y-m-d')],
+];
+$periodDescAll = '';
+if ($date_from !== '' || $date_to !== '') {
+    foreach (['today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'] as $k => $n) {
+        if ($date_from === $quickRangeMap[$k][0] && $date_to === $quickRangeMap[$k][1]) { $periodDescAll = $n; break; }
+    }
+    if ($periodDescAll === '') $periodDescAll = $rangeText; // custom range
 }
+
+// Dynamic report title built from the active filters (status / risk / category / barangay).
+$titleParts = [];
+if ($titleStatus !== '')   $titleParts[] = $titleStatus;
+if ($titleRisk !== '')     $titleParts[] = $titleRisk . ' Risk';
+$reportTitle = !empty($titleParts) ? implode(' ', $titleParts) . ' Reports' : 'All Reports';
+if ($titleCategory !== '') $reportTitle .= ' for ' . $titleCategory;
+if ($titleBarangay !== '') $reportTitle .= ' in Barangay ' . $titleBarangay;
+if ($periodDescAll !== '') $reportTitle .= ' - ' . $periodDescAll;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -164,7 +185,7 @@ if ($titleCategory !== '' && $titleBarangay !== '') {
         .toolbar a { color: #374151; font-size: 12px; font-weight: 600; text-decoration: none; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
         .toolbar a:hover { border-color: #10A37F; color: #10A37F; }
         .toolbar .hint { color: #6b7280; font-size: 11px; }
-        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; }
+        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; display: flex; flex-direction: column; }
         .report-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 10px; border-bottom: 3px solid #10A37F; }
         .logo-box { width: 24mm; height: 24mm; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .logo-box img { max-width: 24mm; max-height: 24mm; object-fit: contain; }
@@ -204,7 +225,7 @@ if ($titleCategory !== '' && $titleBarangay !== '') {
         .badge-escalated_pending, .badge-escalated { background: #fed7aa; color: #9a3412; }
         .badge-resolved { background: #d1fae5; color: #10a37f; }
         .badge-rejected { background: #fee2e2; color: #dc2626; }
-        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: auto; padding-top: 12px; border-top: 1px solid #e5e7eb; }
         .sig-label { font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
         .sig-line { border-bottom: 1px solid #374151; margin-top: 30px; }
         .sig-name { font-size: 12px; font-weight: 700; color: #111827; margin-top: 4px; text-align: center; }
@@ -279,7 +300,7 @@ if ($titleCategory !== '' && $titleBarangay !== '') {
                 <input type="hidden" name="page" value="all-reports-print">
                 <div class="sidebar-body">
                     <div class="sidebar-group">
-                        <div class="sidebar-group-label">Scope</div>
+                        <div class="sidebar-group-label">Filters</div>
                         <div class="filter-field">
                             <label for="sideStatus">Status</label>
                             <select name="status" id="sideStatus">
@@ -315,6 +336,10 @@ if ($titleCategory !== '' && $titleBarangay !== '') {
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <div class="filter-field">
+                            <label for="sideSearch">Search</label>
+                            <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Title, description, reporter...">
+                        </div>
                     </div>
                     <div class="sidebar-group">
                         <div class="sidebar-group-label">Date</div>
@@ -323,7 +348,11 @@ if ($titleCategory !== '' && $titleBarangay !== '') {
                             <a href="#" onclick="setQuickReportRange('week'); return false;">This Week</a>
                             <a href="#" onclick="setQuickReportRange('month'); return false;">This Month</a>
                             <a href="#" onclick="setQuickReportRange('year'); return false;">This Year</a>
+                            <a href="#" onclick="setQuickReportRange('all'); return false;">All Reports</a>
                         </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Date Range</div>
                         <div class="filter-field">
                             <label for="sideDateFrom">Date From</label>
                             <input type="date" name="date_from" id="sideDateFrom" value="<?php echo htmlspecialchars($date_from); ?>">
@@ -331,12 +360,6 @@ if ($titleCategory !== '' && $titleBarangay !== '') {
                         <div class="filter-field">
                             <label for="sideDateTo">Date To</label>
                             <input type="date" name="date_to" id="sideDateTo" value="<?php echo htmlspecialchars($date_to); ?>">
-                        </div>
-                    </div>
-                    <div class="sidebar-group">
-                        <div class="sidebar-group-label">Search</div>
-                        <div class="filter-field">
-                            <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Title, description, reporter...">
                         </div>
                     </div>
                 </div>
@@ -370,41 +393,23 @@ if ($titleCategory !== '' && $titleBarangay !== '') {
             </div>
         </header>
 
-        <div class="report-title-block">
+<div class="report-title-block">
             <div class="report-title"><?php echo htmlspecialchars($reportTitle); ?></div>
             <div class="report-subtitle">Environmental Incident Report &middot; <?php echo htmlspecialchars($municipality); ?></div>
             <div class="report-meta">
+                <span><strong>Date Range:</strong> <?php echo htmlspecialchars($rangeText); ?></span>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
-                <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
                 <span><strong>Total Records:</strong> <?php echo number_format($total); ?></span>
             </div>
         </div>
 
         <?php if (!empty($filterSummary)): ?>
         <div class="filter-bar">
-            <span class="filter-label"><i class="fas fa-filter" style="margin-right:4px;"></i>Filters:</span>
             <?php foreach ($filterSummary as $f): ?>
                 <span class="filter-chip"><?php echo htmlspecialchars($f); ?></span>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
-
-        <?php
-        $totalCount = $total;
-        $pendingCount = 0; $activeCount = 0; $resolvedCount = 0; $highRiskCount = 0;
-        foreach ($reports as $r) {
-            if ($r['status'] === 'pending') $pendingCount++;
-            if (in_array($r['status'], ['in_progress','under_review','verified','escalated_pending','escalated'])) $activeCount++;
-            if ($r['status'] === 'resolved') $resolvedCount++;
-            if (in_array($r['risk_level'], ['high','critical'])) $highRiskCount++;
-        }
-        ?>
-        <div class="summary-row">
-            <div class="summary-card sc-green"><div class="sc-value"><?php echo $totalCount; ?></div><div class="sc-label">Total Reports</div></div>
-            <div class="summary-card sc-yellow"><div class="sc-value"><?php echo $pendingCount; ?></div><div class="sc-label">Pending</div></div>
-            <div class="summary-card sc-blue"><div class="sc-value"><?php echo $activeCount; ?></div><div class="sc-label">Active</div></div>
-            <div class="summary-card sc-red"><div class="sc-value"><?php echo $highRiskCount; ?></div><div class="sc-label">High Risk</div></div>
-        </div>
 
         <table>
             <thead>
@@ -479,11 +484,12 @@ if ($titleCategory !== '' && $titleBarangay !== '') {
             var today = new Date();
             var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
             var from = today, to = today;
-            if (range === 'week') { from = new Date(today); from.setDate(today.getDate() - 6); }
+            if (range === 'all') { f.value = ''; t.value = ''; }
+            else if (range === 'today') { from = today; }
+            else if (range === 'week') { from = new Date(today); from.setDate(today.getDate() - 6); }
             else if (range === 'month') { from = new Date(today.getFullYear(), today.getMonth(), 1); }
             else if (range === 'year') { from = new Date(today.getFullYear(), 0, 1); }
-            f.value = ymd(from);
-            t.value = ymd(to);
+            if (range !== 'all') { f.value = ymd(from); t.value = ymd(to); }
             var form = f.closest('form');
             if (form) { if (form.requestSubmit) form.requestSubmit(); else form.submit(); }
         }

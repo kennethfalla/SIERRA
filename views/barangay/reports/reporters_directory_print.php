@@ -87,6 +87,9 @@ function rdir_location($r) {
 }
 
 $typeLabel = $type === 'residents' ? 'Residents' : ($type === 'non_residents' ? 'Non-Residents & Other Barangay' : 'All Reporters');
+$reportTitle = $type === 'residents' ? 'RESIDENT REPORTERS DIRECTORY'
+             : ($type === 'non_residents' ? 'NON-RESIDENT REPORTERS DIRECTORY'
+             : 'REPORTERS DIRECTORY');
 
 // ------------------------------------------------------------
 // PDF EXPORT CONFIG
@@ -163,7 +166,7 @@ if ($format === 'csv') {
         .toolbar button:hover { box-shadow: 0 4px 12px rgba(16,163,127,0.3); }
         .toolbar a { color: #374151; font-size: 12px; font-weight: 600; text-decoration: none; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
         .toolbar a:hover { border-color: #10A37F; color: #10A37F; }
-        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; }
+        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; display: flex; flex-direction: column; }
         .report-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 10px; border-bottom: 3px solid #10A37F; }
         .logo-box { width: 24mm; height: 24mm; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .logo-box img { max-width: 24mm; max-height: 24mm; object-fit: contain; }
@@ -180,7 +183,7 @@ if ($format === 'csv') {
         table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 8px; }
         thead th { background: #f0fbf6; padding: 7px 8px; text-align: left; font-weight: 700; color: #374151; border-bottom: 2px solid #d1fae5; font-size: 9px; text-transform: uppercase; letter-spacing: 0.03em; }
         tbody td { padding: 5px 8px; border-bottom: 1px solid #f3f4f6; color: #4b5563; vertical-align: top; }
-        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: auto; padding-top: 12px; border-top: 1px solid #e5e7eb; }
         .sig-label { font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
         .sig-line { border-bottom: 1px solid #374151; margin-top: 30px; }
         .sig-name { font-size: 12px; font-weight: 700; color: #111827; margin-top: 4px; text-align: center; }
@@ -283,7 +286,7 @@ if ($format === 'csv') {
                 </header>
 
                 <div class="report-title-block">
-                    <div class="report-title">REPORTERS DIRECTORY</div>
+                    <div class="report-title"><?php echo htmlspecialchars($reportTitle); ?></div>
                     <div class="report-subtitle"><?php echo htmlspecialchars($typeLabel); ?> &middot; Barangay <?php echo htmlspecialchars($barangay_name); ?></div>
                     <div class="report-meta">
                         <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>

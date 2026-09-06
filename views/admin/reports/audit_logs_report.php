@@ -261,9 +261,10 @@ $approvedTitle = SettingsHelper::get('pdf_approved_by_title', 'Municipal Environ
 $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SIERRA (Web-Based Environmental Reporting Application) | Page 1 of 1');
 
 $rangeText = 'All Time';
-if ($from && $to)      $rangeText = date('M j, Y', strtotime($from)) . ' to ' . date('M j, Y', strtotime($to));
-elseif ($from)         $rangeText = 'From ' . date('M j, Y', strtotime($from));
-elseif ($to)           $rangeText = 'Up to ' . date('M j, Y', strtotime($to));
+if ($from && $to && $from === $to) $rangeText = date('M j, Y', strtotime($from));
+elseif ($from && $to) $rangeText = date('M j, Y', strtotime($from)) . ' to ' . date('M j, Y', strtotime($to));
+elseif ($from)        $rangeText = 'From ' . date('M j, Y', strtotime($from));
+elseif ($to)          $rangeText = 'Up to ' . date('M j, Y', strtotime($to));
 
 $groupLabel = ($groupBy === 'user') ? 'Grouped by User' : 'Grouped by Role';
 
@@ -279,6 +280,27 @@ if ($barangayFilter > 0) {
     }
 }
 $searchText = $search !== '' ? $search : '';
+
+// Report title reflects the applied filters — period + role/status/action/residency/barangay.
+$auditPeriodDesc = '';
+if ($from !== '' || $to !== '') {
+    if ($from === date('Y-m-d') && $to === date('Y-m-d'))                        $auditPeriodDesc = 'Today';
+    elseif ($from === date('Y-m-d', strtotime('-6 days')) && $to === date('Y-m-d')) $auditPeriodDesc = 'This Week';
+    elseif ($from === date('Y-m-01') && $to === date('Y-m-d'))                   $auditPeriodDesc = 'This Month';
+    elseif ($from === date('Y-01-01') && $to === date('Y-m-d'))                  $auditPeriodDesc = 'This Year';
+    else                                                                         $auditPeriodDesc = $rangeText;
+}
+
+$auditScopeParts = [];
+if ($roleFilter !== 'all')            $auditScopeParts[] = $roleFilterText;
+if ($statusFilter !== 'all')          $auditScopeParts[] = strtoupper($statusFilterText);
+if ($actionFilter !== '' && $actionFilter !== 'all') $auditScopeParts[] = 'Action: ' . $actionFilterText;
+if ($residencyFilter !== 'all')       $auditScopeParts[] = $residencyText;
+if ($barangayFilter > 0)              $auditScopeParts[] = 'Barangay: ' . $barangayText;
+
+$reportTitle = 'AUDIT LOG REPORT';
+if (!empty($auditScopeParts)) $reportTitle .= ' - ' . implode(' - ', $auditScopeParts);
+if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -353,13 +375,15 @@ $searchText = $search !== '' ? $search : '';
             color: #1f2937;
         }
 
-        /* ===== Report page (paper-agnostic) ===== */
+        /* ===== Report page (fixed A4 portrait paper) ===== */
         .report {
-            width: 100%;
-            min-height: 0;
+            width: 210mm;
+            min-height: 297mm;
             margin: 0 auto;
             background: #ffffff;
-            padding: 10mm 12mm;
+            padding: 12mm 14mm;
+            display: flex;
+            flex-direction: column;
         }
 
         .report-header {
@@ -463,7 +487,7 @@ $searchText = $search !== '' ? $search : '';
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 40px;
-            margin-top: 30px;
+            margin-top: auto;
             padding-top: 12px;
             border-top: 1px solid #e5e7eb;
         }
@@ -528,7 +552,8 @@ $searchText = $search !== '' ? $search : '';
         @media (max-width: 900px) { .page-wrap { flex-direction: column; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }
 
         @page {
-            margin: 10mm 12mm;
+            size: A4 portrait;
+            margin: 12mm 14mm 16mm;
         }
         @media print {
             body { background: #ffffff !important; }
@@ -567,30 +592,10 @@ $searchText = $search !== '' ? $search : '';
                 <input type="hidden" name="page" value="audit-logs-report">
                 <div class="sidebar-body">
                     <div class="sidebar-group">
-                        <div class="sidebar-group-label">Search</div>
+                        <div class="sidebar-group-label">Filters</div>
                         <div class="filter-field">
                             <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Description, user, email, action...">
                         </div>
-                    </div>
-                    <div class="sidebar-group">
-                        <div class="sidebar-group-label">Date</div>
-                        <div class="quick-range">
-                            <a href="#" onclick="setQuickReportRange('today'); return false;">Today</a>
-                            <a href="#" onclick="setQuickReportRange('week'); return false;">This Week</a>
-                            <a href="#" onclick="setQuickReportRange('month'); return false;">This Month</a>
-                            <a href="#" onclick="setQuickReportRange('year'); return false;">This Year</a>
-                        </div>
-                        <div class="filter-field">
-                            <label for="sideFrom">Date From</label>
-                            <input type="date" name="from" id="sideFrom" value="<?php echo htmlspecialchars($from); ?>">
-                        </div>
-                        <div class="filter-field">
-                            <label for="sideTo">Date To</label>
-                            <input type="date" name="to" id="sideTo" value="<?php echo htmlspecialchars($to); ?>">
-                        </div>
-                    </div>
-                    <div class="sidebar-group">
-                        <div class="sidebar-group-label">Filters</div>
                         <div class="filter-field">
                             <label for="sideRole">Role</label>
                             <select name="role" id="sideRole">
@@ -643,6 +648,27 @@ $searchText = $search !== '' ? $search : '';
                             </select>
                         </div>
                     </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Date</div>
+                        <div class="quick-range">
+                            <a href="#" onclick="setQuickReportRange('today'); return false;">Today</a>
+                            <a href="#" onclick="setQuickReportRange('week'); return false;">This Week</a>
+                            <a href="#" onclick="setQuickReportRange('month'); return false;">This Month</a>
+                            <a href="#" onclick="setQuickReportRange('year'); return false;">This Year</a>
+                            <a href="#" onclick="setQuickReportRange('all'); return false;">All Records</a>
+                        </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Date Range</div>
+                        <div class="filter-field">
+                            <label for="sideFrom">Date From</label>
+                            <input type="date" name="from" id="sideFrom" value="<?php echo htmlspecialchars($from); ?>">
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideTo">Date To</label>
+                            <input type="date" name="to" id="sideTo" value="<?php echo htmlspecialchars($to); ?>">
+                        </div>
+                    </div>
                 </div>
                 <div class="sidebar-footer">
                     <button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Apply Filters</button>
@@ -685,19 +711,12 @@ $searchText = $search !== '' ? $search : '';
 
         <!-- ===== Report Title & Metadata ===== -->
         <div class="report-title-block">
-            <div class="report-title">AUDIT LOG REPORT</div>
+            <div class="report-title"><?php echo htmlspecialchars($reportTitle); ?></div>
             <div class="report-subtitle">System Activity Trail &middot; <?php echo htmlspecialchars($groupLabel); ?></div>
             <div class="report-meta">
                 <span><strong>Date Range:</strong> <?php echo htmlspecialchars($rangeText); ?></span>
                 <span><strong>Total Entries:</strong> <?php echo number_format($total); ?></span>
                 <span><strong>Groupings:</strong> <?php echo count($groups); ?></span>
-                <span><strong>Role:</strong> <?php echo htmlspecialchars($roleFilterText); ?></span>
-                <span><strong>Status:</strong> <?php echo htmlspecialchars($statusFilterText); ?></span>
-                <span><strong>Action:</strong> <?php echo htmlspecialchars($actionFilterText); ?></span>
-                <span><strong>User:</strong> <?php echo htmlspecialchars($residencyText); ?></span>
-                <span><strong>Barangay:</strong> <?php echo htmlspecialchars($barangayText); ?></span>
-                <?php if ($searchText !== ''): ?><span><strong>Search:</strong> "<?php echo htmlspecialchars($searchText); ?>"</span><?php endif; ?>
-                <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
             </div>
             <?php if ($truncated): ?>
@@ -792,16 +811,14 @@ $searchText = $search !== '' ? $search : '';
             var f = document.getElementById('sideFrom');
             var t = document.getElementById('sideTo');
             if (!f || !t) return;
-            var r = document.getElementById('sideDateRange');
-            if (r) r.value = '0';
             var today = new Date();
             var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
             var from = today, to = today;
-            if (range === 'week') { from = new Date(today); from.setDate(today.getDate() - 6); }
+            if (range === 'all') { f.value = ''; t.value = ''; }
+            else if (range === 'week') { from = new Date(today); from.setDate(today.getDate() - 6); }
             else if (range === 'month') { from = new Date(today.getFullYear(), today.getMonth(), 1); }
             else if (range === 'year') { from = new Date(today.getFullYear(), 0, 1); }
-            f.value = ymd(from);
-            t.value = ymd(to);
+            if (range !== 'all') { f.value = ymd(from); t.value = ymd(to); }
             var form = f.closest('form');
             if (form) { if (form.requestSubmit) form.requestSubmit(); else form.submit(); }
         }

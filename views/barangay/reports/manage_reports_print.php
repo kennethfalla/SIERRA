@@ -103,12 +103,33 @@ if ($date_range > 0) $filterSummary[] = 'Date Range: ' . ($dateRangeLabels[$date
 if ($date_from !== '') $filterSummary[] = 'From: ' . date('M j, Y', strtotime($date_from));
 if ($date_to !== '') $filterSummary[] = 'To: ' . date('M j, Y', strtotime($date_to));
 
-$reportTitle = 'All Reports';
-if ($titleCategory !== '') $reportTitle = 'Reports for ' . $titleCategory;
-elseif ($titleStatus !== '') $reportTitle = $titleStatus . ' Reports';
-elseif ($risk_filter !== '') $reportTitle = ($riskLabels[$risk_filter] ?? $risk_filter) . ' Risk Reports';
-elseif ($residency === 'resident') $reportTitle = 'Reports Reported by Residents';
-elseif ($residency === 'non_resident') $reportTitle = 'Reports Reported by Non-Residents';
+// Period descriptor matching the quick presets (Today / This Week / This Month / This Year).
+$manageRangeMap = [
+    'today' => [date('Y-m-d'), date('Y-m-d')],
+    'week'  => [date('Y-m-d', strtotime('-6 days')), date('Y-m-d')],
+    'month' => [date('Y-m-01'), date('Y-m-d')],
+    'year'  => [date('Y-01-01'), date('Y-m-d')],
+];
+$managePeriodDesc = '';
+if ($date_from !== '' || $date_to !== '') {
+    foreach (['today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'] as $k => $n) {
+        if ($date_from === $manageRangeMap[$k][0] && $date_to === $manageRangeMap[$k][1]) { $managePeriodDesc = $n; break; }
+    }
+    if ($managePeriodDesc === '') {
+        $mfs = $date_from ? date('M j, Y', strtotime($date_from)) : '&hellip;';
+        $mts = $date_to   ? date('M j, Y', strtotime($date_to))   : '&hellip;';
+        $managePeriodDesc = $mfs . ' &ndash; ' . $mts;
+    }
+}
+
+$reportTitleParts = [];
+if ($residency === 'resident')      $reportTitleParts[] = 'Resident';
+elseif ($residency === 'non_resident') $reportTitleParts[] = 'Non-Resident';
+if ($titleStatus !== '')            $reportTitleParts[] = $titleStatus;
+if ($risk_filter !== '')            $reportTitleParts[] = ($riskLabels[$risk_filter] ?? $risk_filter) . ' Risk';
+$reportTitle = !empty($reportTitleParts) ? implode(' ', $reportTitleParts) . ' Reports' : 'All Reports';
+if ($titleCategory !== '')          $reportTitle .= ' for ' . $titleCategory;
+if ($managePeriodDesc !== '')       $reportTitle .= ' - ' . $managePeriodDesc;
 
 // ------------------------------------------------------------
 // PDF EXPORT CONFIG
@@ -176,7 +197,7 @@ if ($format === 'csv') {
         .toolbar button:hover { box-shadow: 0 4px 12px rgba(16,163,127,0.3); }
         .toolbar a { color: #374151; font-size: 12px; font-weight: 600; text-decoration: none; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
         .toolbar a:hover { border-color: #10A37F; color: #10A37F; }
-        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; }
+        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; display: flex; flex-direction: column; }
         .report-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 10px; border-bottom: 3px solid #10A37F; }
         .logo-box { width: 24mm; height: 24mm; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .logo-box img { max-width: 24mm; max-height: 24mm; object-fit: contain; }
@@ -216,7 +237,7 @@ if ($format === 'csv') {
         .badge-resolved { background: #d1fae5; color: #10a37f; }
         .badge-rejected { background: #fee2e2; color: #dc2626; }
         .badge-cancelled { background: #f3f4f6; color: #4b5563; }
-        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: auto; padding-top: 12px; border-top: 1px solid #e5e7eb; }
         .sig-label { font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
         .sig-line { border-bottom: 1px solid #374151; margin-top: 30px; }
         .sig-name { font-size: 12px; font-weight: 700; color: #111827; margin-top: 4px; text-align: center; }

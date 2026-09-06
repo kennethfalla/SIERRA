@@ -612,10 +612,6 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
             
             <div class="flex items-center gap-3">
                 <?php if($isLoggedIn): ?>
-                    <div class="text-right hidden sm:block">
-                        <p class="text-xs text-gray-500">Welcome back,</p>
-                        <p class="text-sm font-medium text-gray-800"><?php echo htmlspecialchars($user_name); ?></p>
-                    </div>
                     <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium">
                         <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                     </a>

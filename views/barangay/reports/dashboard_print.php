@@ -278,6 +278,26 @@ if ($date_from || $date_to) {
 }
 if ($status_filter !== '') $filterChips[] = 'Status: ' . $statusLabels[$status_filter];
 if ($risk_filter !== '') $filterChips[] = 'Risk: ' . $riskLabels[$risk_filter];
+
+// Report title reflects the applied filters — period + status/risk scope.
+$dashPeriodDesc = '';
+if ($date_from !== '' || $date_to !== '') {
+    if ($date_from === date('Y-m-d') && $date_to === date('Y-m-d'))                          $dashPeriodDesc = 'Today';
+    elseif ($date_from === date('Y-m-d', strtotime('-6 days')) && $date_to === date('Y-m-d')) $dashPeriodDesc = 'This Week';
+    elseif ($date_from === date('Y-m-01') && $date_to === date('Y-m-d'))                     $dashPeriodDesc = 'This Month';
+    elseif ($date_from === date('Y-01-01') && $date_to === date('Y-m-d'))                    $dashPeriodDesc = 'This Year';
+    else {
+        $dfs = $date_from ? date('M j, Y', strtotime($date_from)) : '&hellip;';
+        $dts = $date_to   ? date('M j, Y', strtotime($date_to))   : '&hellip;';
+        $dashPeriodDesc = $dfs . ' &ndash; ' . $dts;
+    }
+}
+$dashScopeParts = [];
+if ($status_filter !== '') $dashScopeParts[] = $statusLabels[$status_filter];
+if ($risk_filter !== '')   $dashScopeParts[] = $riskLabels[$risk_filter] . ' Risk';
+$reportTitle = 'BARANGAY DASHBOARD REPORT';
+if (!empty($dashScopeParts)) $reportTitle .= ' - ' . implode(' - ', $dashScopeParts);
+if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -295,7 +315,7 @@ if ($risk_filter !== '') $filterChips[] = 'Risk: ' . $riskLabels[$risk_filter];
         .toolbar { max-width: 100%; margin: 16px auto 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 12px; }
         .toolbar button { background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
         .toolbar a { color: #374151; font-size: 12px; font-weight: 600; text-decoration: none; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
-        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; }
+        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; display: flex; flex-direction: column; }
         .report-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 10px; border-bottom: 3px solid #10A37F; }
         .logo-box { width: 24mm; height: 24mm; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .logo-box img { max-width: 24mm; max-height: 24mm; object-fit: contain; }
@@ -335,7 +355,7 @@ if ($risk_filter !== '') $filterChips[] = 'Risk: ' . $riskLabels[$risk_filter];
         .badge-escalated_pending, .badge-escalated { background: #fed7aa; color: #9a3412; }
         .badge-resolved { background: #d1fae5; color: #10a37f; }
         .badge-rejected { background: #fee2e2; color: #dc2626; }
-        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: auto; padding-top: 12px; border-top: 1px solid #e5e7eb; }
         .sig-label { font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
         .sig-line { border-bottom: 1px solid #374151; margin-top: 30px; }
         .sig-name { font-size: 12px; font-weight: 700; color: #111827; margin-top: 4px; text-align: center; }
@@ -502,7 +522,7 @@ if ($risk_filter !== '') $filterChips[] = 'Risk: ' . $riskLabels[$risk_filter];
                 </header>
 
                 <div class="report-title-block">
-                    <div class="report-title">BARANGAY DASHBOARD REPORT</div>
+                    <div class="report-title"><?php echo htmlspecialchars($reportTitle); ?></div>
                     <div class="report-subtitle"><?php echo htmlspecialchars($barangay_name); ?> &middot; <?php echo htmlspecialchars($municipality); ?></div>
                     <div class="report-meta">
                         <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>

@@ -27,7 +27,7 @@ $reportBrand = $isBarangay ? 'BARANGAY ANALYTICS REPORT' : 'MENRO ANALYTICS REPO
 // INPUTS
 // ------------------------------------------------------------
 $range = isset($_GET['range']) ? $_GET['range'] : 'all';
-if (!in_array($range, ['week', 'month', 'year', 'all', 'custom'], true)) $range = 'all';
+if (!in_array($range, ['today', 'week', 'month', 'year', 'all', 'custom'], true)) $range = 'all';
 
 $from = isset($_GET['from']) ? preg_replace('/[^0-9-]/', '', $_GET['from']) : '';
 $to   = isset($_GET['to'])   ? preg_replace('/[^0-9-]/', '', $_GET['to'])   : '';
@@ -100,6 +100,13 @@ if (($from !== '' || $to !== '') && $range !== 'custom') {
 // DATE WINDOW + PERIOD LABELS
 // ------------------------------------------------------------
 switch ($range) {
+    case 'today':
+        $startDate   = date('Y-m-d 00:00:00');
+        $periodStart = $startDate;
+        $periodLabel = 'Today';
+        $rangeLabel  = 'Daily';
+        $endDate     = date('Y-m-d 23:59:59');
+        break;
     case 'week':
         $startDate   = date('Y-m-d H:i:s', strtotime('-7 days'));
         $periodStart = date('Y-m-d H:i:s', strtotime('-7 days'));
@@ -152,15 +159,20 @@ switch ($range) {
     default:
         $startDate   = '1970-01-01 00:00:00';
         $periodStart = date('Y-m-d H:i:s', strtotime(date('Y-m-01')));
-        $periodLabel = 'This Month';
+        $periodLabel = 'All Time';
         $rangeLabel  = 'All-Time';
         $endDate     = date('Y-m-d H:i:s');
         break;
 }
 
 $rangeText = 'All Time';
-if ($from && $to) $rangeText = date('M j, Y', strtotime($from)) . ' to ' . date('M j, Y', strtotime($to));
-elseif ($from) $rangeText = 'From ' . date('M j, Y', strtotime($from));
+if ($range === 'today') {
+    $rangeText = date('M j, Y', strtotime($from ?: date('Y-m-d')));
+} elseif ($from && $to && $from === $to) {
+    $rangeText = date('M j, Y', strtotime($from));
+} elseif ($from && $to) {
+    $rangeText = date('M j, Y', strtotime($from)) . ' to ' . date('M j, Y', strtotime($to));
+} elseif ($from) $rangeText = 'From ' . date('M j, Y', strtotime($from));
 elseif ($to) $rangeText = 'Up to ' . date('M j, Y', strtotime($to));
 
 // Upper-bound clause only for explicit custom ranges; presets end "now".
@@ -207,6 +219,36 @@ $statusLabels = [
     'resolved' => 'Resolved', 'rejected' => 'Rejected', 'cancelled' => 'Cancelled'
 ];
 $riskLabels = ['all' => 'All Risk Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+
+// Report title reflects the applied filters — period + status/risk/barangay scope.
+$analyticsScopeParts = [];
+if ($statusFilter !== 'all')   $analyticsScopeParts[] = $statusLabels[$statusFilter] ?? ucwords(str_replace('_', ' ', $statusFilter));
+if ($riskFilter !== 'all')     $analyticsScopeParts[] = $riskLabels[$riskFilter] ?? ucfirst($riskFilter);
+if ($barangayFilter > 0) {
+    $scopeBrgyName = '';
+    foreach ($barangayList as $brgy) {
+        if ((int)$brgy['id'] === $barangayFilter) { $scopeBrgyName = $brgy['name']; break; }
+    }
+    if ($scopeBrgyName !== '') $analyticsScopeParts[] = 'Barangay ' . $scopeBrgyName;
+}
+if ($from !== '' || $to !== '') {
+    if ($from === date('Y-m-d') && $to === date('Y-m-d')) {
+        $analyticsPeriodLabel = 'Today';
+    } elseif ($from === date('Y-m-d', strtotime('-6 days')) && $to === date('Y-m-d')) {
+        $analyticsPeriodLabel = 'This Week';
+    } elseif ($from === date('Y-m-01') && $to === date('Y-m-d')) {
+        $analyticsPeriodLabel = 'This Month';
+    } elseif ($from === date('Y-01-01') && $to === date('Y-m-d')) {
+        $analyticsPeriodLabel = 'This Year';
+    } else {
+        $analyticsPeriodLabel = $rangeText;
+    }
+} else {
+    $analyticsPeriodLabel = ($range === 'all') ? 'All Time' : $periodLabel;
+}
+$analyticsTitle = $reportBrand;
+if (!empty($analyticsScopeParts)) $analyticsTitle .= ' - ' . implode(' - ', $analyticsScopeParts);
+$analyticsTitle .= ' - ' . $analyticsPeriodLabel;
 
 // KPI / Insights targets (configurable in System Settings → KPI & Insights)
 $kpi_resolution_rate_target = (float)SettingsHelper::get('kpi_resolution_rate_target', 60);
@@ -493,7 +535,7 @@ if ($format === 'csv') {
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF");
 
-    fputcsv($out, [$reportBrand]);
+    fputcsv($out, [$analyticsTitle]);
     fputcsv($out, ['System', $systemName]);
     fputcsv($out, ['Generated On', $generatedOn]);
     fputcsv($out, ['Date Range', $rangeText]);
@@ -617,7 +659,7 @@ if ($format === 'csv') {
         .filter-summary-bar .fs-label { font-size: 10px; font-weight: 700; color: #0D8568; text-transform: uppercase; letter-spacing: 0.05em; }
         .filter-summary-bar .fs-chip { background: #d1fae5; color: #065f46; border-radius: 999px; padding: 2px 10px; font-size: 10px; font-weight: 600; }
 
-        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; }
+        .report { width: 210mm; min-height: 297mm; margin: 0 auto; background: #ffffff; padding: 12mm 14mm; display: flex; flex-direction: column; }
 
         .report-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 10px; border-bottom: 3px solid #10A37F; }
         .logo-box { width: 24mm; height: 24mm; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -660,7 +702,7 @@ if ($format === 'csv') {
 
         .empty-note { text-align: center; color: #9ca3af; font-size: 11px; padding: 12px 0; }
 
-        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+        .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: auto; padding-top: 12px; border-top: 1px solid #e5e7eb; }
         .sig-label { font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
         .sig-line { border-bottom: 1px solid #374151; margin-top: 30px; }
         .sig-name { font-size: 12px; font-weight: 700; color: #111827; margin-top: 4px; text-align: center; }
@@ -742,7 +784,7 @@ if ($format === 'csv') {
                 <input type="hidden" name="cats" value="<?php echo htmlspecialchars(implode(',', $cats)); ?>">
                 <div class="sidebar-body">
                     <div class="sidebar-group">
-                        <div class="sidebar-group-label">Analytics to include</div>
+                        <div class="sidebar-group-label">Analytics Checklist</div>
                         <label class="section-check">
                             <input type="checkbox" id="sectionAll" <?php echo count($sections) === count($sectionLabels) ? 'checked' : ''; ?>>
                             <strong>Select All</strong>
@@ -754,23 +796,6 @@ if ($format === 'csv') {
                                 <?php echo htmlspecialchars($secLabel); ?>
                             </label>
                             <?php endforeach; ?>
-                        </div>
-                    </div>
-                    <div class="sidebar-group">
-                        <div class="sidebar-group-label">Date</div>
-                        <div class="quick-range">
-                            <a href="#" onclick="setQuickReportRange('today'); return false;">Today</a>
-                            <a href="#" onclick="setQuickReportRange('week'); return false;">This Week</a>
-                            <a href="#" onclick="setQuickReportRange('month'); return false;">This Month</a>
-                            <a href="#" onclick="setQuickReportRange('year'); return false;">This Year</a>
-                        </div>
-                        <div class="filter-field">
-                            <label for="sideFrom">Date From</label>
-                            <input type="date" name="from" id="sideFrom" value="<?php echo htmlspecialchars($from); ?>">
-                        </div>
-                        <div class="filter-field">
-                            <label for="sideTo">Date To</label>
-                            <input type="date" name="to" id="sideTo" value="<?php echo htmlspecialchars($to); ?>">
                         </div>
                     </div>
                     <div class="sidebar-group">
@@ -803,6 +828,27 @@ if ($format === 'csv') {
                         </div>
                         <?php endif; ?>
                     </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Date</div>
+                        <div class="quick-range">
+                            <a href="#" onclick="setQuickReportRange('today'); return false;">Today</a>
+                            <a href="#" onclick="setQuickReportRange('week'); return false;">This Week</a>
+                            <a href="#" onclick="setQuickReportRange('month'); return false;">This Month</a>
+                            <a href="#" onclick="setQuickReportRange('year'); return false;">This Year</a>
+                            <a href="#" onclick="setQuickRange('all'); return false;">All Reports</a>
+                        </div>
+                    </div>
+                    <div class="sidebar-group">
+                        <div class="sidebar-group-label">Date Range</div>
+                        <div class="filter-field">
+                            <label for="sideFrom">From</label>
+                            <input type="date" name="from" id="sideFrom" value="<?php echo htmlspecialchars($from); ?>">
+                        </div>
+                        <div class="filter-field">
+                            <label for="sideTo">To</label>
+                            <input type="date" name="to" id="sideTo" value="<?php echo htmlspecialchars($to); ?>">
+                        </div>
+                    </div>
                 </div>
                 <div class="sidebar-footer">
                     <button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Apply Filters</button>
@@ -824,7 +870,11 @@ if ($format === 'csv') {
     if ($from || $to) {
         $fr = $from ? date('M j, Y', strtotime($from)) : '&hellip;';
         $t  = $to ? date('M j, Y', strtotime($to)) : '&hellip;';
-        $filterChips[] = 'Date: ' . $fr . ' &ndash; ' . $t;
+        if ($from && $to && $from === $to) {
+            $filterChips[] = 'Date: ' . $fr;
+        } else {
+            $filterChips[] = 'Date: ' . $fr . ' &ndash; ' . $t;
+        }
     }
     if ($statusFilter !== 'all') $filterChips[] = 'Status: ' . $statusLabels[$statusFilter];
     if ($riskFilter !== 'all')   $filterChips[] = 'Risk: ' . $riskLabels[$riskFilter];
@@ -859,13 +909,10 @@ if ($format === 'csv') {
         </header>
 
         <div class="report-title-block">
-            <div class="report-title"><?php echo htmlspecialchars($reportBrand); ?></div>
-            <div class="report-subtitle"><?php echo htmlspecialchars($rangeLabel); ?> Decision Support Report &middot; <?php echo htmlspecialchars($municipality); ?></div>
+            <div class="report-title"><?php echo htmlspecialchars($analyticsTitle); ?></div>
             <div class="report-meta">
                 <span><strong>Date Range:</strong> <?php echo htmlspecialchars($rangeText); ?></span>
-                <span><strong>Period:</strong> <?php echo htmlspecialchars($periodLabel); ?></span>
                 <span><strong>Generated On:</strong> <?php echo htmlspecialchars($generatedOn); ?></span>
-                <span><strong>Generated By:</strong> <?php echo htmlspecialchars($generatedBy); ?></span>
             </div>
         </div>
 
@@ -1123,18 +1170,21 @@ if ($format === 'csv') {
             var t = document.getElementById('sideTo');
             if (!f || !t) return;
             var r = document.getElementById('sideDateRange');
-            if (r) r.value = '0';
+            if (r) r.value = range === 'all' ? 'all' : 'custom';
             var today = new Date();
             var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
             var from = today, to = today;
-            if (range === 'week') { from = new Date(today); from.setDate(today.getDate() - 6); }
+            if (range === 'today') { from = today; }
+            else if (range === 'week') { from = new Date(today); from.setDate(today.getDate() - 6); }
             else if (range === 'month') { from = new Date(today.getFullYear(), today.getMonth(), 1); }
             else if (range === 'year') { from = new Date(today.getFullYear(), 0, 1); }
+            else if (range === 'all') { f.value = ''; t.value = ''; var form = f.closest('form'); if (form) { if (form.requestSubmit) form.requestSubmit(); else form.submit(); } return; }
             f.value = ymd(from);
             t.value = ymd(to);
             var form = f.closest('form');
             if (form) { if (form.requestSubmit) form.requestSubmit(); else form.submit(); }
         };
+        window.setQuickRange = window.setQuickReportRange;
     </script>
 </body>
 </html>
