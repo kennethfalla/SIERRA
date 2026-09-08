@@ -177,6 +177,25 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
 <?php require_once BASE_PATH . 'helpers/SettingsHelper.php'; ?>
 <?php $system_name = SettingsHelper::get('system_name', 'Sierra'); ?>
 
+<?php
+// ============================================
+// NOTIFICATION BELL DATA (admin / MENRO only)
+// Feeds the bell + dropdown in the sidebar header.
+// ============================================
+$menu_notifs = [];
+$menu_unread = 0;
+if ($user_role === 'admin' && $user_id && isset($db)) {
+    try {
+        $sidebar_notif_model = new Notification($db);
+        $menu_notifs  = $sidebar_notif_model->getForUser((int)$user_id, 8);
+        $menu_unread  = $sidebar_notif_model->getUnreadCount((int)$user_id);
+    } catch (Exception $e) {
+        $menu_notifs = [];
+        $menu_unread = 0;
+    }
+}
+?>
+
 <!-- Skip to main content link -->
 <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-emerald-600 focus:text-white focus:rounded-lg">
     Skip to main content
@@ -221,15 +240,30 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
                 <p class="text-[10px] text-gray-400 uppercase tracking-wider">Environmental Reporting</p>
             </div>
         </div>
-        <button id="hideSidebarBtn" 
-                class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
-                aria-label="Close sidebar menu"
-                title="Hide Sidebar">
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+            <?php if ($user_role === 'admin'): ?>
+            <button type="button" id="menroNotifBell"
+                    class="notification-bell"
+                    style="width:34px;height:34px;border-radius:10px;background:#F3F4F6;color:#4B5563;position:relative;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;"
+                    onclick="menroToggleNotifs(event)"
+                    aria-label="Notifications"
+                    title="Notifications">
+                <i class="fas fa-bell" style="font-size:15px;"></i>
+                <?php if ($menu_unread > 0): ?>
+                <span class="notification-badge" id="notificationBadge"><?php echo $menu_unread > 9 ? '9+' : (int)$menu_unread; ?></span>
+                <?php endif; ?>
+            </button>
+            <?php endif; ?>
+            <button id="hideSidebarBtn" 
+                    class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
+                    aria-label="Close sidebar menu"
+                    title="Hide Sidebar">
             <svg class="w-4 h-4 text-gray-500 group-hover:text-red-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
             <span class="sr-only">Close sidebar</span>
-        </button>
+            </button>
+            </div>
     </div>
     
     <!-- Navigation - Scrollable Area -->
@@ -504,6 +538,66 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
     </div>
 </aside>
 
+<?php if ($user_role === 'admin'): ?>
+<!-- ===== MENRO NOTIFICATION DROPDOWN (sidebar bell) ===== -->
+<div id="menroNotifDropdown" class="menro-notif-dropdown" style="display:none;">
+    <div class="menro-notif-header">
+        <div class="flex justify-between items-center">
+            <div>
+                <h3 class="font-semibold text-gray-800 text-sm">Notifications</h3>
+                <p class="text-xs text-gray-400 mt-0.5">MENRO alerts &amp; report updates</p>
+            </div>
+            <span class="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-medium" id="menroNotifCount"><?php echo count($menu_notifs); ?></span>
+        </div>
+    </div>
+    <div class="menro-notif-list" id="menroNotifList">
+        <?php if (count($menu_notifs) > 0): ?>
+            <?php foreach ($menu_notifs as $mnotif): ?>
+            <div class="menro-notif-item <?php echo $mnotif['is_read'] ? '' : 'unread'; ?>"
+                 data-link="<?php echo htmlspecialchars($mnotif['link'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                 data-id="<?php echo (int)$mnotif['id']; ?>">
+                <div class="menro-notif-icon" style="background: <?php echo $mnotif['color'] ?? '#10A37F'; ?>20;">
+                    <i class="fas <?php echo $mnotif['icon'] ?? 'fa-bell'; ?>" style="color: <?php echo $mnotif['color'] ?? '#10A37F'; ?>; font-size: 1rem;"></i>
+                </div>
+                <div class="menro-notif-content">
+                    <div class="menro-notif-title"><?php echo htmlspecialchars($mnotif['title']); ?></div>
+                    <div class="menro-notif-msg"><?php echo htmlspecialchars($mnotif['message']); ?></div>
+                    <div class="menro-notif-time">
+                        <i class="far fa-clock"></i>
+                        <?php
+                        $mtime = time() - strtotime($mnotif['created_at']);
+                        if ($mtime < 60) echo 'Just now';
+                        elseif ($mtime < 3600) echo floor($mtime / 60) . ' min ago';
+                        elseif ($mtime < 86400) echo floor($mtime / 3600) . ' hrs ago';
+                        else echo date('M d', strtotime($mnotif['created_at']));
+                        ?>
+                    </div>
+                </div>
+                <?php if (!$mnotif['is_read']): ?>
+                <div class="menro-notif-dot"></div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="menro-notif-empty">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-bell-slash text-xl text-gray-400"></i>
+                </div>
+                <p class="text-gray-400 text-sm">No notifications yet</p>
+                <p class="text-xs text-gray-300 mt-1">New reports and escalations will appear here</p>
+            </div>
+        <?php endif; ?>
+    </div>
+    <?php if (count($menu_notifs) > 0): ?>
+    <div class="menro-notif-actions">
+        <button type="button" class="menro-mark-all" onclick="menroMarkAllRead()"><i class="fas fa-check-double mr-1"></i>Mark all as read</button>
+        <button type="button" class="menro-clear-all" onclick="menroClearAll()"><i class="fas fa-trash-alt mr-1"></i>Clear all</button>
+    </div>
+    <?php endif; ?>
+    <div class="menro-notif-view-all" onclick="menroViewAll()"><i class="fas fa-list-alt mr-2"></i>View all notifications</div>
+</div>
+<?php endif; ?>
+
 <!-- LOGOUT MODAL - SINGLE SOURCE OF TRUTH -->
 <div id="logoutModal" 
      class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center"
@@ -599,6 +693,69 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
     #sidebar .w-10.h-10 {
         overflow: hidden;
     }
+
+    /* ============================================ */
+    /* MENRO NOTIFICATION BELL + DROPDOWN           */
+    /* ============================================ */
+    #menroNotifBell.notification-bell { position: relative; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; }
+    #menroNotifBell.notification-bell:hover { background: #E8FAF0 !important; color: #10A37F !important; transform: scale(1.05); }
+
+    .notification-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background: #EF4444;
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 5px;
+        border-radius: 20px;
+        min-width: 16px;
+        text-align: center;
+        line-height: 1.3;
+        z-index: 10;
+    }
+
+    .menro-notif-dropdown {
+        position: fixed;
+        top: 82px;
+        left: 12px;
+        width: min(400px, calc(100vw - 24px));
+        max-height: 500px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 20px 35px -10px rgba(0,0,0,.25);
+        z-index: 999990;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid #E5E7EB;
+        animation: menroSlideDown .2s ease;
+    }
+    .menro-notif-dropdown.show { display: flex; }
+    @keyframes menroSlideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .menro-notif-header { padding: 14px 18px; border-bottom: 1px solid #F3F4F6; background: #FAFAFA; flex-shrink: 0; }
+    .menro-notif-list { overflow-y: auto; max-height: 340px; }
+    .menro-notif-item { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #F3F4F6; cursor: pointer; transition: background .2s; }
+    .menro-notif-item.unread { background: #F0FDF4; }
+    .menro-notif-item.unread:hover { background: #E8FAF0; }
+    .menro-notif-item:last-child { border-bottom: none; }
+    .menro-notif-icon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .menro-notif-content { flex: 1; min-width: 0; }
+    .menro-notif-title { font-weight: 600; font-size: .8rem; color: #1F2937; margin-bottom: 2px; }
+    .menro-notif-msg { font-size: .72rem; color: #6B7280; line-height: 1.4; margin-bottom: 4px; word-wrap: break-word; }
+    .menro-notif-time { font-size: .62rem; color: #9CA3AF; display: flex; align-items: center; gap: 4px; }
+    .menro-notif-dot { width: 6px; height: 6px; background: #10A37F; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+    .menro-notif-actions { display: flex; border-top: 1px solid #F3F4F6; background: #FAFAFA; }
+    .menro-notif-actions button { flex: 1; text-align: center; padding: 11px 8px; font-size: .72rem; font-weight: 600; cursor: pointer; transition: all .2s; border: none; background: transparent; color: inherit; }
+    .menro-notif-actions .menro-mark-all { color: #10A37F; border-right: 1px solid #F3F4F6; }
+    .menro-notif-actions .menro-mark-all:hover { background: #F0FDF4; color: #0D8568; }
+    .menro-notif-actions .menro-clear-all { color: #EF4444; }
+    .menro-notif-actions .menro-clear-all:hover { background: #FEF2F2; color: #B91C1C; }
+    .menro-notif-view-all { text-align: center; padding: 11px 16px; border-top: 1px solid #F3F4F6; background: #fff; font-size: .72rem; font-weight: 600; cursor: pointer; color: #10A37F; }
+    .menro-notif-view-all:hover { background: #F0FDF4; color: #0D8568; }
+    .menro-notif-empty { padding: 2.5rem 1rem; text-align: center; }
 </style>
 
 <script>
@@ -868,6 +1025,156 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
     setInterval(tick, POLL_MS);
 })();
 </script>
+<?php if ($user_role === 'admin'): ?>
+<!-- ===== MENRO NOTIFICATION BELL LOGIC (toggle / mark read / clear) ===== -->
+<script>
+(function () {
+    'use strict';
+    var MENRO_NOTIF_URL = '<?php echo BASE_URL; ?>';
+    var menroOpen = false;
+
+    window.menroGetCsrf = function () {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    };
+
+    window.menroCloseDropdown = function () {
+        var d = document.getElementById('menroNotifDropdown');
+        if (d) { d.style.display = 'none'; d.classList.remove('show'); }
+        menroOpen = false;
+    };
+
+    window.menroToggleNotifs = function (e) {
+        if (e) e.stopPropagation();
+        var d = document.getElementById('menroNotifDropdown');
+        if (!d) return;
+        if (menroOpen) { window.menroCloseDropdown(); return; }
+        d.style.display = 'flex';
+        d.classList.add('show');
+        menroOpen = true;
+        window.menroPositionDropdown();
+    };
+
+    window.menroPositionDropdown = function () {
+        var bell = document.getElementById('menroNotifBell');
+        var d = document.getElementById('menroNotifDropdown');
+        if (!bell || !d || d.style.display !== 'flex') return;
+        var vb = bell.getBoundingClientRect();
+        var vh = window.innerHeight;
+        var vw = window.innerWidth;
+        var top = vb.bottom + 10;
+        if (top + d.offsetHeight > vh - 10) top = Math.max(10, vh - d.offsetHeight - 10);
+        d.style.top = top + 'px';
+        d.style.left = vb.left + 'px';
+        if (vw <= 480) {
+            d.style.left = '12px';
+            d.style.right = '12px';
+            d.style.width = 'auto';
+        } else {
+            d.style.right = 'auto';
+            d.style.width = '400px';
+        }
+    };
+
+    function menroPost(action, data, cb) {
+        var fd = new FormData();
+        fd.append('action', action);
+        fd.append('csrf_token', window.menroGetCsrf());
+        if (data) Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
+        fetch(MENRO_NOTIF_URL + 'controllers/NotificationController.php', { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { if (cb) cb(d); })
+            .catch(function () { if (cb) cb(null); });
+    }
+
+    window.__menroRefreshBadge = function (unread) {
+        var badge = document.getElementById('notificationBadge');
+        if (unread > 0) {
+            if (!badge) {
+                var bell = document.getElementById('menroNotifBell');
+                if (!bell) return;
+                badge = document.createElement('span');
+                badge.id = 'notificationBadge';
+                badge.className = 'notification-badge';
+                bell.appendChild(badge);
+            }
+            badge.textContent = unread > 9 ? '9+' : unread;
+            badge.style.display = '';
+        } else if (badge) {
+            badge.style.display = 'none';
+        }
+    };
+
+    window.menroHandleClick = function (id, link) {
+        if (id) menroPost('mark_read', { id: id }, function () {});
+        if (link && link !== '') { window.location.href = link; }
+    };
+
+    window.menroMarkAllRead = function () {
+        menroPost('mark_all_read', null, function (data) {
+            if (data && data.success) {
+                document.querySelectorAll('#menroNotifList .menro-notif-item').forEach(function (el) {
+                    el.classList.remove('unread');
+                    var dot = el.querySelector('.menro-notif-dot');
+                    if (dot) dot.remove();
+                });
+                var cnt = document.getElementById('menroNotifCount');
+                if (cnt) cnt.textContent = String(document.querySelectorAll('#menroNotifList .menro-notif-item').length);
+                window.__menroRefreshBadge(0);
+            }
+        });
+    };
+
+    window.menroClearAll = function () {
+        if (!confirm('Clear all notifications? This cannot be undone.')) return;
+        menroPost('clear_all', null, function (data) {
+            if (data && data.success) {
+                var list = document.getElementById('menroNotifList');
+                if (list) {
+                    list.innerHTML = '<div class="menro-notif-empty">'
+                        + '<div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">'
+                        + '<i class="fas fa-bell-slash text-xl text-gray-400"></i></div>'
+                        + '<p class="text-gray-400 text-sm">No notifications yet</p>'
+                        + '<p class="text-xs text-gray-300 mt-1">You have cleared your notifications.</p></div>';
+                }
+                var cnt = document.getElementById('menroNotifCount');
+                if (cnt) cnt.textContent = '0';
+                var actions = document.querySelector('.menro-notif-actions');
+                if (actions) actions.style.display = 'none';
+                window.__menroRefreshBadge(0);
+            }
+        });
+    };
+
+    window.menroViewAll = function () {
+        window.location.href = MENRO_NOTIF_URL + 'index.php?page=notifications';
+    };
+
+    document.addEventListener('click', function (e) {
+        if (menroOpen) {
+            var d = document.getElementById('menroNotifDropdown');
+            var bell = document.getElementById('menroNotifBell');
+            if (d && bell && !d.contains(e.target) && !bell.contains(e.target)) {
+                window.menroCloseDropdown();
+            }
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && menroOpen) window.menroCloseDropdown();
+    });
+
+    window.addEventListener('resize', function () { if (menroOpen) window.menroPositionDropdown(); });
+
+    document.querySelectorAll('#menroNotifList .menro-notif-item').forEach(function (item) {
+        item.addEventListener('click', function (e) {
+            e.stopPropagation();
+            window.menroHandleClick(item.getAttribute('data-id'), item.getAttribute('data-link'));
+        });
+    });
+})();
+</script>
+<?php endif; ?>
 <style>
 @keyframes rtToastIn {
     from { opacity: 0; transform: translateY(-16px); }

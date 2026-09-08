@@ -152,10 +152,10 @@ $csrf_token    = InputSanitizer::generateCsrfToken();
                 <?php if (count($notifications) > 0): ?>
                     <?php foreach ($notifications as $notif): ?>
                     <div class="notif-item <?php echo $notif['is_read'] ? '' : 'unread'; ?>"
-                         data-link="<?php echo htmlspecialchars($notif['link'] ?? ''); ?>"
+                         data-link="<?php echo htmlspecialchars($notif['link'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                          data-id="<?php echo (int)$notif['id']; ?>">
-                        <div class="notif-icon" style="background: <?php echo $notif['color']; ?>20;">
-                            <i class="fas <?php echo $notif['icon']; ?>" style="color: <?php echo $notif['color']; ?>; font-size: 1rem;"></i>
+                        <div class="notif-icon" style="background: <?php echo $notif['color'] ?? '#10A37F'; ?>20;">
+                            <i class="fas <?php echo $notif['icon'] ?? 'fa-bell'; ?>" style="color: <?php echo $notif['color'] ?? '#10A37F'; ?>; font-size: 1rem;"></i>
                         </div>
                         <div class="notif-content">
                             <div class="notif-title"><?php echo htmlspecialchars($notif['title']); ?></div>

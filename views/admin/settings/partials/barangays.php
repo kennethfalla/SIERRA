@@ -232,25 +232,74 @@ if (!isset($csrf_token)) {
     
     /* ===== RESPONSIVE ===== */
     @media (max-width: 640px) {
-        .barangay-table thead th,
+        .barangay-table thead { display: none; }
+        .barangay-table,
+        .barangay-table tbody,
+        .barangay-table tr,
+        .barangay-table td {
+            display: block;
+            width: 100%;
+        }
+        .barangay-table tbody tr {
+            background: white;
+            border: 1px solid #edf2ef;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(16, 163, 127, 0.05);
+        }
         .barangay-table tbody td {
-            padding: 0.4rem 0.5rem;
-            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.45rem 0 !important;
+            font-size: 0.78rem;
+            border-bottom: 1px dashed #eef2f0;
         }
-        
-        .barangay-input {
-            font-size: 0.75rem;
-            padding: 0.3rem 0.4rem;
-        }
-        
-        .barangay-btn {
+        .barangay-table tbody td:last-child { border-bottom: none; }
+        .barangay-table tbody td::before {
+            content: attr(data-label);
+            flex-shrink: 0;
             font-size: 0.65rem;
-            padding: 0.2rem 0.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #9ca3af;
         }
-        
+        .barangay-table tbody td .barangay-input,
+        .barangay-table tbody td > input[type="text"] {
+            width: auto;
+            flex: 1;
+            min-width: 0;
+        }
+        .barangay-table tbody td[data-label="#"] { justify-content: flex-start; gap: 0.75rem; border-bottom: none; }
+        .barangay-table tbody td[data-label="Actions"] { display: block; padding-top: 0.6rem !important; }
+        .barangay-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            margin-top: 0.25rem;
+        }
+        .barangay-actions .barangay-btn,
+        .barangay-actions .barangay-btn-delete {
+            flex: 1;
+            min-width: 72px;
+            justify-content: center;
+            margin-left: 0;
+            padding: 0.4rem 0.5rem;
+        }
+        .barangay-input {
+            font-size: 0.78rem;
+            padding: 0.4rem 0.6rem;
+        }
+
         .add-barangay-area {
             flex-direction: column;
-            padding: 0.75rem;
+            align-items: stretch;
+            padding: 0.85rem;
+            gap: 0.65rem;
         }
         .add-barangay-area .add-input {
             width: 100%;
@@ -259,6 +308,12 @@ if (!isset($csrf_token)) {
         .btn-add-barangay {
             width: 100%;
             text-align: center;
+        }
+    }
+    @media (max-width: 380px) {
+        .barangay-actions .barangay-btn,
+        .barangay-actions .barangay-btn-delete {
+            flex-basis: 100%;
         }
     }
     
@@ -374,7 +429,7 @@ if (!isset($csrf_token)) {
                     <?php $counter = 1; ?>
                     <?php foreach ($barangays as $barangay): ?>
                         <tr id="barangay-row-<?php echo $barangay['id']; ?>">
-                            <td class="text-gray-500 font-medium text-center">
+                            <td class="text-gray-500 font-medium text-center" data-label="#">
                                 <?php echo $counter++; ?>
                             </td>
                             <td>
@@ -401,26 +456,28 @@ if (!isset($csrf_token)) {
                                        placeholder="Enter office number"
                                        disabled>
                             </td>
-                            <td style="text-align: center;">
-                                <button type="button"
-                                        class="barangay-btn barangay-btn-edit"
-                                        id="edit-btn-<?php echo $barangay['id']; ?>"
-                                        onclick="enableEdit(<?php echo $barangay['id']; ?>)">
-                                    <i class="fas fa-pen"></i> Edit
-                                </button>
-                                <button type="button"
-                                        class="barangay-btn barangay-btn-save"
-                                        id="save-btn-<?php echo $barangay['id']; ?>"
-                                        onclick="saveBarangay(<?php echo $barangay['id']; ?>)">
-                                    <i class="fas fa-check"></i> Save
-                                </button>
-                                <button type="button"
-                                        class="barangay-btn-delete"
-                                        id="delete-btn-<?php echo $barangay['id']; ?>"
-                                        onclick="deleteBarangay(<?php echo $barangay['id']; ?>, '<?php echo htmlspecialchars(addslashes($barangay['name'])); ?>')"
-                                        title="Delete this barangay">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                            <td data-label="Actions" style="text-align: center;">
+                                <div class="barangay-actions">
+                                    <button type="button"
+                                            class="barangay-btn barangay-btn-edit"
+                                            id="edit-btn-<?php echo $barangay['id']; ?>"
+                                            onclick="enableEdit(<?php echo $barangay['id']; ?>)">
+                                        <i class="fas fa-pen"></i> Edit
+                                    </button>
+                                    <button type="button"
+                                            class="barangay-btn barangay-btn-save"
+                                            id="save-btn-<?php echo $barangay['id']; ?>"
+                                            onclick="saveBarangay(<?php echo $barangay['id']; ?>)">
+                                        <i class="fas fa-check"></i> Save
+                                    </button>
+                                    <button type="button"
+                                            class="barangay-btn-delete"
+                                            id="delete-btn-<?php echo $barangay['id']; ?>"
+                                            onclick="deleteBarangay(<?php echo $barangay['id']; ?>, '<?php echo htmlspecialchars(addslashes($barangay['name'])); ?>')"
+                                            title="Delete this barangay">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

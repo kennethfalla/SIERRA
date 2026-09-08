@@ -547,6 +547,17 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .settings-toast.info    { background: #10A37F; }
         .settings-toast.success { background: #059669; }
         .settings-toast.error   { background: #ef4444; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 640px) {
+            .settings-content { padding: 1rem; }
+            .settings-header { margin-bottom: 1rem; padding-bottom: 0.75rem; }
+            .settings-header h2 { font-size: 1.1rem; }
+            .settings-toast { left: 1rem; right: 1rem; max-width: none; }
+        }
+        @media (max-width: 480px) {
+            .main-container { padding: 0.75rem; }
+        }
     </style>
 </head>
 <body>
@@ -729,6 +740,40 @@ document.querySelectorAll('.upload-area').forEach(area => {
             label.textContent = this.files[0].name;
         }
     });
+});
+
+// ===== PRESERVE SCROLL POSITION ACROSS TAB SWITCHES =====
+// The sidebar links do a full page reload; save/restore the vertical
+// page scroll AND the sidebar's horizontal scroll so switching
+// sections keeps the sidebar (and your place) in view instead of
+// jumping back to the top or to the first tab.
+(function() {
+    var SK = 'settingsScrollPos', SKL = 'settingsSidebarScroll';
+    try {
+        var saved = sessionStorage.getItem(SK);
+        if (saved !== null && parseInt(saved, 10) > 0) {
+            window.scrollTo(0, parseInt(saved, 10));
+            sessionStorage.removeItem(SK);
+        }
+        var bar = document.querySelector('.settings-sidebar');
+        var savedL = sessionStorage.getItem(SKL);
+        if (bar) {
+            if (savedL !== null && parseInt(savedL, 10) > 0) {
+                bar.scrollLeft = parseInt(savedL, 10);
+            }
+            sessionStorage.removeItem(SKL);
+        }
+    } catch (e) {}
+})();
+
+window.addEventListener('beforeunload', function() {
+    var el = document.documentElement.scrollTop || document.body.scrollTop;
+    var y = window.pageYOffset !== undefined ? window.pageYOffset : el;
+    var bar = document.querySelector('.settings-sidebar');
+    try {
+        if (y > 0) sessionStorage.setItem('settingsScrollPos', String(y));
+        if (bar && bar.scrollLeft > 0) sessionStorage.setItem('settingsSidebarScroll', String(bar.scrollLeft));
+    } catch (e) {}
 });
 
 // Prevent accidental navigation with unsaved changes

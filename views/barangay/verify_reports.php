@@ -50,6 +50,23 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $view_mode = isset($_COOKIE['report_view_mode']) && $_COOKIE['report_view_mode'] === 'list' ? 'list' : 'grid';
 
+// ============================================================
+// AUTO-OPEN UNDER REVIEW CONFIRMATION (arriving from barangay
+// map's "Manage Report" link, which passes the token in ?id=)
+// ============================================================
+$autoUnderReviewReport = null;
+if (isset($_GET['id']) && $_GET['id'] !== '') {
+    $autoUid = IdGuard::req($_GET['id']);
+    if ($autoUid > 0) {
+        $autoStmt = $db->prepare("SELECT id, title, status FROM reports WHERE id = ? AND barangay_id = ?");
+        $autoStmt->execute([$autoUid, $barangay_id]);
+        $autoRow = $autoStmt->fetch(PDO::FETCH_ASSOC);
+        if ($autoRow && $autoRow['status'] === 'pending') {
+            $autoUnderReviewReport = $autoRow;
+        }
+    }
+}
+
 // Get categories for dropdown
 $categories = $db->query("SELECT id, name FROM categories WHERE is_active = 1 ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 $category_name_map = [];
@@ -1425,7 +1442,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                                     <i class="fas fa-eye"></i> View
                                 </a>
                                 <?php elseif (PermissionHelper::canManageReport($r)): ?>
-                                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="btn-manage" data-report-status="<?php echo htmlspecialchars($r['status']); ?>" onclick="return confirmUnderReview(event, this)">
+                                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="btn-manage" data-report-status="<?php echo htmlspecialchars($r['status']); ?>" data-report-id="<?php echo str_pad((int)$r['id'], 6, '0', STR_PAD_LEFT); ?>" data-report-title="<?php echo htmlspecialchars($r['title']); ?>" onclick="return confirmUnderReview(event, this)">
                                     <i class="fas fa-edit"></i> Manage
                                 </a>
                                 <?php else: ?>
@@ -1482,7 +1499,11 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             <i class="fas fa-search text-blue-600 text-2xl"></i>
         </div>
         <h3 class="text-lg font-bold text-gray-800 text-center mb-2">Proceed with Under Review?</h3>
-        <p class="text-sm text-gray-500 text-center mb-6">This will mark the report as Under Review so you can start verifying and managing it.</p>
+        <p class="text-sm text-gray-500 text-center mb-6">Do you want to proceed to place this report under review?</p>
+        <div id="underReviewReportInfo" class="bg-gray-50 rounded-xl border border-gray-200 px-4 py-3 mb-6 <?php echo $autoUnderReviewReport ? '' : 'hidden'; ?>">
+            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Report <span id="underReviewReportNo"><?php echo $autoUnderReviewReport ? '#' . str_pad((int)$autoUnderReviewReport['id'], 6, '0', STR_PAD_LEFT) : ''; ?></span></div>
+            <div id="underReviewReportTitle" class="text-sm font-semibold text-gray-800 leading-snug"><?php echo $autoUnderReviewReport ? htmlspecialchars($autoUnderReviewReport['title']) : ''; ?></div>
+        </div>
         <div class="flex gap-3">
             <button type="button" onclick="closeUnderReviewModal()" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 transition">Cancel</button>
             <button type="button" onclick="proceedUnderReview()" class="flex-1 px-4 py-2.5 bg-[#10A37F] text-white rounded-xl font-medium hover:bg-[#0D8568] transition">Proceed</button>
@@ -1524,6 +1545,12 @@ function confirmUnderReview(e, el) {
     if (el.getAttribute('data-report-status') !== 'pending') return true;
     e.preventDefault();
     underReviewTargetUrl = el.href;
+    const title = el.getAttribute('data-report-title');
+    if (title) {
+        document.getElementById('underReviewReportTitle').textContent = title;
+        document.getElementById('underReviewReportNo').textContent = el.getAttribute('data-report-id') ? '#' + el.getAttribute('data-report-id') : '';
+        document.getElementById('underReviewReportInfo').classList.remove('hidden');
+    }
     const modal = document.getElementById('underReviewModal');
     if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
     return false;
@@ -1543,6 +1570,16 @@ document.addEventListener('click', function(e) {
         closeUnderReviewModal();
     }
 });
+
+<?php if ($autoUnderReviewReport): ?>
+// Auto-open the Under Review confirmation when arriving from the
+// barangay map's "Manage Report" link, pointing back at manage-report.
+document.addEventListener('DOMContentLoaded', function() {
+    underReviewTargetUrl = '<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$autoUnderReviewReport['id']); ?>';
+    const modal = document.getElementById('underReviewModal');
+    if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+});
+<?php endif; ?>
 
 // ===== EXPORT CSV / PDF (open the dedicated print/export view, honoring filters) =====
 function buildPrintUrl(format) {
@@ -1592,38 +1629,25 @@ document.addEventListener('click', function(e) {
 function applyFilters() {
     showLoading();
     const params = new URLSearchParams();
-    params.append('status', document.getElementById('toolbarStatus').value);
-    params.append('risk', document.getElementById('popoverRisk').value);
-    params.append('category', document.getElementById('popoverCategory').value);
-    params.append('date_range', document.getElementById('popoverDateRange').value);
-    params.append('residency', document.getElementById('popoverResidency').value);
-    params.append('search', document.getElementById('searchInput').value);
-    params.append('sort', document.getElementById('toolbarSort').value);
-    params.append('scope', 'barangay');
-    params.append('page', '1');
+    params.append('page', 'verify-reports');
 
-    fetch('<?php echo BASE_URL; ?>ajax/filter_reports.php?' + params.toString())
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('reportsGrid').innerHTML = data.html;
-                document.getElementById('resultsCountDisplay').textContent = data.total_count;
-                document.getElementById('paginationContainer').innerHTML = data.pagination;
-                
-                // Update risk summary
-                let riskHtml = '<span class="text-xs text-gray-500 font-medium mr-1">Risk Summary:</span>';
-                const risks = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
-                for (let r in data.risk_summary) {
-                    if (data.risk_summary[r] > 0) {
-                        riskHtml += `<span class="risk-badge risk-${r}">${risks[r]}: ${data.risk_summary[r]}</span>`;
-                    }
-                }
-                document.getElementById('riskSummaryContainer').innerHTML = riskHtml;
-                updateActiveFilters();
-            }
-            hideLoading();
-        })
-        .catch(() => { hideLoading(); alert('Error loading reports'); });
+    const status = document.getElementById('toolbarStatus').value;
+    const risk = document.getElementById('popoverRisk').value;
+    const category = document.getElementById('popoverCategory').value;
+    const dateRange = document.getElementById('popoverDateRange').value;
+    const residency = document.getElementById('popoverResidency').value;
+    const search = document.getElementById('searchInput').value;
+    const sort = document.getElementById('toolbarSort').value;
+
+    if (status) params.append('status', status);
+    if (risk) params.append('risk', risk);
+    if (category && category !== '0' && category !== '') params.append('category', category);
+    if (dateRange && dateRange !== '0' && dateRange !== '') params.append('date_range', dateRange);
+    if (residency) params.append('residency', residency);
+    if (search) params.append('search', search);
+    if (sort) params.append('sort', sort);
+
+    window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
 }
 
 // ===== UPDATE ACTIVE FILTER CHIPS =====
@@ -1701,28 +1725,26 @@ function updateActiveFilters() {
 function goToPage(page) {
     showLoading();
     const params = new URLSearchParams();
-    params.append('status', document.getElementById('toolbarStatus').value);
-    params.append('risk', document.getElementById('popoverRisk').value);
-    params.append('category', document.getElementById('popoverCategory').value);
-    params.append('date_range', document.getElementById('popoverDateRange').value);
-    params.append('residency', document.getElementById('popoverResidency').value);
-    params.append('search', document.getElementById('searchInput').value);
-    params.append('sort', document.getElementById('toolbarSort').value);
-    params.append('scope', 'barangay');
+    params.append('page', 'verify-reports');
+
+    const status = document.getElementById('toolbarStatus').value;
+    const risk = document.getElementById('popoverRisk').value;
+    const category = document.getElementById('popoverCategory').value;
+    const dateRange = document.getElementById('popoverDateRange').value;
+    const residency = document.getElementById('popoverResidency').value;
+    const search = document.getElementById('searchInput').value;
+    const sort = document.getElementById('toolbarSort').value;
+
+    if (status) params.append('status', status);
+    if (risk) params.append('risk', risk);
+    if (category && category !== '0' && category !== '') params.append('category', category);
+    if (dateRange && dateRange !== '0' && dateRange !== '') params.append('date_range', dateRange);
+    if (residency) params.append('residency', residency);
+    if (search) params.append('search', search);
+    if (sort) params.append('sort', sort);
     params.append('page', page);
 
-    fetch('<?php echo BASE_URL; ?>ajax/filter_reports.php?' + params.toString())
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('reportsGrid').innerHTML = data.html;
-                document.getElementById('resultsCountDisplay').textContent = data.total_count;
-                document.getElementById('paginationContainer').innerHTML = data.pagination;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            hideLoading();
-        })
-        .catch(() => hideLoading());
+    window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
 }
 
 // Event listeners for search/status/sort/popover/chips are provided by the shared

@@ -351,4 +351,17 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         transition: color 0.2s;
         word-break: break-all;
     }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+        .logo-preview { width: 100px; height: 100px; }
+        .upload-area { padding: 1rem; }
+    }
+    @media (max-width: 480px) {
+        #generalSettingsForm .btn-primary,
+        #generalSettingsForm .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>

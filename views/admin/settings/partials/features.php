@@ -93,6 +93,13 @@ $maintenance_active = $ks('maintenance_mode');
     .ks-on-badge.on  { background: #d1fae5; color: #065f46; }
     .ks-on-badge.off { background: #fee2e2; color: #991b1b; }
     .ks-on-badge.warn { background: #fef3c7; color: #92400e; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 480px) {
+        .ks-toggle-row { padding: 1rem; gap: 0.75rem; }
+        #killSwitchForm .btn-primary,
+        #killSwitchForm .btn-secondary { width: 100%; justify-content: center; text-align: center; }
+    }
 </style>
 
 <!-- ===== STATUS BANNER ===== -->

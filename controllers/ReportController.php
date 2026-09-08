@@ -316,6 +316,9 @@ function notifyMenro($db, $title, $message, $icon = 'fa-bell', $color = '#10A37F
         $stmt = $db->prepare("SELECT id, email, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE is_active = 1 AND user_type IN ('admin', 'menro_staff')");
         $stmt->execute();
         $menro = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($menro)) {
+            error_log("MENRO notification: no active admin/menro_staff users found for notification delivery.");
+        }
         if (!empty($menro)) {
             $menro_ids = array_column($menro, 'id');
             $notif = new Notification($db);
@@ -443,10 +446,9 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
     );
     $can_escalate = (
         in_array('escalate', $allowedActions) &&
-        $report_data['status'] == Report::STATUS_UNDER_REVIEW &&
-        !$has_pending_escalation &&
-        !$has_approved_escalation &&
-        !$was_escalation_rejected
+        $user_role == 'barangay_official' &&
+        $report_data['status'] == Report::STATUS_IN_PROGRESS &&
+        !$has_pending_escalation
     );
     $can_resolve = (
         in_array('mark_resolved', $allowedActions) &&
@@ -1065,8 +1067,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
-        if ($report_data['status'] != Report::STATUS_UNDER_REVIEW) {
-            $_SESSION['error'] = "Only reports under review can be escalated.";
+        if ($report_data['status'] != Report::STATUS_IN_PROGRESS) {
+            $_SESSION['error'] = "Only reports in progress can be escalated.";
             header("Location: " . manageReportUrl($report_id));
             exit();
         }
@@ -1175,6 +1177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $activityLog->log($user_id, 'Approve Escalation', "Approved escalation for report #$report_id");
         notifyReportOwner($db, $report_id, 'Escalated to MENRO', 'Your report #' . $report_id . ' has been accepted by MENRO and is now under their supervision.', 'fa-shield-alt', '#EF4444');
+        notifyBarangayOfficials($db, $report_data['barangay_id'] ?? 0, 'Escalation Approved', 'MENRO accepted your escalation of report #' . $report_id . '. The report is now under MENRO supervision.', 'fa-shield-alt', '#EF4444', manageReportUrl($report_id));
         $_SESSION['success'] = "Escalation approved. Report is now under MENRO supervision.";
         header("Location: " . manageReportUrl($report_id));
         exit();
@@ -1238,7 +1241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
         }
         $activityLog->log($user_id, 'Reject Escalation', "Rejected escalation for report #$report_id. Reason: $reason");
-        notifyReportOwner($db, $report_id, 'Escalation Returned', 'Your report #' . $report_id . ' was returned to the barangay for continued handling.', 'fa-undo', '#F59E0B');
+        notifyBarangayOfficials($db, $report_data['barangay_id'] ?? 0, 'Escalation Returned', 'MENRO returned report #' . $report_id . ' to your barangay for continued handling. Reason: ' . $reason, 'fa-undo', '#F59E0B', manageReportUrl($report_id));
         $_SESSION['success'] = "Escalation rejected. Report returned to barangay.";
         header("Location: " . manageReportUrl($report_id));
         exit();

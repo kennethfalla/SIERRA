@@ -137,8 +137,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         <!-- Official header preview -->
         <div class="bg-white rounded-lg border border-gray-200 p-4 mb-3">
-            <div class="flex items-center justify-between gap-4 pb-3 mb-3" style="border-bottom: 3px solid #10A37F;">
-                <div class="w-16 h-16 flex items-center justify-center">
+            <div class="flex items-center justify-between gap-4 pb-3 mb-3 pdf-preview-head" style="border-bottom: 3px solid #10A37F;">
+                <div class="w-16 h-16 flex items-center justify-center head-logo">
                     <img src="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl() ?: ''); ?>" alt="LGU" class="max-w-full max-h-full object-contain" id="previewLguLogo" onerror="this.style.display='none';">
                 </div>
                 <div class="flex-1 text-center">
@@ -146,7 +146,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div class="text-gray-500 text-xs mt-0.5" id="previewMunicipality"><?php echo htmlspecialchars($pdf_municipality); ?></div>
                     <div class="text-[#10A37F] font-bold text-[10px] tracking-wider uppercase mt-1">Environmental Hazard Analysis Report</div>
                 </div>
-                <div class="w-16 h-16 flex items-center justify-center">
+                <div class="w-16 h-16 flex items-center justify-center head-logo">
                     <img src="<?php echo htmlspecialchars($menro_logo_url); ?>" alt="MENRO" class="max-w-full max-h-full object-contain" id="previewMenroLogo" onerror="this.style.display='none';">
                 </div>
             </div>
@@ -187,6 +187,19 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </button>
     </div>
 </form>
+
+<style>
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+        .pdf-preview-head { gap: 0.75rem !important; }
+        .pdf-preview-head .head-logo { width: 44px !important; height: 44px !important; }
+    }
+    @media (max-width: 480px) {
+        .pdf-preview-head { flex-wrap: wrap; justify-content: center; }
+        .pdf-preview-head .head-logo { width: 40px !important; height: 40px !important; }
+        #pdfExportForm .btn-primary { width: 100%; justify-content: center; text-align: center; }
+    }
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

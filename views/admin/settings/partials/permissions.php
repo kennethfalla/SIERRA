@@ -23,7 +23,6 @@ $allRoles        = SettingsHelper::getAllRoles();               // full rows inc
 $roles           = SettingsHelper::getManageableRoles();        // id => title
 $permissionKeys  = SettingsHelper::getPermissionKeys();
 $rolePermissions = SettingsHelper::getAllRolePermissions();      // role_id => [perm_key => bool]
-$system_name     = SettingsHelper::get('system_name', 'Sierra');
 
 // Built-in roles (seeded by the migration) keep their curated icon/color;
 // any admin-created ("Create Role") role falls back to a neutral style.
@@ -74,108 +73,6 @@ $permissionRisk = [
 ?>
 
 <style>
-/* ================================================================
-   BRANDING BANNER
-   ================================================================ */
-.perm-hero {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    padding: 1.75rem 1.75rem;
-    border-radius: 1.25rem;
-    background: linear-gradient(135deg, #0D8568 0%, #10A37F 55%, #34C79E 100%);
-    color: white;
-    overflow: hidden;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 10px 30px rgba(16, 163, 127, 0.25);
-}
-.perm-hero::after {
-    content: '';
-    position: absolute;
-    right: -60px;
-    top: -60px;
-    width: 220px;
-    height: 220px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-}
-.perm-hero::before {
-    content: '';
-    position: absolute;
-    right: 40px;
-    bottom: -80px;
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-}
-.perm-hero-icon {
-    width: 58px;
-    height: 58px;
-    flex-shrink: 0;
-    border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.18);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-}
-.perm-hero-kicker {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: rgba(255, 255, 255, 0.85);
-    margin-bottom: 0.25rem;
-}
-.perm-hero-title {
-    font-size: 1.45rem;
-    font-weight: 800;
-    line-height: 1.2;
-}
-.perm-hero-sub {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.9);
-    margin-top: 0.3rem;
-    max-width: 520px;
-}
-.perm-hero-stats {
-    margin-left: auto;
-    display: flex;
-    gap: 0.75rem;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1;
-}
-.perm-hero-stat {
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 0.9rem;
-    padding: 0.7rem 1.1rem;
-    text-align: center;
-    min-width: 82px;
-    backdrop-filter: blur(4px);
-}
-.perm-hero-stat span {
-    display: block;
-    font-size: 1.35rem;
-    font-weight: 800;
-    line-height: 1;
-}
-.perm-hero-stat small {
-    display: block;
-    font-size: 0.62rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: rgba(255, 255, 255, 0.85);
-    margin-top: 0.3rem;
-}
-
 /* ================================================================
    CREATE / EDIT ROLE CARD
    ================================================================ */
@@ -626,43 +523,33 @@ $permissionRisk = [
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 640px) {
-    .perm-hero { flex-wrap: wrap; }
-    .perm-hero-stats { margin-left: 0; width: 100%; }
-    .perm-hero-stat { flex: 1; min-width: 76px; padding: 0.6rem 0.7rem; }
-    .perm-hero-stat small { white-space: normal; }
-    .perm-row { grid-template-columns: 1fr; gap: 0.5rem; }
+    .perm-row { grid-template-columns: 1fr; gap: 0.6rem; }
     .perm-toggle-wrap { justify-content: flex-start; }
-    .role-item-head { flex-wrap: wrap; }
+    .role-item-head { flex-wrap: wrap; gap: 0.6rem 0.9rem; }
+    .role-item-head .role-item-icon { width: 40px; height: 40px; }
+    .role-item-head .role-item-info { flex: 1 1 calc(100% - 52px); min-width: 0; }
+    .role-item-head .role-item-count { order: 3; }
+    .role-item-head .role-item-actions { order: 4; margin-left: auto; }
+    .role-item-head .role-item-chevron { order: 5; }
+    .role-item-count { font-size: 0.7rem; }
+    .perm-actions .btn-primary,
+    .perm-actions .btn-secondary { flex: 1 1 45%; justify-content: center; text-align: center; }
+    .create-role-actions { flex-direction: column; }
+    .create-role-actions .btn-primary,
+    .create-role-actions .btn-secondary { width: 100%; justify-content: center; text-align: center; }
+    .create-role-head { flex-wrap: wrap; gap: 0.75rem; }
+    .perm-create-body { padding: 1rem; }
+    .role-perm-panel .perm-row { padding: 0.75rem 1rem; }
+}
+@media (max-width: 380px) {
+    .perm-actions .btn-primary,
+    .perm-actions .btn-secondary { flex: 1 1 100%; }
+    .role-item-head { padding: 0.85rem 1rem; gap: 0.55rem 0.7rem; }
+    .role-item-head .role-item-actions { width: 100%; justify-content: flex-end; }
 }
 </style>
 
 <div class="fade-in">
-
-    <!-- ===== BRANDING BANNER ===== -->
-    <div class="perm-hero">
-        <div class="perm-hero-icon">
-            <i class="fas fa-user-shield"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-            <span class="perm-hero-kicker">
-                <i class="fas fa-key" style="font-size:0.55rem;"></i> Role-Based Access Control
-            </span>
-            <h2 class="perm-hero-title">Permissions &amp; Roles</h2>
-            <p class="perm-hero-sub">
-                Grant or restrict what each role can do in <?php echo htmlspecialchars($system_name); ?>.
-            </p>
-        </div>
-        <div class="perm-hero-stats">
-            <div class="perm-hero-stat">
-                <span><?php echo count($allRoles); ?></span>
-                <small>Roles</small>
-            </div>
-            <div class="perm-hero-stat">
-                <span><?php echo count($permissionKeys); ?></span>
-                <small>Permissions</small>
-            </div>
-        </div>
-    </div>
 
     <!-- ===== CREATE / EDIT ROLE (TOP) ===== -->
     <div class="perm-card create-role-card" id="createRoleCard">

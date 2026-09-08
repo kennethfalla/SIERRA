@@ -222,4 +222,14 @@ $lockout_minutes = (int) SettingsHelper::get('lockout_duration_minutes', 30);
     color: #6B7280;
     margin-top: 0.2rem;
 }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+    #securityForm .btn-primary,
+    #securityForm .btn-secondary {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}
 </style>

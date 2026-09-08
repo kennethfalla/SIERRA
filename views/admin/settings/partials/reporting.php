@@ -122,6 +122,15 @@ $limits = SettingsHelper::getReportLimits();
         font-size: 0.8rem;
         color: #475569;
     }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+        .rl-card { padding: 1rem; }
+    }
+    @media (max-width: 480px) {
+        .rl-form-group .rl-input { max-width: 100%; width: 100%; }
+        .btn-primary, .btn-secondary { width: 100%; justify-content: center; text-align: center; }
+    }
 </style>
 
 <div class="mb-5 p-4 rounded-xl border border-blue-200 bg-blue-50 text-blue-800 text-sm flex items-start gap-3">

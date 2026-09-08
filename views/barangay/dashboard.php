@@ -1147,12 +1147,36 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             box-shadow: 0 12px 28px -8px rgba(16, 163, 127, 0.25);
         }
         
+/* Map card layout (base, mirrors MENRO dashboard) */
+        .map-head {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.85rem 1.25rem;
+            margin-bottom: 0.9rem;
+        }
+        .map-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+        .map-filters {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.85rem 1.25rem;
+            margin-bottom: 0.9rem;
+        }
+
         @media (max-width: 768px) {
             .ml-72 { margin-left: 0; }
             .notification-dropdown { right: 8px; left: 8px; width: auto; max-width: none; }
             #drillPanel { width: 100%; right: -100%; }
             .kpi-card .kpi-value { font-size: 1.5rem; }
-            .map-toggle { flex-wrap: wrap; }
             .map-toggle button { padding: 0.3rem 0.8rem; font-size: 0.7rem; }
             /* greeting: hide clock on tiny screens */
             .time-card { display: none; }
@@ -1167,6 +1191,35 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             #categoryFilterMenu { width: 100%; left: 0; }
             /* section title shrink */
             .section-title { font-size: 0.9rem; }
+            /* Map card compacts for tablets/phones */
+            #map-container { padding: 0.85rem; }
+            .map-title-wrap { width: 100%; justify-content: space-between; }
+            #mapToggle { flex-wrap: nowrap; }
+            #mapToggle button { flex: 1; padding: 0.35rem 0.5rem; font-size: 0.72rem; }
+            .map-legend { width: 100%; gap: 0.45rem 0.85rem; }
+            /* Timeframe pills become a swipeable strip instead of wrapping */
+            #timeframeToggle {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                max-width: 100%;
+            }
+            #timeframeToggle::-webkit-scrollbar { display: none; }
+            #timeframeToggle button { flex-shrink: 0; white-space: nowrap; }
+            /* Filters stack full-width */
+            .map-filters { align-items: stretch; }
+            .map-timeframe { width: 100%; }
+            #customRangeBox { width: 100%; flex-wrap: wrap; }
+            #customRangeBox input { flex: 1 1 40%; min-width: 0; }
+        }
+        @media (max-width: 480px) {
+            #map { height: 300px; }
+            .map-title-wrap h2 { font-size: 1.05rem; }
+            .map-head { gap: 0.7rem; }
+            .map-legend span { font-size: 0.7rem; }
+            #customRangeBox input { flex: 1 1 100%; }
         }
         @media (min-width: 769px) {
             .mobile-report-card { display: none; }
@@ -1453,8 +1506,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <!-- 20-point severity algorithm as the MENRO map, scaled to the LGU -->
         <!-- ============================================================ -->
         <div id="map-container" class="mb-6">
-            <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
-                <div class="flex flex-wrap items-center gap-3">
+            <div class="map-head">
+                <div class="map-title-wrap">
                     <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
                         <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
                         Local Incident Map
@@ -1464,7 +1517,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <button data-mode="historical">Historical / Resolved</button>
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-3 text-xs">
+                <div class="map-legend flex flex-wrap gap-3 text-xs">
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High</span>
@@ -1473,7 +1526,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             </div>
 
             <!-- Category Filter + Timeframe Selector -->
-            <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+            <div class="map-filters">
                 <div class="relative" id="categoryFilterWrap">
                     <button id="categoryFilterBtn" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 hover:border-[#10A37F] transition">
                         <i class="fas fa-filter text-[#10A37F]"></i>
@@ -1503,7 +1556,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </div>
 
                 <!-- Timeframe Selector + Custom Date Range -->
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="flex flex-wrap items-center gap-3 map-timeframe">
                     <div class="map-toggle" id="timeframeToggle">
                         <button data-range="today">Today</button>
                         <button data-range="week">This Week</button>
@@ -2243,12 +2296,16 @@ function loadMapData(mode) {
         const score = parseInt(report.severity_score) || 0;
         const color = getSeverityColor(score);
         const tier = getSeverityTier(score);
+        const isPending = report.status === 'pending';
+        const popupAction = isPending
+            ? `<a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; text-decoration: none; display: inline-block;">Manage Report</a>`
+            : '';
         const popupContent = `
             <div style="font-family: Manrope, sans-serif; min-width: 200px;">
                 <strong style="font-size: 14px; color:#1f2937;">#${String(report.id).padStart(5,'0')} — ${escapeHtml(report.title)}</strong><br>
                 <span style="font-size: 12px; color: #64748b;">Severity: ${score}/20 (${tier})</span><br>
                 <span style="font-size: 12px; color: #64748b;">Reports in cluster: ${report.spatial_density_count || 0}</span><br>
-                <button onclick="openDrillPanel(${report.id})" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer;">Analyze</button>
+                ${popupAction}
             </div>
         `;
 
@@ -2264,7 +2321,9 @@ function loadMapData(mode) {
         });
 
         const marker = L.marker([lat, lng], { icon: icon, severityScore: score }).bindPopup(popupContent);
-        marker.on('click', function() { openDrillPanel(report.id); });
+        marker.on('click', function() {
+            if (!isPending) openDrillPanel(report.id);
+        });
         clusterGroup.addLayer(marker);
     });
 
@@ -2564,7 +2623,7 @@ function renderDrillPanel(report) {
         </div>
 
         <!-- Open Full Report -->
-        <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" target="_blank" class="drill-open-btn">
+        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=${report.token}" class="drill-open-btn">
             <i class="fas fa-external-link-alt mr-2"></i> Open Full Report
         </a>
 

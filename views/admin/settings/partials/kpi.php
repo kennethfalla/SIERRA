@@ -132,6 +132,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     @media (max-width: 640px) {
         .kpi-input-wrap { max-width: 100%; }
     }
+    @media (max-width: 480px) {
+        #kpiForm .btn-primary,
+        #kpiForm .btn-secondary { width: 100%; justify-content: center; text-align: center; }
+    }
 </style>
 
 <form method="POST" action="<?php echo BASE_URL; ?>index.php?page=settings&tab=kpi" id="kpiForm">

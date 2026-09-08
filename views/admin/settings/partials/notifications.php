@@ -272,6 +272,11 @@ $placeholders = [
             padding: 0.05rem 0.3rem;
         }
     }
+    @media (max-width: 480px) {
+        #notificationsForm .btn-primary { width: 100%; justify-content: center; text-align: center; }
+        .sms-gateway-card > .flex { width: 100%; }
+        .sms-gateway-card > .flex > .flex-1 { min-width: 100% !important; }
+    }
 </style>
 
 <form method="POST" action="<?php echo BASE_URL; ?>index.php?page=settings&tab=notifications" enctype="multipart/form-data" id="notificationsForm">

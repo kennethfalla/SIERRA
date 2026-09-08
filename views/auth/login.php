@@ -449,7 +449,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                                 </div>
                                 <p class="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">MENRO Administrator</p>
                             </div>
-                            <div class="relative border border-gray-100 rounded-lg bg-white hover:border-emerald-300 hover:bg-emerald-50 transition-all cursor-pointer p-2 demo-card" onclick="fillCredentials('menro@envreport.com', 'password')" tabindex="0" role="button" aria-label="Login as MENRO Administrator">
+                            <div class="relative border border-gray-100 rounded-lg bg-white hover:border-emerald-300 hover:bg-emerald-50 transition-all cursor-pointer p-2 demo-card" onclick="fillCredentials('sierrasanisidro@gmail.com', 'password')" tabindex="0" role="button" aria-label="Login as MENRO Administrator">
                                 <span class="absolute -top-2 right-2 text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-700">MENRO</span>
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2">
@@ -457,7 +457,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                                             <i class="fas fa-leaf text-gray-700 text-xs"></i>
                                         </div>
                                         <div>
-                                            <p class="text-xs font-medium text-gray-800">menro@envreport.com</p>
+                                            <p class="text-xs font-medium text-gray-800">sierrasanisidro@gmail.com</p>
                                             <p class="text-[9px] text-gray-400">Mobile: 09170000001</p>
                                         </div>
                                     </div>

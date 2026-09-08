@@ -1398,19 +1398,11 @@ if (is_dir($barangays_dir)) {
             </div>
             <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Submit Environmental Report</h1>
             <p class="text-gray-500 text-sm mt-1">Document and report environmental concerns in your community</p>
-            <div class="mt-3 inline-flex items-center px-3 py-1 bg-emerald-100 rounded-full text-xs text-emerald-800">
-                <i class="fas fa-map-marker-alt mr-1"></i> San Isidro, Nueva Ecija
-            </div>
+            
         </div>
 
         <!-- Form Card -->
         <div class="form-card">
-            <div class="form-card-header">
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-shield-alt text-[#10A37F]"></i>
-                    <span class="text-sm font-medium text-gray-700">Report Details - All data is validated and sanitized</span>
-                </div>
-            </div>
 
             <div class="form-card-body">
                 <form id="reportForm" 
@@ -1427,7 +1419,7 @@ if (is_dir($barangays_dir)) {
                     <div class="mb-5">
                         <label for="category_id" class="form-label">
                             Category <span class="text-red-500">*</span>
-                            <span class="text-xs font-normal text-gray-400 ml-1">(Select the issue type)</span>
+                           
                         </label>
                         <select id="category_id" 
                                 name="category_id" 
@@ -1469,7 +1461,7 @@ if (is_dir($barangays_dir)) {
                     <div class="mb-5">
                         <label class="form-label">
                             What is the current impact of this issue? <span class="text-red-500">*</span>
-                            <span class="text-xs font-normal text-gray-400 ml-1">(Select the most accurate description)</span>
+                          
                         </label>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="impactContainer">
@@ -1516,7 +1508,7 @@ if (is_dir($barangays_dir)) {
                         <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
                             <label class="form-label mb-0">
                                 Geotag Location <span class="text-red-500">*</span>
-                                <span class="text-xs font-normal text-gray-400 ml-1">(Click map to pin)</span>
+
                             </label>
                             <span class="text-xs text-gray-400" id="coordDisplay">
                                 <i class="fas fa-map-marker-alt mr-1"></i>No location selected
@@ -1568,7 +1560,7 @@ if (is_dir($barangays_dir)) {
                     <div class="mb-5">
                         <label class="form-label">
                             Photo/Video Evidence (Max 3) <span class="text-red-500">*</span>
-                            <span class="text-xs font-normal text-gray-400 ml-1">(Take photo, record video, or upload)</span>
+                            
                         </label>
                         <div class="upload-area" id="uploadArea">
                             <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>

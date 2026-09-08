@@ -59,8 +59,23 @@ foreach ($barangay_boundaries as $bid => $bb) {
     }
 }
 ?>
+<style>
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+        .map-card { padding: 1rem !important; }
+        .map-card h2 { font-size: 1.05rem; }
+        #mapSettingsPreview { height: 240px !important; }
+        #barangayBoundaryMap { height: 260px !important; }
+    }
+    @media (max-width: 480px) {
+        .map-card form > .flex.justify-end .btn-primary { width: 100%; justify-content: center; text-align: center; }
+        .boundary-editor .flex.items-center.justify-between { flex-direction: column; align-items: flex-start !important; gap: 0.5rem; }
+        .boundary-actions { width: 100%; }
+        .boundary-actions > * { flex: 1; }
+    }
+</style>
 <div class="fade-in">
-    <div class="stat-card bg-white rounded-xl p-6 mb-6">
+    <div class="stat-card bg-white rounded-xl p-6 mb-6 map-card">
         <h2 class="text-lg font-semibold text-gray-900 mb-1">Map Settings</h2>
         <p class="text-sm text-gray-500 mb-6">Calibrates the geospatial analytics and heatmap.</p>
 
@@ -175,7 +190,7 @@ foreach ($barangay_boundaries as $bid => $bb) {
     </div>
 
     <!-- ===== BARANGAY BOUNDARY GeoJSON MANAGEMENT ===== -->
-    <div class="stat-card bg-white rounded-xl p-6 mb-6">
+    <div class="stat-card bg-white rounded-xl p-6 mb-6 map-card">
         <h2 class="text-lg font-semibold text-gray-900 mb-1">Barangay Boundaries</h2>
         <p class="text-sm text-gray-500 mb-6">
             Upload or edit the official boundary GeoJSON for each barangay. These files power the
@@ -213,7 +228,7 @@ foreach ($barangay_boundaries as $bid => $bb) {
                             <p class="text-xs text-gray-400 mt-1 font-mono"><?php echo htmlspecialchars($bb['slug']); ?>.geojson</p>
                         </div>
 
-                        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <div class="flex flex-col sm:flex-row gap-2 sm:items-center boundary-actions">
                             <label class="cursor-pointer">
                                 <span class="btn-secondary inline-flex items-center gap-1.5 !py-2 !px-3 text-sm">
                                     <i class="fas fa-upload text-[#10A37F]"></i>Upload .geojson

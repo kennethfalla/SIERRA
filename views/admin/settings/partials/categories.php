@@ -297,6 +297,54 @@ function categoryWeightLevelClass($weight) {
         .status-badge { padding: 3px 10px; font-size: 0.65rem; }
         .weight-badge { width: 2.25rem; height: 2.25rem; font-size: 0.95rem; }
     }
+    @media (max-width: 576px) {
+        .table-container { overflow-x: visible; }
+        .table-container .overflow-x-auto { overflow: visible !important; }
+        .table-container table,
+        .table-container tbody,
+        .table-container tr,
+        .table-container td {
+            display: block;
+            width: 100%;
+            min-width: 0 !important;
+        }
+        .table-container thead { display: none; }
+        .table-container tbody tr {
+            border: 1px solid #edf2ef;
+            border-radius: 0.75rem;
+            padding: 0.6rem 0.85rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(16, 163, 127, 0.05);
+            background: white;
+        }
+        .table-container tbody tr:hover { background: white; }
+        .table-container tbody td {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.4rem 0 !important;
+            font-size: 0.8rem;
+            border-bottom: 1px dashed #eef2f0;
+        }
+        .table-container tbody td:last-child { border-bottom: none; }
+        .table-container tbody td::before {
+            content: attr(data-label);
+            flex-shrink: 0;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #9ca3af;
+        }
+        .table-container tbody td[data-label="Actions"] { display: block; padding-top: 0.5rem !important; }
+        .table-container tbody td[data-label="Actions"]::before { margin-bottom: 0.4rem; display: block; }
+        .cat-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .cat-actions .action-btn,
+        .cat-actions form,
+        .cat-actions form button { flex: 1; min-width: 56px; justify-content: center; }
+        .cat-actions > form { min-width: 0; }
+    }
 </style>
 
 <div class="fade-in">
@@ -417,33 +465,33 @@ function categoryWeightLevelClass($weight) {
                             $weight = isset($cat['base_weight']) ? $cat['base_weight'] : 1;
                         ?>
                         <tr>
-                            <td>
+                            <td data-label="Icon">
                                 <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
                                     <i class="fas <?php echo htmlspecialchars($cat['icon_class']); ?> text-[#10A37F]"></i>
                                 </div>
                             </td>
-                            <td class="font-semibold text-gray-800"><?php echo htmlspecialchars($cat['name']); ?></td>
-                            <td class="text-gray-500 text-sm font-medium">
+                            <td class="font-semibold text-gray-800 cat-name" data-label="Name"><?php echo htmlspecialchars($cat['name']); ?></td>
+                            <td class="text-gray-500 text-sm font-medium" data-label="Description">
                                 <?php echo htmlspecialchars(substr($cat['description'], 0, 50)) . (strlen($cat['description']) > 50 ? '...' : ''); ?>
                             </td>
-                            <td>
+                            <td data-label="Weight">
                                 <div onclick="showWeightInfo(<?php echo $weight; ?>)"
                                      class="weight-badge <?php echo categoryWeightLevelClass($weight); ?>" title="Click to view threat level">
                                     <?php echo $weight; ?>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Status">
                                 <span class="status-badge <?php echo $cat['is_active'] ? 'status-active' : 'status-inactive'; ?>">
                                     <?php echo $cat['is_active'] ? 'Active' : 'Inactive'; ?>
                                 </span>
                             </td>
-                            <td>
+                            <td data-label="Usage">
                                 <span class="text-sm <?php echo $usage_count > 0 ? 'text-blue-600 font-bold' : 'text-gray-400 font-medium'; ?>">
                                     <?php echo $usage_count; ?> <?php echo $usage_count == 1 ? 'report' : 'reports'; ?>
                                 </span>
                             </td>
-                            <td>
-                                <div class="flex flex-wrap items-center gap-1.5">
+                            <td data-label="Actions">
+                                <div class="flex flex-wrap items-center gap-1.5 cat-actions">
                                     <button onclick='editCategory(<?php echo $cat['id']; ?>, "<?php echo addslashes($cat['name']); ?>", "<?php echo addslashes($cat['description']); ?>", "<?php echo $cat['icon_class']; ?>", <?php echo $cat['is_active']; ?>, <?php echo $weight; ?>)'
                                             class="action-btn action-btn-edit" title="Edit Category">
                                         <i class="fas fa-edit text-xs"></i>

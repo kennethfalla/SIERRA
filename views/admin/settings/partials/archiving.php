@@ -216,6 +216,62 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     .detail-row { margin-bottom: 0.9rem; }
     .detail-row .k { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin-bottom: 0.15rem; }
     .detail-row .v { font-size: 0.9rem; color: #1F2937; line-height: 1.5; word-break: break-word; }
+
+    /* ===== MORE RESPONSIVE ===== */
+    @media (max-width: 640px) {
+        .archive-search { max-width: 100%; }
+        .archive-section-title { font-size: 0.85rem; }
+        .archive-modal-body { padding: 1rem; }
+        .archive-modal-header { padding: 0.9rem 1rem; }
+    }
+    @media (max-width: 480px) {
+        #archivingForm .btn-primary,
+        #archivingForm .btn-secondary { width: 100%; justify-content: center; text-align: center; }
+    }
+    @media (max-width: 640px) {
+        .archive-table-wrap { overflow: visible; }
+        .archive-table, .archive-table tbody, .archive-table tr, .archive-table td {
+            display: block;
+            width: 100%;
+        }
+        .archive-table thead { display: none; }
+        .archive-table tbody tr {
+            background: white;
+            border: 1px solid #edf2ef;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(16, 163, 127, 0.05);
+        }
+        .archive-table tbody td {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.4rem 0 !important;
+            font-size: 0.8rem;
+            border-bottom: 1px dashed #eef2f0;
+            text-align: right !important;
+        }
+        .archive-table tbody td:last-child { border-bottom: none; }
+        .archive-table tbody td::before {
+            content: attr(data-label);
+            flex-shrink: 0;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #9ca3af;
+            text-align: left;
+        }
+        .archive-table tbody td[data-label="Actions"] { display: block; padding-top: 0.55rem !important; }
+        .archive-table tbody td[data-label="Actions"]::before { margin-bottom: 0.4rem; display: block; }
+        .archive-table tbody td.max-w-\[220px\] { max-width: 100% !important; white-space: normal; overflow: visible; text-overflow: clip; }
+        .archive-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
+        .archive-actions form { flex: 1; min-width: 110px; }
+        .archive-actions .btn-view,
+        .archive-actions .btn-restore { width: 100%; justify-content: center; }
+    }
 </style>
 
 <div class="card-info">
@@ -414,14 +470,14 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
                         data-status="<?php echo htmlspecialchars($item['status'], ENT_QUOTES, 'UTF-8'); ?>"
                         data-closed="<?php echo $closed_display; ?>"
                         data-archived="<?php echo $item['archived_at'] ? date('M d, Y H:i', strtotime($item['archived_at'])) : '—'; ?>">
-                        <td><span class="font-mono text-xs text-gray-500"><?php echo htmlspecialchars($item['archive_id']); ?></span></td>
-                        <td><span class="font-mono text-xs text-gray-700">#<?php echo (int)$item['original_id']; ?></span></td>
-                        <td class="font-medium text-gray-800 max-w-[220px] truncate"><?php echo htmlspecialchars($item['title']); ?></td>
-                        <td><span class="type-badge <?php echo $item['source_type'] === 'report' ? 'type-report' : 'type-announcement'; ?>"><?php echo htmlspecialchars($item['source_type']); ?></span> <?php echo htmlspecialchars($item['category']); ?></td>
-                        <td class="text-gray-600"><?php echo htmlspecialchars($item['barangay']); ?></td>
-                        <td class="text-gray-600 text-xs whitespace-nowrap"><?php echo $closed_display; ?></td>
-                        <td>
-                            <div class="flex items-center gap-1.5">
+                        <td data-label="Archive ID"><span class="font-mono text-xs text-gray-500"><?php echo htmlspecialchars($item['archive_id']); ?></span></td>
+                        <td data-label="Original ID"><span class="font-mono text-xs text-gray-700">#<?php echo (int)$item['original_id']; ?></span></td>
+                        <td class="font-medium text-gray-800 max-w-[220px] truncate" data-label="Title"><?php echo htmlspecialchars($item['title']); ?></td>
+                        <td data-label="Category"><span class="type-badge <?php echo $item['source_type'] === 'report' ? 'type-report' : 'type-announcement'; ?>"><?php echo htmlspecialchars($item['source_type']); ?></span> <?php echo htmlspecialchars($item['category']); ?></td>
+                        <td class="text-gray-600" data-label="Barangay"><?php echo htmlspecialchars($item['barangay']); ?></td>
+                        <td class="text-gray-600 text-xs whitespace-nowrap" data-label="Date Closed"><?php echo $closed_display; ?></td>
+                        <td data-label="Actions">
+                            <div class="flex items-center gap-1.5 archive-actions">
                                 <button type="button" class="btn-view" onclick="viewArchiveItem(this)">
                                     <i class="fas fa-eye text-[10px]"></i>View
                                 </button>

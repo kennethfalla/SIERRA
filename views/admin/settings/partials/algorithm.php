@@ -103,6 +103,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             grid-template-columns: 1fr !important;
         }
     }
+    @media (max-width: 480px) {
+        #algorithmForm .btn-primary,
+        #algorithmForm .btn-secondary { width: 100%; justify-content: center; text-align: center; }
+    }
 </style>
 
 <form method="POST" action="<?php echo BASE_URL; ?>index.php?page=settings&tab=algorithm" id="algorithmForm">

@@ -1057,6 +1057,31 @@ function getDecisionBadge($classification) {
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Map card layout */
+        .map-head {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.85rem 1.25rem;
+            margin-bottom: 0.9rem;
+        }
+        .map-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+        .map-filters {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.85rem 1.25rem;
+            margin-bottom: 0.9rem;
+        }
+
         /* Responsive tweaks */
         @media (max-width: 768px) {
             #drillPanel { width: 100%; right: -100%; }
@@ -1065,6 +1090,38 @@ function getDecisionBadge($classification) {
             .drill-photo-grid { grid-template-columns: repeat(2, 1fr); }
             .drill-photo-grid img,
             .drill-photo-grid video { height: 80px; }
+            /* Map card compacts for tablets/phones */
+            #map-container { padding: 0.85rem; }
+            .map-title-wrap { width: 100%; justify-content: space-between; }
+            #mapToggle { flex-wrap: nowrap; }
+            #mapToggle button { flex: 1; padding: 0.35rem 0.5rem; font-size: 0.72rem; }
+            .map-legend { width: 100%; gap: 0.45rem 0.85rem; }
+            /* Timeframe pills become a swipeable strip instead of wrapping */
+            #timeframeToggle {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                max-width: 100%;
+            }
+            #timeframeToggle::-webkit-scrollbar { display: none; }
+            #timeframeToggle button { flex-shrink: 0; white-space: nowrap; }
+            /* Filters stack full-width */
+            .map-filters { align-items: stretch; }
+            #categoryFilterWrap { width: 100%; }
+            #categoryFilterBtn { width: 100%; justify-content: space-between; }
+            #categoryFilterMenu { width: 100%; left: 0; }
+            .map-timeframe { width: 100%; }
+            #customRangeBox { width: 100%; flex-wrap: wrap; }
+            #customRangeBox input { flex: 1 1 40%; min-width: 0; }
+        }
+        @media (max-width: 480px) {
+            #map { height: 300px; }
+            .map-title-wrap h2 { font-size: 1.05rem; }
+            .map-head { gap: 0.7rem; }
+            .map-legend span { font-size: 0.7rem; }
+            #customRangeBox input { flex: 1 1 100%; }
         }
         .risk-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
         .risk-low { background: #D1FAE5; color: #065F46; }
@@ -1258,8 +1315,8 @@ function getDecisionBadge($classification) {
         <!-- 2. DECISION-SUPPORT HEATMAP WITH TOGGLE -->
         <!-- ============================================================ -->
         <div id="map-container" class="mb-6">
-            <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
-                <div class="flex flex-wrap items-center gap-3">
+            <div class="map-head">
+                <div class="map-title-wrap">
                     <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
                         <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
                         Environmental Hazard Map
@@ -1269,7 +1326,7 @@ function getDecisionBadge($classification) {
                         <button data-mode="historical">Historical Trends</button>
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-3 text-xs">
+                <div class="map-legend flex flex-wrap gap-3 text-xs">
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $severityBands['yellow'] - 1; ?>)</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (<?php echo $severityBands['yellow']; ?>-<?php echo $severityBands['orange'] - 1; ?>)</span>
                     <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $severityBands['orange']; ?>-<?php echo $severityBands['critical'] - 1; ?>)</span>
@@ -1278,7 +1335,7 @@ function getDecisionBadge($classification) {
             </div>
 
             <!-- Category Filter + Timeframe Selector -->
-            <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+            <div class="map-filters">
                 <!-- Category Filter Dropdown -->
                 <div class="relative" id="categoryFilterWrap">
                     <button id="categoryFilterBtn" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 hover:border-[#10A37F] transition">
@@ -1309,7 +1366,7 @@ function getDecisionBadge($classification) {
                 </div>
 
                 <!-- Timeframe Selector + Custom Date Range -->
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="flex flex-wrap items-center gap-3 map-timeframe">
                     <div class="map-toggle" id="timeframeToggle">
                         <button data-range="today">Today</button>
                         <button data-range="week">This Week</button>
@@ -1352,7 +1409,7 @@ function getDecisionBadge($classification) {
             <!-- Severity Distribution -->
             <div class="chart-card">
                 <div class="chart-title"><i class="fas fa-chart-pie text-[#10A37F] mr-2"></i>Severity Distribution</div>
-                <div class="chart-container">
+                <div class="chart-container" style="height:180px;">
                     <canvas id="severityChart"></canvas>
                 </div>
                 <?php if ($criticalAlert): ?>
@@ -1361,6 +1418,46 @@ function getDecisionBadge($classification) {
                     <strong>Recommendation:</strong> Too many critical cases. <?php echo $criticalSharePct; ?>% of active reports are critical. Send help to the affected areas now.
                 </div>
                 <?php endif; ?>
+                <?php
+                // Build a data-driven interpretation of the severity distribution.
+                $sev_counts = array_column($severityTiers, 'count', 'label');
+                $sev_nonzero = array_filter($sev_counts, function ($c) { return $c > 0; });
+                $dominant_label = $sev_nonzero ? array_search(max($sev_nonzero), $sev_nonzero) : null;
+                $dominant_pct = ($dominant_label !== null && $severityTotal > 0) ? round(($sev_counts[$dominant_label] / $severityTotal) * 100) : 0;
+                $zero_labels = array_keys(array_filter($sev_counts, function ($c) { return $c === 0; }));
+                $medium_label = 'Medium (' . $severityBands['yellow'] . '-' . ($severityBands['orange'] - 1) . ')';
+                ?>
+                <div class="rec-box rec-low mt-4">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fas fa-chart-pie"></i>
+                        <strong class="text-xs uppercase tracking-wide">Hazard Profile Analysis</strong>
+                    </div>
+                    <p class="text-xs leading-relaxed">
+                        <?php
+                        if ($severityTotal > 0 && $dominant_label !== null) {
+                            echo '<strong>' . htmlspecialchars($dominant_label) . '</strong> accounts for the largest share (' . $dominant_pct . '% of ' . $severityTotal . ' active';
+                            echo $severityTotal === 1 ? ' report)' : ' reports)';
+                        } else {
+                            echo 'No active reports are currently classified by severity.';
+                        }
+                        if ($zero_labels) {
+                            echo ' There are <strong>0</strong> reports in the <strong>' . htmlspecialchars(implode('</strong> and <strong>', $zero_labels)) . '</strong> tier' . (count($zero_labels) > 1 ? 's' : '') . '.';
+                        }
+                        echo ' Overall risk is ';
+                        echo $avgRisk >= $severityBands['critical'] ? '<strong>critically elevated</strong>' : ($avgRisk >= $severityBands['orange'] ? '<strong>highly elevated</strong>' : '<strong>moderately concentrated</strong>');
+                        echo ' with an average severity score of <strong>' . $avgRisk . '</strong> out of 20.';
+                        ?>
+                    </p>
+                    <p class="text-xs leading-relaxed mt-1">
+                        <strong>Action:</strong>
+                        <?php if ($severityTotal > 0 && $dominant_label === $medium_label): ?>
+                            Route field teams toward routine clearing of these mid-level hazards before they accumulate or escalate.
+                        <?php else: ?>
+                            Prioritize field response around the dominant severity tier and keep thresholds monitored for any escalation.
+                        <?php endif; ?>
+                        Maintain real-time threshold alerts so high-impact hazards are flagged instantly if logged.
+                    </p>
+                </div>
             </div>
             <!-- Seasonal Hazard Analytics -->
             <div class="chart-card">
@@ -1989,7 +2086,6 @@ function loadMapData(mode) {
                 <strong style="font-size: 14px;">${escapeHtml(report.title)}</strong><br>
                 <span style="font-size: 12px; color: #64748b;">Severity: ${score}/20 (${tier})</span><br>
                 <span style="font-size: 12px; color: #64748b;">Reports in cluster: ${report.spatial_density_count || 0}</span><br>
-                <button onclick="openDrillPanel(${report.id})" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer;">Analyze</button>
             </div>
         `;
 
@@ -2547,7 +2643,7 @@ function initCharts() {
                 legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11, family: 'Manrope' } } }
             },
             responsive: true,
-            maintainAspectRatio: true
+            maintainAspectRatio: false
         }
     });
 
