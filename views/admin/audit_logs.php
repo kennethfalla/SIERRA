@@ -181,6 +181,7 @@ $top_actions = $db->query("
     <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
     <title>Audit Logs - Sierra</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
@@ -564,6 +565,16 @@ $top_actions = $db->query("
                                 if(in_array($log_user_role, ['admin', 'menro_staff'], true)) $role_class = 'role-badge-admin';
                                 elseif($log_user_role == 'barangay_personnel') $role_class = 'role-badge-barangay';
                                 else $role_class = 'role-badge-citizen';
+
+                                // Display names: 'citizen' is shown to end users as "Reporter".
+                                $roleLabelMap = [
+                                    'citizen'            => 'Reporter',
+                                    'admin'              => 'Admin',
+                                    'menro_staff'        => 'MENRO Staff',
+                                    'barangay_personnel' => 'Barangay Official',
+                                ];
+                                $log_user_role_label = $roleLabelMap[$log_user_role]
+                                    ?? ucfirst(str_replace('_', ' ', $log_user_role));
                             ?>
                             <tr class="border-b border-emerald-50 hover:bg-emerald-50/30 transition">
                                 <td class="px-5 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">
@@ -580,7 +591,7 @@ $top_actions = $db->query("
                                 <td class="px-5 py-3">
                                     <?php if($log_user_role): ?>
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold text-white <?php echo $role_class; ?>">
-                                        <?php echo ucfirst(str_replace('_', ' ', $log_user_role)); ?>
+                                        <?php echo htmlspecialchars($log_user_role_label); ?>
                                     </span>
                                     <?php else: ?>
                                     <span class="text-gray-400 text-xs">—</span>

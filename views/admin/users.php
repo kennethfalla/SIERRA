@@ -90,7 +90,7 @@ if (isset($_GET['export_users']) && $_GET['export_users'] !== '') {
 
     foreach ($rows as $r) {
         $is_citizen  = empty($r['user_type']);
-        $role        = $is_citizen ? 'Citizen' : ($roleMap[$r['user_type']] ?? 'Citizen');
+        $role        = $is_citizen ? 'Reporter' : ($roleMap[$r['user_type']] ?? 'Reporter');
         $status      = !empty($r['is_active']) ? 'Active' : 'Suspended';
         $is_resident = (int)($r['is_resident'] ?? 1);
         $residency   = $is_citizen ? ($is_resident ? 'Resident' : 'Non-Resident') : '—';
@@ -403,7 +403,7 @@ function getRoleBadge($user_type, $job_title = '') {
     } elseif ($user_type === 'barangay_personnel') {
         return '<span class="role-badge role-barangay"><i class="fas fa-landmark mr-1.5"></i>Barangay Personnel</span>';
     } else {
-        return '<span class="role-badge role-citizen"><i class="fas fa-user mr-1.5"></i>Citizen</span>';
+        return '<span class="role-badge role-citizen"><i class="fas fa-user mr-1.5"></i>Reporter</span>';
     }
 }
 ?>
@@ -415,6 +415,7 @@ function getRoleBadge($user_type, $job_title = '') {
     <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
     <title>User Management - <?php echo htmlspecialchars($system_name); ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
@@ -1279,7 +1280,7 @@ function viewProfile(userId) {
                 '<span class="role-badge role-admin"><i class="fas fa-crown mr-1.5"></i>MENRO Staff</span>' :
                 data.user_type === 'barangay_personnel' ?
                 '<span class="role-badge role-barangay"><i class="fas fa-landmark mr-1.5"></i>Barangay Personnel</span>' :
-                '<span class="role-badge role-citizen"><i class="fas fa-user mr-1.5"></i>Citizen</span>';
+                '<span class="role-badge role-citizen"><i class="fas fa-user mr-1.5"></i>Reporter</span>';
 
             const residencyBadge = data.is_resident == 0 ?
                 '<span class="status-badge status-inactive"><i class="fas fa-map-marker-alt mr-1.5"></i>Non-Resident</span>' :

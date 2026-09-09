@@ -987,9 +987,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                 <i class="fas fa-shield-alt text-blue-500 text-2xl"></i>
                             </div>
                             <h3 class="text-xl font-bold text-gray-800">Verify Your Account</h3>
-                            <p class="text-gray-500 text-sm mt-1">Enter the 6-digit code sent to your mobile number</p>
-                            <p class="text-sm font-medium text-[#10A37F] mt-2" id="otpPhoneDisplay">+63 912 345 6789</p>
-
+                            <p class="text-gray-500 text-sm mt-1" id="otpChannelText">Enter the 6-digit code sent to your mobile number</p>
+                            
+                            <!-- Channel indicator (SMS / Email) -->
+                            <div class="inline-flex items-center gap-2 mt-3 px-4 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-600" id="otpChannelBadge">
+                                <i id="otpChannelIcon" class="fas fa-mobile-alt"></i>
+                                <span id="otpChannelLabel">SMS</span>
+                                <span class="text-gray-400">·</span>
+                                <span id="otpPhoneDisplay">+63 912 345 6789</span>
+                            </div>
                         </div>
                         
                         <div class="otp-container" id="otpContainer">
@@ -1016,6 +1022,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                             <p class="text-sm text-gray-500">Creating your account...</p>
                         </div>
                         
+                        <!-- Inline notification (spam/limit/errors) -->
+                        <div id="otpNotification" class="hidden text-sm rounded-xl px-4 py-3 mb-2 items-center gap-2">
+                            <i class="fas" id="otpNotificationIcon"></i>
+                            <span id="otpNotificationText"></span>
+                        </div>
+                        
                         <div class="text-center mt-4">
                             <p class="text-sm text-gray-500">
                                 Didn't receive the code? 
@@ -1024,6 +1036,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                 </button>
                             </p>
                             <p class="text-xs text-gray-400 mt-1" id="resendTimer"></p>
+                        </div>
+                        
+                        <!-- Channel toggle: SMS OTP <-> email OTP -->
+                        <div class="text-center mt-3 border-t border-gray-100 pt-3">
+                            <button type="button" onclick="switchOtpChannel('email')" id="useEmailBtn" class="text-sm text-[#10A37F] font-semibold hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:no-underline">
+                                <i class="fas fa-envelope mr-1"></i>Send via Email instead
+                            </button>
+                            <button type="button" onclick="switchOtpChannel('sms')" id="useSmsBtn" class="hidden text-sm text-[#10A37F] font-semibold hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:no-underline">
+                                <i class="fas fa-mobile-alt mr-1"></i>Use SMS instead
+                            </button>
+                            <p class="text-xs text-gray-400 mt-1" id="otpChannelNotice"></p>
                         </div>
                         
                         <div class="flex gap-3 mt-6">
@@ -1249,8 +1272,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     // STEP NAVIGATION
     // ============================================
     let currentStep = 1;
-    let resendCount = 0;
-    let resendTimer = null;
+let resendCount = 0;
+let resendTimer = null;
+let otpSending = false; // guard against double/submit spam while a send is in flight
+let currentCooldown = 60; // seconds between sends, from server (configurable in Settings > Security)
+let otpChannel = 'sms'; // 'sms' = SMS OTP, 'email' = email OTP
+let smsRecipient = ''; // formatted mobile number shown in the SMS badge
+// True only right after the initial SMS is sent: the user may immediately fall back to
+// email without waiting out the cooldown. After that, the cooldown blocks resends/switches.
+let emailFallbackAvailable = false;
     let timerSeconds = 60;
     
     function showStep(step) {
@@ -1283,8 +1313,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     function goToStep1() {
         showStep(1);
         clearInterval(resendTimer);
+        clearInterval(spamCooldownTimer);
+        hideOtpNotification();
         document.getElementById('resendTimer').textContent = '';
         document.getElementById('resendBtn').disabled = false;
+        document.getElementById('useEmailBtn').disabled = false;
+        document.getElementById('useSmsBtn').disabled = false;
+        emailFallbackAvailable = false;
     }
     
     // ============================================
@@ -1495,6 +1530,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             
             if (data.success) {
                 // Store registration data for Step 2 & 3
+                currentCooldown = data.cooldown_seconds || 60;
                 proceedToStep2();
             } else {
                 alert(data.error || 'Failed to send OTP. Please try again.');
@@ -1530,6 +1566,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         
         const formattedPhone = formatPhoneNumber(document.getElementById('contact_number').value.trim());
         document.getElementById('otpPhoneDisplay').textContent = formattedPhone;
+        smsRecipient = formattedPhone;
+        
+        otpChannel = 'sms';
+        emailFallbackAvailable = true; // let the user immediately switch to email OTP
+        renderOtpChannelBadge();
+        updateOtpChannelNotice();
         
         showStep(2);
         document.getElementById('otp1').focus();
@@ -1542,7 +1584,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         document.getElementById('otpSuccess').classList.add('hidden');
         document.getElementById('registerLoading').classList.add('hidden');
         
-        startResendTimer();
+        startResendTimer(currentCooldown);
     }
     
     // ============================================
@@ -1729,14 +1771,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     }
     
     function resendOTP() {
+        if (otpSending) return; // prevent spamming the send button
         if (resendCount >= 3) {
-            alert('Maximum resend limit reached. Please try again later.');
+            showOtpNotification('Maximum resend limit reached. Please wait a while before trying again.', 'error');
             return;
         }
         
+        otpSending = true;
         resendCount++;
-        document.getElementById('resendBtn').disabled = true;
-        startResendTimer();
+        const btn = document.getElementById('resendBtn');
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
         
         document.querySelectorAll('.otp-input').forEach(input => {
             input.value = '';
@@ -1746,11 +1791,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         document.getElementById('otpSuccess').classList.add('hidden');
         document.getElementById('registerLoading').classList.add('hidden');
         
-        const btn = document.getElementById('resendBtn');
-        btn.textContent = 'Sending...';
-        
+        // Send a fresh code over the active channel (SMS by default, or email after "Send via Email instead")
+        const isEmail = otpChannel === 'email';
         const formData = new FormData();
-        formData.append('action', 'send_registration_otp');
+        formData.append('action', isEmail ? 'send_registration_email_otp' : 'send_registration_otp');
+        if (!isEmail) formData.append('resend', '1');
         formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
         
         fetch('<?php echo BASE_URL; ?>controllers/AuthController.php', {
@@ -1760,37 +1805,214 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         })
         .then(response => response.json())
         .then(data => {
+            otpSending = false;
             btn.textContent = 'Resend';
             if (data.success) {
-                startResendTimer();
+                currentCooldown = data.cooldown_seconds || 60;
+                renderOtpChannelBadge();
+                updateOtpChannelNotice();
+                startResendTimer(currentCooldown);
                 document.getElementById('otpError').classList.add('hidden');
                 document.getElementById('otp1').focus();
+            } else if (data.limit_reached) {
+                // Anti-spam: show a live countdown to the next allowed request
+                startSpamCooldown(data);
             } else {
-                alert(data.error || 'Failed to resend OTP. Please try again.');
+                showOtpNotification(data.error || 'Failed to send OTP. Please try again.', 'error');
                 document.getElementById('resendBtn').disabled = false;
             }
         })
         .catch(error => {
+            otpSending = false;
             btn.textContent = 'Resend';
             document.getElementById('resendBtn').disabled = false;
-            alert('Network error. Please try again.');
+            showOtpNotification('Network error. Please try again.', 'error');
         });
     }
     
-    function startResendTimer() {
-        timerSeconds = 60;
+// Toggle between SMS OTP and email OTP in Step 2.
+// Sends a fresh code over the selected channel (the previous code is invalidated).
+function switchOtpChannel(channel) {
+    if (otpChannel === channel) return;
+    
+    const targetBtn = channel === 'email' ? document.getElementById('useEmailBtn') : document.getElementById('useSmsBtn');
+    if (targetBtn.disabled) {
+        showOtpNotification('Please wait for the countdown to finish before switching channels.', 'info');
+        return;
+    }
+    
+    otpChannel = channel;
+    emailFallbackAvailable = false; // only the initial SMS gets the free immediate fallback
+    
+    document.getElementById('useEmailBtn').classList.toggle('hidden', channel === 'email');
+    document.getElementById('useSmsBtn').classList.toggle('hidden', channel !== 'email');
+    
+    document.querySelectorAll('.otp-input').forEach(input => {
+        input.value = '';
+        input.classList.remove('filled', 'error');
+    });
+    document.getElementById('otpError').classList.add('hidden');
+    document.getElementById('otpSuccess').classList.add('hidden');
+    document.getElementById('registerLoading').classList.add('hidden');
+    document.getElementById('otpChannelNotice').textContent = '';
+    
+    // Deliver a fresh code over the newly selected channel
+    resendOTP();
+}
+    
+function updateOtpChannelNotice() {
+    const notice = document.getElementById('otpChannelNotice');
+    if (otpChannel === 'email') {
+        const email = window.registrationData.email || '';
+        notice.textContent = 'OTP sent to ' + maskEmail(email) + ' via email. Check your inbox (and spam).';
+    } else {
+        notice.textContent = 'OTP sent via SMS to ' + smsRecipient;
+    }
+}
+
+// Show a notification banner in Step 2 (spam/limit/errors).
+// Auto-hides after a few seconds unless $persist is true; call again to reset the timer.
+let otpNotificationTimer = null;
+function showOtpNotification(message, type, persist) {
+    const box = document.getElementById('otpNotification');
+    const icon = document.getElementById('otpNotificationIcon');
+    const text = document.getElementById('otpNotificationText');
+    
+    if (type === 'success') {
+        box.className = 'text-sm rounded-xl px-4 py-3 mb-2 flex items-center gap-2 bg-green-50 text-green-700 border border-green-200';
+        icon.className = 'fas fa-check-circle';
+    } else if (type === 'info') {
+        box.className = 'text-sm rounded-xl px-4 py-3 mb-2 flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200';
+        icon.className = 'fas fa-info-circle';
+    } else {
+        box.className = 'text-sm rounded-xl px-4 py-3 mb-2 flex items-center gap-2 bg-red-50 text-red-600 border border-red-200';
+        icon.className = 'fas fa-exclamation-triangle';
+    }
+    
+    text.textContent = message;
+    
+    clearTimeout(otpNotificationTimer);
+    if (!persist) {
+        otpNotificationTimer = setTimeout(() => {
+            box.classList.add('hidden');
+        }, 6000);
+    }
+}
+
+function hideOtpNotification() {
+    clearTimeout(otpNotificationTimer);
+    document.getElementById('otpNotification').classList.add('hidden');
+}
+
+// Render the channel indicator in the Step 2 header so it is obvious
+// whether the code was delivered via SMS or via email.
+function renderOtpChannelBadge() {
+    const badge = document.getElementById('otpChannelBadge');
+    const icon = document.getElementById('otpChannelIcon');
+    const label = document.getElementById('otpChannelLabel');
+    const target = document.getElementById('otpPhoneDisplay');
+    const text = document.getElementById('otpChannelText');
+    
+    if (otpChannel === 'email') {
+        const email = window.registrationData.email || '';
+        icon.className = 'fas fa-envelope text-[#10A37F]';
+        label.textContent = 'Email';
+        target.textContent = maskEmail(email);
+        badge.className = 'inline-flex items-center gap-2 mt-3 px-4 py-1.5 rounded-full text-sm font-medium bg-green-50 text-green-700';
+        text.textContent = 'Enter the 6-digit code sent to your email address';
+    } else {
+        icon.className = 'fas fa-mobile-alt text-blue-500';
+        label.textContent = 'SMS';
+        target.textContent = smsRecipient;
+        badge.className = 'inline-flex items-center gap-2 mt-3 px-4 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-600';
+        text.textContent = 'Enter the 6-digit code sent to your mobile number';
+    }
+}
+
+// Show a partially masked email, e.g. ma***@gmail.com
+function maskEmail(email) {
+    if (!email) return '';
+    const at = email.indexOf('@');
+    if (at <= 0) return email;
+    const user = email.slice(0, at);
+    const domain = email.slice(at);
+    const keep = user.length > 2 ? user.slice(0, 2) : user.slice(0, 1);
+    return keep + '***' + domain;
+}
+    
+    function startResendTimer(cooldownSeconds) {
+        timerSeconds = cooldownSeconds || currentCooldown || 60;
         document.getElementById('resendBtn').disabled = true;
-        document.getElementById('resendTimer').textContent = 'Resend available in ' + timerSeconds + 's';
+        document.getElementById('resendTimer').textContent = 'Resend available in ' + fmtClock(timerSeconds);
+        
+        // Anti-spam: during the cooldown no resend or channel switch is allowed,
+        // except the single immediate "Send via Email instead" right after the first SMS.
+        const allowImmediateFallback = emailFallbackAvailable && otpChannel === 'sms';
+        document.getElementById('useEmailBtn').disabled = !allowImmediateFallback;
+        document.getElementById('useSmsBtn').disabled = true;
         
         clearInterval(resendTimer);
         resendTimer = setInterval(() => {
             timerSeconds--;
-            document.getElementById('resendTimer').textContent = 'Resend available in ' + timerSeconds + 's';
+            document.getElementById('resendTimer').textContent = 'Resend available in ' + fmtClock(timerSeconds);
             
             if (timerSeconds <= 0) {
                 clearInterval(resendTimer);
                 document.getElementById('resendTimer').textContent = '';
                 document.getElementById('resendBtn').disabled = false;
+                // Cooldown over: resend and channel switching are allowed again.
+                document.getElementById('useEmailBtn').disabled = false;
+                document.getElementById('useSmsBtn').disabled = false;
+                emailFallbackAvailable = false;
+            }
+        }, 1000);
+    }
+    
+    // "mm:ss" helper for countdown text (e.g. 00:45, 02:00)
+    function fmtClock(sec) {
+        const s = Math.max(0, Math.floor(sec || 0));
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        return String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
+    }
+    
+    // Live countdown shown when the OTP anti-spam limit (N per window) is reached.
+    // Buttons stay locked until the wait is over, then everything re-enables.
+    let spamCooldownTimer = null;
+    function startSpamCooldown(data) {
+        clearInterval(spamCooldownTimer);
+        
+        const limit = data.max_requests || 3;
+        const windowMinutes = Math.max(1, Math.round((data.window_seconds || 600) / 60));
+        let remaining = Math.max(1, Math.floor(data.wait_seconds || 60));
+        
+        const resendBtn = document.getElementById('resendBtn');
+        const emailBtn = document.getElementById('useEmailBtn');
+        const smsBtn = document.getElementById('useSmsBtn');
+        resendBtn.disabled = true;
+        emailBtn.disabled = true;
+        smsBtn.disabled = true;
+        
+        const render = () => {
+            showOtpNotification(
+                'Too many OTP requests (limit of ' + limit + ' per ' + windowMinutes + ' minute(s)). Retry in ' + fmtClock(remaining),
+                'error',
+                true
+            );
+        };
+        
+        render();
+        spamCooldownTimer = setInterval(() => {
+            remaining--;
+            if (remaining <= 0) {
+                clearInterval(spamCooldownTimer);
+                resendBtn.disabled = false;
+                emailBtn.disabled = false;
+                smsBtn.disabled = false;
+                hideOtpNotification();
+                showOtpNotification('Limit reset. You can request a new code now.', 'success');
+            } else {
+                render();
             }
         }, 1000);
     }

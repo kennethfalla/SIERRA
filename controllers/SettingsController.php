@@ -856,6 +856,19 @@ class SettingsController {
         SettingsHelper::set('max_login_attempts', $max_attempts);
         SettingsHelper::set('lockout_duration_minutes', $lockout_duration);
 
+        // OTP anti-spam limits
+        $otp_max = (int)($_POST['otp_max_requests'] ?? 3);
+        $otp_window_minutes = (int)($_POST['otp_request_window_minutes'] ?? 10);
+        $otp_cooldown = (int)($_POST['otp_cooldown_seconds'] ?? 60);
+
+        $otp_max = max(1, min(20, $otp_max));
+        $otp_window_minutes = max(1, min(120, $otp_window_minutes));
+        $otp_cooldown = max(20, min(600, $otp_cooldown));
+
+        SettingsHelper::set('otp_max_requests', $otp_max);
+        SettingsHelper::set('otp_request_window_seconds', $otp_window_minutes * 60);
+        SettingsHelper::set('otp_cooldown_seconds', $otp_cooldown);
+
         // Password requirements (checkboxes)
         $requirements = ['require_upper', 'require_lower', 'require_number', 'require_special'];
         foreach ($requirements as $req) {

@@ -213,6 +213,18 @@ class SettingsHelper {
             'password_require_special' => 1,
 
             // ========================================
+            // OTP ANTI-SPAM LIMITS (registration & reset OTPs)
+            // Editable in Settings > Security.
+            // 'otp_max_requests' => max OTP sends allowed per rolling window.
+            // 'otp_request_window_seconds' => rolling window length (default 10 min).
+            // 'otp_cooldown_seconds' => OTP validity + countdown before the next
+            //   resend / channel switch is allowed (default 60s).
+            // ========================================
+            'otp_max_requests' => 3,
+            'otp_request_window_seconds' => 600,
+            'otp_cooldown_seconds' => 60,
+
+            // ========================================
             // FEATURE TOGGLES
             // ========================================
             'enable_public_registration' => 1,
@@ -430,6 +442,22 @@ class SettingsHelper {
             'enabled' => (int)(self::$settings['enable_report_limits'] ?? 1),
             'daily_limit' => (int)(self::$settings['report_daily_limit'] ?? 5),
             'min_interval_minutes' => (int)(self::$settings['report_min_interval_minutes'] ?? 10),
+        ];
+    }
+
+    /**
+     * Get OTP anti-spam limits (registration & reset OTPs)
+     * @return array [max_requests, window_seconds, cooldown_seconds]
+     */
+    public static function getOtpLimits() {
+        if (self::$settings === null) {
+            self::loadAll();
+        }
+
+        return [
+            'max_requests' => (int)(self::$settings['otp_max_requests'] ?? 3),
+            'window_seconds' => (int)(self::$settings['otp_request_window_seconds'] ?? 600),
+            'cooldown_seconds' => (int)(self::$settings['otp_cooldown_seconds'] ?? 60),
         ];
     }
 

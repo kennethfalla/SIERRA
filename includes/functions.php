@@ -283,10 +283,10 @@ function getRoleDisplayName($role, $user_type = null) {
         'barangay_personnel' => 'Barangay Official'
     ];
     if (!empty($user_type)) {
-        return $types[$user_type] ?? 'Citizen';
+        return $types[$user_type] ?? 'Reporter';
     }
     $roles = [
-        'citizen' => 'Citizen',
+        'citizen' => 'Reporter',
         'barangay_official' => 'Barangay Official',
         'admin' => 'Admin'
     ];

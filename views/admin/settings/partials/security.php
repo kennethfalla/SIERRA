@@ -13,6 +13,9 @@ $require_number  = (int) SettingsHelper::get('password_require_number', 1);
 $require_special = (int) SettingsHelper::get('password_require_special', 1);
 $max_attempts    = (int) SettingsHelper::get('max_login_attempts', 5);
 $lockout_minutes = (int) SettingsHelper::get('lockout_duration_minutes', 30);
+$otp_max         = (int) SettingsHelper::get('otp_max_requests', 3);
+$otp_window_min  = (int) round((int) SettingsHelper::get('otp_request_window_seconds', 600) / 60);
+$otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
 ?>
 <form method="POST" action="<?php echo BASE_URL; ?>index.php?page=settings&tab=security" id="securityForm">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
@@ -95,6 +98,36 @@ $lockout_minutes = (int) SettingsHelper::get('lockout_duration_minutes', 30);
     </div>
 
     <!-- ============================================ -->
+    <!-- OTP VERIFICATION (anti-spam) -->
+    <!-- ============================================ -->
+    <div class="mb-6 border-t border-gray-200 pt-4">
+        <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+            <i class="fas fa-mobile-alt text-[#10A37F]"></i> OTP Verification (anti-spam)
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="form-group">
+                <label class="form-label" for="otp_max_requests">Max OTP Requests per Window</label>
+                <input type="number" name="otp_max_requests" id="otp_max_requests"
+                       value="<?php echo $otp_max; ?>" min="1" max="20" class="form-input">
+                <p class="help-text">Sends allowed before the user is blocked. Default: 3</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="otp_request_window_minutes">Rate-Limit Window (minutes)</label>
+                <input type="number" name="otp_request_window_minutes" id="otp_request_window_minutes"
+                       value="<?php echo $otp_window_min; ?>" min="1" max="120" class="form-input">
+                <p class="help-text">Rolling window for the request limit. Default: 10</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="otp_cooldown_seconds">Resend Cooldown (seconds)</label>
+                <input type="number" name="otp_cooldown_seconds" id="otp_cooldown_seconds"
+                       value="<?php echo $otp_cooldown; ?>" min="20" max="600" class="form-input">
+                <p class="help-text">OTP validity + wait before resend/switch. Default: 60</p>
+            </div>
+        </div>
+        <p class="help-text mt-2">Applies to registration (SMS &amp; email) OTP verification. Users see a live retry countdown when the limit is reached.</p>
+    </div>
+
+    <!-- ============================================ -->
     <!-- FORM ACTIONS -->
     <!-- ============================================ -->
     <div class="flex flex-wrap gap-3 justify-end pt-4 border-t border-gray-200">
@@ -159,6 +192,27 @@ $lockout_minutes = (int) SettingsHelper::get('lockout_duration_minutes', 30);
             let val = parseInt(lockout.value, 10);
             if (isNaN(val) || val < 5) lockout.value = 5;
             if (val > 1440) lockout.value = 1440;
+        }
+
+        const otpMax = document.getElementById('otp_max_requests');
+        if (otpMax) {
+            let val = parseInt(otpMax.value, 10);
+            if (isNaN(val) || val < 1) otpMax.value = 1;
+            if (val > 20) otpMax.value = 20;
+        }
+
+        const otpWindow = document.getElementById('otp_request_window_minutes');
+        if (otpWindow) {
+            let val = parseInt(otpWindow.value, 10);
+            if (isNaN(val) || val < 1) otpWindow.value = 1;
+            if (val > 120) otpWindow.value = 120;
+        }
+
+        const otpCooldown = document.getElementById('otp_cooldown_seconds');
+        if (otpCooldown) {
+            let val = parseInt(otpCooldown.value, 10);
+            if (isNaN(val) || val < 20) otpCooldown.value = 20;
+            if (val > 600) otpCooldown.value = 600;
         }
     });
 
