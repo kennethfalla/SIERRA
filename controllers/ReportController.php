@@ -465,6 +465,84 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
     // investigation notes remains available even after a report is resolved.
     $show_notes = true;
 
+    // A report is "verified" once it has moved past barangay review
+    // (pending/under_review). Resolution evidence uploads and NEW
+    // investigation notes are only unlocked after that point.
+    $report_verified = (
+        !empty($report_data['verified_at']) ||
+        in_array($report_data['status'], [Report::STATUS_VERIFIED, Report::STATUS_IN_PROGRESS, Report::STATUS_ESCALATED_PENDING, Report::STATUS_ESCALATED, Report::STATUS_RESOLVED], true)
+    );
+
+    // ============================================
+    // SMART SUGGESTION TEMPLATES (Quick Note Templates)
+    // Canned responses configured in Settings > Quick Note Templates.
+    // A template matches this report when its target category is empty (all)
+    // or matches the report's category name, AND its target status is empty
+    // (all) or matches the report status.
+    //
+    // Two contexts use different status targeting:
+    //  - note_templates    -> matched to the report's CURRENT status, shown
+    //                         as ongoing suggestions above the investigation-
+    //                         note box (e.g. in_progress -> "crew dispatched").
+    //  - resolve_templates -> matched to the 'resolved' status, shown inside
+    //                         the Resolve Report modal as closing / thank-you
+    //                         suggestions for the resolution note.
+    //  - escalate_templates-> matched to the 'escalated_pending' status, shown
+    //                         inside the Escalate to MENRO modal as ready-to-use
+    //                         justification suggestions.
+    // ============================================
+    $note_templates = [];
+    $resolve_templates = [];
+    $escalate_templates = [];
+    try {
+        $tpl_stmt = $db->query("SELECT template_text, target_category, target_status FROM quick_note_templates WHERE is_active = 1");
+        $all_templates = $tpl_stmt->fetchAll(PDO::FETCH_ASSOC);
+        $report_category_name = (string)($report_data['category_name'] ?? '');
+        $report_current_status = (string)($report_data['status'] ?? '');
+        $report_matched_templates = function ($target_status) use ($all_templates, $report_category_name) {
+            $match_all_statuses = ($target_status === '*');
+            $out = [];
+            foreach ($all_templates as $tpl) {
+                $tpl_category = trim((string)($tpl['target_category'] ?? ''));
+                $tpl_status   = trim((string)($tpl['target_status'] ?? ''));
+                $category_ok = ($tpl_category === '' || strcasecmp($tpl_category, $report_category_name) === 0);
+                $status_ok   = $match_all_statuses || ($tpl_status === '' || $tpl_status === $target_status);
+                if ($category_ok && $status_ok) {
+                    $out[] = $tpl['template_text'];
+                }
+            }
+            return $out;
+        };
+        $note_templates = $report_matched_templates($report_current_status);
+        // Resolve/escalate modals: if no template explicitly targets the
+        // target status (resolved / escalated_pending), fall back to every
+        // active template for this category so quick suggestions NEVER come
+        // up empty when a barangay or admin marks a report as resolved.
+        $all_category_templates = $report_matched_templates('*');
+        $resolve_templates = array_values(array_unique(array_merge(
+            $report_matched_templates(Report::STATUS_RESOLVED),
+            $all_category_templates
+        )));
+        $escalate_templates = array_values(array_unique(array_merge(
+            $report_matched_templates(Report::STATUS_ESCALATED_PENDING),
+            $all_category_templates
+        )));
+        if ($report_current_status === Report::STATUS_RESOLVED) {
+            // A resolved (closed) report is terminal — hide the quick
+            // suggestions on the manage page so it stays clean. Follow-up
+            // notes can still be typed manually. (Suggestion chips in the
+            // resolve modal only appear while the report is being marked
+            // resolved, before the status flips.)
+            $note_templates = [];
+        }
+    } catch (Exception $e) {
+        // Table may be missing on a deployment that hasn't run the migration yet.
+        $note_templates = [];
+        $resolve_templates = [];
+        $escalate_templates = [];
+        error_log("[ReportController] quick_note_templates unavailable: " . $e->getMessage());
+    }
+
     $view_data = [
         'report' => $report_data,
         'images' => $images,
@@ -484,7 +562,12 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
         'can_approve_escalation' => $can_approve_escalation,
         'can_reject_escalation' => $can_reject_escalation,
         'can_reclassify' => $can_reclassify,
-        'show_notes' => $show_notes
+        'can_manage' => $can_manage,
+        'show_notes' => $show_notes,
+        'report_verified' => $report_verified,
+        'note_templates' => $note_templates,
+        'resolve_templates' => $resolve_templates,
+        'escalate_templates' => $escalate_templates
     ];
 
     // Dedicated printable single-report page (opened from the Print dropdown).
@@ -1395,7 +1478,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
-        if (!PermissionHelper::canManageReport($report_data)) {
+        // A resolved (closed) report is terminal, so barangay officials and
+        // admins may still attach follow-up investigation notes even when they
+        // no longer hold active manage rights (e.g. after an escalation).
+        $resolved_followup = ($report_data['status'] === Report::STATUS_RESOLVED
+            && in_array($user_role, ['barangay_official', 'admin'], true));
+        if (!PermissionHelper::canManageReport($report_data) && !$resolved_followup) {
             if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'You are not permitted to manage this report.']); exit(); }
             $_SESSION['error'] = "You are not permitted to manage this report.";
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
@@ -1407,9 +1495,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
-        if (!in_array($report_data['status'], [Report::STATUS_IN_PROGRESS, Report::STATUS_ESCALATED_PENDING, Report::STATUS_ESCALATED])) {
-            if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'Notes can only be added to active reports.']); exit(); }
-            $_SESSION['error'] = "Notes can only be added to active reports.";
+        if (!in_array($report_data['status'], [
+            Report::STATUS_VERIFIED,
+            Report::STATUS_IN_PROGRESS,
+            Report::STATUS_ESCALATED_PENDING,
+            Report::STATUS_ESCALATED,
+            Report::STATUS_RESOLVED,
+        ])) {
+            if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'Notes can only be added to active or resolved reports.']); exit(); }
+            $_SESSION['error'] = "Notes can only be added to active or resolved reports.";
             header("Location: " . manageReportUrl($report_id));
             exit();
         }

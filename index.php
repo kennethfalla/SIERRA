@@ -5,6 +5,7 @@
 
 require_once 'config/config.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
+require_once BASE_PATH . 'helpers/PermissionHelper.php';
 
 // ============================================
 // CHECK FOR LOGOUT ACTION - MUST BE FIRST
@@ -181,6 +182,18 @@ if($page === 'settings') {
             require_once 'views/admin/settings/partials/categories.php';
             exit();
         }
+        if ($settings_tab === 'quick_notes') {
+            // Quick Note Template POSTs (create / update / delete / toggle)
+            // are handled by their own partial.
+            require_once 'views/admin/settings/partials/quick_notes.php';
+            exit();
+        }
+        if ($settings_tab === 'category_keywords') {
+            // Category Keyword POSTs (create / update / delete / toggle)
+            // are handled by their own partial.
+            require_once 'views/admin/settings/partials/category_keywords.php';
+            exit();
+        }
         require_once 'controllers/SettingsController.php';
         // The controller handles the request and redirects
         exit();
@@ -195,6 +208,17 @@ if($page === 'settings') {
 // LOGGED IN USERS - Role-based routing
 // ============================================
 $role = $_SESSION['user_role'] ?? 'citizen';
+
+// ============================================
+// PERMISSION GATE - role-based pages
+// A user's menu and page access follow the permissions of the ROLE they
+// are assigned (role_permissions), not their legacy user_type alone.
+// Super-admin (users.user_type = 'admin') bypasses via PermissionHelper.
+// Citizen/shared pages are not in the map and pass through untouched.
+// ============================================
+if ($role === 'admin' || $role === 'barangay_official') {
+    PermissionHelper::requirePagePermission($page);
+}
 
 // ============================================
 // CITIZEN ROUTES

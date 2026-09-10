@@ -46,6 +46,128 @@ class PermissionHelper {
     }
 
     /**
+     * OR-semantics version of userHasPermission(): returns true when the
+     * current user holds ANY of the given keys. If $keys is empty the
+     * result is false so an empty grant set never unlocks anything.
+     *
+     * @param string[] $keys
+     * @param array|null $user Optional user row, defaults to session.
+     * @return bool
+     */
+    public static function userHasAnyPermission(array $keys, $user = null) {
+        foreach ($keys as $key) {
+            if (self::userHasPermission($key, $user)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Route -> permission map used by the front router (index.php) and the
+     * sidebar. A page is only reachable/visible when the user's role holds
+     * at least one of the listed keys (AND the legacy role route exists).
+     *
+     * Pages NOT listed here are intentionally open to every logged-in user
+     * (profile, announcements, notifications, citizen flows, etc.).
+     *
+     * @return array<string,string[]>
+     */
+    private static function pagePermissionMap() {
+        return [
+            // Dashboards contain both the hazard map and the analytics.
+            'dashboard'                     => ['can_view_analytics', 'can_view_map'],
+            'dashboard-report'              => ['can_view_analytics', 'can_view_map'],
+            'barangay-dashboard-report'     => ['can_view_analytics', 'can_view_map'],
+            'barangay-dashboard-print'      => ['can_view_analytics', 'can_view_map'],
+
+            // Reports (view vs manage).
+            'all-reports'                   => ['can_view_reports'],
+            'all-reports-print'             => ['can_view_reports'],
+            'verify-reports'                => ['can_manage_reports'],
+            'barangay-manage-reports-print' => ['can_manage_reports'],
+            'reporters-directory'           => ['can_view_reports'],
+            'barangay-reporters-print'      => ['can_view_reports'],
+
+            // Account / staff management.
+            'manage-users'                  => ['can_manage_users', 'can_manage_staff'],
+            'users-report'                  => ['can_manage_users', 'can_manage_staff'],
+
+            // System-level tools.
+            'audit-logs'                    => ['can_manage_system'],
+            'audit-logs-report'             => ['can_manage_system'],
+        ];
+    }
+
+    /**
+     * The permission keys required to access a given route (empty when the
+     * route is not permission-gated).
+     * @return string[]
+     */
+    public static function pagePermissions($page) {
+        $map = self::pagePermissionMap();
+        return $map[$page] ?? [];
+    }
+
+    /**
+     * Enforce page-level access for the current user. Redirects to a safe
+     * landing page (their permitted home, or the always-open profile page)
+     * when the user does not hold a required permission for $page.
+     */
+    public static function requirePagePermission($page) {
+        $needed = self::pagePermissions($page);
+        if (!$needed) {
+            return; // Open to every logged-in user.
+        }
+        if (self::userHasAnyPermission($needed)) {
+            return;
+        }
+
+        // Landing on the dashboard after login is a normal case for roles
+        // without dashboard rights; a silent bounce beats a scary error.
+        if ($page !== 'dashboard') {
+            $_SESSION['error'] = "You do not have permission to access that page.";
+        }
+
+        header("Location: " . BASE_URL . "index.php?page=" . self::fallbackPage());
+        exit();
+    }
+
+    /**
+     * Best landing page for a user after a permission-denied redirect:
+     * their own dashboard when permitted, otherwise the first route their
+     * legacy role can open, otherwise the always-accessible profile page.
+     *
+     * @param array|null $user Optional user row, defaults to session.
+     * @return string
+     */
+    public static function fallbackPage($user = null) {
+        $user   = $user ?? self::sessionUser();
+        $role   = $user['role'] ?? null;
+
+        if (self::userHasAnyPermission(['can_view_analytics', 'can_view_map'], $user)) {
+            return 'dashboard';
+        }
+
+        $candidates = ($role === 'barangay_official')
+            ? ['verify-reports', 'reporters-directory', 'barangay-dashboard-report']
+            : ['all-reports', 'manage-users', 'settings'];
+
+        foreach ($candidates as $candidate) {
+            // 'settings' is gated earlier in index.php by can_manage_system,
+            // so it must be checked against that key, not the route map.
+            $keys = ($candidate === 'settings')
+                ? ['can_manage_system']
+                : self::pagePermissions($candidate);
+            if (self::userHasAnyPermission($keys, $user)) {
+                return $candidate;
+            }
+        }
+
+        return 'profile';
+    }
+
+    /**
      * Pull the "current user" shape PermissionHelper needs out of the
      * session. Assumes AuthController stores these on login (see note
      * at the bottom of this file for the two lines to add there).

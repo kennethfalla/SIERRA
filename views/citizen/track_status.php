@@ -121,6 +121,7 @@ $evidence_stmt->execute();
 $resolution_evidence = $evidence_stmt->fetchAll(PDO::FETCH_ASSOC);
 foreach ($resolution_evidence as &$ev) {
     $ev['image_path'] = BASE_URL . $ev['image_path'];
+    $ev['is_video'] = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $ev['image_path']) ? 1 : 0;
 }
 
 // Get investigation notes
@@ -1313,11 +1314,23 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </h3>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <?php foreach($resolution_evidence as $ev): ?>
-                <div class="relative group cursor-pointer" onclick="window.open('<?php echo $ev['image_path']; ?>', '_blank')">
-                    <img src="<?php echo $ev['image_path']; ?>" alt="Resolution evidence" class="w-full h-32 md:h-48 object-cover rounded-xl border border-green-200 hover:border-green-500 transition">
+                <div>
+                    <div class="group cursor-pointer overflow-hidden rounded-xl border border-green-200 hover:border-green-500 transition" onclick="window.open('<?php echo $ev['image_path']; ?>', '_blank')">
+                        <?php if(!empty($ev['is_video'])): ?>
+                        <video src="<?php echo $ev['image_path']; ?>" class="w-full h-32 md:h-48 object-cover" muted playsinline preload="metadata"></video>
+                        <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg flex items-center gap-1">
+                            <i class="fas fa-video"></i>Video
+                        </div>
+                        <?php else: ?>
+                        <img src="<?php echo $ev['image_path']; ?>" alt="Resolution evidence" class="w-full h-32 md:h-48 object-cover">
+                        <?php endif; ?>
+                    </div>
                     <?php if($ev['caption']): ?>
-                    <div class="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 rounded-b-xl text-center">
-                        <?php echo htmlspecialchars(substr($ev['caption'], 0, 50)); ?>
+                    <div class="mt-1.5 md:mt-2 bg-green-50 border border-green-100 rounded-lg px-2 py-1.5 md:px-2.5 md:py-2">
+                        <div class="flex items-start gap-1.5">
+                            <i class="fas fa-sticky-note text-green-500 mt-0.5 text-xs"></i>
+                            <p class="text-xs text-gray-700 leading-relaxed"><?php echo htmlspecialchars($ev['caption']); ?></p>
+                        </div>
                     </div>
                     <?php endif; ?>
                 </div>

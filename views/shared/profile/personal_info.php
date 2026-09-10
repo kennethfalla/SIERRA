@@ -16,6 +16,26 @@
                         <!-- View Mode -->
                         <div id="viewSection">
                             <div class="space-y-5">
+                                <!-- Profile Header with Avatar -->
+                                <div class="bg-white rounded-lg border border-gray-100 p-4">
+                                    <div class="flex items-center gap-4">
+                                        <div class="avatar" style="width:72px;height:72px;font-size:1.6rem;">
+                                            <?php if ($profile_pic_url): ?>
+                                                <img src="<?php echo $profile_pic_url; ?>" alt="Profile">
+                                            <?php else: ?>
+                                                <span class="initials"><?php echo $initials; ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-base font-bold text-gray-800"><?php echo htmlspecialchars($full_name); ?></h3>
+                                            <p class="text-xs text-gray-400 mb-1.5">@<?php echo htmlspecialchars(strtolower(str_replace(' ', '', $full_name))); ?></p>
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold <?php echo $role_badge_color; ?>">
+                                                <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($role_display); ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Basic Information Section -->
                                 <div class="bg-white rounded-lg border border-gray-100 p-4">
                                     <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -164,6 +184,7 @@
                             <form method="POST" action="" enctype="multipart/form-data" id="profileForm">
                                 <input type="hidden" name="update_profile" value="1">
                                 <input type="hidden" name="cropped_image" id="croppedImage" value="">
+                                <input type="hidden" name="remove_photo" id="removePhotoEdit" value="">
 
                                 <div class="space-y-3">
                                     <!-- Full name -->

@@ -7,6 +7,9 @@
 // 4. Fixed avatar update selectors
 // 5. Updated System Settings link to point to tabbed interface
 
+require_once BASE_PATH . 'helpers/SettingsHelper.php';
+require_once BASE_PATH . 'helpers/PermissionHelper.php';
+
 $current_page = $_GET['page'] ?? 'dashboard';
 $user_role = $_SESSION['user_role'] ?? 'citizen';
 $user_email = $_SESSION['user_email'] ?? 'user@example.com';
@@ -344,6 +347,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         <!-- Barangay Official Section -->
         <div class="mb-6">
 
+            <?php if (PermissionHelper::userHasAnyPermission(['can_view_analytics', 'can_view_map'])): ?>
             
             <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -356,6 +360,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
             </a>
+            <?php endif; ?>
             
             <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -382,6 +387,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <?php endif; ?>
             </a>
             
+            <?php if (PermissionHelper::userHasPermission('can_manage_reports')): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'verify-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'verify-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
@@ -393,7 +399,9 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
             </a>
+            <?php endif; ?>
 
+            <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=reporters-directory" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
@@ -405,12 +413,14 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
             </a>
+            <?php endif; ?>
         </div>
         
         <?php elseif($user_role == 'admin'): ?>
         <!-- Admin/MENRO Section -->
         <div class="mb-6">
 
+            <?php if (PermissionHelper::userHasAnyPermission(['can_view_analytics', 'can_view_map'])): ?>
             
             <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -423,6 +433,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
             </a>
+            <?php endif; ?>
             
             <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -449,6 +460,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <?php endif; ?>
             </a>
             
+            <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=all-reports" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'all-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'all-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
@@ -460,7 +472,9 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
             </a>
-            
+            <?php endif; ?>
+
+            <?php if (PermissionHelper::userHasAnyPermission(['can_manage_users', 'can_manage_staff'])): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=manage-users" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'manage-users' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'manage-users' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
@@ -472,6 +486,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
             </a>
+            <?php endif; ?>
 
             <?php if (($_SESSION['user_type'] ?? null) === 'admin'): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs" 
@@ -488,6 +503,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
             <?php endif; ?>
 
             <!-- UPDATED: System Settings (tabbed interface) -->
+            <?php if (PermissionHelper::userHasPermission('can_manage_system')): ?>
             <div class="mt-4 pt-2 border-t border-emerald-50">
                 <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3">Settings</p>
                 <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=general" 
@@ -502,6 +518,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                     <?php endif; ?>
                 </a>
             </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
     </nav>
@@ -511,7 +528,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         <a href="<?php echo BASE_URL; ?>index.php?page=profile" 
            class="flex items-center hover:bg-gray-50 rounded-xl p-1.5 transition-all duration-200 text-left group">
             <div class="relative">
-                <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
+                <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
                     <?php if (!empty($profile_pic_url)): ?>
                         <img src="<?php echo $profile_pic_url; ?>" alt="Profile" class="w-full h-full object-cover rounded-full">
                     <?php else: ?>

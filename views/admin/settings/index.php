@@ -54,6 +54,18 @@ $navigation_groups = [
             'description' => 'Manage report categories and severity weights',
             'file' => 'categories.php'
         ],
+        'category_keywords' => [
+            'label' => 'Category Keywords',
+            'icon' => 'fa-key',
+            'description' => 'Auto-correction dictionary — trigger words that auto-suggest a category while residents type',
+            'file' => 'category_keywords.php'
+        ],
+        'quick_notes' => [
+            'label' => 'Quick Note Templates',
+            'icon' => 'fa-bolt',
+            'description' => 'Smart suggestion templates for investigation & resolution notes',
+            'file' => 'quick_notes.php'
+        ],
         'reporting' => [
             'label' => 'Reporting Limits',
             'icon' => 'fa-gauge-high',

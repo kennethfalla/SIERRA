@@ -394,7 +394,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     }
 
     $profile_picture = $user['profile_picture'];
-    if (!empty($_POST['cropped_image'])) {
+    if (isset($_POST['remove_photo']) && $_POST['remove_photo'] === '1') {
+        $profile_picture = null;
+    } elseif (!empty($_POST['cropped_image'])) {
         [$ok, $result] = saveProfileCrop($user_id, $profile_picture, $_POST['cropped_image']);
         if ($ok) {
             $profile_picture = $result;
@@ -450,6 +452,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
 
         if ($profile_picture) {
             $_SESSION['profile_picture'] = $profile_picture;
+        } else {
+            unset($_SESSION['profile_picture']);
         }
     } else {
         $_SESSION['errors'] = $errors;
@@ -462,7 +466,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
 // POST: Update profile photo only
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_photo'])) {
-    if (!empty($_POST['cropped_image'])) {
+    if (isset($_POST['remove_photo']) && $_POST['remove_photo'] === '1') {
+        $db->prepare("UPDATE users SET profile_picture = NULL WHERE id = :id")
+           ->execute([':id' => $user_id]);
+        unset($_SESSION['profile_picture']);
+        $_SESSION['success'] = "Profile photo removed.";
+    } elseif (!empty($_POST['cropped_image'])) {
         [$ok, $result] = saveProfileCrop($user_id, $user['profile_picture'], $_POST['cropped_image']);
         if ($ok) {
             $db->prepare("UPDATE users SET profile_picture = :pp WHERE id = :id")
@@ -1045,6 +1054,19 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .avatar-option:focus-visible,
         .avatar-option.selected { border-color: #10A37F; }
         .avatar-option img { width: 100%; height: 100%; border-radius: 50%; display: block; object-fit: cover; }
+        .avatar-option-none {
+            background: #F3F4F6;
+            box-shadow: inset 0 0 0 2px #E5E7EB;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            border-radius: 50%;
+        }
+        .avatar-option-none:hover { background: #E5E7EB; }
+        .avatar-none-glyph { color: #9CA3AF; font-size: 20px; line-height: 1; }
+        .avatar-none-label { color: #6B7280; font-size: 9px; font-weight: 700; }
         .avatar-picker-divider {
             display: flex;
             align-items: center;
@@ -1304,6 +1326,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <form method="POST" action="" enctype="multipart/form-data" id="photoForm">
     <input type="hidden" name="update_photo" value="1">
     <input type="hidden" name="cropped_image" id="photoCroppedImage" value="">
+    <input type="hidden" name="remove_photo" id="removePhotoNav" value="">
 </form>
 
 <!-- Hidden file input for "Choose from Gallery" (shared by profile menu + Edit Profile) -->
@@ -1480,6 +1503,53 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             });
             avatarPickerGrid.appendChild(btn);
         });
+
+        // "No avatar" option — clears the profile picture back to initials.
+        var noneBtn = document.createElement('button');
+        noneBtn.type = 'button';
+        noneBtn.className = 'avatar-option avatar-option-none';
+        noneBtn.setAttribute('aria-label', 'No avatar');
+        noneBtn.title = 'No avatar';
+        noneBtn.innerHTML = '<span class="avatar-none-glyph"><i class="fas fa-user-slash"></i></span><span class="avatar-none-label">None</span>';
+        noneBtn.addEventListener('click', function() {
+            avatarPickerGrid.querySelectorAll('.avatar-option').forEach(function(b) { b.classList.remove('selected'); });
+            noneBtn.classList.add('selected');
+            applyNoAvatar();
+        });
+        avatarPickerGrid.appendChild(noneBtn);
+    }
+
+    // Removes any photo from an avatar container and falls back to the initials.
+    function resetAvatarToInitials(containerEl) {
+        if (!containerEl) return;
+        var img = containerEl.querySelector('img');
+        var initials = containerEl.querySelector('.initials');
+        if (img && img.parentNode === containerEl) containerEl.removeChild(img);
+        if (initials) initials.style.display = 'flex';
+        // Keep the sidebar avatar in sync too, if present.
+        var sidebarImg = document.querySelector('#sidebar .w-10.h-10 img');
+        var sidebarSpan = document.querySelector('#sidebar .w-10.h-10 span');
+        if (sidebarImg) sidebarImg.style.display = 'none';
+        if (sidebarSpan) sidebarSpan.style.display = 'flex';
+    }
+
+    function applyNoAvatar() {
+        if (avatarPickerTarget === 'edit') {
+            // Inside "Edit Profile": stage a removal marker, reset the preview,
+            // and let the existing "Save" button submit it with the form.
+            if (editCroppedImage) editCroppedImage.value = '';
+            var rmEdit = document.getElementById('removePhotoEdit');
+            if (rmEdit) rmEdit.value = '1';
+            resetAvatarToInitials(avatarContainerEdit);
+            closeAvatarPicker();
+        } else {
+            // From the profile menu / navbar avatar: remove the photo right away.
+            var rmNav = document.getElementById('removePhotoNav');
+            if (rmNav) rmNav.value = '1';
+            resetAvatarToInitials(avatarContainer);
+            closeAvatarPicker();
+            photoForm.submit();
+        }
     }
 
     function applyChosenAvatar(dataUrl) {

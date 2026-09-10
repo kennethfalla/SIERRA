@@ -148,6 +148,60 @@ class Database {
             }
 
             // ============================================
+            // 3a. CHECK: quick_note_templates table (if not exists)
+            // Smart suggestion (canned response) templates the MENRO admin
+            // manages in Settings > Quick Note Templates. They appear as
+            // clickable chips on the Barangay/MENRO Manage Report page above
+            // the Investigation Note box and inside the Resolve Report modal.
+            // ============================================
+            $check = $this->conn->query("SHOW TABLES LIKE 'quick_note_templates'");
+            if ($check->rowCount() == 0) {
+                $this->conn->exec("
+                    CREATE TABLE IF NOT EXISTS quick_note_templates (
+                        id INT(11) NOT NULL AUTO_INCREMENT,
+                        template_text TEXT NOT NULL,
+                        target_category VARCHAR(191) NOT NULL DEFAULT '',
+                        target_status VARCHAR(32) NOT NULL DEFAULT '',
+                        is_active TINYINT(1) NOT NULL DEFAULT 1,
+                        created_by INT(11) DEFAULT NULL,
+                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        KEY idx_category (target_category),
+                        KEY idx_status (target_status)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+                ");
+                error_log("[Database] Created 'quick_note_templates' table.");
+            }
+
+            // ============================================
+            // 3b. CHECK: category_keywords table (if not exists)
+            // Auto-correction dictionary — trigger words linked to report
+            // categories. Managed by the MENRO admin in Settings >
+            // Category Keywords. Used on the Submit Report page to sniff the
+            // resident's description and auto-correct a mismatched category.
+            // ============================================
+            $check = $this->conn->query("SHOW TABLES LIKE 'category_keywords'");
+            if ($check->rowCount() == 0) {
+                $this->conn->exec("
+                    CREATE TABLE IF NOT EXISTS category_keywords (
+                        id INT(11) NOT NULL AUTO_INCREMENT,
+                        keyword VARCHAR(100) NOT NULL,
+                        category_id INT(11) NOT NULL,
+                        is_active TINYINT(1) NOT NULL DEFAULT 1,
+                        created_by INT(11) DEFAULT NULL,
+                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY idx_keyword (keyword),
+                        KEY idx_category (category_id),
+                        KEY idx_active (is_active)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+                ");
+                error_log("[Database] Created 'category_keywords' table.");
+            }
+
+            // ============================================
             // 4. CHECK: Other missing columns (safety net)
             // ============================================
             

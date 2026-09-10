@@ -25,6 +25,27 @@ $db = $database->getConnection();
 
 $categories = $db->query("SELECT * FROM categories WHERE is_active = 1 ORDER BY name");
 
+// Load the auto-correction dictionary (Settings > Category Keywords).
+// Map: lowercase keyword => ['id' => category_id, 'name' => category_name].
+$keyword_map = [];
+try {
+    $kw_stmt = $db->query("
+        SELECT kw.keyword, kw.category_id, c.name AS category_name
+        FROM category_keywords kw
+        JOIN categories c ON c.id = kw.category_id
+        WHERE kw.is_active = 1
+    ");
+    foreach ($kw_stmt as $kw_row) {
+        $keyword_map[strtolower(trim((string)$kw_row['keyword']))] = [
+            'id' => (int)$kw_row['category_id'],
+            'name' => $kw_row['category_name']
+        ];
+    }
+} catch (Exception $e) {
+    $keyword_map = [];
+    error_log("[SubmitReport] category_keywords unavailable: " . $e->getMessage());
+}
+
 // Load San Isidro boundary from GeoJSON
 $geojson_file = BASE_PATH . 'geojson/sanisidro.geojson';
 $boundary_data = null;
@@ -179,6 +200,55 @@ if (is_dir($barangays_dir)) {
             border-color: #EF4444;
             box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
         }
+
+        /* ===== AUTO-CORRECTION (CATEGORY KEYWORDS) ===== */
+        .category-auto-flash {
+            animation: categoryFlash 0.9s ease 2;
+        }
+        @keyframes categoryFlash {
+            0%, 100% {
+                border-color: #e5ece8;
+                box-shadow: none;
+                background: white;
+            }
+            50% {
+                border-color: #10A37F;
+                box-shadow: 0 0 0 4px rgba(16, 163, 127, 0.35);
+                background: #D1FAE5;
+            }
+        }
+        .auto-correct-notice {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.6rem;
+            padding: 0.55rem 0.8rem;
+            border-radius: 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #065F46;
+            background: #ECFDF5;
+            border: 1px solid #A7F3D0;
+            animation: autoCorrectIn 0.25s ease-out;
+        }
+        .auto-correct-notice i.fa-wand-magic-sparkles { color: #10A37F; }
+        .auto-correct-notice .ac-undo {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #047857;
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 0;
+            flex-shrink: 0;
+        }
+        .auto-correct-notice .ac-undo:hover { color: #065F46; }
+        @keyframes autoCorrectIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
         .form-label {
             display: block;
             font-size: 0.8rem;
@@ -241,8 +311,13 @@ if (is_dir($barangays_dir)) {
         .impact-option .desc { font-size: 0.7rem; color: #6b7280; margin-top: 0.2rem; line-height: 1.35; }
         .impact-option .badge-severe { font-size: 0.65rem; display: block; margin-top: 0.25rem; color: #ef4444; font-weight: 600; }
         @media (max-width: 480px) {
-            .impact-option .title { font-size: 0.75rem; }
-            .impact-option .desc { font-size: 0.6rem; }
+            .impact-option .card {
+                padding: 0.6rem 0.35rem;
+                min-height: 88px;
+            }
+            .impact-option .title { font-size: 0.7rem; }
+            .impact-option .desc { font-size: 0.55rem; }
+            .impact-option .badge-severe { font-size: 0.6rem; }
         }
 
         /* ===== MAP ===== */
@@ -1436,20 +1511,8 @@ if (is_dir($barangays_dir)) {
                             <?php endwhile; ?>
                         </select>
                         <p id="category-error" class="error-message"></p>
-                        <!-- Category Suggestion -->
-                        <div id="categorySuggestion" style="display:none; background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.75rem; padding:0.5rem 0.75rem; margin-top:0.5rem; font-size:0.8rem; color:#475569;">
-                            <i class="fas fa-lightbulb"></i>
-                            <span class="font-semibold">Not sure which category?</span>
-                            <div style="margin-top:6px;">
-                                <span class="text-xs text-gray-500">Select from these common categories:</span>
-                                <div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:4px;">
-                                    <span class="cat-tag" data-cat="Drainage Blockage" style="display:inline-block; background:#e2e8f0; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600; color:#475569; cursor:pointer;">🌊 Drainage Blockage</span>
-                                    <span class="cat-tag" data-cat="Illegal Dumping" style="display:inline-block; background:#e2e8f0; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600; color:#475569; cursor:pointer;">🚮 Illegal Dumping</span>
-                                    <span class="cat-tag" data-cat="Uncollected Garbage" style="display:inline-block; background:#e2e8f0; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600; color:#475569; cursor:pointer;">🗑️ Uncollected Garbage</span>
-                                    <span class="cat-tag" data-cat="Water Pollution" style="display:inline-block; background:#e2e8f0; padding:0.1rem 0.5rem; border-radius:9999px; font-size:0.7rem; font-weight:600; color:#475569; cursor:pointer;">💧 Water Pollution</span>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Auto-correction notice (Category Keywords) -->
+                        <div id="autoCorrectNotice" class="auto-correct-notice" style="display:none;" role="status"></div>
                         <div class="suggestion-box" id="categoryTipBox" style="background:#f0fdf4; border-left:4px solid #10A37F; padding:0.75rem 1rem; border-radius:0.75rem; margin-top:0.5rem; font-size:0.85rem; color:#065f46; display:none;">
                             <i class="fas fa-info-circle"></i>
                             <span class="suggestion-title font-bold">Tip: Choose the right category</span>
@@ -1464,7 +1527,7 @@ if (is_dir($barangays_dir)) {
                           
                         </label>
                         
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="impactContainer">
+                        <div class="grid grid-cols-3 gap-2 sm:gap-3" id="impactContainer">
                             <!-- Localized / Minor -->
                             <div class="impact-option selected selected-localized" data-value="0" role="button" tabindex="0">
                                 <div class="card">
@@ -2052,33 +2115,170 @@ if (is_dir($barangays_dir)) {
     // ============================================================
     categorySelect.addEventListener('click', function() {
         const tipBox = document.getElementById('categoryTipBox');
-        const suggestionBox = document.getElementById('categorySuggestion');
         tipBox.style.display = 'block';
-        suggestionBox.style.display = 'block';
         clearTimeout(categoryTipTimer);
         categoryTipTimer = setTimeout(function() {
             tipBox.style.display = 'none';
-            suggestionBox.style.display = 'none';
         }, 8000);
     });
 
-    document.querySelectorAll('.cat-tag').forEach(function(tag) {
-        tag.addEventListener('click', function() {
-            const catName = this.getAttribute('data-cat');
-            const options = categorySelect.options;
-            for (let i = 0; i < options.length; i++) {
-                if (options[i].text.trim() === catName) {
-                    categorySelect.selectedIndex = i;
-                    categorySelect.dispatchEvent(new Event('change'));
-                    break;
-                }
-            }
-            document.getElementById('categorySuggestion').style.display = 'none';
-            showToast('Category selected: ' + catName, 'success');
-        });
-    });
-
     let categoryTipTimer = null;
+
+    // ============================================================
+    // AUTO-CORRECTION (CATEGORY KEYWORDS)
+    // The "smart" observer: while the resident types, we continuously
+    // cross-reference their words against the Admin Dictionary
+    // (Settings > Category Keywords). If the description strongly
+    // matches a category different from the one selected (or the
+    // dropdown was left blank), we auto-switch the dropdown, flash it
+    // green, and show a small notice so the resident isn't confused.
+    // ============================================================
+    const CATEGORY_KEYWORDS = <?php echo json_encode($keyword_map); ?>;
+
+    let autoCorrectTimer = null;
+    let autoCorrectNoticeTimer = null;
+    let lastAutoMatchedKey = '';
+    let prevAutoCategoryId = '';
+
+    function escapeRegExp(s) {
+        return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function stripAccents(s) {
+        return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function scanDescriptionForCategory() {
+        const raw = descriptionInput.value || '';
+        const norm = stripAccents(raw).toLowerCase();
+        const scores = {}; // category_id => { count, name_id, firstIndex }
+        const entries = Object.keys(CATEGORY_KEYWORDS);
+        for (let e = 0; e < entries.length; e++) {
+            const kw = entries[e];
+            const kwNorm = stripAccents(kw).toLowerCase();
+            if (!kwNorm || kwNorm.length < 2) continue;
+            let found;
+            if (kwNorm.indexOf(' ') !== -1) {
+                // Phrases are matched as substrings
+                found = norm.indexOf(kwNorm) !== -1;
+            } else {
+                // Single words match on word boundaries so "basura"
+                // doesn't match "basurahan" (which is a different thing).
+                const re = new RegExp('(^|[^a-z0-9])' + escapeRegExp(kwNorm) + '($|[^a-z0-9])', 'i');
+                found = re.test(norm);
+            }
+            if (!found) continue;
+            const cat = CATEGORY_KEYWORDS[kw];
+            const idx = norm.indexOf(kwNorm);
+            if (!scores[cat.id]) {
+                scores[cat.id] = { count: 0, name: cat.name, firstIndex: idx === -1 ? 999999 : idx };
+            }
+            scores[cat.id].count++;
+            if (idx !== -1 && idx < scores[cat.id].firstIndex) scores[cat.id].firstIndex = idx;
+        }
+
+        // Winner: most keyword hits, then earliest mention in the text.
+        let bestCatId = null;
+        let best = null;
+        for (const cid in scores) {
+            if (!Object.prototype.hasOwnProperty.call(scores, cid)) continue;
+            const s = scores[cid];
+            if (!best || s.count > best.count || (s.count === best.count && s.firstIndex < best.firstIndex)) {
+                best = s;
+                bestCatId = cid;
+            }
+        }
+        if (!best) return null;
+
+        const matchedKeys = Object.keys(scores).sort().join('|');
+        return {
+            id: bestCatId,
+            name: best.name,
+            matchKey: matchedKeys
+        };
+    }
+
+    function scheduleAutoCorrect(immediate) {
+        if (Object.keys(CATEGORY_KEYWORDS).length === 0) return;
+        clearTimeout(autoCorrectTimer);
+        autoCorrectTimer = setTimeout(applyAutoCorrect, immediate ? 0 : 700);
+    }
+
+    function applyAutoCorrect() {
+        const detected = scanDescriptionForCategory();
+        if (!detected) {
+            lastAutoMatchedKey = '';
+            return;
+        }
+
+        // Same evidence set as before: don't re-act, so we never fight
+        // the resident if they deliberately change the category.
+        if (detected.matchKey === lastAutoMatchedKey) return;
+        lastAutoMatchedKey = detected.matchKey;
+
+        const currentId = categorySelect.value;
+        if (String(currentId) === String(detected.id)) return; // already correct
+
+        // Capture before switching so the resident can undo.
+        prevAutoCategoryId = currentId;
+
+        const options = categorySelect.options;
+        for (let i = 0; i < options.length; i++) {
+            if (String(options[i].value) === String(detected.id)) {
+                categorySelect.selectedIndex = i;
+                break;
+            }
+        }
+
+        // Green flash + ripple the change through validation / nearby checks.
+        categorySelect.classList.remove('category-auto-flash');
+        void categorySelect.offsetWidth;
+        categorySelect.classList.add('category-auto-flash');
+        categorySelect.dispatchEvent(new Event('change'));
+
+        showAutoCorrectNotice(detected.name);
+    }
+
+    function showAutoCorrectNotice(catName) {
+        const notice = document.getElementById('autoCorrectNotice');
+        if (!notice) return;
+        const undoBtn = prevAutoCategoryId !== '' && String(prevAutoCategoryId) !== String(categorySelect.value)
+            ? '<button type="button" class="ac-undo" onclick="undoAutoCorrect()">Undo</button>'
+            : '';
+        notice.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><span>Category auto-updated to <strong>' +
+            escapeHtml(catName) + '</strong> based on your description.</span>' + undoBtn;
+        notice.style.display = 'flex';
+        clearTimeout(autoCorrectNoticeTimer);
+        autoCorrectNoticeTimer = setTimeout(function() {
+            notice.style.display = 'none';
+        }, 6000);
+        try { notice.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (err) {}
+    }
+
+    function undoAutoCorrect() {
+        if (prevAutoCategoryId === '') return;
+        const options = categorySelect.options;
+        for (let i = 0; i < options.length; i++) {
+            if (String(options[i].value) === String(prevAutoCategoryId)) {
+                categorySelect.selectedIndex = i;
+                break;
+            }
+        }
+        categorySelect.dispatchEvent(new Event('change'));
+        prevAutoCategoryId = '';
+        const notice = document.getElementById('autoCorrectNotice');
+        if (notice) notice.style.display = 'none';
+    }
+
+    function resetAutoCorrectState() {
+        lastAutoMatchedKey = '';
+        prevAutoCategoryId = '';
+        clearTimeout(autoCorrectTimer);
+        clearTimeout(autoCorrectNoticeTimer);
+        const notice = document.getElementById('autoCorrectNotice');
+        if (notice) notice.style.display = 'none';
+        categorySelect.classList.remove('category-auto-flash');
+    }
 
     // ============================================================
     // SANITIZATION & VALIDATION
@@ -3141,6 +3341,7 @@ if (is_dir($barangays_dir)) {
         isDuplicateCheckDone = false;
         closeDuplicateModal();
         closeDetailsModal();
+        resetAutoCorrectState();
     }
 
     // ============================================================
@@ -3173,6 +3374,7 @@ if (is_dir($barangays_dir)) {
     // ============================================================
     descriptionInput.addEventListener('input', function() {
         updateCharCount('description', 'description-count', 5000);
+        scheduleAutoCorrect(false);
     });
 
     descriptionInput.addEventListener('blur', function() {
@@ -3192,6 +3394,7 @@ if (is_dir($barangays_dir)) {
         this.selectionStart = newCursorPos;
         this.selectionEnd = newCursorPos;
         updateCharCount('description', 'description-count', 5000);
+        scheduleAutoCorrect(true);
     });
 
     // CATEGORY CHANGE: re-check nearby reports
@@ -3641,6 +3844,7 @@ if (is_dir($barangays_dir)) {
 
     window.closeDetailsModal = closeDetailsModal;
     window.closeDuplicateModal = closeDuplicateModal;
+    window.undoAutoCorrect = undoAutoCorrect;
 
     // Clean up duplicate modal if user refreshes
     window.addEventListener('beforeunload', function() {

@@ -1163,13 +1163,45 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             flex-wrap: wrap;
             min-width: 0;
         }
-        .map-filters {
+        .map-head-tools {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 0.85rem 1rem;
+        }
+
+        /* Floating legend + category filter overlay on the map canvas */
+        .map-overlay {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.6rem;
+            pointer-events: none;
+        }
+        .map-overlay > * { pointer-events: auto; }
+        .map-legend {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-between;
             align-items: center;
-            gap: 0.85rem 1.25rem;
-            margin-bottom: 0.9rem;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 0.45rem 0.8rem;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+            font-size: 0.72rem;
+            color: #4b5563;
+        }
+        /* Legend shown under the map on phones so it never covers the canvas */
+        .map-legend-inline {
+            display: none;
+            justify-content: center;
+            width: 100%;
         }
 
         @media (max-width: 768px) {
@@ -1186,9 +1218,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             .mobile-report-card { display: block; }
             .desktop-reports-table { display: none; }
             /* category filter full-width */
-            #categoryFilterWrap { width: 100%; }
-            #categoryFilterBtn { width: 100%; justify-content: space-between; }
-            #categoryFilterMenu { width: 100%; left: 0; }
+            #categoryFilterWrap { max-width: 170px; }
+            #categoryFilterBtn { padding: 0.35rem 0.75rem; font-size: 0.75rem; }
+            #categoryFilterMenu { width: 230px; right: 0; left: auto; }
             /* section title shrink */
             .section-title { font-size: 0.9rem; }
             /* Map card compacts for tablets/phones */
@@ -1196,7 +1228,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             .map-title-wrap { width: 100%; justify-content: space-between; }
             #mapToggle { flex-wrap: nowrap; }
             #mapToggle button { flex: 1; padding: 0.35rem 0.5rem; font-size: 0.72rem; }
-            .map-legend { width: 100%; gap: 0.45rem 0.85rem; }
+            /* Header tools wrap to their own line on mobile */
+            .map-head-tools { width: 100%; justify-content: space-between; }
+            .map-legend { gap: 0.45rem 0.85rem; padding: 0.35rem 0.65rem; font-size: 0.68rem; }
             /* Timeframe pills become a swipeable strip instead of wrapping */
             #timeframeToggle {
                 display: flex;
@@ -1209,10 +1243,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             #timeframeToggle::-webkit-scrollbar { display: none; }
             #timeframeToggle button { flex-shrink: 0; white-space: nowrap; }
             /* Filters stack full-width */
-            .map-filters { align-items: stretch; }
-            .map-timeframe { width: 100%; }
             #customRangeBox { width: 100%; flex-wrap: wrap; }
             #customRangeBox input { flex: 1 1 40%; min-width: 0; }
+            /* Keep the map canvas unobstructed: legend moves below the map */
+            .map-overlay { top: 0.5rem; right: 0.5rem; }
+            .map-overlay .map-legend { display: none; }
+            .map-legend-inline { display: flex; margin-top: 0.6rem; }
         }
         @media (max-width: 480px) {
             #map { height: 300px; }
@@ -1510,53 +1546,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <div class="map-title-wrap">
                     <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
                         <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
-                        Local Incident Map
+                        Environmental Hazard Map
                     </h2>
                     <div class="map-toggle" id="mapToggle">
                         <button class="active" data-mode="active">Active Hazards</button>
-                        <button data-mode="historical">Historical / Resolved</button>
-                    </div>
-                </div>
-                <div class="map-legend flex flex-wrap gap-3 text-xs">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical</span>
-                </div>
-            </div>
-
-            <!-- Category Filter + Timeframe Selector -->
-            <div class="map-filters">
-                <div class="relative" id="categoryFilterWrap">
-                    <button id="categoryFilterBtn" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 hover:border-[#10A37F] transition">
-                        <i class="fas fa-filter text-[#10A37F]"></i>
-                        <span id="categoryFilterLabel">All Categories</span>
-                        <i class="fas fa-chevron-down text-xs text-gray-400"></i>
-                    </button>
-                    <div id="categoryFilterMenu" class="hidden absolute z-[1100] mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-lg p-3">
-                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
-                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Hazard Categories</span>
-                            <div class="flex gap-2">
-                                <button type="button" id="catSelectAll" class="text-xs text-[#10A37F] font-semibold hover:underline">All</button>
-                                <button type="button" id="catSelectNone" class="text-xs text-gray-400 font-semibold hover:underline">None</button>
-                            </div>
-                        </div>
-                        <div id="categoryCheckboxList" class="max-h-56 overflow-y-auto space-y-1">
-                            <?php foreach ($categories as $cat): ?>
-                            <label class="flex items-center gap-2 text-sm text-gray-700 px-1 py-1 rounded hover:bg-gray-50 cursor-pointer">
-                                <input type="checkbox" class="category-checkbox accent-[#10A37F]" value="<?php echo htmlspecialchars($cat['id']); ?>" checked>
-                                <span><?php echo htmlspecialchars($cat['name']); ?></span>
-                            </label>
-                            <?php endforeach; ?>
-                            <?php if (empty($categories)): ?>
-                            <p class="text-xs text-gray-400 px-1">No categories found.</p>
-                            <?php endif; ?>
-                        </div>
+                        <button data-mode="historical">Historical Trends</button>
                     </div>
                 </div>
 
-                <!-- Timeframe Selector + Custom Date Range -->
-                <div class="flex flex-wrap items-center gap-3 map-timeframe">
+                <!-- Timeframe Segmented Control + Custom Range (right side) -->
+                <div class="map-head-tools">
                     <div class="map-toggle" id="timeframeToggle">
                         <button data-range="today">Today</button>
                         <button data-range="week">This Week</button>
@@ -1571,10 +1570,52 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
                     </div>
                 </div>
-
             </div>
 
-            <div id="map"></div>
+            <div id="map" class="relative">
+                <!-- Floating legend + category filter overlay (top-right of the map canvas) -->
+                <div class="map-overlay">
+                    <div class="map-legend">
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $criticalBands['yellow'] - 1; ?>)</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (<?php echo $criticalBands['yellow']; ?>-<?php echo $criticalBands['orange'] - 1; ?>)</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $criticalBands['orange']; ?>-<?php echo $criticalBands['critical'] - 1; ?>)</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $criticalBands['critical']; ?>-20)</span>
+                    </div>
+                    <div class="relative" id="categoryFilterWrap">
+                        <button id="categoryFilterBtn" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-sm hover:border-[#10A37F] transition">
+                            <i class="fas fa-filter text-[#10A37F]"></i>
+                            <span id="categoryFilterLabel">All Categories</span>
+                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
+                        </button>
+                        <div id="categoryFilterMenu" class="hidden absolute z-[1100] mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-lg p-3 right-0">
+                            <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
+                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Hazard Categories</span>
+                                <div class="flex gap-2">
+                                    <button type="button" id="catSelectAll" class="text-xs text-[#10A37F] font-semibold hover:underline">All</button>
+                                    <button type="button" id="catSelectNone" class="text-xs text-gray-400 font-semibold hover:underline">None</button>
+                                </div>
+                            </div>
+                            <div id="categoryCheckboxList" class="max-h-56 overflow-y-auto space-y-1">
+                                <?php foreach ($categories as $cat): ?>
+                                <label class="flex items-center gap-2 text-sm text-gray-700 px-1 py-1 rounded hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" class="category-checkbox accent-[#10A37F]" value="<?php echo htmlspecialchars($cat['id']); ?>" checked>
+                                    <span><?php echo htmlspecialchars($cat['name']); ?></span>
+                                </label>
+                                <?php endforeach; ?>
+                                <?php if (empty($categories)): ?>
+                                <p class="text-xs text-gray-400 px-1">No categories found.</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="map-legend map-legend-inline text-xs text-gray-500">
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $criticalBands['yellow'] - 1; ?>)</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (<?php echo $criticalBands['yellow']; ?>-<?php echo $criticalBands['orange'] - 1; ?>)</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $criticalBands['orange']; ?>-<?php echo $criticalBands['critical'] - 1; ?>)</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $criticalBands['critical']; ?>-20)</span>
+            </div>
             <p class="text-xs text-gray-400 mt-2" id="filterSummary"></p>
             <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
                 <i class="fas fa-info-circle"></i>

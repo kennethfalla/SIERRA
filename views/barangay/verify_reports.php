@@ -1172,9 +1172,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             .active-filters-row {
                 padding: 8px 12px;
             }
-            .stat-card .stat-value {
-                font-size: 1.5rem;
-            }
             /* page-header tighter on mobile */
             .page-header { padding: 0.75rem 0 0.5rem; }
             .page-title { font-size: 1.25rem !important; }
@@ -1184,8 +1181,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             .notification-dropdown { left: 8px; right: 8px; width: auto; }
             /* risk summary wraps cleanly */
             .risk-summary-container { flex-wrap: wrap; gap: 4px; }
-            /* stat cards: smaller number on very small phones */
-            .bg-white .text-xl { font-size: 1.1rem; }
         }
     </style>
 </head>
@@ -1254,10 +1249,10 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             </div>
         <?php endif; ?>
         
-        <!-- ===== STATISTICS CARDS (updated to match all_reports.php design) ===== -->
+        <!-- ===== STATISTICS CARDS (matches all_reports.php design) ===== -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
             <?php
-            // Define stats array (stat-card style like admin user management)
+            // Define stats array (stat-card style like admin all_reports)
             $stats_metrics = [
                 ['label' => 'Total',          'value' => $total,        'color' => 'text-emerald-600', 'chip' => 'bg-emerald-100',   'icon' => 'fa-flag'],
                 ['label' => 'Pending',        'value' => $pending,      'color' => 'text-yellow-600',  'chip' => 'bg-yellow-100',    'icon' => 'fa-clock'],

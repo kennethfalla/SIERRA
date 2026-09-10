@@ -30,6 +30,7 @@ $ft_chips_clear_all    = $ft['chips_clear_all'] ?? false;
 $ft_chip_clear_map     = $ft['chip_clear_map'] ?? [];
 $ft_callback           = $ft['callback'] ?? 'applyFilters';
 $ft_filter_count       = (int)($ft_filter_by['count'] ?? 0);
+$ft_date_range         = $ft['date_range'] ?? null;
 
 // Fallback chip-clearing map (used when the host page does not provide chip_clear_map):
 //   'search' -> search input, 'category' -> first inline select that has an "all" option,
@@ -67,7 +68,7 @@ foreach ($ft_popover_fields as $pf) {
         margin-bottom: 1.5rem;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
         flex-wrap: wrap;
         position: relative;
     }
@@ -265,6 +266,40 @@ foreach ($ft_popover_fields as $pf) {
     .ft-toolbar .popover-field input[type="date"]:focus {
         border-color: var(--ft-forest);
         box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.10);
+    }
+    .ft-toolbar .date-range-wrapper {
+        position: relative;
+    }
+    .ft-toolbar .dr-presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    .ft-toolbar .dr-preset {
+        padding: 6px 12px;
+        border: 1.5px solid var(--ft-border-light);
+        background: var(--ft-gray-50);
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--ft-gray-700);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    .ft-toolbar .dr-preset:hover {
+        border-color: var(--ft-forest);
+        color: var(--ft-forest);
+        background: var(--ft-forest-light);
+    }
+    .ft-toolbar .dr-preset.active {
+        background: var(--ft-forest);
+        border-color: var(--ft-forest);
+        color: var(--ft-white);
+    }
+    .ft-toolbar .dr-custom {
+        margin-bottom: 0;
     }
     .ft-toolbar .popover-actions {
         display: flex;
@@ -658,6 +693,47 @@ foreach ($ft_popover_fields as $pf) {
             </div>
             <?php endif; ?>
 
+            <!-- Merged Date Range picker (opt-in via $ft['date_range']) -->
+            <?php if (!empty($ft_date_range)): ?>
+            <div class="date-range-wrapper">
+                <button type="button" class="toolbar-filter-btn <?php echo !empty($ft_date_range['active']) ? 'active' : ''; ?>" id="ftDateRangeBtn">
+                    <i class="far fa-calendar-alt"></i>
+                    <span><?php echo htmlspecialchars($ft_date_range['button_label'] ?? 'Date Range', ENT_QUOTES); ?></span>
+                    <i class="fas fa-chevron-down text-xs"></i>
+                    <?php if (!empty($ft_date_range['count'])): ?>
+                        <span class="filter-count-badge"><?php echo (int)$ft_date_range['count']; ?></span>
+                    <?php endif; ?>
+                </button>
+                <div class="filter-popover" id="ftDateRangePopover">
+                    <div class="popover-title">Filter by Date</div>
+                    <div class="dr-presets" id="ftRangePresets">
+                        <?php foreach (($ft_date_range['presets'] ?? []) as $dr_value => $dr_label): ?>
+                            <button type="button"
+                                class="dr-preset <?php echo ((string)($ft_date_range['preset'] ?? '') === (string)$dr_value) ? 'active' : ''; ?>"
+                                data-preset="<?php echo htmlspecialchars((string)$dr_value, ENT_QUOTES); ?>">
+                                <?php echo htmlspecialchars((string)$dr_label); ?>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="popover-grid full-width dr-custom">
+                        <div class="popover-field">
+                            <label>From</label>
+                            <input type="date" id="ftRangeFrom" value="<?php echo htmlspecialchars((string)($ft_date_range['from'] ?? ''), ENT_QUOTES); ?>">
+                        </div>
+                        <div class="popover-field">
+                            <label>To</label>
+                            <input type="date" id="ftRangeTo" value="<?php echo htmlspecialchars((string)($ft_date_range['to'] ?? ''), ENT_QUOTES); ?>">
+                        </div>
+                    </div>
+                    <input type="hidden" id="ftRangePreset" value="<?php echo htmlspecialchars((string)($ft_date_range['preset'] ?? ''), ENT_QUOTES); ?>">
+                    <div class="popover-actions">
+                        <button type="button" class="popover-btn-reset" id="ftRangeReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
+                        <button type="button" class="popover-btn-apply" id="ftRangeApply"><i class="fas fa-check" style="font-size:0.7rem; margin-right:4px"></i>Apply</button>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <?php if ($ft_results_text !== '' || $ft_view_toggle || $ft_trailing_select): ?>
             <div class="toolbar-divider"></div>
             <div class="toolbar-results">
@@ -756,6 +832,8 @@ foreach ($ft_popover_fields as $pf) {
         moreBtn && moreBtn.setAttribute('aria-expanded', 'false');
         filterPopover && filterPopover.classList.remove('open');
         if (filterPopover) { filterPopover.style.position = ''; filterPopover.style.left = ''; filterPopover.style.top = ''; }
+        var drPopInline = document.getElementById('ftDateRangePopover');
+        if (drPopInline) { drPopInline.classList.remove('open'); drPopInline.style.position = ''; drPopInline.style.left = ''; drPopInline.style.top = ''; }
     }
     moreBtn && moreBtn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -897,6 +975,85 @@ foreach ($ft_popover_fields as $pf) {
         filterPopover.style.top = '';
         ftRun();
     });
+
+    // ===== Optional merged Date Range picker (rendered when $ft['date_range'] is set) =====
+    var drBtn = document.getElementById('ftDateRangeBtn');
+    var drPop = document.getElementById('ftDateRangePopover');
+    if (drBtn && drPop) {
+        var drFrom = document.getElementById('ftRangeFrom');
+        var drTo = document.getElementById('ftRangeTo');
+        var drPreset = document.getElementById('ftRangePreset');
+        var drPresets = Array.prototype.slice.call(document.querySelectorAll('#ftRangePresets .dr-preset'));
+
+        function drClose() {
+            drPop.classList.remove('open');
+            drPop.style.position = '';
+            drPop.style.left = '';
+            drPop.style.top = '';
+        }
+        function drPosition() {
+            drPop.style.position = 'fixed';
+            var btnRect = drBtn.getBoundingClientRect();
+            var popW = drPop.offsetWidth || 320;
+            var popH = drPop.offsetHeight;
+            var viewW = window.innerWidth || document.documentElement.clientWidth;
+            var viewH = window.innerHeight || document.documentElement.clientHeight;
+            var left = btnRect.left;
+            if (left + popW > viewW - 8) left = Math.max(8, viewW - popW - 8);
+            var top = btnRect.bottom + 8;
+            if (top + popH > viewH - 8) top = Math.max(8, btnRect.top - popH - 8);
+            drPop.style.left = left + 'px';
+            drPop.style.top = top + 'px';
+        }
+        drBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var inSheet = moreControls && moreControls.classList.contains('open');
+            if (!drPop.classList.contains('open')) {
+                if (inSheet) { drPop.style.position = ''; drPop.style.left = ''; drPop.style.top = ''; }
+                else drPosition();
+            }
+            drPop.classList.toggle('open');
+        });
+        document.addEventListener('click', function (e) {
+            if (drPop.classList.contains('open') && !drPop.contains(e.target) && e.target !== drBtn) drClose();
+        });
+        drPop.addEventListener('click', function (e) { e.stopPropagation(); });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && drPop.classList.contains('open')) drClose();
+        });
+
+        function drFillPreset(v) {
+            drPresets.forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-preset') === v); });
+            drPreset.value = v;
+            if (v && v !== 'all') {
+                var today = new Date();
+                var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+                var f = new Date(today);
+                if (v === 'week') { f.setDate(today.getDate() - 6); }
+                else if (v === 'month') { f = new Date(today.getFullYear(), today.getMonth(), 1); }
+                else if (v === 'year') { f = new Date(today.getFullYear(), 0, 1); }
+                drFrom.value = ymd(f);
+                drTo.value = ymd(today);
+            } else {
+                drFrom.value = '';
+                drTo.value = '';
+            }
+        }
+        drPresets.forEach(function (p) {
+            p.addEventListener('click', function () { drFillPreset(p.getAttribute('data-preset')); });
+        });
+        var drApplyBtn = document.getElementById('ftRangeApply');
+        drApplyBtn && drApplyBtn.addEventListener('click', function () { drClose(); ftRun(); });
+        var drResetBtn = document.getElementById('ftRangeReset');
+        drResetBtn && drResetBtn.addEventListener('click', function () {
+            drPreset.value = '';
+            drFrom.value = '';
+            drTo.value = '';
+            drPresets.forEach(function (p) { p.classList.remove('active'); });
+            drClose();
+            ftRun();
+        });
+    }
 
     // Filter chips + clear all (delegated, so it also works for AJAX-re-rendered chips)
     document.addEventListener('click', function (e) {

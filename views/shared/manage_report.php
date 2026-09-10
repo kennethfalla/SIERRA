@@ -22,7 +22,12 @@ $can_escalate = $view_data['can_escalate'];
 $can_approve_escalation = $view_data['can_approve_escalation'];
 $can_reject_escalation = $view_data['can_reject_escalation'];
 $can_reclassify = $view_data['can_reclassify'];
+$can_manage = $view_data['can_manage'];
 $show_notes = $view_data['show_notes'];
+$report_verified = $view_data['report_verified'] ?? false;
+$note_templates = $view_data['note_templates'] ?? [];
+$resolve_templates = $view_data['resolve_templates'] ?? [];
+$escalate_templates = $view_data['escalate_templates'] ?? [];
 
 // Generate CSRF token
 $csrf_token = InputSanitizer::generateCsrfToken();
@@ -89,15 +94,182 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
 
         /* ===== PHOTO GRID ===== */
-        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
         .photo-grid img { width: 100%; height: 120px; object-fit: cover; border-radius: 0.75rem; cursor: pointer; border: 1px solid rgba(16,163,127,0.08); transition: transform 0.2s; }
         .photo-grid img:hover { transform: scale(1.02); }
         .photo-grid video { width: 100%; height: 120px; object-fit: cover; border-radius: 0.75rem; cursor: pointer; border: 1px solid rgba(16,163,127,0.08); background: #000; }
         .photo-grid video:hover { transform: scale(1.02); }
         .photo-card { position: relative; }
+        .photo-grid-cell { display: flex; flex-direction: column; gap: 6px; }
+        .resolution-note-box {
+            font-size: 0.75rem;
+            color: #374151;
+            background: #F0FDF4;
+            border: 1px solid #A7F3D0;
+            border-radius: 0.6rem;
+            padding: 0.45rem 0.6rem;
+            line-height: 1.45;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+        /* ===== FULL-BLEED MEDIA CARDS (photos fill the whole card, no gaps) ===== */
+        .card-bleed { padding: 0; overflow: hidden; }
+        .card-bleed .card-header {
+            margin-bottom: 0;
+            padding: 0.9rem 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .card-bleed .photo-grid { gap: 0; }
+        .card-bleed .photo-grid img,
+        .card-bleed .photo-grid video { border-radius: 0; border: none; }
+        .card-bleed .photo-grid + p { margin-top: 0; padding: 0.8rem 1.25rem; }
+        .card-bleed > .empty-state { padding: 2rem 1.25rem; }
+        .card-bleed .photo-grid-cell { padding-bottom: 0; }
+        /* ===== COUNT-RESPONSIVE PHOTO GRIDS (adapt to how many photos) ===== */
+        .photo-grid.pg-1 { grid-template-columns: 1fr; }
+        .photo-grid.pg-2 { grid-template-columns: repeat(2, 1fr); }
+        .photo-grid.pg-3 { grid-template-columns: repeat(3, 1fr); }
+        .photo-grid.pg-4 { grid-template-columns: repeat(4, 1fr); }
+        .photo-grid.pg-1 img, .photo-grid.pg-1 video,
+        .photo-grid.pg-1 .photo-card { grid-column: 1 / -1; height: auto; aspect-ratio: 16 / 9; }
+        .photo-grid.pg-2 img, .photo-grid.pg-2 video { height: 230px; }
+        .photo-grid.pg-3 img, .photo-grid.pg-3 video { height: 190px; }
+        .photo-grid.pg-4 img, .photo-grid.pg-4 video { height: 160px; }
+        .photo-grid.pg-5 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+        @media (max-width: 768px) {
+            .photo-grid.pg-2 img, .photo-grid.pg-2 video { height: 175px; }
+            .photo-grid.pg-3 { grid-template-columns: repeat(2, 1fr); }
+            .photo-grid.pg-4 { grid-template-columns: repeat(2, 1fr); }
+            .photo-grid.pg-3 img, .photo-grid.pg-3 video { height: 150px; }
+            .photo-grid.pg-4 img, .photo-grid.pg-4 video { height: 140px; }
+        }
+        @media (max-width: 480px) {
+            .photo-grid.pg-2 { grid-template-columns: 1fr; }
+            .photo-grid.pg-2 img, .photo-grid.pg-2 video { height: auto; aspect-ratio: 4 / 3; }
+        }
+        /* ===== SMART SUGGESTION CARDS ===== */
+        .qn-wrap {
+            position: relative;
+            background: linear-gradient(180deg, #FBFDFC 0%, #F6FCF9 100%);
+            border: 1px solid rgba(16, 163, 127, 0.14);
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(16, 163, 127, 0.05);
+        }
+        .qn-wrap::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 18px; right: 18px;
+            height: 3px;
+            border-radius: 0 0 4px 4px;
+            background: linear-gradient(90deg, #10A37F, #34D399, #A7F3D0);
+            opacity: 0.55;
+        }
+        .qn-wrap.mb-1\\.5 { margin-bottom: 6px; }
+        .qn-suggestions-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .qn-suggestions-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #10A37F, #0D8568);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(16, 163, 127, 0.3);
+        }
+        .qn-suggestions-title {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #334155;
+            flex: 1;
+        }
+        .qn-suggestions-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.62rem;
+            font-weight: 600;
+            color: #94A3B8;
+        }
+        .qn-chips {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        @media (min-width: 640px) {
+            .qn-chips { grid-template-columns: 1fr 1fr; }
+        }
+        .note-template-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            background: #fff;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 9px 12px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.18s ease;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+        .note-template-chip:hover {
+            border-color: #34D399;
+            background: #F0FDF4;
+            box-shadow: 0 4px 14px rgba(16, 163, 127, 0.12);
+            transform: translateY(-1px);
+        }
+        .note-template-chip:focus-visible {
+            outline: 2px solid #34D399;
+            outline-offset: 1px;
+        }
+        .note-template-chip .chip-bolt {
+            width: 28px;
+            height: 28px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #10A37F, #0D8568);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            flex-shrink: 0;
+        }
+        .note-template-chip .chip-text {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #334155;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+        .note-template-chip:hover .chip-text { color: #065F46; }
+        .note-template-chip .chip-action {
+            color: #CBD5E1;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            transition: color 0.18s ease, transform 0.18s ease;
+        }
+        .note-template-chip:hover .chip-action { color: #10A37F; transform: translateX(2px); }
 
         /* ===== MAP ===== */
-        #map { height: 250px; border-radius: 0.75rem; border: 1px solid rgba(16,163,127,0.08); }
+        #map { height: 340px; border-radius: 0.75rem; border: 1px solid rgba(16,163,127,0.08); }
 
         /* ===== NOTES ===== */
         .note-item { background: #F5FBF6; padding: 12px; border-radius: 0.75rem; margin-bottom: 8px; border-left: 3px solid #10A37F; }
@@ -581,7 +753,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             .export-dropdown-menu { right: 0; transform: none; width: min(260px, calc(100vw - 2rem)); min-width: 0; }
             .card { padding: 1rem; }
             .two-col { gap: 1rem; }
-            #map { height: 200px; }
+            #map { height: 240px; }
             .photo-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
             .info-label, .info-value { font-size: 0.8rem; }
             .card-header { font-size: 0.8rem; }
@@ -834,12 +1006,36 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="text-gray-700 leading-relaxed whitespace-pre-line"><?php echo nl2br(htmlspecialchars($report['description'])); ?></div>
         </div>
 
-        <!-- Two Columns: Photo + Map -->
-        <div class="two-col fade-up" style="animation-delay:0.15s">
-            <div class="card">
+        <!-- Geographic Location (map solo, full width) -->
+        <div class="card fade-up" style="animation-delay:0.15s">
+            <div class="card-header"><i class="fas fa-map-marker-alt"></i> Geographic Location</div>
+            <?php if ($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
+                <div id="map"></div>
+                <p class="text-xs text-gray-500 mt-2 flex flex-wrap items-center gap-x-1 gap-y-1">
+                    <i class="fas fa-location-dot mr-1 text-emerald-600"></i>
+                    <span id="gpsCoords">GPS: <?php echo number_format($report['latitude'], 6); ?>, <?php echo number_format($report['longitude'], 6); ?></span>
+                    <button type="button" class="copy-btn ml-1" onclick="copyGps(this)" aria-label="Copy coordinates">
+                        <i class="fas fa-copy"></i><span>Copy</span>
+                    </button>
+                    &nbsp; <a href="https://www.google.com/maps?q=<?php echo $report['latitude']; ?>,<?php echo $report['longitude']; ?>" target="_blank" class="text-emerald-600 hover:underline font-medium">Open in Google Maps <i class="fas fa-arrow-up-right-from-square text-[9px] ml-0.5"></i></a>
+                </p>
+                <?php if (!empty($report['location_address'])): ?>
+                    <p class="text-sm text-gray-600 mt-1"><i class="fas fa-address-card mr-1 text-gray-400"></i> <?php echo htmlspecialchars($report['location_address']); ?></p>
+                <?php endif; ?>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-map-location-dot"></i>
+                    <p class="text-sm">No location data available.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Two Columns: Evidentiary Photo (left) + Resolution Evidence (right) -->
+        <div class="two-col fade-up" style="animation-delay:0.2s">
+            <div class="card card-bleed">
                 <div class="card-header"><i class="fas fa-image"></i> Evidentiary Photo</div>
                 <?php if (!empty($images)): ?>
-                    <div class="photo-grid">
+                    <div class="photo-grid pg-<?php echo min(count($images), 5); ?>">
                         <?php foreach ($images as $i => $img): ?>
                             <?php if (!empty($img['is_video'])): ?>
                                 <div class="photo-card relative" onclick="openLightbox(<?php echo (int)$i; ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo (int)$i; ?>)">
@@ -866,59 +1062,40 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php endif; ?>
             </div>
 
-            <div class="card">
-                <div class="card-header"><i class="fas fa-map-marker-alt"></i> Geographic Location</div>
-                <?php if ($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
-                    <div id="map"></div>
-                    <p class="text-xs text-gray-500 mt-2 flex flex-wrap items-center gap-x-1 gap-y-1">
-                        <i class="fas fa-location-dot mr-1 text-emerald-600"></i>
-                        <span id="gpsCoords">GPS: <?php echo number_format($report['latitude'], 6); ?>, <?php echo number_format($report['longitude'], 6); ?></span>
-                        <button type="button" class="copy-btn ml-1" onclick="copyGps(this)" aria-label="Copy coordinates">
-                            <i class="fas fa-copy"></i><span>Copy</span>
-                        </button>
-                        &nbsp; <a href="https://www.google.com/maps?q=<?php echo $report['latitude']; ?>,<?php echo $report['longitude']; ?>" target="_blank" class="text-emerald-600 hover:underline font-medium">Open in Google Maps <i class="fas fa-arrow-up-right-from-square text-[9px] ml-0.5"></i></a>
-                    </p>
-                    <?php if (!empty($report['location_address'])): ?>
-                        <p class="text-sm text-gray-600 mt-1"><i class="fas fa-address-card mr-1 text-gray-400"></i> <?php echo htmlspecialchars($report['location_address']); ?></p>
+            <div class="card card-bleed">
+                <div class="card-header"><i class="fas fa-check-circle" style="color:#10A37F"></i> Resolution Evidence</div>
+                <?php if (!empty($resolution_evidence)): ?>
+                    <div class="photo-grid pg-<?php echo min(count($resolution_evidence), 5); ?>">
+                        <?php foreach ($resolution_evidence as $ev): ?>
+                            <div class="photo-grid-cell">
+                                <div class="photo-card relative">
+                                    <?php if (!empty($ev['is_video'])): ?>
+                                        <video src="<?php echo BASE_URL . $ev['image_path']; ?>" muted playsinline preload="metadata" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)"></video>
+                                        <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                                            <i class="fas fa-video"></i>Video
+                                        </div>
+                                    <?php else: ?>
+                                        <img src="<?php echo BASE_URL . $ev['image_path']; ?>" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" alt="Resolution evidence photo" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)">
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (!empty($ev['caption'])): ?>
+                                    <div class="resolution-note-box"><i class="fas fa-sticky-note mr-1 text-emerald-500"></i><?php echo htmlspecialchars($ev['caption']); ?></div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if ($report['status'] == 'resolved'): ?>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-check-circle mr-1 text-emerald-500"></i>This report has been resolved — evidence uploaded by <?php echo htmlspecialchars($resolution_evidence[0]['uploaded_by_name'] ?? 'MENRO'); ?>.</p>
+                    <?php else: ?>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i>Evidence of the actions taken to resolve this report.</p>
                     <?php endif; ?>
                 <?php else: ?>
                     <div class="empty-state">
-                        <i class="fas fa-map-location-dot"></i>
-                        <p class="text-sm">No location data available.</p>
+                        <i class="fas fa-check-circle"></i>
+                        <p class="text-sm">No resolution evidence uploaded yet.</p>
                     </div>
                 <?php endif; ?>
             </div>
-        </div>
-
-        <!-- Resolution Evidence -->
-        <div class="card fade-up" style="animation-delay:0.18s">
-            <div class="card-header"><i class="fas fa-check-circle" style="color:#10A37F"></i> Resolution Evidence</div>
-            <?php if (!empty($resolution_evidence)): ?>
-                <div class="photo-grid">
-                    <?php foreach ($resolution_evidence as $ev): ?>
-                        <?php if (!empty($ev['is_video'])): ?>
-                            <div class="photo-card relative" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)">
-                                <video src="<?php echo BASE_URL . $ev['image_path']; ?>" muted playsinline preload="metadata"></video>
-                                <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
-                                    <i class="fas fa-video"></i>Video
-                                </div>
-                            </div>
-                        <?php else: ?>
-                            <img src="<?php echo BASE_URL . $ev['image_path']; ?>" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" alt="Resolution evidence photo" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)">
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                </div>
-                <?php if ($report['status'] == 'resolved'): ?>
-                    <p class="text-xs text-gray-400 mt-2"><i class="fas fa-check-circle mr-1 text-emerald-500"></i>This report has been resolved — evidence uploaded by <?php echo htmlspecialchars($resolution_evidence[0]['uploaded_by_name'] ?? 'MENRO'); ?>.</p>
-                <?php else: ?>
-                    <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i>Evidence of the actions taken to resolve this report.</p>
-                <?php endif; ?>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-check-circle"></i>
-                    <p class="text-sm">No resolution evidence uploaded yet.</p>
-                </div>
-            <?php endif; ?>
         </div>
 
         <!-- Notes -->
@@ -944,12 +1121,40 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php endif; ?>
             </div>
             <!-- Quick note form -->
-            <?php if ($can_manage && ($user_role == 'barangay_official' || $user_role == 'admin')): ?>
+            <?php
+            // Barangay officials and admins can add follow-up investigation
+            // notes — and see quick suggestions — even AFTER a report is
+            // resolved (closed), so the audit trail can always be extended.
+            // (A resolved report is terminal, so this does not unlock any
+            // status-changing actions — those stay gated by can_manage.)
+            $note_composer_allowed = $report_verified
+                && ($user_role == 'barangay_official' || $user_role == 'admin')
+                && ($can_manage || $report['status'] == 'resolved');
+            ?>
+            <?php if ($note_composer_allowed): ?>
+            <?php if (!empty($note_templates)): ?>
+            <div class="qn-wrap">
+                <div class="qn-suggestions-header">
+                    <div class="qn-suggestions-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                    <span class="qn-suggestions-title">Quick suggestions</span>
+                    <span class="qn-suggestions-hint"><i class="fas fa-arrow-pointer"></i> tap to insert</span>
+                </div>
+                <div class="qn-chips">
+                    <?php foreach ($note_templates as $tpl_index => $tpl_text): ?>
+                    <button type="button" class="note-template-chip" onclick="insertNoteTemplate('NOTE_TEMPLATES', <?php echo $tpl_index; ?>, 'noteInput')" title="<?php echo htmlspecialchars($tpl_text, ENT_QUOTES); ?>">
+                        <span class="chip-bolt"><i class="fas fa-bolt"></i></span>
+                        <span class="chip-text"><?php echo htmlspecialchars((mb_strlen($tpl_text) > 100 ? mb_substr($tpl_text, 0, 100) . '…' : $tpl_text)); ?></span>
+                        <span class="chip-action"><i class="fas fa-plus-circle"></i></span>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
             <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="flex gap-2" onsubmit="setLoading(this)">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <input type="hidden" name="action" value="add_note">
                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                <input type="text" name="note" placeholder="Add an investigation note..." maxlength="500" required class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors">
+                <input type="text" name="note" id="noteInput" placeholder="Add an investigation note..." maxlength="500" required class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors">
                 <button type="submit" class="btn-primary whitespace-nowrap"><i class="fas fa-plus mr-1.5"></i>Add Note</button>
             </form>
             <?php endif; ?>
@@ -1000,7 +1205,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <i class="fas fa-check-double mt-0.5"></i>
                     <div>
                         <p class="callout-title">Report resolved</p>
-                        <p class="callout-sub"><?php if (!empty($report['resolved_at'])): ?>Closed on <?php echo date('F d, Y h:i A', strtotime($report['resolved_at'])); ?>.<?php endif; ?> No further action is required.</p>
+                        <p class="callout-sub"><?php if (!empty($report['resolved_at'])): ?>Closed on <?php echo date('F d, Y h:i A', strtotime($report['resolved_at'])); ?>.<?php endif; ?> The case is closed — follow-up notes can still be added below.</p>
                     </div>
                 </div>
             <?php elseif ($report['status'] == 'rejected'): ?>
@@ -1017,6 +1222,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div>
                         <p class="callout-title">Awaiting review</p>
                         <p class="callout-sub">This report is queued and waiting to be processed.</p>
+                    </div>
+                </div>
+            <?php elseif (($_SESSION['user_type'] ?? '') === 'menro_staff' && !in_array($report['status'], ['escalated', 'escalated_pending', 'resolved', 'rejected', 'cancelled'], true)): ?>
+                <div class="action-callout info mb-5">
+                    <i class="fas fa-eye mt-0.5"></i>
+                    <div>
+                        <p class="callout-title">Viewing only</p>
+                        <p class="callout-sub">This report has not been escalated to MENRO, so you can review the details but cannot manage it or add investigation notes. Managing becomes available once the barangay escalates this report to MENRO.</p>
                     </div>
                 </div>
             <?php endif; ?>
@@ -1240,7 +1453,25 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution note <span class="text-gray-400 font-normal">(optional)</span></label>
-                    <textarea name="resolution_note" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe the actions taken to resolve this issue..."></textarea>
+                    <?php if (!empty($resolve_templates)): ?>
+                    <div class="qn-wrap mb-1.5">
+                        <div class="qn-suggestions-header">
+                            <div class="qn-suggestions-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                            <span class="qn-suggestions-title">Resolution suggestions</span>
+                            <span class="qn-suggestions-hint"><i class="fas fa-arrow-pointer"></i> tap to insert</span>
+                        </div>
+                        <div class="qn-chips">
+                            <?php foreach ($resolve_templates as $tpl_index => $tpl_text): ?>
+                            <button type="button" class="note-template-chip" onclick="insertNoteTemplate('RESOLVE_TEMPLATES', <?php echo $tpl_index; ?>, 'resolutionNoteBarangay')" title="<?php echo htmlspecialchars($tpl_text, ENT_QUOTES); ?>">
+                                <span class="chip-bolt"><i class="fas fa-bolt"></i></span>
+                                <span class="chip-text"><?php echo htmlspecialchars((mb_strlen($tpl_text) > 100 ? mb_substr($tpl_text, 0, 100) . '…' : $tpl_text)); ?></span>
+                                <span class="chip-action"><i class="fas fa-plus-circle"></i></span>
+                            </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <textarea name="resolution_note" id="resolutionNoteBarangay" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe the actions taken to resolve this issue..."></textarea>
                 </div>
                 <button type="submit" class="btn-success modal-submit"><i class="fas fa-check mr-1.5"></i> Mark as Resolved</button>
             </form>
@@ -1268,7 +1499,25 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">Justification for escalation <span class="text-red-500">(required)</span></label>
-                    <textarea name="escalation_reason" rows="4" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Explain why this report needs to be escalated to MENRO..." required></textarea>
+                    <?php if (!empty($escalate_templates)): ?>
+                    <div class="qn-wrap mb-1.5">
+                        <div class="qn-suggestions-header">
+                            <div class="qn-suggestions-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                            <span class="qn-suggestions-title">Escalation suggestions</span>
+                            <span class="qn-suggestions-hint"><i class="fas fa-arrow-pointer"></i> tap to insert</span>
+                        </div>
+                        <div class="qn-chips">
+                            <?php foreach ($escalate_templates as $tpl_index => $tpl_text): ?>
+                            <button type="button" class="note-template-chip" onclick="insertNoteTemplate('ESCALATE_TEMPLATES', <?php echo $tpl_index; ?>, 'escalationReason')" title="<?php echo htmlspecialchars($tpl_text, ENT_QUOTES); ?>">
+                                <span class="chip-bolt"><i class="fas fa-bolt"></i></span>
+                                <span class="chip-text"><?php echo htmlspecialchars((mb_strlen($tpl_text) > 100 ? mb_substr($tpl_text, 0, 100) . '…' : $tpl_text)); ?></span>
+                                <span class="chip-action"><i class="fas fa-plus-circle"></i></span>
+                            </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <textarea name="escalation_reason" id="escalationReason" rows="4" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Explain why this report needs to be escalated to MENRO..." required></textarea>
                 </div>
                 <button type="submit" class="btn-warning modal-submit"><i class="fas fa-paper-plane mr-1.5"></i> Escalate Report</button>
             </form>
@@ -1371,7 +1620,25 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution note <span class="text-gray-400 font-normal">(optional)</span></label>
-                    <textarea name="resolution_note" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe the actions taken to resolve this issue..."></textarea>
+                    <?php if (!empty($resolve_templates)): ?>
+                    <div class="qn-wrap mb-1.5">
+                        <div class="qn-suggestions-header">
+                            <div class="qn-suggestions-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                            <span class="qn-suggestions-title">Resolution suggestions</span>
+                            <span class="qn-suggestions-hint"><i class="fas fa-arrow-pointer"></i> tap to insert</span>
+                        </div>
+                        <div class="qn-chips">
+                            <?php foreach ($resolve_templates as $tpl_index => $tpl_text): ?>
+                            <button type="button" class="note-template-chip" onclick="insertNoteTemplate('RESOLVE_TEMPLATES', <?php echo $tpl_index; ?>, 'resolutionNoteAdmin')" title="<?php echo htmlspecialchars($tpl_text, ENT_QUOTES); ?>">
+                                <span class="chip-bolt"><i class="fas fa-bolt"></i></span>
+                                <span class="chip-text"><?php echo htmlspecialchars((mb_strlen($tpl_text) > 100 ? mb_substr($tpl_text, 0, 100) . '…' : $tpl_text)); ?></span>
+                                <span class="chip-action"><i class="fas fa-plus-circle"></i></span>
+                            </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <textarea name="resolution_note" id="resolutionNoteAdmin" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe the actions taken to resolve this issue..."></textarea>
                 </div>
                 <button type="submit" class="btn-success modal-submit"><i class="fas fa-check mr-1.5"></i> Mark as Resolved</button>
             </form>
@@ -1517,6 +1784,25 @@ function proceedConfirmModal() {
     form.dataset.confirmed = 'true';
     setLoading(form);
     form.submit();
+}
+
+// ===== SMART SUGGESTION TEMPLATES (Quick Note Templates) =====
+// Canned responses configured by the MENRO admin in
+// Settings > Quick Note Templates, matched here by the report's category
+// and status. NOTE_TEMPLATES are ongoing suggestions for the investigation-
+// note box (matched to the current status); RESOLVE_TEMPLATES are closing /
+// thank-you suggestions for the resolution note (matched to 'resolved');
+// ESCALATE_TEMPLATES are justification suggestions for the escalation modal
+// (matched to 'escalated_pending'). Clicking a chip inserts its text.
+var NOTE_TEMPLATES = <?php echo json_encode($note_templates, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+var RESOLVE_TEMPLATES = <?php echo json_encode($resolve_templates, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+var ESCALATE_TEMPLATES = <?php echo json_encode($escalate_templates, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+function insertNoteTemplate(listName, index, inputId) {
+    var list = window[listName];
+    var el = document.getElementById(inputId);
+    if (!el || !list || !list[index]) return;
+    el.value = (el.value && el.value.trim()) ? el.value.trim() + ' ' + list[index] : list[index];
+    el.focus();
 }
 
 // ===== GALLERY PICKER =====
