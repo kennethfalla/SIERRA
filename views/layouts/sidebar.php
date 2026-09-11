@@ -1143,22 +1143,26 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
     };
 
     window.menroClearAll = function () {
-        if (!confirm('Clear all notifications? This cannot be undone.')) return;
-        menroPost('clear_all', null, function (data) {
-            if (data && data.success) {
-                var list = document.getElementById('menroNotifList');
-                if (list) {
-                    list.innerHTML = '<div class="menro-notif-empty">'
-                        + '<div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">'
-                        + '<i class="fas fa-bell-slash text-xl text-gray-400"></i></div>'
-                        + '<p class="text-gray-400 text-sm">No notifications yet</p>'
-                        + '<p class="text-xs text-gray-300 mt-1">You have cleared your notifications.</p></div>';
-                }
-                var cnt = document.getElementById('menroNotifCount');
-                if (cnt) cnt.textContent = '0';
-                var actions = document.querySelector('.menro-notif-actions');
-                if (actions) actions.style.display = 'none';
-                window.__menroRefreshBadge(0);
+        window.GB.confirm({
+            message: 'Clear all notifications? This cannot be undone.',
+            onConfirm: function () {
+                menroPost('clear_all', null, function (data) {
+                    if (data && data.success) {
+                        var list = document.getElementById('menroNotifList');
+                        if (list) {
+                            list.innerHTML = '<div class="menro-notif-empty">'
+                                + '<div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">'
+                                + '<i class="fas fa-bell-slash text-xl text-gray-400"></i></div>'
+                                + '<p class="text-gray-400 text-sm">No notifications yet</p>'
+                                + '<p class="text-xs text-gray-300 mt-1">You have cleared your notifications.</p></div>';
+                        }
+                        var cnt = document.getElementById('menroNotifCount');
+                        if (cnt) cnt.textContent = '0';
+                        var actions = document.querySelector('.menro-notif-actions');
+                        if (actions) actions.style.display = 'none';
+                        window.__menroRefreshBadge(0);
+                    }
+                });
             }
         });
     };
@@ -1198,3 +1202,5 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
     to   { opacity: 1; transform: translateY(0); }
 }
 </style>
+
+<?php include BASE_PATH . 'views/shared/global_modals.php'; ?>

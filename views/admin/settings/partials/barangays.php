@@ -759,13 +759,14 @@ if (!isset($csrf_token)) {
     // DELETE BARANGAY
     // ================================================================
     window.deleteBarangay = function(barangayId, barangayName) {
-        if (!confirm('Are you sure you want to delete "' + barangayName + '"?\n\nThis action cannot be undone.')) {
-            return;
-        }
-        
-        // Set form value and submit
-        document.getElementById('form_delete_barangay_id').value = barangayId;
-        document.getElementById('deleteBarangayForm').submit();
+        window.GB.confirm({
+            message: 'Are you sure you want to delete "' + barangayName + '"? This action cannot be undone.',
+            onConfirm: function () {
+                // Set form value and submit
+                document.getElementById('form_delete_barangay_id').value = barangayId;
+                document.getElementById('deleteBarangayForm').submit();
+            }
+        });
     };
 
     // ================================================================

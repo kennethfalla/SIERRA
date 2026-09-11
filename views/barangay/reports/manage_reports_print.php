@@ -457,7 +457,7 @@ if ($format === 'csv') {
                         <?php if ($total > 0): ?>
                             <?php foreach ($reports as $row): ?>
                             <tr>
-                                <td style="font-family:monospace;color:#6b7280;">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
+                                <td style="color:#6b7280;">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
                                 <td style="font-weight:600;color:#111827;"><?php echo htmlspecialchars(substr($row['title'], 0, 35)); ?><?php echo strlen($row['title']) > 35 ? '...' : ''; ?></td>
                                 <td><?php echo htmlspecialchars(trim($row['first_name'] . ' ' . $row['last_name'])); ?></td>
                                 <td><?php echo ((int)($row['is_resident'] ?? 0) === 1) ? 'Resident' : 'Non-Resident'; ?></td>

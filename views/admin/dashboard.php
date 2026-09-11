@@ -2377,11 +2377,11 @@ function applyCustomRange() {
     const from = document.getElementById('rangeFrom').value;
     const to = document.getElementById('rangeTo').value;
     if (!from || !to) {
-        alert('Please select both a start and end date.');
+        window.GB.alert({ type: 'error', title: 'Invalid range', message: 'Please select both a start and end date.' });
         return;
     }
     if (from > to) {
-        alert('The start date must be on or before the end date.');
+        window.GB.alert({ type: 'error', title: 'Invalid range', message: 'The start date must be on or before the end date.' });
         return;
     }
     selectedFrom = from;
@@ -2524,7 +2524,7 @@ function renderDrillPanel(report) {
     const html = `
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">${escapeHtml(report.title)}</h3>
-            <span class="text-sm font-mono bg-gray-100 px-2 py-1 rounded">#${String(report.id).padStart(6,'0')}</span>
+            <span class="text-sm bg-gray-100 px-2 py-1 rounded">#${String(report.id).padStart(6,'0')}</span>
         </div>
 
         <!-- Status Badges -->

@@ -169,6 +169,28 @@ function validateAuthenticatedSession() {
         return false;
     }
 
+    // ==================================================
+    // INACTIVITY AUTO-LOGOUT (Settings > Security)
+    // The client-side idle watchdog in global_modals.php
+    // handles open-tab idling; this server-side check
+    // covers sessions that stopped polling entirely
+    // (e.g. the browser was closed and reopened later).
+    // ==================================================
+    try {
+        $timeout_hours  = (float) SettingsHelper::get('session_timeout_hours', 2);
+        $max_idle_secs  = $timeout_hours > 0 ? (int) round($timeout_hours * 3600) : 0;
+
+        if ($max_idle_secs > 0) {
+            if (isset($_SESSION['last_activity']) && (time() - (int) $_SESSION['last_activity']) > $max_idle_secs) {
+                forceLogout('You were logged out because your session was inactive for more than ' . (int)$timeout_hours . ' ' . ((int)$timeout_hours === 1 ? 'hour' : 'hours') . '.');
+                return false;
+            }
+            $_SESSION['last_activity'] = time();
+        }
+    } catch (Throwable $e) {
+        error_log('[Auth] Inactivity check failed: ' . $e->getMessage());
+    }
+
     try {
         $database = new Database();
         $db = $database->getConnection();

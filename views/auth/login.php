@@ -613,7 +613,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
         if (!csrfToken) {
             e.preventDefault();
-            alert('Your session has expired. Please refresh the page and try again.');
+            window.GB.alert({ type: 'warning', title: 'Session expired', message: 'Your session has expired. Please refresh the page and try again.' });
             return false;
         }
 
@@ -718,5 +718,6 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
         }
     });
     </script>
+<?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
 </body>
 </html>

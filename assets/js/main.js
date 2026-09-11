@@ -130,10 +130,28 @@ function showToast(message, type = 'success') {
 function initConfirmDialogs() {
     const deleteButtons = document.querySelectorAll('[data-confirm]');
     
+    if (window.GB && window.GB.confirm) {
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                const message = this.getAttribute('data-confirm') || 'Are you sure?';
+                e.preventDefault();
+                if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                window.GB.confirm({
+                    message: message,
+                    onConfirm: function() {
+                        this.setAttribute('data-confirm', '');
+                        this.click();
+                    }.bind(this)
+                });
+            });
+        });
+        return;
+    }
+
     deleteButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             const message = this.getAttribute('data-confirm') || 'Are you sure?';
-            if (!confirm(message)) {
+            if (!window.confirm(message)) {
                 e.preventDefault();
             }
         });

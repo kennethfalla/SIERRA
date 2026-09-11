@@ -852,9 +852,14 @@ class SettingsController {
         $max_attempts = max(3, min(10, $max_attempts));
         $lockout_duration = max(5, min(1440, $lockout_duration));
 
+        // Session inactivity timeout (hours) - 0 disables automatic logout
+        $session_timeout = (float)($_POST['session_timeout_hours'] ?? 2);
+        $session_timeout = max(0, min(72, $session_timeout));
+
         SettingsHelper::set('password_min_length', $min_length);
         SettingsHelper::set('max_login_attempts', $max_attempts);
         SettingsHelper::set('lockout_duration_minutes', $lockout_duration);
+        SettingsHelper::set('session_timeout_hours', $session_timeout);
 
         // OTP anti-spam limits
         $otp_max = (int)($_POST['otp_max_requests'] ?? 3);
@@ -877,7 +882,7 @@ class SettingsController {
         }
 
         SettingsHelper::clearCache();
-        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated security settings (password policy and login lockout)", null, 'Settings');
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated security settings (password policy, login lockout, and session timeout)", null, 'Settings');
         $_SESSION['success'] = "Security settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=security");
         exit();

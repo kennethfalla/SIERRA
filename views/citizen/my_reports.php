@@ -1500,7 +1500,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                 <span class="severity-badge header-badge severity-<?php echo strtolower($report['decision_pin'] ?? 'Green'); ?>">
                                     <i class="fas fa-chart-line text-[10px] sm:text-xs"></i>
                                     <?php echo $report['decision_classification']; ?>
-                                    <span class="text-[8px] sm:text-[9px] font-mono opacity-75">(<?php echo $report['severity_score'] ?? 0; ?>)</span>
+                                    <span class="text-[8px] sm:text-[9px] opacity-75">(<?php echo $report['severity_score'] ?? 0; ?>)</span>
                                 </span>
                                 <?php endif; ?>
                             </div>
@@ -1677,39 +1677,42 @@ function verifyReport(reportId, button) {
         showToast('You cannot verify your own report.', 'warning');
         return;
     }
-    if (!confirm('Do you want to verify that you also witnessed this issue? This will increase the priority of this report.')) return;
+    window.GB.confirm({
+        message: 'Do you want to verify that you also witnessed this issue? This will increase the priority of this report.',
+        onConfirm: function () {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const formData = new FormData();
+            formData.append('action', 'upvote_report');
+            formData.append('report_id', reportId);
+            formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
 
-    const formData = new FormData();
-    formData.append('action', 'upvote_report');
-    formData.append('report_id', reportId);
-    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-
-    fetch('<?php echo BASE_URL; ?>controllers/ReportController.php', {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Thank you! Redirecting to Supported Reports...', 'success');
-            button.parentElement.innerHTML = `<span class="verification-badge"><i class="fas fa-check-circle"></i> You verified this</span>`;
-            setTimeout(() => {
-                window.location.href = '<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported';
-            }, 1500);
-        } else {
-            alert(data.message || 'Failed to verify. Please try again.');
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-thumbs-up"></i> Verify';
+            fetch('<?php echo BASE_URL; ?>controllers/ReportController.php', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Thank you! Redirecting to Supported Reports...', 'success');
+                    button.parentElement.innerHTML = `<span class="verification-badge"><i class="fas fa-check-circle"></i> You verified this</span>`;
+                    setTimeout(() => {
+                        window.location.href = '<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported';
+                    }, 1500);
+                } else {
+                    window.GB.alert({ type: 'error', title: 'Unable to verify', message: data.message || 'Failed to verify. Please try again.' });
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-thumbs-up"></i> Verify';
+                }
+            })
+            .catch(err => {
+                window.GB.alert({ type: 'error', title: 'Error', message: 'Error: ' + err.message });
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-thumbs-up"></i> Verify';
+            });
         }
-    })
-    .catch(err => {
-        alert('Error: ' + err.message);
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-thumbs-up"></i> Verify';
     });
 }
 

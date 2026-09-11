@@ -2926,34 +2926,35 @@ if (is_dir($barangays_dir)) {
     // Support report directly from map popup
     window.supportReportFromMap = function(reportId) {
         if (!reportId) return;
-        
-        if (!confirm('Do you want to support this existing report instead of creating a new one?')) {
-            return;
-        }
-        
-        const formData = new FormData();
-        formData.append('action', 'upvote_report');
-        formData.append('report_id', reportId);
-        formData.append('csrf_token', getCsrfToken());
-        
-        fetch('<?php echo BASE_URL; ?>controllers/ReportController.php', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast(data.message || 'Thank you for supporting this report!', 'success');
-                setTimeout(() => {
-                    window.location.href = '<?php echo BASE_URL; ?>index.php?page=my-reports';
-                }, 1000);
-            } else {
-                showToast(data.message || 'Failed to support report.', 'error');
+
+        window.GB.confirm({
+            message: 'Do you want to support this existing report instead of creating a new one?',
+            onConfirm: function () {
+                const formData = new FormData();
+                formData.append('action', 'upvote_report');
+                formData.append('report_id', reportId);
+                formData.append('csrf_token', getCsrfToken());
+
+                fetch('<?php echo BASE_URL; ?>controllers/ReportController.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message || 'Thank you for supporting this report!', 'success');
+                        setTimeout(() => {
+                            window.location.href = '<?php echo BASE_URL; ?>index.php?page=my-reports';
+                        }, 1000);
+                    } else {
+                        showToast(data.message || 'Failed to support report.', 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error: ' + error.message, 'error');
+                });
             }
-        })
-        .catch(error => {
-            showToast('Error: ' + error.message, 'error');
         });
     };
 
@@ -3314,8 +3315,16 @@ if (is_dir($barangays_dir)) {
     // ============================================================
     function resetForm() {
         if (selectedPhotos.length > 0 || descriptionInput.value.trim()) {
-            if (!confirm('Are you sure? All entered data will be cleared.')) return;
+            window.GB.confirm({
+                message: 'Are you sure? All entered data will be cleared.',
+                onConfirm: doReset
+            });
+            return;
         }
+        doReset();
+    }
+
+    function doReset() {
         reportForm.reset();
         selectedPhotos.forEach(function(photo) {
             if (photo.isVideo && photo.data) URL.revokeObjectURL(photo.data);

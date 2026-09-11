@@ -639,7 +639,7 @@ if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
                         <tbody>
                             <?php foreach ($recentReports as $r): ?>
                             <tr>
-                                <td style="font-family:monospace;">#<?php echo str_pad($r['id'], 5, '0', STR_PAD_LEFT); ?></td>
+                                <td>#<?php echo str_pad($r['id'], 5, '0', STR_PAD_LEFT); ?></td>
                                 <td style="font-weight:600;color:#111827;"><?php echo htmlspecialchars($r['title']); ?></td>
                                 <td><?php echo htmlspecialchars($r['category_name']); ?></td>
                                 <td><?php echo htmlspecialchars($r['reporter']); ?></td>
@@ -689,7 +689,7 @@ if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
         }
         window.validateSections = function() {
             const any = Array.from(sectionCbs).some(cb => cb.checked);
-            if (!any) { alert('Please select at least one section to include.'); return false; }
+            if (!any) { window.GB.alert({ type: 'error', title: 'Nothing selected', message: 'Please select at least one section to include.' }); return false; }
             return true;
         };
     </script>
@@ -717,5 +717,6 @@ if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
     <?php if ($autoprint): ?>
     <script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 700); });</script>
     <?php endif; ?>
+    <?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
 </body>
 </html>

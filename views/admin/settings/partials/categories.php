@@ -865,7 +865,7 @@ function validateWeight() {
     const weight = parseInt(weightInput.value);
 
     if (isNaN(weight) || weight < 1 || weight > 10) {
-        alert('Please enter a valid base weight point between 1 and 10.');
+        window.GB.alert({ type: 'error', title: 'Check the weight', message: 'Please enter a valid base weight point between 1 and 10.' });
         return false;
     }
     return true;

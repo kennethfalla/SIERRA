@@ -254,11 +254,24 @@ $top_actions = $db->query("
             border: 1px solid #eef2f0;
             overflow: hidden;
         }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            background: white;
+            border-radius: 1rem;
+            border: 1px solid #eef2f0;
+        }
+        @media (min-width: 640px) {
+            .empty-state { padding: 3rem 2rem; }
+        }
         
         .action-badge {
             display: inline-flex;
             align-items: center;
-            padding: 0.25rem 0.75rem;
+            gap: 4px;
+            padding: 3px 10px;
             border-radius: 9999px;
             font-size: 0.7rem;
             font-weight: 600;
@@ -501,16 +514,16 @@ $top_actions = $db->query("
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead>
-                        <tr class="border-b border-emerald-50 bg-[#F5FBF6]">
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Timestamp</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">User</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Role</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Action</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Module</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Details</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">IP Address</th>
-                            <th class="px-5 py-3 text-left text-xs font-extrabold text-gray-500 uppercase tracking-wider">Device</th>
+                        <tr class="border-b" style="background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%);">
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Timestamp</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Role</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Action</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Module</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Details</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">IP Address</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Device</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -576,11 +589,11 @@ $top_actions = $db->query("
                                 $log_user_role_label = $roleLabelMap[$log_user_role]
                                     ?? ucfirst(str_replace('_', ' ', $log_user_role));
                             ?>
-                            <tr class="border-b border-emerald-50 hover:bg-emerald-50/30 transition">
-                                <td class="px-5 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">
+                            <tr class="border-b hover:bg-emerald-50/30 transition">
+                                <td class="px-4 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">
                                     <?php echo date('M d, Y H:i:s', strtotime($log['created_at'])); ?>
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="px-4 py-3">
                                     <?php if($log_user_name): ?>
                                     <p class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($log_user_name); ?></p>
                                     <?php if($log_user_email): ?><p class="text-xs text-gray-400"><?php echo htmlspecialchars($log_user_email); ?></p><?php endif; ?>
@@ -588,7 +601,7 @@ $top_actions = $db->query("
                                     <span class="text-gray-400 text-sm">System</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="px-4 py-3">
                                     <?php if($log_user_role): ?>
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold text-white <?php echo $role_class; ?>">
                                         <?php echo htmlspecialchars($log_user_role_label); ?>
@@ -597,17 +610,17 @@ $top_actions = $db->query("
                                     <span class="text-gray-400 text-xs">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="px-4 py-3">
                                     <span class="action-badge <?php echo $action_class; ?>">
                                         <?php echo htmlspecialchars($log['action']); ?>
                                     </span>
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="px-4 py-3">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wide">
                                         <?php echo htmlspecialchars($module); ?>
                                     </span>
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="px-4 py-3">
                                     <?php $log_status = $log['status'] ?? 'SUCCESS'; ?>
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide
                                         <?php
@@ -618,13 +631,13 @@ $top_actions = $db->query("
                                         <?php echo htmlspecialchars($log_status); ?>
                                     </span>
                                 </td>
-                                <td class="px-5 py-3 text-sm text-gray-600 max-w-xs">
+                                <td class="px-4 py-3 text-sm text-gray-600 max-w-xs">
                                     <?php echo htmlspecialchars($log['description'] ?: '—'); ?>
                                 </td>
-                                <td class="px-5 py-3 text-sm text-gray-500 font-mono">
+                                <td class="px-4 py-3 text-sm text-gray-500">
                                     <?php echo htmlspecialchars($log['ip_address'] ?: '—'); ?>
                                 </td>
-                                <td class="px-5 py-3 text-sm text-gray-500">
+                                <td class="px-4 py-3 text-sm text-gray-500">
                                     <?php
                                         $ua = trim($log['user_agent'] ?? '');
                                         echo $ua ? htmlspecialchars(friendlyDeviceName($ua)) : '—';
@@ -634,10 +647,14 @@ $top_actions = $db->query("
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="9" class="px-6 py-16 text-center">
-                                    <i class="fas fa-history text-5xl text-gray-300 mb-3 block"></i>
-                                    <p class="text-gray-500 text-lg font-semibold">No audit logs found</p>
-                                    <p class="text-gray-400 text-sm mt-1 font-medium">Try adjusting your filters</p>
+                                <td colspan="9" class="px-4 py-12 text-center">
+                                    <div class="empty-state">
+                                        <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                                            <i class="fas fa-history text-xl sm:text-2xl text-gray-400"></i>
+                                        </div>
+                                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg">No audit logs found</h3>
+                                        <p class="text-gray-400 text-xs sm:text-sm">Try adjusting your filters</p>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endif; ?>

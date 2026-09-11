@@ -253,9 +253,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     
     // ===== RESET FORM =====
     window.resetForm = function() {
-        if (confirm('Reset all fields to their saved values? Unsaved changes will be lost.')) {
-            location.reload();
-        }
+        window.GB.confirm({
+            message: 'Reset all fields to their saved values? Unsaved changes will be lost.',
+            onConfirm: function () { location.reload(); }
+        });
     };
     
     // ===== UNSAVED CHANGES WARNING =====
@@ -291,7 +292,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         const email = contactEmailInput.value.trim();
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             e.preventDefault();
-            alert('Please enter a valid email address.');
+            window.GB.alert({ type: 'error', title: 'Check your settings', message: 'Please enter a valid email address.' });
             contactEmailInput.focus();
             return;
         }
@@ -299,7 +300,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         // Ensure system name is not empty
         if (!systemNameInput.value.trim()) {
             e.preventDefault();
-            alert('System name is required.');
+            window.GB.alert({ type: 'error', title: 'Check your settings', message: 'System name is required.' });
             systemNameInput.focus();
             return;
         }

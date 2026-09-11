@@ -2144,7 +2144,7 @@ function handleDownloadPDF() {
         }).catch(err => {
             console.error('PDF capture error:', err);
             cleanup();
-            alert('Failed to generate PDF. Please try the Print option instead.');
+            window.GB.alert({ type: 'error', title: 'PDF failed', message: 'Failed to generate PDF. Please try the Print option instead.' });
         });
     }, 300);
 

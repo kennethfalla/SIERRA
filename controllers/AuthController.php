@@ -57,8 +57,14 @@ try {
 // HANDLE LOGOUT (GET request)
 // ============================================
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
+    $is_inactive = (($_GET['reason'] ?? '') === 'inactivity');
+
     if (isset($_SESSION['user_id']) && $activityLog) {
-        $activityLog->log($_SESSION['user_id'], 'Logout', 'User logged out successfully');
+        $activityLog->log(
+            $_SESSION['user_id'],
+            'Logout',
+            $is_inactive ? 'User logged out automatically due to inactivity' : 'User logged out successfully'
+        );
     }
 
     // Clear all session variables
@@ -77,7 +83,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 
     // Start new session for flash message
     session_start();
-    $_SESSION['success'] = "You have been logged out successfully.";
+    if ($is_inactive) {
+        $_SESSION['error'] = "You were logged out automatically because your session was inactive. Please log in again.";
+    } else {
+        $_SESSION['success'] = "You have been logged out successfully.";
+    }
 
     header("Location: " . BASE_URL . "index.php?page=login");
     exit();
@@ -299,7 +309,7 @@ function sendRegistrationEmailOtp($db, $email, $first_name = '') {
     $duration = $minutes <= 1 ? '1 minute' : "$minutes minutes";
     $system_name = SettingsHelper::get('system_name', 'Sierra');
     $subject = "Your $system_name OTP Code";
-    $html = "<!DOCTYPE html><html><body style='margin:0;padding:0;background:#f4f7f6;font-family:Arial,Helvetica,sans-serif;'>"
+    $html = "<!DOCTYPE html><html><body style='margin:0;padding:0;background:#f4f7f6;font-family:'Manrope',Arial,Helvetica,sans-serif;'>"
         . "<div style='max-width:420px;margin:0 auto;padding:32px 16px;'>"
         . "<div style='background:#ffffff;border-radius:14px;padding:28px 24px;text-align:center;'>"
         . "<h2 style='margin:0 0 6px;color:#0d8568;font-size:20px;'>" . htmlspecialchars($system_name) . "</h2>"
@@ -861,6 +871,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['is_resident'] = $row['is_resident'];
                 $_SESSION['is_verified'] = $row['is_verified'];
                 $_SESSION['profile_picture'] = $row['profile_picture'] ?? '';
+                $_SESSION['last_activity'] = time();
 
                 InputSanitizer::regenerateCsrfToken();
 
@@ -1021,6 +1032,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['is_resident'] = $freshUser['is_resident'];
                 $_SESSION['is_verified'] = $freshUser['is_verified'];
                 $_SESSION['profile_picture'] = $freshUser['profile_picture'] ?? '';
+                $_SESSION['last_activity'] = time();
 
                 unset($_SESSION['force_password_reset']);
                 unset($_SESSION['reset_user_id']);

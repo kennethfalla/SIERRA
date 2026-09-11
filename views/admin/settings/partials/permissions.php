@@ -920,9 +920,10 @@ $permissionRisk = [
             }
             return;
         }
-        if (confirm('Reset all permissions to their last-saved values? Unsaved changes will be lost.')) {
-            location.reload();
-        }
+        window.GB.confirm({
+            message: 'Reset all permissions to their last-saved values? Unsaved changes will be lost.',
+            onConfirm: function () { location.reload(); }
+        });
     };
 
     // ============================================================
@@ -971,10 +972,13 @@ $permissionRisk = [
     };
 
     window.deleteRole = function (roleId, roleTitle) {
-        if (confirm('Delete the role "' + roleTitle + '"? This cannot be undone, and only works if no users are currently assigned to it.')) {
-            document.getElementById('deleteRoleId').value = roleId;
-            document.getElementById('deleteRoleForm').submit();
-        }
+        window.GB.confirm({
+            message: 'Delete the role "' + roleTitle + '"? This cannot be undone, and only works if no users are currently assigned to it.',
+            onConfirm: function () {
+                document.getElementById('deleteRoleId').value = roleId;
+                document.getElementById('deleteRoleForm').submit();
+            }
+        });
     };
 
 })();

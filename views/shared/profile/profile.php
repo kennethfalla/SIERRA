@@ -1003,7 +1003,24 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .crop-modal-header h3 { font-weight: 700; color: #1a2e1a; font-size: 1rem; }
         .crop-modal-header h3 i { color: #10A37F; margin-right: 0.5rem; }
         .crop-modal-body { padding: 16px; overflow: hidden; flex: 1; min-height: 200px; }
-        .crop-modal-body img { max-width: 100%; display: block; }
+        /* Crop preview area: bounded so huge gallery photos always fit the modal */
+        .crop-modal-body.crop-body-crop {
+            padding: 12px;
+            flex: 1 1 auto;
+            height: 52vh;
+            max-height: 62vh;
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #F8FAFC;
+        }
+        .crop-modal-body.crop-body-crop img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            margin: 0 auto;
+        }
         .crop-modal-footer {
             padding: 16px 20px;
             border-top: 1px solid #eef3f0;
@@ -1357,7 +1374,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <h3><i class="fas fa-crop-alt"></i> Crop Photo</h3>
             <button onclick="closeCropModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
         </div>
-        <div class="crop-modal-body">
+        <div class="crop-modal-body crop-body-crop">
             <img id="cropImage" src="" alt="Crop">
         </div>
         <div class="crop-modal-footer">
@@ -1598,17 +1615,65 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         avatarContainerEdit.addEventListener('click', function() { window.openAvatarPicker('edit'); });
     }
 
+    // Downscales + EXIF-normalizes a gallery photo before cropping. Camera-roll
+    // photos are often 8-12 MP; feeding that full-res data URL into Cropper can
+    // freeze low-end phones or produce a blank/unusable crop box. We render the
+    // file onto a canvas capped at 1200px (longest side), which also bakes in the
+    // correct orientation, then hand Cropper a small, fast preview image.
+    function normalizeImageFile(file, callback) {
+        var objectUrl = null;
+        try {
+            objectUrl = URL.createObjectURL(file);
+        } catch (e) {
+            fail();
+            return;
+        }
+        var img = new Image();
+        img.onload = function() {
+            var w = img.naturalWidth;
+            var h = img.naturalHeight;
+            if (!w || !h) { fail(); return; }
+            var MAX = 1200;
+            var scale = Math.min(1, MAX / Math.max(w, h));
+            var canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(w * scale));
+            canvas.height = Math.max(1, Math.round(h * scale));
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            clean();
+            callback(canvas.toDataURL('image/jpeg', 0.9));
+        };
+        img.onerror = function() { fail(); };
+        img.src = objectUrl;
+
+        function clean() {
+            if (objectUrl) { try { URL.revokeObjectURL(objectUrl); } catch (e) {} }
+        }
+        function fail() {
+            clean();
+            showToast('Could not read that image. Please try another file.', 'error');
+        }
+    }
+
     if (avatarFileInput) {
         avatarFileInput.addEventListener('change', function(e) {
-            if (this.files && this.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function(ev) {
-                    cropImage.src = ev.target.result;
-                    openCropModal();
-                };
-                reader.readAsDataURL(this.files[0]);
-                this.value = '';
+            var file = this.files && this.files[0];
+            this.value = '';
+            if (!file) return;
+            var isImage = !file.type || /^image\/(jpeg|png|webp|gif|bmp)$/i.test(file.type);
+            if (!isImage) {
+                showToast('Please choose an image file (JPG, PNG, WebP, GIF, BMP).', 'error');
+                return;
             }
+            if (file.size > 25 * 1024 * 1024) {
+                showToast('That image is too large. Please choose one under 25 MB.', 'error');
+                return;
+            }
+            showToast('Processing image...', 'info');
+            normalizeImageFile(file, function(dataUrl) {
+                cropImage.src = dataUrl;
+                openCropModal();
+            });
         });
     }
     
@@ -1622,18 +1687,28 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         cropModal.classList.add('active');
         if (cropper) { cropper.destroy(); cropper = null; }
         cropImage.onload = function() {
-            cropper = new Cropper(cropImage, {
-                aspectRatio: 1,
-                viewMode: 1,
-                dragMode: 'move',
-                autoCropArea: 0.8,
-                restore: false,
-                guides: true,
-                center: true,
-                highlight: false,
-                cropBoxMovable: true,
-                cropBoxResizable: true
-            });
+            try {
+                cropper = new Cropper(cropImage, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.8,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    checkOrientation: false
+                });
+            } catch (err) {
+                window.closeCropModal();
+                showToast('The image editor failed to load. Please check your connection and try again.', 'error');
+            }
+        };
+        cropImage.onerror = function() {
+            window.closeCropModal();
+            showToast('Could not load that image for cropping. Please try another one.', 'error');
         };
         if (cropImage.complete) cropImage.onload();
     }
@@ -1644,8 +1719,15 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     };
     
     cropConfirmBtn.addEventListener('click', function() {
-        if (!cropper) return;
+        if (!cropper) {
+            showToast('Image is still loading. Please wait a moment and try again.', 'error');
+            return;
+        }
         var canvas = cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
+        if (!canvas) {
+            showToast('Could not process the image. Please try another one.', 'error');
+            return;
+        }
         var dataUrl = canvas.toDataURL('image/png');
 
         window.closeCropModal();

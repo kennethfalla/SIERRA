@@ -692,7 +692,7 @@ if ($format === 'csv') {
         table.data th { background: #f4faf7; color: #374151; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; text-align: left; padding: 5px 7px; border: 1px solid #dff0e9; }
         table.data td { padding: 4px 7px; border: 1px solid #e5e7eb; font-size: 10px; vertical-align: top; }
         table.data tr:nth-child(even) td { background: #fafcfb; }
-        .mono { font-family: Consolas, monospace; font-size: 9.5px; }
+        .mono { font-family: 'Manrope', sans-serif; font-size: 9.5px; }
 
         .badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 8px; font-weight: 700; }
         .badge-low { background: #d1fae5; color: #065f46; }
@@ -1113,7 +1113,7 @@ if ($format === 'csv') {
         window.validateSections = function() {
             const anyChecked = Array.from(sectionCbs).some(cb => cb.checked);
             if (!anyChecked) {
-                alert('Please select at least one analytics section to include.');
+                window.GB.alert({ type: 'error', title: 'Nothing selected', message: 'Please select at least one analytics section to include.' });
                 return false;
             }
             return true;
@@ -1186,5 +1186,6 @@ if ($format === 'csv') {
         };
         window.setQuickRange = window.setQuickReportRange;
     </script>
+    <?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
 </body>
 </html>

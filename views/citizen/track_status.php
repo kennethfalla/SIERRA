@@ -124,6 +124,9 @@ foreach ($resolution_evidence as &$ev) {
     $ev['is_video'] = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $ev['image_path']) ? 1 : 0;
 }
 
+// Combined media for the lightbox (evidentiary photos + resolution evidence)
+$lightbox_media = array_merge($images, $resolution_evidence);
+
 // Get investigation notes
 $notes_query = "SELECT n.*, CONCAT(u.first_name, ' ', u.last_name) as user_name 
                 FROM report_notes n 
@@ -634,18 +637,70 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .celebration-icon i { font-size: 3rem; color: white; }
         
-        .photo-card { 
-            position: relative; 
-            border-radius: 0.75rem; 
-            overflow: hidden; 
-            cursor: pointer; 
-            transition: transform 0.2s; 
+        /* ===== CARDS (matches Manage Report layout) ===== */
+        .card { background: white; border-radius: 1rem; border: 1px solid rgba(16,163,127,0.08); padding: 1.25rem; margin-bottom: 1rem; transition: all 0.25s ease; }
+        @media (min-width: 640px) { .card { padding: 1.5rem; } }
+        .card:hover { border-color: rgba(16,163,127,0.15); box-shadow: 0 4px 16px -4px rgba(16,163,127,0.08); }
+        .card-header { font-weight: 700; font-size: 0.85rem; color: #4b5563; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .card-header i { color: #10A37F; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1rem; }
+        @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; text-align: center; color: #9CA3AF; }
+        .empty-state i { font-size: 1.75rem; margin-bottom: 8px; opacity: 0.5; }
+
+        /* ===== PHOTO GRID ===== */
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .photo-grid img { width: 100%; height: 120px; object-fit: cover; border-radius: 0.75rem; cursor: pointer; border: 1px solid rgba(16,163,127,0.08); transition: transform 0.2s; }
+        .photo-grid img:hover { transform: scale(1.02); }
+        .photo-grid video { width: 100%; height: 120px; object-fit: cover; border-radius: 0.75rem; cursor: pointer; border: 1px solid rgba(16,163,127,0.08); background: #000; }
+        .photo-grid video:hover { transform: scale(1.02); }
+        .photo-card { position: relative; }
+        .photo-grid-cell { display: flex; flex-direction: column; gap: 6px; }
+        .resolution-note-box {
+            font-size: 0.75rem;
+            color: #374151;
+            background: #F0FDF4;
+            border: 1px solid #A7F3D0;
+            border-radius: 0.6rem;
+            padding: 0.45rem 0.6rem;
+            line-height: 1.45;
+            word-break: break-word;
+            white-space: pre-wrap;
         }
-        .photo-card:hover { transform: scale(1.02); }
-        .photo-card img { width: 100%; height: 200px; object-fit: cover; }
-        
+        /* ===== FULL-BLEED MEDIA CARDS (photos fill the whole card, no gaps) ===== */
+        .card-bleed { padding: 0; overflow: hidden; }
+        .card-bleed .card-header {
+            margin-bottom: 0;
+            padding: 0.9rem 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .card-bleed .photo-grid { gap: 0; }
+        .card-bleed .photo-grid img,
+        .card-bleed .photo-grid video { border-radius: 0; border: none; }
+        .card-bleed .photo-grid + p { margin-top: 0; padding: 0.8rem 1.25rem; }
+        .card-bleed > .empty-state { padding: 2rem 1.25rem; }
+        .card-bleed .photo-grid-cell { padding-bottom: 0; }
+        /* ===== COUNT-RESPONSIVE PHOTO GRIDS (adapt to how many photos) ===== */
+        .photo-grid.pg-1 { grid-template-columns: 1fr; }
+        .photo-grid.pg-2 { grid-template-columns: repeat(2, 1fr); }
+        .photo-grid.pg-3 { grid-template-columns: repeat(3, 1fr); }
+        .photo-grid.pg-4 { grid-template-columns: repeat(4, 1fr); }
+        .photo-grid.pg-1 img, .photo-grid.pg-1 video,
+        .photo-grid.pg-1 .photo-card { grid-column: 1 / -1; height: auto; aspect-ratio: 16 / 9; }
+        .photo-grid.pg-2 img, .photo-grid.pg-2 video { height: 230px; }
+        .photo-grid.pg-3 img, .photo-grid.pg-3 video { height: 190px; }
+        .photo-grid.pg-4 img, .photo-grid.pg-4 video { height: 160px; }
+        .photo-grid.pg-5 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
         @media (max-width: 768px) {
-            .photo-card img { height: 140px; }
+            .photo-grid.pg-2 img, .photo-grid.pg-2 video { height: 175px; }
+            .photo-grid.pg-3 { grid-template-columns: repeat(2, 1fr); }
+            .photo-grid.pg-4 { grid-template-columns: repeat(2, 1fr); }
+            .photo-grid.pg-3 img, .photo-grid.pg-3 video { height: 150px; }
+            .photo-grid.pg-4 img, .photo-grid.pg-4 video { height: 140px; }
+        }
+        @media (max-width: 480px) {
+            .photo-grid.pg-2 { grid-template-columns: 1fr; }
+            .photo-grid.pg-2 img, .photo-grid.pg-2 video { height: auto; aspect-ratio: 4 / 3; }
         }
 
         /* ===== ENHANCED SUPPORTED REPORT HEADER ===== */
@@ -1184,7 +1239,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         </p>
                     </div>
                 </div>
-                <form method="POST" action="" onsubmit="return confirmResolution()" class="flex-shrink-0">
+                <form method="POST" action="" onsubmit="return confirm('Have you personally verified that this environmental issue has been fully resolved? Once confirmed, this action cannot be undone.')" class="flex-shrink-0">
                     <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                     <button type="submit" name="confirm_resolution" class="btn-primary px-5 md:px-6 py-2.5 md:py-3 text-white rounded-xl font-semibold flex items-center gap-2">
                         <i class="fas fa-thumbs-up"></i>
@@ -1270,74 +1325,73 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <?php endif; ?>
         </div>
         
-        <!-- Evidence Photos -->
-        <?php if(!empty($images)): ?>
-        <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8">
-            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 md:mb-4">
-                <i class="fas fa-image mr-1"></i> Evidence (<?php echo count($images); ?>)
-            </h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-                <?php foreach($images as $index => $image): ?>
-                <div class="photo-card group" onclick="openLightbox(<?php echo $index; ?>)">
-                    <?php if(!empty($image['is_video'])): ?>
-                    <video src="<?php echo $image['image_path']; ?>" class="w-full h-32 md:h-48 object-cover" muted playsinline preload="metadata"></video>
-                    <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg flex items-center gap-1">
-                        <i class="fas fa-video"></i>Video
+        <!-- Two Columns: Evidentiary Photo + Resolution Evidence -->
+        <div class="two-col">
+            <div class="card card-bleed">
+                <div class="card-header"><i class="fas fa-image"></i> Evidentiary Photo</div>
+                <?php if(!empty($images)): ?>
+                    <div class="photo-grid pg-<?php echo min(count($images), 5); ?>">
+                        <?php foreach($images as $i => $img): ?>
+                            <?php if(!empty($img['is_video'])): ?>
+                                <div class="photo-card relative" onclick="openLightbox(<?php echo (int)$i; ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo (int)$i; ?>)">
+                                    <video src="<?php echo $img['image_path']; ?>" muted playsinline preload="metadata"></video>
+                                    <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                                        <i class="fas fa-video"></i>Video
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <img src="<?php echo $img['image_path']; ?>" onclick="openLightbox(<?php echo (int)$i; ?>)" alt="Evidentiary photo <?php echo (int)$i + 1; ?> for this report" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo (int)$i; ?>)">
+                            <?php endif; ?>
+                        <?php endforeach; ?>
                     </div>
-                    <?php if($image['is_primary']): ?>
-                    <div class="absolute top-2 right-2 bg-[#10A37F] text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg">
-                        <i class="fas fa-star mr-1"></i>Primary
-                    </div>
-                    <?php endif; ?>
+                    <?php if(count($images) > 1): ?>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click any photo/video to view full size — <?php echo count($images); ?> media total.</p>
                     <?php else: ?>
-                    <img src="<?php echo $image['image_path']; ?>" class="w-full h-32 md:h-48 object-cover" alt="Evidence photo" onerror="this.src='https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found'">
-                    <?php if($image['is_primary']): ?>
-                    <div class="absolute top-2 right-2 bg-[#10A37F] text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg">
-                        <i class="fas fa-star mr-1"></i>Primary
-                    </div>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click to view full size.</p>
                     <?php endif; ?>
-                    <?php endif; ?>
-                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <i class="fas fa-search-plus text-white text-2xl md:text-3xl"></i>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <i class="fas fa-image"></i>
+                        <p class="text-sm">No photos submitted with this report.</p>
                     </div>
-                </div>
-                <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <div class="card card-bleed">
+                <div class="card-header"><i class="fas fa-check-circle" style="color:#10A37F"></i> Resolution Evidence</div>
+                <?php if(!empty($resolution_evidence)): ?>
+                    <div class="photo-grid pg-<?php echo min(count($resolution_evidence), 5); ?>">
+                        <?php foreach($resolution_evidence as $ev): ?>
+                            <div class="photo-grid-cell">
+                                <div class="photo-card relative">
+                                    <?php if(!empty($ev['is_video'])): ?>
+                                        <video src="<?php echo $ev['image_path']; ?>" muted playsinline preload="metadata" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)"></video>
+                                        <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                                            <i class="fas fa-video"></i>Video
+                                        </div>
+                                    <?php else: ?>
+                                        <img src="<?php echo $ev['image_path']; ?>" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" alt="Resolution evidence photo" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)">
+                                    <?php endif; ?>
+                                </div>
+                                <?php if(!empty($ev['caption'])): ?>
+                                    <div class="resolution-note-box"><i class="fas fa-sticky-note mr-1 text-emerald-500"></i><?php echo htmlspecialchars($ev['caption']); ?></div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if($report['status'] == 'resolved'): ?>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-check-circle mr-1 text-emerald-500"></i>This report has been resolved — evidence uploaded by <?php echo htmlspecialchars($resolution_evidence[0]['uploaded_by_name'] ?? 'MENRO'); ?>.</p>
+                    <?php else: ?>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i>Evidence of the actions taken to resolve this report.</p>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <p class="text-sm">No resolution evidence uploaded yet.</p>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
-        <?php endif; ?>
-        
-        <!-- Resolution Evidence -->
-        <?php if($report['status'] == 'resolved' && !empty($resolution_evidence)): ?>
-        <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8">
-            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 md:mb-4">
-                <i class="fas fa-check-circle text-green-500 mr-1"></i> Resolution Evidence (<?php echo count($resolution_evidence); ?>)
-            </h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-                <?php foreach($resolution_evidence as $ev): ?>
-                <div>
-                    <div class="group cursor-pointer overflow-hidden rounded-xl border border-green-200 hover:border-green-500 transition" onclick="window.open('<?php echo $ev['image_path']; ?>', '_blank')">
-                        <?php if(!empty($ev['is_video'])): ?>
-                        <video src="<?php echo $ev['image_path']; ?>" class="w-full h-32 md:h-48 object-cover" muted playsinline preload="metadata"></video>
-                        <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg flex items-center gap-1">
-                            <i class="fas fa-video"></i>Video
-                        </div>
-                        <?php else: ?>
-                        <img src="<?php echo $ev['image_path']; ?>" alt="Resolution evidence" class="w-full h-32 md:h-48 object-cover">
-                        <?php endif; ?>
-                    </div>
-                    <?php if($ev['caption']): ?>
-                    <div class="mt-1.5 md:mt-2 bg-green-50 border border-green-100 rounded-lg px-2 py-1.5 md:px-2.5 md:py-2">
-                        <div class="flex items-start gap-1.5">
-                            <i class="fas fa-sticky-note text-green-500 mt-0.5 text-xs"></i>
-                            <p class="text-xs text-gray-700 leading-relaxed"><?php echo htmlspecialchars($ev['caption']); ?></p>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
         
         <!-- Investigation Notes -->
         <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8">
@@ -1386,7 +1440,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <video id="lightboxVideo" src="" controls autoplay playsinline preload="metadata" disablepictureinpicture class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" style="display:none;"></video>
     </div>
     <div class="absolute bottom-6 left-0 right-0 text-center text-white/70 text-sm" id="lightboxCounter">
-        Media 1 of <?php echo count($images); ?>
+        Media 1 of <?php echo count($lightbox_media); ?>
     </div>
 </div>
 
@@ -1476,7 +1530,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <script>
 const sanIsidroBoundary = <?php echo json_encode($boundary_data); ?>;
 const barangayData = <?php echo json_encode($barangay_data); ?>;
-const reportImages = <?php echo json_encode($images); ?>;
+const reportImages = <?php echo json_encode($lightbox_media); ?>;
 let currentImageIndex = 0;
 
 // ===== Accurate point-in-polygon helpers (official barangay boundaries) =====
@@ -1572,10 +1626,6 @@ function extractPolygonCoordinates(geojson) {
     return null;
 }
 
-function confirmResolution() {
-    return confirm('Have you personally verified that this environmental issue has been fully resolved? Once confirmed, this action cannot be undone.');
-}
-
 // ===== CANCEL MODAL =====
 function openCancelModal() {
     document.getElementById('cancelModal').classList.remove('hidden');
@@ -1616,14 +1666,14 @@ document.getElementById('cancelForm').addEventListener('submit', function(e) {
     // If "Other" is selected but empty, prevent submission
     if (select.value === 'Other' && otherText.value.trim().length < 3) {
         e.preventDefault();
-        alert('Please specify a reason (at least 3 characters).');
+        window.GB.alert({ type: 'error', title: 'Reason required', message: 'Please specify a reason (at least 3 characters).' });
         otherText.focus();
         return false;
     }
     // If no selection, prevent
     if (select.value === '') {
         e.preventDefault();
-        alert('Please select a reason for cancellation.');
+        window.GB.alert({ type: 'error', title: 'Reason required', message: 'Please select a reason for cancellation.' });
         select.focus();
         return false;
     }
@@ -1753,63 +1803,64 @@ document.addEventListener('keydown', function(e) {
 // SUPPORT / VERIFY REPORT (AJAX)
 // ============================================
 function supportReport(reportId, button) {
-    if (!confirm('Do you want to support this report? This helps increase its priority.')) {
-        return;
-    }
+    window.GB.confirm({
+        message: 'Do you want to support this report? This helps increase its priority.',
+        onConfirm: function () {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const formData = new FormData();
+            formData.append('action', 'upvote_report');
+            formData.append('report_id', reportId);
+            formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
 
-    const formData = new FormData();
-    formData.append('action', 'upvote_report');
-    formData.append('report_id', reportId);
-    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+            fetch('<?php echo BASE_URL; ?>controllers/ReportController.php', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Increment verification count
+                    const countSpan = document.getElementById('verifyCount');
+                    if (countSpan) {
+                        countSpan.textContent = parseInt(countSpan.textContent) + 1;
+                    }
 
-    fetch('<?php echo BASE_URL; ?>controllers/ReportController.php', {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            // Increment verification count
-            const countSpan = document.getElementById('verifyCount');
-            if (countSpan) {
-                countSpan.textContent = parseInt(countSpan.textContent) + 1;
-            }
+                    // Replace button with check icon
+                    const parentDiv = button.parentElement;
+                    parentDiv.innerHTML = `
+                        <div class="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-heart text-pink-500 text-2xl"></i>
+                        </div>
+                        <p class="text-xs text-pink-500 mt-1 text-center font-medium">Supported</p>
+                    `;
 
-            // Replace button with check icon
-            const parentDiv = button.parentElement;
-            parentDiv.innerHTML = `
-                <div class="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-heart text-pink-500 text-2xl"></i>
-                </div>
-                <p class="text-xs text-pink-500 mt-1 text-center font-medium">Supported</p>
-            `;
+                    // Update description text
+                    const card = parentDiv.closest('.bg-white');
+                    const descP = card?.querySelector('p.text-gray-500');
+                    if (descP) {
+                        descP.innerHTML = '<span class="font-medium"><i class="fas fa-heart mr-1" style="color:#ef4444;"></i> You supported this report</span>';
+                    }
 
-            // Update description text
-            const card = parentDiv.closest('.bg-white');
-            const descP = card?.querySelector('p.text-gray-500');
-            if (descP) {
-                descP.innerHTML = '<span class="font-medium"><i class="fas fa-heart mr-1" style="color:#ef4444;"></i> You supported this report</span>';
-            }
-
-            showToast('Thank you for supporting!', 'success');
-            // Optionally refresh the page to update the header to supported view
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } else {
-            alert(data.message || 'Failed to support report.');
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-thumbs-up"></i> Support';
+                    showToast('Thank you for supporting!', 'success');
+                    // Optionally refresh the page to update the header to supported view
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    window.GB.alert({ type: 'error', title: 'Unable to support', message: data.message || 'Failed to support report.' });
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-thumbs-up"></i> Support';
+                }
+            })
+            .catch(error => {
+                window.GB.alert({ type: 'error', title: 'Error', message: error.message });
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-thumbs-up"></i> Support';
+            });
         }
-    })
-    .catch(error => {
-        alert('Error: ' + error.message);
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-thumbs-up"></i> Support';
     });
 }
 

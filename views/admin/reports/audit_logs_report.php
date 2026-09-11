@@ -478,7 +478,7 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
             vertical-align: top;
         }
         table.data tr:nth-child(even) td { background: #fafcfb; }
-        .mono { font-family: Consolas, monospace; font-size: 9.5px; }
+        .mono { font-family: 'Manrope', sans-serif; font-size: 9.5px; }
         .status-ok      { color: #047857; font-weight: 700; }
         .status-fail    { color: #b91c1c; font-weight: 700; }
         .status-unauth  { color: #c2410c; font-weight: 700; }

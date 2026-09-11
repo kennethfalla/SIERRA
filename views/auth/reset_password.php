@@ -834,13 +834,13 @@ try {
                     } else {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Set Password &amp; Continue';
-                        alert(data.error || 'Failed to update password. Please try again.');
+                        window.GB.alert({ type: 'error', title: 'Something went wrong', message: data.error || 'Failed to update password. Please try again.' });
                     }
                 })
                 .catch(function(err) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Set Password &amp; Continue';
-                    alert('Error: ' + err.message + '\n\nIf this keeps happening, try refreshing the page.');
+                    window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Error: ' + err.message + '\n\nIf this keeps happening, try refreshing the page.' });
                 });
             }
             // If not AJAX, the form will submit normally (fallback)
@@ -867,13 +867,15 @@ try {
             
             // Escape to go back to login
             if (e.key === 'Escape') {
-                if (confirm('Are you sure you want to cancel? You will need to login again.')) {
-                    window.location.href = '<?php echo BASE_URL; ?>index.php?page=logout';
-                }
+                window.GB.confirm({
+                    message: 'Are you sure you want to cancel? You will need to login again.',
+                    onConfirm: function () { window.location.href = '<?php echo BASE_URL; ?>index.php?page=logout'; }
+                });
             }
         });
         
     })();
     </script>
+<?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
 </body>
 </html>

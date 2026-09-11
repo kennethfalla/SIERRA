@@ -470,8 +470,8 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
                         data-status="<?php echo htmlspecialchars($item['status'], ENT_QUOTES, 'UTF-8'); ?>"
                         data-closed="<?php echo $closed_display; ?>"
                         data-archived="<?php echo $item['archived_at'] ? date('M d, Y H:i', strtotime($item['archived_at'])) : '—'; ?>">
-                        <td data-label="Archive ID"><span class="font-mono text-xs text-gray-500"><?php echo htmlspecialchars($item['archive_id']); ?></span></td>
-                        <td data-label="Original ID"><span class="font-mono text-xs text-gray-700">#<?php echo (int)$item['original_id']; ?></span></td>
+                        <td data-label="Archive ID"><span class="text-xs text-gray-500"><?php echo htmlspecialchars($item['archive_id']); ?></span></td>
+                        <td data-label="Original ID"><span class="text-xs text-gray-700">#<?php echo (int)$item['original_id']; ?></span></td>
                         <td class="font-medium text-gray-800 max-w-[220px] truncate" data-label="Title"><?php echo htmlspecialchars($item['title']); ?></td>
                         <td data-label="Category"><span class="type-badge <?php echo $item['source_type'] === 'report' ? 'type-report' : 'type-announcement'; ?>"><?php echo htmlspecialchars($item['source_type']); ?></span> <?php echo htmlspecialchars($item['category']); ?></td>
                         <td class="text-gray-600" data-label="Barangay"><?php echo htmlspecialchars($item['barangay']); ?></td>
@@ -534,9 +534,10 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
 
     // Reset form – reload page to discard changes
     window.resetArchivingForm = function() {
-        if (confirm('Reset all fields to their saved values? Unsaved changes will be lost.')) {
-            location.reload();
-        }
+        window.GB.confirm({
+            message: 'Reset all fields to their saved values? Unsaved changes will be lost.',
+            onConfirm: function () { location.reload(); }
+        });
     };
 
     // Warn about unsaved changes (rules form only; manual triggers are separate forms)

@@ -593,10 +593,11 @@ function getRoleBadge($user_type, $job_title = '') {
     .status-inactive .fa-circle { color: #EF4444; }
 
     /* ===== TABLE ===== */
-    .table-container { background: white; border-radius: 12px; border: 1px solid rgba(16, 163, 127, 0.08); overflow: hidden; }
-    .table-container thead th { background: #F5FBF6; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8aa38a; padding: 0.6rem 0.85rem; }
-    .table-container tbody td { padding: 0.55rem 0.85rem; font-size: 0.82rem; border-bottom: 1px solid #f0f4f2; }
-    .table-container tbody tr:hover { background: #f9fcfb; }
+    .table-container { background: white; border-radius: 12px; border: 1px solid #eef2f0; overflow: hidden; }
+    .table-container thead tr { background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%); }
+    .table-container thead th { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #6B7280; padding: 0.75rem 1rem; border-bottom: 1px solid #E5E7EB; }
+    .table-container tbody td { padding: 0.75rem 1rem; font-size: 0.875rem; border-bottom: 1px solid #E5E7EB; }
+    .table-container tbody tr:hover { background: rgba(236, 253, 245, 0.35); }
     .table-container tbody td .action-btn { padding: 3px 8px; }
 
     /* ===== MODAL ===== */
@@ -1408,13 +1409,13 @@ document.getElementById('createStaffForm').addEventListener('submit', function(e
 
     if (userType === 'barangay_personnel' && !barangaySelect.value) {
         e.preventDefault();
-        alert('Please select an assigned barangay for this Barangay Personnel account.');
+        window.GB.alert({ type: 'error', title: 'Address required', message: 'Please select an assigned barangay for this Barangay Personnel account.' });
         barangaySelect.focus();
         return false;
     }
     if (!roleSelect.value) {
         e.preventDefault();
-        alert('Please select a Role for this account.');
+        window.GB.alert({ type: 'error', title: 'Role required', message: 'Please select a Role for this account.' });
         roleSelect.focus();
         return false;
     }

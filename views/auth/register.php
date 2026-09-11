@@ -1264,7 +1264,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             })
             .catch(() => {
                 municipalitySelect.empty().append('<option value="">Error loading municipalities</option>').trigger('change');
-                alert('Error loading municipalities. Please select again.');
+                window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Error loading municipalities. Please select again.' });
             });
     }
     
@@ -1381,40 +1381,40 @@ let emailFallbackAvailable = false;
         
         // Validate names
         if (firstName.length < 2) {
-            alert('Please enter your first name (minimum 2 characters).');
+            window.GB.alert({ type: 'error', title: 'Check your details', message: 'Please enter your first name (minimum 2 characters).' });
             document.getElementById('first_name').focus();
             return;
         }
         
         if (lastName.length < 2) {
-            alert('Please enter your last name (minimum 2 characters).');
+            window.GB.alert({ type: 'error', title: 'Check your details', message: 'Please enter your last name (minimum 2 characters).' });
             document.getElementById('last_name').focus();
             return;
         }
         
         // Validate phone
         if (!/^09[0-9]{9}$/.test(contact)) {
-            alert('Please enter a valid 11-digit mobile number starting with 09.');
+            window.GB.alert({ type: 'error', title: 'Check your details', message: 'Please enter a valid 11-digit mobile number starting with 09.' });
             document.getElementById('contact_number').focus();
             return;
         }
         
         // Validate email
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            alert('Please enter a valid email address.');
+            window.GB.alert({ type: 'error', title: 'Check your details', message: 'Please enter a valid email address.' });
             document.getElementById('email').focus();
             return;
         }
         
         // Validate password
         if (password.length < passwordSettings.minLength || password.length > 16) {
-            alert('Password must be between ' + passwordSettings.minLength + ' and 16 characters.');
+            window.GB.alert({ type: 'error', title: 'Password issue', message: 'Password must be between ' + passwordSettings.minLength + ' and 16 characters.' });
             document.getElementById('password').focus();
             return;
         }
         
         if (password !== confirmPwd) {
-            alert('Passwords do not match.');
+            window.GB.alert({ type: 'error', title: 'Password issue', message: 'Passwords do not match.' });
             document.getElementById('confirmPwd').focus();
             return;
         }
@@ -1422,7 +1422,7 @@ let emailFallbackAvailable = false;
         // Validate password strength (using dynamic rules)
         const score = checkStrength(password);
         if (score < 3) {
-            alert('Please choose a stronger password (at least "Fair" strength).');
+            window.GB.alert({ type: 'warning', title: 'Password issue', message: 'Please choose a stronger password (at least "Fair" strength).' });
             document.getElementById('password').focus();
             return;
         }
@@ -1431,13 +1431,13 @@ let emailFallbackAvailable = false;
         if (isResident === 'yes') {
             const barangay = document.getElementById('barangay').value;
             if (!barangay) {
-                alert('Please select your barangay.');
+                window.GB.alert({ type: 'error', title: 'Address required', message: 'Please select your barangay.' });
                 document.getElementById('barangay').focus();
                 return;
             }
             const purok = document.getElementById('purok_street').value.trim();
             if (!purok) {
-                alert('Please enter your Purok/Street/Subdivision.');
+                window.GB.alert({ type: 'error', title: 'Address required', message: 'Please enter your Purok/Street/Subdivision.' });
                 document.getElementById('purok_street').focus();
                 return;
             }
@@ -1445,7 +1445,7 @@ let emailFallbackAvailable = false;
             const province = $('#province').val();
             const municipality = $('#municipality').val();
             if (!province || !municipality) {
-                alert('Please select your province and municipality.');
+                window.GB.alert({ type: 'error', title: 'Address required', message: 'Please select your province and municipality.' });
                 if (!province) $('#province').select2('open');
                 else $('#municipality').select2('open');
                 return;
@@ -1500,7 +1500,7 @@ let emailFallbackAvailable = false;
             console.error('Error checking duplicates:', error);
             btn.innerHTML = originalText;
             btn.disabled = false;
-            alert('Network error. Please try again.');
+            window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Network error. Please try again.' });
         });
     }
     
@@ -1533,13 +1533,13 @@ let emailFallbackAvailable = false;
                 currentCooldown = data.cooldown_seconds || 60;
                 proceedToStep2();
             } else {
-                alert(data.error || 'Failed to send OTP. Please try again.');
+                window.GB.alert({ type: 'error', title: 'Something went wrong', message: data.error || 'Failed to send OTP. Please try again.' });
             }
         })
         .catch(error => {
             btn.innerHTML = originalText;
             btn.disabled = false;
-            alert('Network error. Please try again.');
+            window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Network error. Please try again.' });
         });
     }
     
@@ -1686,7 +1686,7 @@ let emailFallbackAvailable = false;
         .catch(error => {
             document.getElementById('verifyBtnText').classList.remove('hidden');
             document.getElementById('verifySpinner').classList.add('hidden');
-            alert('Network error. Please try again.');
+            window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Network error. Please try again.' });
         });
     }
     
@@ -2595,5 +2595,6 @@ function maskEmail(email) {
             </div>
         </div>
     </div>
+<?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
 </body>
 </html>

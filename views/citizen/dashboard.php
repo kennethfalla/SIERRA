@@ -335,6 +335,7 @@ if (is_dir($barangays_dir)) {
             }
         }
         .status-pending { background: #FEF3C7; color: #92400E; }
+        .status-under_review { background: #DBEAFE; color: #1E40AF; }
         .status-verified { background: #DBEAFE; color: #1E40AF; }
         .status-in_progress { background: #FCE7F3; color: #9D174D; }
         .status-escalated_pending { background: #FDE68A; color: #92400E; border: 1px solid #F59E0B; }
@@ -342,6 +343,7 @@ if (is_dir($barangays_dir)) {
         .status-resolved { background: #D1FAE5; color: #065F46; }
         .status-closed { background: #F3F4F6; color: #4B5563; }
         .status-rejected { background: #FEE2E2; color: #991B1B; }
+        .status-cancelled { background: #F3F4F6; color: #6B7280; }
         
         .greeting-badge {
             background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
@@ -1466,7 +1468,6 @@ if (is_dir($barangays_dir)) {
             color: #9ca3af;
             font-weight: 400;
             margin-top: 2px;
-            font-family: monospace;
         }
         @media (min-width: 640px) {
             .desktop-table .report-id {
@@ -1558,7 +1559,6 @@ if (is_dir($barangays_dir)) {
         .report-card-item .card-id {
             font-size: 0.55rem;
             color: #9ca3af;
-            font-family: monospace;
             flex-shrink: 0;
             padding-top: 0.1rem;
         }
@@ -2119,12 +2119,14 @@ if (is_dir($barangays_dir)) {
                                 <span class="status-badge status-<?php echo $row['status']; ?>">
                                     <i class="fas <?php 
                                         echo $row['status'] == 'pending' ? 'fa-clock' : 
+                                            ($row['status'] == 'under_review' ? 'fa-search' :
                                             ($row['status'] == 'in_progress' ? 'fa-spinner fa-pulse' : 
                                             ($row['status'] == 'escalated_pending' ? 'fa-hourglass-half' :
                                             ($row['status'] == 'escalated' ? 'fa-shield-alt' :
                                             ($row['status'] == 'resolved' ? 'fa-check-circle' : 
                                             ($row['status'] == 'closed' ? 'fa-archive' :
-                                            ($row['status'] == 'rejected' ? 'fa-times-circle' : 'fa-check')))))); 
+                                            ($row['status'] == 'rejected' ? 'fa-times-circle' :
+                                            ($row['status'] == 'cancelled' ? 'fa-ban' : 'fa-check')))))))); 
                                     ?>"></i>
                                     <?php echo str_replace('_', ' ', ucfirst($row['status'])); ?>
                                 </span>
@@ -2179,12 +2181,14 @@ if (is_dir($barangays_dir)) {
                                 <span class="status-badge status-<?php echo $row['status']; ?>">
                                     <i class="fas <?php 
                                         echo $row['status'] == 'pending' ? 'fa-clock' : 
+                                            ($row['status'] == 'under_review' ? 'fa-search' :
                                             ($row['status'] == 'in_progress' ? 'fa-spinner fa-pulse' : 
                                             ($row['status'] == 'escalated_pending' ? 'fa-hourglass-half' :
                                             ($row['status'] == 'escalated' ? 'fa-shield-alt' :
                                             ($row['status'] == 'resolved' ? 'fa-check-circle' : 
                                             ($row['status'] == 'closed' ? 'fa-archive' :
-                                            ($row['status'] == 'rejected' ? 'fa-times-circle' : 'fa-check')))))); 
+                                            ($row['status'] == 'rejected' ? 'fa-times-circle' :
+                                            ($row['status'] == 'cancelled' ? 'fa-ban' : 'fa-check')))))))); 
                                     ?>"></i>
                                     <?php echo str_replace('_', ' ', ucfirst($row['status'])); ?>
                                 </span>
@@ -2376,35 +2380,38 @@ function markAllAsRead() {
 }
 
 function clearAllNotifications() {
-    if (!confirm('Clear all notifications? This cannot be undone.')) return;
+    window.GB.confirm({
+        message: 'Clear all notifications? This cannot be undone.',
+        onConfirm: function () {
+            var formData = new FormData();
+            formData.append('action', 'clear_all');
+            formData.append('csrf_token', getCsrfToken());
 
-    var formData = new FormData();
-    formData.append('action', 'clear_all');
-    formData.append('csrf_token', getCsrfToken());
-
-    fetch(NOTIF_BASE_URL + 'controllers/NotificationController.php', { method: 'POST', body: formData })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (data && data.success) {
-                var list = document.querySelector('.notification-list');
-                if (list) {
-                    list.innerHTML = '<div class="empty-notifications py-8 text-center">'
-                        + '<div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">'
-                        + '<i class="fas fa-bell-slash text-xl text-gray-400"></i></div>'
-                        + '<p class="text-gray-400 text-sm">No notifications yet</p>'
-                        + '<p class="text-xs text-gray-300 mt-1">You have cleared your notifications.</p></div>';
-                }
-                var headerCount = document.querySelector('.notification-header .rounded-full');
-                if (headerCount) headerCount.textContent = '0';
-                var actions = document.querySelector('.notification-actions');
-                if (actions) actions.style.display = 'none';
-                updateNotificationBadge(0);
-                showNotification('All notifications cleared.', 'success');
-            } else if (data && data.error) {
-                showNotification(data.error, 'error');
-            }
-        })
-        .catch(function() { showNotification('Failed to clear notifications.', 'error'); });
+            fetch(NOTIF_BASE_URL + 'controllers/NotificationController.php', { method: 'POST', body: formData })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        var list = document.querySelector('.notification-list');
+                        if (list) {
+                            list.innerHTML = '<div class="empty-notifications py-8 text-center">'
+                                + '<div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">'
+                                + '<i class="fas fa-bell-slash text-xl text-gray-400"></i></div>'
+                                + '<p class="text-gray-400 text-sm">No notifications yet</p>'
+                                + '<p class="text-xs text-gray-300 mt-1">You have cleared your notifications.</p></div>';
+                        }
+                        var headerCount = document.querySelector('.notification-header .rounded-full');
+                        if (headerCount) headerCount.textContent = '0';
+                        var actions = document.querySelector('.notification-actions');
+                        if (actions) actions.style.display = 'none';
+                        updateNotificationBadge(0);
+                        showNotification('All notifications cleared.', 'success');
+                    } else if (data && data.error) {
+                        showNotification(data.error, 'error');
+                    }
+                })
+                .catch(function() { showNotification('Failed to clear notifications.', 'error'); });
+        }
+    });
 }
 
 function viewAllNotifications() {

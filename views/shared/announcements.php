@@ -174,46 +174,49 @@ $photo_stmt->execute($params);
 $total_photos = $photo_stmt->fetchColumn();
 
 // Helper functions for badges
-function getCategoryBadge($category) {
-    $category_colors = [
-        'Emergency' => 'bg-red-100 text-red-700',
-        'Flood Warning' => 'bg-orange-100 text-orange-700',
-        'Environmental' => 'bg-emerald-100 text-emerald-700',
-        'Clean-up Drive' => 'bg-blue-100 text-blue-700',
-        'Tree Planting' => 'bg-green-100 text-green-700',
-        'Waste Management' => 'bg-yellow-100 text-yellow-700',
-        'Meeting' => 'bg-indigo-100 text-indigo-700',
-        'Event' => 'bg-pink-100 text-pink-700',
-        'Policy' => 'bg-gray-100 text-gray-700',
-        'General' => 'bg-slate-100 text-slate-700'
+function getCategoryColor($category) {
+    $category_dots = [
+        'Emergency' => '#EF4444',
+        'Flood Warning' => '#F97316',
+        'Environmental' => '#10A37F',
+        'Clean-up Drive' => '#3B82F6',
+        'Tree Planting' => '#22C55E',
+        'Waste Management' => '#EAB308',
+        'Meeting' => '#6366F1',
+        'Event' => '#EC4899',
+        'Policy' => '#6B7280',
+        'General' => '#94A3B8'
     ];
-    $color = $category_colors[$category] ?? 'bg-slate-100 text-slate-700';
-    return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ' . $color . '"><i class="fas fa-tag text-[9px]"></i> ' . htmlspecialchars($category) . '</span>';
+    return $category_dots[$category] ?? '#94A3B8';
+}
+
+function getCategoryBadge($category) {
+    $dot = getCategoryColor($category);
+    return '<span class="fb-tag fb-tag-dot" style="--dot:' . $dot . ';">' . htmlspecialchars($category) . '</span>';
 }
 
 function getAudienceBadge($announcement) {
     $type = $announcement['broadcast_type'] ?? (($announcement['is_public'] ?? 1) ? 'global_public' : 'localized_public');
-    $brgy = isset($announcement['barangay_name']) ? htmlspecialchars($announcement['barangay_name']) : '';
-    $base = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold';
+    $brgy = isset($announcement['barangay_name']) ? trim($announcement['barangay_name']) : '';
     switch ($type) {
         case 'global_public':
-            return '<span class="' . $base . ' bg-emerald-100 text-emerald-700"><i class="fas fa-globe text-[9px]"></i> Public (All San Isidro)</span>';
+            return '<span class="fb-tag"><i class="fas fa-globe-americas"></i> Public</span>';
         case 'localized_public':
-            return '<span class="' . $base . ' bg-blue-100 text-blue-700"><i class="fas fa-building text-[9px]"></i> ' . $brgy . ' Only</span>';
+            return '<span class="fb-tag"><i class="fas fa-location-dot"></i> ' . htmlspecialchars($brgy) . ' Only</span>';
         case 'internal_global':
-            return '<span class="' . $base . ' bg-purple-100 text-purple-700"><i class="fas fa-users text-[9px]"></i> Internal · All Admins</span>';
+            return '<span class="fb-tag"><i class="fas fa-user-lock"></i> Internal</span>';
         case 'internal_direct':
-            return '<span class="' . $base . ' bg-rose-100 text-rose-700"><i class="fas fa-user-shield text-[9px]"></i> Internal · Specific Admin</span>';
+            return '<span class="fb-tag"><i class="fas fa-user-shield"></i> Direct</span>';
         default:
-            return '<span class="' . $base . ' bg-emerald-100 text-emerald-700"><i class="fas fa-globe text-[9px]"></i> Public</span>';
+            return '<span class="fb-tag"><i class="fas fa-globe"></i> Public</span>';
     }
 }
 
 function getSourceBadge($role, $barangay_name = null) {
     if ($role == 'menro') {
-        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-700 font-semibold"><i class="fas fa-building text-[9px]"></i> MENRO</span>';
+        return '<span class="fb-tag"><i class="fas fa-building-columns"></i> MENRO</span>';
     } else {
-        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-700 font-semibold"><i class="fas fa-map-marker-alt text-[9px]"></i> ' . htmlspecialchars($barangay_name) . '</span>';
+        return '<span class="fb-tag"><i class="fas fa-map-pin"></i> ' . htmlspecialchars($barangay_name) . '</span>';
     }
 }
 
@@ -418,6 +421,74 @@ if ($date_to != '') $active_filters++;
             max-width: 100%;
             white-space: normal;
         }
+
+        /* ===== FACEBOOK-STYLE CLEAN TAGS ===== */
+        .fb-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 9999px;
+            border: 1px solid #E4E6EB;
+            background: #F0F2F5;
+            color: #65676B;
+            font-size: 0.68rem;
+            font-weight: 500;
+            line-height: 1;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .fb-tag i { font-size: 0.58rem; color: #8A8D91; }
+        .fb-tag-dot::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--dot, #94A3B8);
+            flex-shrink: 0;
+        }
+
+        /* ===== FACEBOOK-STYLE "SEE MORE" CONTENT ===== */
+        .fb-toggle-wrap { position: relative; }
+        .fb-clamp {
+            max-height: 6.8em;
+            overflow: hidden;
+            position: relative;
+        }
+        .fb-clamp::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 2.4em;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #FFFFFF);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .fb-clamp.fb-clamped::after { opacity: 1; }
+        .fb-clamp.expanded { max-height: none; }
+        .fb-clamp.expanded::after { opacity: 0; }
+        .fb-clamp.fb-short { max-height: none; }
+        .fb-clamp.fb-short::after { display: none; }
+        .fb-seemore {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            border: none;
+            background: none;
+            padding: 0;
+            color: #1877F2;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .fb-seemore:hover { text-decoration: underline; }
 
         /* ===== FACEBOOK-STYLE PHOTO GRID ===== */
         .fb-photo-grid {
@@ -938,8 +1009,8 @@ if ($date_to != '') $active_filters++;
                                 <?php echo getSourceBadge($announcement['created_by_role'], $announcement['barangay_name']); ?>
                                 <?php echo getAudienceBadge($announcement); ?>
                                 <?php if (!empty($announcement['expires_at'])): ?>
-                                <span class="text-[10px] text-orange-600 font-medium flex items-center gap-1 px-2.5 py-1 bg-orange-50 rounded-full border border-orange-100" title="This announcement will be hidden after this date/time">
-                                    <i class="fas fa-clock text-[9px]"></i> Expires <?php echo date('M d, Y · h:i A', strtotime($announcement['expires_at'])); ?>
+                                <span class="fb-tag" title="This announcement will be hidden after this date/time">
+                                    <i class="fas fa-clock"></i> Expires <?php echo date('M d, h:i A', strtotime($announcement['expires_at'])); ?>
                                 </span>
                                 <?php endif; ?>
                             </div>
@@ -960,10 +1031,6 @@ if ($date_to != '') $active_filters++;
                                     </button>
                                 </form>
                                 <?php endif; ?>
-                            </div>
-                            <?php else: ?>
-                            <div class="text-[10px] text-gray-400 font-medium flex items-center gap-1 px-2.5 py-1 bg-gray-50 rounded-full">
-                                <i class="fas fa-lock text-[9px]"></i> Read Only
                             </div>
                             <?php endif; ?>
                         </div>
@@ -991,15 +1058,17 @@ if ($date_to != '') $active_filters++;
                         </h3>
 
                         <!-- Content Preview -->
-                        <div class="content-preview mb-2" style="font-size:0.9rem;">
-                            <?php 
-                            $content = $announcement['content'];
-                            if(empty($content) || trim($content) === '' || trim($content) === '<p><br></p>') {
-                                echo '<p class="text-gray-400 italic">No content</p>';
-                            } else {
-                                echo $content;
-                            }
-                            ?>
+                        <div class="fb-toggle-wrap mb-2">
+                            <div class="content-preview fb-clamp" style="font-size:0.9rem;">
+                                <?php 
+                                $content = $announcement['content'];
+                                if(empty($content) || trim($content) === '' || trim($content) === '<p><br></p>') {
+                                    echo '<p class="text-gray-400 italic">No content</p>';
+                                } else {
+                                    echo $content;
+                                }
+                                ?>
+                            </div>
                         </div>
 
                         <!-- Photo Grid -->
@@ -1581,6 +1650,34 @@ document.addEventListener('DOMContentLoaded', function() {
     initQuill();
 });
 
+// ===== FACEBOOK-STYLE "SEE MORE" / "SEE LESS" =====
+function initSeeMore() {
+    Array.prototype.forEach.call(document.querySelectorAll('.fb-clamp'), function (el) {
+        var wrap = el.parentElement;
+        if (!wrap || wrap.querySelector('.fb-seemore')) return;
+        if (el.scrollHeight <= el.clientHeight + 1) {
+            el.classList.add('fb-short');
+            return;
+        }
+        el.classList.add('fb-clamped');
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'fb-seemore';
+        btn.textContent = 'See more';
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var expanded = el.classList.toggle('expanded');
+            btn.textContent = expanded ? 'See less' : 'See more';
+        });
+        wrap.appendChild(btn);
+    });
+}
+document.addEventListener('DOMContentLoaded', initSeeMore);
+window.addEventListener('load', initSeeMore);
+if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(initSeeMore);
+}
+
 function openCreateModal() {
     document.getElementById('createModal').classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -1671,12 +1768,15 @@ document.getElementById('editForm')?.addEventListener('submit', function(e) {
 var selectedPhotos = [], editSelectedPhotos = [], deleteImageIds = [], editCurrentImages = [], MAX_PHOTOS = 10;
 
 function markImageForDelete(imageId, element) {
-    if (confirm('Remove this image?')) {
-        deleteImageIds.push(imageId);
-        document.getElementById('delete_images').value = deleteImageIds.join(',');
-        element.closest('.current-image-item').remove();
-        editCurrentImages = editCurrentImages.filter(function(img) { return img.id != imageId; });
-    }
+    window.GB.confirm({
+        message: 'Remove this image?',
+        onConfirm: function () {
+            deleteImageIds.push(imageId);
+            document.getElementById('delete_images').value = deleteImageIds.join(',');
+            element.closest('.current-image-item').remove();
+            editCurrentImages = editCurrentImages.filter(function(img) { return img.id != imageId; });
+        }
+    });
 }
 
 var photoInput = document.getElementById('photoInput');
@@ -1711,7 +1811,7 @@ function updateFileInput() {
 function addPhotos(files) {
     for(var i = 0; i < files.length; i++) {
         if(selectedPhotos.length >= MAX_PHOTOS) { 
-            alert('Maximum ' + MAX_PHOTOS + ' photos allowed'); 
+            window.GB.alert({ type: 'warning', title: 'Photo limit reached', message: 'Maximum ' + MAX_PHOTOS + ' photos allowed' }); 
             break; 
         }
         var file = files[i];
@@ -1773,7 +1873,7 @@ function addEditPhotos(files) {
     var currentTotal = editCurrentImages.length + editSelectedPhotos.length;
     for(var i = 0; i < files.length; i++) {
         if(currentTotal + editSelectedPhotos.length >= MAX_PHOTOS) { 
-            alert('Maximum ' + MAX_PHOTOS + ' photos allowed'); 
+            window.GB.alert({ type: 'warning', title: 'Photo limit reached', message: 'Maximum ' + MAX_PHOTOS + ' photos allowed' }); 
             break; 
         }
         var file = files[i];

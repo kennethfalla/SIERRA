@@ -13,6 +13,7 @@ $require_number  = (int) SettingsHelper::get('password_require_number', 1);
 $require_special = (int) SettingsHelper::get('password_require_special', 1);
 $max_attempts    = (int) SettingsHelper::get('max_login_attempts', 5);
 $lockout_minutes = (int) SettingsHelper::get('lockout_duration_minutes', 30);
+$session_timeout = (float) SettingsHelper::get('session_timeout_hours', 2);
 $otp_max         = (int) SettingsHelper::get('otp_max_requests', 3);
 $otp_window_min  = (int) round((int) SettingsHelper::get('otp_request_window_seconds', 600) / 60);
 $otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
@@ -128,6 +129,37 @@ $otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
     </div>
 
     <!-- ============================================ -->
+    <!-- SESSION SECURITY (automatic logout) -->
+    <!-- ============================================ -->
+    <div class="mb-6 border-t border-gray-200 pt-4">
+        <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+            <i class="fas fa-hourglass-half text-[#10A37F]"></i> Session Security
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="form-group">
+                <label class="form-label" for="session_timeout_hours">Auto-Logout after (hours)</label>
+                <input type="number" name="session_timeout_hours" id="session_timeout_hours"
+                       value="<?php echo $session_timeout; ?>" min="0" max="72" step="0.5" class="form-input">
+                <p class="help-text">Users are logged out automatically after this many hours of inactivity. Set to 0 to disable. Default: 2</p>
+            </div>
+            <div class="form-group">
+                <div class="p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-800 leading-relaxed">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Tracks real user activity (mouse, keyboard, touch, scrolling). If a user leaves the app idle for the set time, they are signed out securely. Recommended: 2–8 hours for office use.
+                </div>
+            </div>
+        </div>
+        <div class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600">
+            <strong>Currently:</strong>
+            <?php if ($session_timeout > 0): ?>
+                Users are logged out automatically after <strong><?php echo (float)$session_timeout; ?></strong> hour<?php echo $session_timeout == 1 ? '' : 's'; ?> of inactivity.
+            <?php else: ?>
+                Automatic inactivity logout is <strong>disabled</strong> (sessions remain open indefinitely).
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
     <!-- FORM ACTIONS -->
     <!-- ============================================ -->
     <div class="flex flex-wrap gap-3 justify-end pt-4 border-t border-gray-200">
@@ -166,9 +198,10 @@ $otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
 
     // Reset function (reloads page to discard changes)
     window.resetForm = function() {
-        if (confirm('Reset all fields to their saved values? Unsaved changes will be lost.')) {
-            location.reload();
-        }
+        window.GB.confirm({
+            message: 'Reset all fields to their saved values? Unsaved changes will be lost.',
+            onConfirm: function () { location.reload(); }
+        });
     };
 
     // Ensure numeric inputs are within bounds on submit
@@ -213,6 +246,13 @@ $otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
             let val = parseInt(otpCooldown.value, 10);
             if (isNaN(val) || val < 20) otpCooldown.value = 20;
             if (val > 600) otpCooldown.value = 600;
+        }
+
+        const sessionTimeout = document.getElementById('session_timeout_hours');
+        if (sessionTimeout) {
+            let val = parseFloat(sessionTimeout.value);
+            if (isNaN(val) || val < 0) sessionTimeout.value = 0;
+            if (val > 72) sessionTimeout.value = 72;
         }
     });
 

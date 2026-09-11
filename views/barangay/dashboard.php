@@ -1806,7 +1806,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             }
                         ?>
                         <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition">
-                            <td class="px-3 py-3 text-sm font-mono text-gray-500 font-medium">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
+                            <td class="px-3 py-3 text-sm text-gray-500 font-medium">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
                             <td class="px-3 py-3">
                                 <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($row['title']); ?></p>
                                 <p class="text-xs text-gray-400 font-medium"><?php echo htmlspecialchars(substr($row['description'], 0, 50)); ?>...</p>
@@ -2066,35 +2066,38 @@ function markAllAsRead() {
 }
 
 function clearAllNotifications() {
-    if (!confirm('Clear all notifications? This cannot be undone.')) return;
+    window.GB.confirm({
+        message: 'Clear all notifications? This cannot be undone.',
+        onConfirm: function () {
+            var formData = new FormData();
+            formData.append('action', 'clear_all');
+            formData.append('csrf_token', getCsrfToken());
 
-    var formData = new FormData();
-    formData.append('action', 'clear_all');
-    formData.append('csrf_token', getCsrfToken());
-
-    fetch(NOTIF_BASE_URL + 'controllers/NotificationController.php', { method: 'POST', body: formData })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (data && data.success) {
-                var list = document.querySelector('.notification-list');
-                if (list) {
-                    list.innerHTML = '<div class="text-center py-12">'
-                        + '<div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">'
-                        + '<i class="fas fa-bell-slash text-2xl text-gray-400"></i></div>'
-                        + '<p class="text-gray-400 text-sm font-medium">No notifications yet</p>'
-                        + '<p class="text-xs text-gray-300 mt-1 font-medium">You have cleared your notifications.</p></div>';
-                }
-                var headerCount = document.querySelector('.notification-header .rounded-full');
-                if (headerCount) headerCount.textContent = '0 updates';
-                var actions = document.querySelector('.notification-actions');
-                if (actions) actions.style.display = 'none';
-                updateNotificationBadge(0);
-                showNotification('All notifications cleared.', 'success');
-            } else if (data && data.error) {
-                showNotification(data.error, 'error');
-            }
-        })
-        .catch(function() { showNotification('Failed to clear notifications.', 'error'); });
+            fetch(NOTIF_BASE_URL + 'controllers/NotificationController.php', { method: 'POST', body: formData })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        var list = document.querySelector('.notification-list');
+                        if (list) {
+                            list.innerHTML = '<div class="text-center py-12">'
+                                + '<div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">'
+                                + '<i class="fas fa-bell-slash text-2xl text-gray-400"></i></div>'
+                                + '<p class="text-gray-400 text-sm font-medium">No notifications yet</p>'
+                                + '<p class="text-xs text-gray-300 mt-1 font-medium">You have cleared your notifications.</p></div>';
+                        }
+                        var headerCount = document.querySelector('.notification-header .rounded-full');
+                        if (headerCount) headerCount.textContent = '0 updates';
+                        var actions = document.querySelector('.notification-actions');
+                        if (actions) actions.style.display = 'none';
+                        updateNotificationBadge(0);
+                        showNotification('All notifications cleared.', 'success');
+                    } else if (data && data.error) {
+                        showNotification(data.error, 'error');
+                    }
+                })
+                .catch(function() { showNotification('Failed to clear notifications.', 'error'); });
+        }
+    });
 }
 
 function viewAllNotifications() {
@@ -2436,8 +2439,8 @@ function applyCustomRange() {
     if (selectedRange !== 'custom') return;
     const from = document.getElementById('rangeFrom').value;
     const to = document.getElementById('rangeTo').value;
-    if (!from || !to) { alert('Please select both a start and end date.'); return; }
-    if (from > to) { alert('The start date must be on or before the end date.'); return; }
+    if (!from || !to) { window.GB.alert({ type: 'error', title: 'Invalid range', message: 'Please select both a start and end date.' }); return; }
+    if (from > to) { window.GB.alert({ type: 'error', title: 'Invalid range', message: 'The start date must be on or before the end date.' }); return; }
     selectedFrom = from;
     selectedTo = to;
     loadMapData(currentMode);
@@ -2594,7 +2597,7 @@ function renderDrillPanel(report) {
     const html = `
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">${escapeHtml(report.title)}</h3>
-            <span class="text-sm font-mono bg-gray-100 px-2 py-1 rounded">#${String(report.id).padStart(6,'0')}</span>
+            <span class="text-sm bg-gray-100 px-2 py-1 rounded">#${String(report.id).padStart(6,'0')}</span>
         </div>
 
         <!-- Status Badges -->

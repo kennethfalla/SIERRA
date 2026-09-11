@@ -13,7 +13,7 @@ $system_name = SettingsHelper::get('system_name', 'Sierra');
 
 // Define all setting tabs organized into categories
 $navigation_groups = [
-    'General & Branding' => [
+    'Website Look & Info' => [
         'general' => [
             'label' => 'General',
             'icon' => 'fa-cog',
@@ -33,7 +33,7 @@ $navigation_groups = [
             'file' => 'barangays.php'
         ]
     ],
-    'Administration & Access Control' => [
+    'User Access & Safety' => [
         'permissions' => [
             'label' => 'Permissions',
             'icon' => 'fa-user-lock',
@@ -47,7 +47,7 @@ $navigation_groups = [
             'file' => 'security.php'
         ]
     ],
-    'Application & Workflow Management' => [
+    'Report Rules & Automation' => [
         'categories' => [
             'label' => 'Categories',
             'icon' => 'fa-tags',
@@ -85,7 +85,7 @@ $navigation_groups = [
             'file' => 'features.php'
         ]
     ],
-    'Data & Operations' => [
+    'Maps & Alerts' => [
         'map' => [
             'label' => 'Map',
             'icon' => 'fa-map',
@@ -103,7 +103,9 @@ $navigation_groups = [
             'icon' => 'fa-envelope',
             'description' => 'Email and SMS templates',
             'file' => 'notifications.php'
-        ],
+        ]
+    ],
+    'Data & Downloads' => [
         'archiving' => [
             'label' => 'Data Archiving & Retention',
             'icon' => 'fa-archive',

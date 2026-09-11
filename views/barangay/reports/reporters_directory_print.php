@@ -317,7 +317,7 @@ if ($format === 'csv') {
                         <?php if ($total > 0): ?>
                             <?php foreach ($rows as $r): ?>
                             <tr>
-                                <td style="font-family:monospace;color:#6b7280;">#<?php echo str_pad($r['id'], 5, '0', STR_PAD_LEFT); ?></td>
+                                <td style="color:#6b7280;">#<?php echo str_pad($r['id'], 5, '0', STR_PAD_LEFT); ?></td>
                                 <td style="font-weight:600;color:#111827;"><?php echo htmlspecialchars(trim($r['first_name'] . ' ' . $r['last_name'])); ?></td>
                                 <td><?php echo htmlspecialchars($r['email'] ?: '—'); ?></td>
                                 <td><?php echo htmlspecialchars($r['contact_number'] ?: '—'); ?></td>

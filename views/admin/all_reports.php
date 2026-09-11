@@ -1100,7 +1100,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                             <?php if(count($reports) > 0): ?>
                                 <?php foreach($reports as $row): ?>
                                 <tr class="border-b hover:bg-emerald-50/30 transition">
-                                    <td class="px-4 py-3 text-sm font-mono text-gray-500">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
                                     <td class="px-4 py-3 text-sm font-semibold text-gray-800"><?php echo htmlspecialchars(substr($row['title'], 0, 40)); ?></td>
                                     <td class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['user_name']); ?></td>
                                     <td class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['category_name']); ?></td>

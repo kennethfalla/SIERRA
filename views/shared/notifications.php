@@ -21,6 +21,14 @@ $notifModel = new Notification($db);
 $notifications = $notifModel->getForUser($user_id, 100);
 $unread_count  = $notifModel->getUnreadCount($user_id);
 $csrf_token    = InputSanitizer::generateCsrfToken();
+
+$reports_count     = 0;
+$announcements_count = 0;
+foreach ($notifications as $n) {
+    if (($n['type'] ?? '') === 'report') { $reports_count++; }
+    else if (($n['type'] ?? '') === 'announcement') { $announcements_count++; }
+}
+$has_notifications = count($notifications) > 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -110,6 +118,51 @@ $csrf_token    = InputSanitizer::generateCsrfToken();
         .btn-action:hover { border-color: #10A37F; color: #10A37F; }
         .btn-action.danger:hover { border-color: #EF4444; color: #EF4444; }
         .btn-action:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ---- Search + filter chips toolbar ---- */
+        .notif-toolbar {
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid #F3F4F6;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+        .nt-search { position: relative; }
+        .nt-search i {
+            position: absolute; left: 12px; top: 50%;
+            transform: translateY(-50%);
+            color: #9CA3AF; font-size: 0.8rem; pointer-events: none;
+        }
+        .nt-search input {
+            width: 100%; padding: 8px 12px 8px 36px;
+            border: 1.5px solid #E5E7EB; border-radius: 10px;
+            font-size: 0.85rem; color: #1F2937; background: #F9FAFB;
+            outline: none; transition: all 0.2s ease;
+        }
+        .nt-search input:focus {
+            border-color: #10A37F; background: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.10);
+        }
+        .nt-search input::placeholder { color: #9CA3AF; }
+        .nt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .nt-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 14px; border-radius: 9999px;
+            font-size: 0.72rem; font-weight: 600; line-height: 1;
+            border: 1px solid #E5E7EB; background: #F3F4F6; color: #6B7280;
+            cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+        }
+        .nt-chip:hover { border-color: #10A37F; color: #10A37F; background: #F0FDF4; }
+        .nt-chip.active {
+            background: #10A37F; border-color: #10A37F; color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(16, 163, 127, 0.25);
+        }
+        .nt-chip-count {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+            background: rgba(255, 255, 255, 0.25); font-size: 0.58rem; font-weight: 700;
+        }
+        .nt-chip:not(.active) .nt-chip-count { background: #E5E7EB; color: #6B7280; }
     </style>
 </head>
 <body>
@@ -148,12 +201,25 @@ $csrf_token    = InputSanitizer::generateCsrfToken();
         </div>
 
         <div class="notif-card" id="notifCard">
+            <div class="notif-toolbar">
+                <div class="nt-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="ntSearch" placeholder="Search notifications..." autocomplete="off">
+                </div>
+                <div class="nt-chips" id="ntChips">
+                    <button type="button" class="nt-chip active" data-filter="all">All</button>
+                    <button type="button" class="nt-chip" data-filter="unread">Unread<?php if ($unread_count > 0): ?> <span class="nt-chip-count"><?php echo $unread_count; ?></span><?php endif; ?></button>
+                    <button type="button" class="nt-chip" data-filter="reports">Reports<?php if ($reports_count > 0): ?> <span class="nt-chip-count"><?php echo $reports_count; ?></span><?php endif; ?></button>
+                    <button type="button" class="nt-chip" data-filter="announcements">Announcements<?php if ($announcements_count > 0): ?> <span class="nt-chip-count"><?php echo $announcements_count; ?></span><?php endif; ?></button>
+                </div>
+            </div>
             <div id="notifList">
-                <?php if (count($notifications) > 0): ?>
+                <?php if ($has_notifications): ?>
                     <?php foreach ($notifications as $notif): ?>
                     <div class="notif-item <?php echo $notif['is_read'] ? '' : 'unread'; ?>"
                          data-link="<?php echo htmlspecialchars($notif['link'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
-                         data-id="<?php echo (int)$notif['id']; ?>">
+                         data-id="<?php echo (int)$notif['id']; ?>"
+                         data-type="<?php echo htmlspecialchars($notif['type'] ?? 'info', ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="notif-icon" style="background: <?php echo $notif['color'] ?? '#10A37F'; ?>20;">
                             <i class="fas <?php echo $notif['icon'] ?? 'fa-bell'; ?>" style="color: <?php echo $notif['color'] ?? '#10A37F'; ?>; font-size: 1rem;"></i>
                         </div>
@@ -177,15 +243,14 @@ $csrf_token    = InputSanitizer::generateCsrfToken();
                         <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <i class="fas fa-bell-slash text-2xl text-gray-400"></i>
-                        </div>
-                        <p class="text-gray-500 font-medium">No notifications</p>
-                        <p class="text-sm text-gray-400 mt-1">Notifications for your reports, status updates, and announcements will appear here.</p>
-                    </div>
                 <?php endif; ?>
+                <div class="empty-state" id="notifEmpty" style="<?php echo $has_notifications ? 'display:none' : ''; ?>">
+                    <div class="empty-icon">
+                        <i class="fas fa-bell-slash text-2xl text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-500 font-medium">No notifications</p>
+                    <p class="text-sm text-gray-400 mt-1">Notifications for your reports, status updates, and announcements will appear here.</p>
+                </div>
             </div>
         </div>
 
@@ -241,6 +306,7 @@ $csrf_token    = InputSanitizer::generateCsrfToken();
                 var clearBtn = document.getElementById('clearAllBtn');
                 if (clearBtn) clearBtn.remove();
                 updateSummary(0, document.querySelectorAll('.notif-item').length);
+                ntApply();
                 showToast('All notifications marked as read.', 'success');
             } else if (data && data.error) {
                 showToast(data.error, 'error');
@@ -253,30 +319,35 @@ $csrf_token    = InputSanitizer::generateCsrfToken();
     };
 
     window.clearAllNotifications = function () {
-        if (!confirm('Clear all notifications? This cannot be undone.')) return;
-        var btn = document.getElementById('clearAllBtn');
-        if (btn) { btn.disabled = true; }
-        post('clear_all').then(function (data) {
-            if (data && data.success) {
-                var list = document.getElementById('notifList');
-                list.innerHTML = '<div class="empty-state">'
-                    + '<div class="empty-icon"><i class="fas fa-bell-slash text-2xl text-gray-400"></i></div>'
-                    + '<p class="text-gray-500 font-medium">No notifications</p>'
-                    + '<p class="text-sm text-gray-400 mt-1">Notifications for your reports, status updates, and announcements will appear here.</p>'
-                    + '</div>';
-                var markBtn = document.getElementById('markAllBtn');
-                if (markBtn) markBtn.remove();
-                var clearBtn = document.getElementById('clearAllBtn');
-                if (clearBtn) clearBtn.remove();
-                updateSummary(0, 0);
-                showToast('All notifications cleared.', 'success');
-            } else if (data && data.error) {
-                showToast(data.error, 'error');
-                if (btn) btn.disabled = false;
+        window.GB.confirm({
+            message: 'Clear all notifications? This cannot be undone.',
+            onConfirm: function () {
+                var btn = document.getElementById('clearAllBtn');
+                if (btn) { btn.disabled = true; }
+                post('clear_all').then(function (data) {
+                    if (data && data.success) {
+                        var list = document.getElementById('notifList');
+                        list.innerHTML = '<div class="empty-state">'
+                            + '<div class="empty-icon"><i class="fas fa-bell-slash text-2xl text-gray-400"></i></div>'
+                            + '<p class="text-gray-500 font-medium">No notifications</p>'
+                            + '<p class="text-sm text-gray-400 mt-1">Notifications for your reports, status updates, and announcements will appear here.</p>'
+                            + '</div>';
+                        var markBtn = document.getElementById('markAllBtn');
+                        if (markBtn) markBtn.remove();
+                        var clearBtn = document.getElementById('clearAllBtn');
+                        if (clearBtn) clearBtn.remove();
+                        updateSummary(0, 0);
+                        ntApply();
+                        showToast('All notifications cleared.', 'success');
+                    } else if (data && data.error) {
+                        showToast(data.error, 'error');
+                        if (btn) btn.disabled = false;
+                    }
+                }).catch(function () {
+                    showToast('Failed to clear notifications.', 'error');
+                    if (btn) btn.disabled = false;
+                });
             }
-        }).catch(function () {
-            showToast('Failed to clear notifications.', 'error');
-            if (btn) btn.disabled = false;
         });
     };
 
@@ -287,6 +358,42 @@ $csrf_token    = InputSanitizer::generateCsrfToken();
                 + ' &middot; ' + total + ' total';
         }
     }
+
+    // ===== Search + pill filter chips =====
+    var ntSearch = document.getElementById('ntSearch');
+    var ntList = document.getElementById('notifList');
+    var ntChips = Array.prototype.slice.call(document.querySelectorAll('.nt-chip'));
+    var activeFilter = 'all';
+
+    function ntApply() {
+        var q = (ntSearch ? ntSearch.value : '').toLowerCase().trim();
+        var items = ntList ? ntList.querySelectorAll('.notif-item') : [];
+        var visible = 0;
+        Array.prototype.forEach.call(items, function (item) {
+            var show = true;
+            if (activeFilter === 'unread' && !item.classList.contains('unread')) show = false;
+            else if (activeFilter === 'reports' && item.getAttribute('data-type') !== 'report') show = false;
+            else if (activeFilter === 'announcements' && item.getAttribute('data-type') !== 'announcement') show = false;
+            if (show && q !== '') {
+                show = (item.textContent || '').toLowerCase().indexOf(q) !== -1;
+            }
+            item.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        var emptyEl = document.getElementById('notifEmpty');
+        if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
+    }
+
+    ntChips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            ntChips.forEach(function (c) { c.classList.remove('active'); });
+            chip.classList.add('active');
+            activeFilter = chip.getAttribute('data-filter');
+            ntApply();
+        });
+    });
+    ntSearch && ntSearch.addEventListener('input', ntApply);
+    window.addEventListener('load', ntApply);
 
     // Click a notification -> mark read + follow link
     document.querySelectorAll('.notif-item').forEach(function (item) {

@@ -357,9 +357,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
     // Reset form – reload page to discard changes
     window.resetKpiForm = function() {
-        if (confirm('Reset all fields to their saved values? Unsaved changes will be lost.')) {
-            location.reload();
-        }
+        window.GB.confirm({
+            message: 'Reset all fields to their saved values? Unsaved changes will be lost.',
+            onConfirm: function () { location.reload(); }
+        });
     };
 
     // Warn about unsaved changes

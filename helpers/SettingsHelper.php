@@ -207,6 +207,7 @@ class SettingsHelper {
             'password_min_length' => 8,
             'max_login_attempts' => 5,
             'lockout_duration_minutes' => 30,
+            'session_timeout_hours' => 2,
             'password_require_upper' => 1,
             'password_require_lower' => 1,
             'password_require_number' => 1,

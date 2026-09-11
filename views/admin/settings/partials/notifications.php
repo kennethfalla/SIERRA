@@ -1024,9 +1024,10 @@ $placeholders = [
     // RESET FORM
     // ============================================
     window.resetForm = function() {
-        if (confirm('Reset all fields to their saved values? Unsaved changes will be lost.')) {
-            location.reload();
-        }
+        window.GB.confirm({
+            message: 'Reset all fields to their saved values? Unsaved changes will be lost.',
+            onConfirm: function () { location.reload(); }
+        });
     };
     
     // ============================================

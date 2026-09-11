@@ -54,7 +54,7 @@ function getSeverityBadge($classification, $score) {
         'Under Review' => 'Gray'
     ];
     $color = $colors[$classification] ?? 'Gray';
-    return '<span class="severity-badge severity-' . $color . '"><i class="fas fa-chart-line"></i> ' . $classification . ' <span class="text-[9px] font-mono opacity-75">(' . $score . ')</span></span>';
+    return '<span class="severity-badge severity-' . $color . '"><i class="fas fa-chart-line"></i> ' . $classification . ' <span class="text-[9px] opacity-75">(' . $score . ')</span></span>';
 }
 
 // ============================================

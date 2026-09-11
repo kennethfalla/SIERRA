@@ -564,14 +564,14 @@ $reqList[] = 'No spaces allowed';
                 document.getElementById('otp1').focus();
             } else {
                 // Show error (generic)
-                alert(data.message || 'Unable to send OTP. Please try again.');
+                window.GB.alert({ type: 'error', title: 'Something went wrong', message: data.message || 'Unable to send OTP. Please try again.' });
             }
         })
         .catch(err => {
             btn.disabled = false;
             document.getElementById('requestText').classList.remove('hidden');
             document.getElementById('requestSpinner').classList.add('hidden');
-            alert('Network error. Please try again.');
+            window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Network error. Please try again.' });
         });
     }
     
@@ -671,7 +671,7 @@ $reqList[] = 'No spaces allowed';
             btn.disabled = false;
             document.getElementById('verifyText').classList.remove('hidden');
             document.getElementById('verifySpinner').classList.add('hidden');
-            alert('Network error. Please try again.');
+            window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Network error. Please try again.' });
         });
     }
     
@@ -699,14 +699,14 @@ $reqList[] = 'No spaces allowed';
                 document.querySelectorAll('.otp-input').forEach(inp => { inp.value = ''; inp.classList.remove('filled'); });
                 document.getElementById('otp1').focus();
             } else {
-                alert(data.message || 'Failed to resend OTP. Please try again.');
+                window.GB.alert({ type: 'error', title: 'Something went wrong', message: data.message || 'Failed to resend OTP. Please try again.' });
                 btn.disabled = false;
             }
         })
         .catch(err => {
             btn.textContent = 'Resend';
             btn.disabled = false;
-            alert('Network error. Please try again.');
+            window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Network error. Please try again.' });
         });
     }
     
@@ -860,7 +860,7 @@ $reqList[] = 'No spaces allowed';
         if (pwd !== confirm) errors.push('Passwords do not match');
         
         if (errors.length > 0) {
-            alert(errors.join('\n'));
+            window.GB.alert({ type: 'error', title: 'Password requirements', message: errors.join('\n') });
             return;
         }
         
@@ -886,17 +886,16 @@ $reqList[] = 'No spaces allowed';
             document.getElementById('resetSpinner').classList.add('hidden');
             
             if (data.success) {
-                alert('Password reset successful! You can now login with your new password.');
-                window.location.href = '<?php echo BASE_URL; ?>index.php?page=login';
+                window.GB.alert({ type: 'success', title: 'Password reset successful', message: 'You can now login with your new password.', onOk: function () { window.location.href = '<?php echo BASE_URL; ?>index.php?page=login'; } });
             } else {
-                alert(data.error || 'Failed to reset password. Please try again.');
+                window.GB.alert({ type: 'error', title: 'Something went wrong', message: data.error || 'Failed to reset password. Please try again.' });
             }
         })
         .catch(err => {
             btn.disabled = false;
             document.getElementById('resetText').classList.remove('hidden');
             document.getElementById('resetSpinner').classList.add('hidden');
-            alert('Network error. Please try again.');
+            window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Network error. Please try again.' });
         });
     });
     
@@ -909,5 +908,6 @@ $reqList[] = 'No spaces allowed';
         }
     });
     </script>
+<?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
 </body>
 </html>
