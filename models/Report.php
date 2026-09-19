@@ -388,6 +388,32 @@ class Report {
         $stmt->bindParam(":user_id", $user_id);
         return $stmt->execute();
     }
+
+    // ============================================
+    // AUTO-CONFIRMATION
+    // ============================================
+    // When a report stays resolved but unconfirmed for more than $days days,
+    // treat the resolution as accepted automatically. Scoped to one report
+    // when $report_id is given, otherwise applies across the whole table.
+    public function autoConfirmExpiredResolutions($report_id = null, $days = 3) {
+        $sql = "UPDATE " . $this->table . "
+                SET resolution_confirmed = 1,
+                    resolution_confirmed_at = COALESCE(resolution_confirmed_at, DATE_ADD(resolved_at, INTERVAL :days DAY))
+                WHERE status = :status
+                  AND resolution_confirmed = 0
+                  AND resolved_at IS NOT NULL
+                  AND resolved_at < DATE_SUB(NOW(), INTERVAL :days DAY)";
+        if ($report_id !== null) {
+            $sql .= " AND id = :report_id";
+        }
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":status", self::STATUS_RESOLVED);
+        $stmt->bindValue(":days", (int)$days, PDO::PARAM_INT);
+        if ($report_id !== null) {
+            $stmt->bindValue(":report_id", (int)$report_id, PDO::PARAM_INT);
+        }
+        return $stmt->execute();
+    }
     
     public function escalateToMENRO($report_id, $reason, $escalated_by) {
         $report = $this->getReportById($report_id);

@@ -6,6 +6,7 @@
 //   inline_selects   [{id, value, min_width, onchange, options}]
 //   filter_by        {active, count}
 //   popover_fields   [{kind:'select'|'date', id, label, value, default, options}]
+//   sort_select      {id, value, default, min_width, options}  (rendered inside Filter By popover)
 //   trailing_select  {id, value, min_width, onchange, options}
 //   view_toggle      {active:'grid'|'list', grid:'setViewMode(...)', list:'setViewMode(...)'}
 //   active_filters, chips, chips_clear_all,
@@ -22,6 +23,7 @@ $ft_results_text       = $ft['results_text'] ?? '';
 $ft_inline_selects     = $ft['inline_selects'] ?? [];
 $ft_filter_by          = $ft['filter_by'] ?? ['active' => false, 'count' => 0];
 $ft_popover_fields     = $ft['popover_fields'] ?? [];
+$ft_sort_select        = $ft['sort_select'] ?? null;
 $ft_trailing_select    = $ft['trailing_select'] ?? null;
 $ft_view_toggle        = $ft['view_toggle'] ?? null;
 $ft_active_filters     = (int)($ft['active_filters'] ?? 0);
@@ -194,6 +196,9 @@ foreach ($ft_popover_fields as $pf) {
         padding: 16px;
         min-width: 320px;
         max-width: calc(100vw - 32px);
+        max-height: calc(100vh - 16px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
         display: none;
         animation: ftPopoverIn 0.2s ease;
     }
@@ -605,6 +610,34 @@ foreach ($ft_popover_fields as $pf) {
             right: 0;
         }
     }
+
+    /* ===== Tablet / narrow desktop (641px – 900px) ===== */
+    @media (min-width: 641px) and (max-width: 900px) {
+        .ft-toolbar .reports-toolbar {
+            gap: 8px;
+        }
+        .ft-toolbar .toolbar-search {
+            flex: 1 1 100%;
+            min-width: 100%;
+        }
+        .ft-toolbar .toolbar-search:last-child,
+        .ft-toolbar .toolbar-search + .ft-more-controls {
+            margin-top: 0;
+        }
+        .ft-toolbar .toolbar-results {
+            margin-left: auto;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            row-gap: 6px;
+        }
+        .ft-toolbar .toolbar-results-text {
+            white-space: normal;
+            text-align: right;
+        }
+        .ft-toolbar .toolbar-divider {
+            display: none;
+        }
+    }
 </style>
 
 <div class="ft-toolbar">
@@ -655,7 +688,7 @@ foreach ($ft_popover_fields as $pf) {
             <?php endforeach; ?>
 
             <!-- Filter By popover -->
-            <?php if (!empty($ft_popover_fields)): ?>
+            <?php if (!empty($ft_popover_fields) || $ft_sort_select): ?>
             <div class="filter-popover-wrapper">
                 <button type="button" class="toolbar-filter-btn <?php echo $ft_filter_count > 0 ? 'active' : ''; ?>" id="filterByBtn">
                     <i class="fas fa-sliders-h"></i> Filter By
@@ -684,6 +717,19 @@ foreach ($ft_popover_fields as $pf) {
                                 <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
+                        <?php if ($ft_sort_select): ?>
+                            <div class="popover-field span-full">
+                                <label><?php echo htmlspecialchars($ft_sort_select['label'] ?? 'Sort By'); ?></label>
+                                <select id="<?php echo htmlspecialchars($ft_sort_select['id'] ?? ''); ?>">
+                                    <?php foreach (($ft_sort_select['options'] ?? []) as $so_value => $so_label): ?>
+                                        <option value="<?php echo htmlspecialchars((string)$so_value); ?>"
+                                            <?php echo ((string)($ft_sort_select['value'] ?? '') === (string)$so_value) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string)$so_label); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div class="popover-actions">
                         <button type="button" class="popover-btn-reset" id="popoverReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
@@ -799,9 +845,12 @@ foreach ($ft_popover_fields as $pf) {
         dateMap: <?php echo json_encode($ft_date_map); ?>,
         clearMap: <?php echo json_encode($ft_chip_clear_map); ?>,
         callback: '<?php echo htmlspecialchars($ft_callback, ENT_QUOTES); ?>',
-        popoverFields: <?php echo json_encode(array_map(function ($pf) {
-            return ['id' => $pf['id'] ?? '', 'default' => $pf['default'] ?? ''];
-        }, $ft_popover_fields)); ?>
+        popoverFields: <?php echo json_encode(array_merge(
+            array_map(function ($pf) {
+                return ['id' => $pf['id'] ?? '', 'default' => $pf['default'] ?? ''];
+            }, $ft_popover_fields),
+            $ft_sort_select ? [['id' => $ft_sort_select['id'] ?? '', 'default' => $ft_sort_select['default'] ?? '']] : []
+        )); ?>
     };
     if (!document.getElementById(FT.searchId)) return;
 
@@ -918,22 +967,31 @@ foreach ($ft_popover_fields as $pf) {
     filterBtn && filterBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         var willOpen = !filterPopover.classList.contains('open');
-        if (willOpen && filterPopover) {
-            // Use fixed positioning so left/top are viewport-relative
-            filterPopover.style.position = 'fixed';
-            var btnRect = filterBtn.getBoundingClientRect();
-            var popW = filterPopover.offsetWidth || 320;
-            var popH = filterPopover.offsetHeight;
-            var viewW = window.innerWidth || document.documentElement.clientWidth;
-            var viewH = window.innerHeight || document.documentElement.clientHeight;
-            var left = btnRect.left;
-            if (left + popW > viewW - 8) left = Math.max(8, viewW - popW - 8);
-            var top = btnRect.bottom + 8;
-            if (top + popH > viewH - 8) top = Math.max(8, btnRect.top - popH - 8);
-            filterPopover.style.left = left + 'px';
-            filterPopover.style.top = top + 'px';
-        }
+        var inSheet = moreControls && moreControls.classList.contains('open');
         filterPopover.classList.toggle('open');
+        if (willOpen && filterPopover) {
+            if (inSheet) {
+                // Inside the mobile bottom sheet: render inline, full width.
+                filterPopover.style.position = '';
+                filterPopover.style.left = '';
+                filterPopover.style.top = '';
+            } else {
+                // Show first, then measure so height is real (not 0 from display:none)
+                // and clamp fully inside the viewport.
+                filterPopover.style.position = 'fixed';
+                var btnRect = filterBtn.getBoundingClientRect();
+                var popW = filterPopover.offsetWidth || 320;
+                var popH = filterPopover.offsetHeight;
+                var viewW = window.innerWidth || document.documentElement.clientWidth;
+                var viewH = window.innerHeight || document.documentElement.clientHeight;
+                var left = btnRect.left;
+                if (left + popW > viewW - 8) left = Math.max(8, viewW - popW - 8);
+                var top = btnRect.bottom + 8;
+                if (top + popH > viewH - 8) top = Math.max(8, btnRect.top - popH - 8);
+                filterPopover.style.left = left + 'px';
+                filterPopover.style.top = top + 'px';
+            }
+        }
     });
     document.addEventListener('click', function (e) {
         if (filterPopover && !filterPopover.contains(e.target) && e.target !== filterBtn) {
@@ -1008,11 +1066,14 @@ foreach ($ft_popover_fields as $pf) {
         drBtn.addEventListener('click', function (e) {
             e.stopPropagation();
             var inSheet = moreControls && moreControls.classList.contains('open');
-            if (!drPop.classList.contains('open')) {
+            var willOpen = !drPop.classList.contains('open');
+            drPop.classList.toggle('open');
+            if (willOpen) {
+                // Show first, then measure so height is real (not 0 from display:none)
+                // and clamp fully inside the viewport.
                 if (inSheet) { drPop.style.position = ''; drPop.style.left = ''; drPop.style.top = ''; }
                 else drPosition();
             }
-            drPop.classList.toggle('open');
         });
         document.addEventListener('click', function (e) {
             if (drPop.classList.contains('open') && !drPop.contains(e.target) && e.target !== drBtn) drClose();

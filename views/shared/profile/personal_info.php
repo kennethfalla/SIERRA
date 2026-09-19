@@ -183,6 +183,7 @@
 
                             <form method="POST" action="" enctype="multipart/form-data" id="profileForm">
                                 <input type="hidden" name="update_profile" value="1">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                 <input type="hidden" name="cropped_image" id="croppedImage" value="">
                                 <input type="hidden" name="remove_photo" id="removePhotoEdit" value="">
 

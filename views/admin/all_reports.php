@@ -23,6 +23,7 @@ $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : '';
 $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
 $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
 $page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+$sort_order = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 if ($limit < 1) $limit = 20;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
@@ -278,7 +279,7 @@ $sql = "SELECT r.*, c.name as category_name, b.name as barangay_name,
                 WHEN r.status = 'in_progress' THEN 3 
                 ELSE 4 
             END,
-            r.created_at DESC
+            r.created_at " . ($sort_order === 'oldest' ? 'ASC' : 'DESC') . "
         LIMIT :limit OFFSET :offset";
 $stmt = $db->prepare($sql);
 foreach ($params as $key => $value) {
@@ -1061,6 +1062,13 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                 'min_width' => '80px',
                 'options'   => ['10' => '10', '20' => '20', '50' => '50'],
             ],
+            'sort_select'        => [
+                'id'        => 'toolbarSort',
+                'value'     => $sort_order,
+                'default'   => 'newest',
+                'label'     => 'Sort By',
+                'options'   => ['newest' => 'Recent to Older', 'oldest' => 'Older to Recent'],
+            ],
             'active_filters'     => (int)$active_filters,
             'chips'              => $ft_chips,
             'chips_clear_all'    => true,
@@ -1165,17 +1173,17 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <?php if($total_pages > 1): ?>
             <div class="pagination">
                 <?php if($page > 1): ?>
-                <a href="?page=all-reports&page_num=<?php echo $page-1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_filter; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></a>
+                <a href="?page=all-reports&page_num=<?php echo $page-1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_filter; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></a>
                 <?php else: ?>
                 <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></span>
                 <?php endif; ?>
                 
                 <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
-                <a href="?page=all-reports&page_num=<?php echo $i; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_filter; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&limit=<?php echo $limit; ?>" class="page-btn <?php echo $i==$page?'active':''; ?>"><?php echo $i; ?></a>
+                <a href="?page=all-reports&page_num=<?php echo $i; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_filter; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn <?php echo $i==$page?'active':''; ?>"><?php echo $i; ?></a>
                 <?php endfor; ?>
                 
                 <?php if($page < $total_pages): ?>
-                <a href="?page=all-reports&page_num=<?php echo $page+1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_filter; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></a>
+                <a href="?page=all-reports&page_num=<?php echo $page+1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_filter; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></a>
                 <?php else: ?>
                 <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></span>
                 <?php endif; ?>
@@ -1202,6 +1210,7 @@ function applyFilters() {
     const dateFrom = document.getElementById('popoverDateFrom').value;
     const dateTo = document.getElementById('popoverDateTo').value;
     const limit = document.getElementById('toolbarLimit').value;
+    const sort = document.getElementById('toolbarSort').value;
     
     if (search) params.append('search', search);
     if (status) params.append('status', status);
@@ -1211,6 +1220,7 @@ function applyFilters() {
     if (dateFrom) params.append('date_from', dateFrom);
     if (dateTo) params.append('date_to', dateTo);
     if (limit) params.append('limit', limit);
+    if (sort) params.append('sort', sort);
     
     window.location.href = '?' + params.toString();
 }
@@ -1235,6 +1245,7 @@ function downloadExport(type) {
     const dateFrom = document.getElementById('popoverDateFrom').value;
     const dateTo = document.getElementById('popoverDateTo').value;
     const search = document.getElementById('searchInput').value;
+    const sort = document.getElementById('toolbarSort').value;
 
     if (search) params.append('search', search);
     if (status) params.append('status', status);
@@ -1243,6 +1254,7 @@ function downloadExport(type) {
     if (risk) params.append('risk', risk);
     if (dateFrom) params.append('date_from', dateFrom);
     if (dateTo) params.append('date_to', dateTo);
+    if (sort) params.append('sort', sort);
 
     window.location.href = '?' + params.toString();
     document.getElementById('exportDropdown').classList.remove('open');

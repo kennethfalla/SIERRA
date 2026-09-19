@@ -1009,6 +1009,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "Passwords do not match.";
         }
 
+        if ($new_password !== '' && $user->verifyPassword($user_id, $new_password)) {
+            $errors[] = "New password must be different from your current password.";
+        }
+
         if (empty($errors)) {
             if ($user->updatePassword($user_id, $new_password)) {
                 $user->setForcePasswordReset($user_id, 0);
@@ -1308,6 +1312,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($new_password !== $confirm) {
             $errors[] = "Passwords do not match.";
         }
+        if ($new_password !== '' && $user->verifyPassword($user_id, $new_password)) {
+            $errors[] = "New password must be different from your current password.";
+        }
 
         if (empty($errors)) {
             if ($user->updatePassword($user_id, $new_password)) {
@@ -1374,6 +1381,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($new_password !== $confirm_password) {
             $errors[] = "Passwords do not match.";
+        }
+
+        if ($new_password !== '' && $user->verifyPassword($user_id, $new_password)) {
+            $errors[] = "New password must be different from your current password.";
         }
 
         if (empty($errors)) {

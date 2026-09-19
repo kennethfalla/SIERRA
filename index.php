@@ -126,8 +126,8 @@ if($page === 'reset-password') {
 // PROFILE PAGE - Accessible to all logged-in users
 // ============================================
 if($page === 'profile') {
-    // profile.php handles section-based routing internally via $_GET['section']
-    require_once 'views/shared/profile/profile.php';
+    // All profile logic (AJAX, form POSTs, rendering) lives in the controller.
+    require_once 'controllers/ProfileController.php';
     exit();
 }
 

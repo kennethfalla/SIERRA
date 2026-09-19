@@ -227,7 +227,13 @@
             onConfirm: function () {
                 form.removeAttribute('onsubmit');
                 form.setAttribute('data-gb-approved', '1');
-                try { form.requestSubmit(); } catch (err) { form.submit(); }
+                try {
+                    // Pass the named submit button as the submitter so its
+                    // name/value (e.g. confirm_resolution) reaches the server.
+                    var submitter = form.querySelector('button[type="submit"][name], input[type="submit"][name]');
+                    if (submitter) { form.requestSubmit(submitter); }
+                    else { form.requestSubmit(); }
+                } catch (err) { form.submit(); }
             }
         });
     }, true);

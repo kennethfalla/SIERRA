@@ -144,6 +144,18 @@ while ($row = $risk_result->fetch(PDO::FETCH_ASSOC)) {
     }
 }
 
+// Get status summary for chip filters (per active tab)
+$status_summary = [];
+if ($active_tab === 'supported') {
+    $status_sql = "SELECT r.status, COUNT(*) as cnt FROM report_verifications rv JOIN reports r ON rv.report_id = r.id WHERE rv.user_id = $user_id GROUP BY r.status";
+} else {
+    $status_sql = "SELECT status, COUNT(*) as cnt FROM reports WHERE user_id = $user_id GROUP BY status";
+}
+$status_result = $db->query($status_sql);
+while ($srow = $status_result->fetch(PDO::FETCH_ASSOC)) {
+    $status_summary[$srow['status']] = $srow['cnt'];
+}
+
 // ============================================================
 // HELPER LABELS
 // ============================================================
@@ -153,6 +165,22 @@ $status_labels = [
     'in_progress' => 'In Progress',
     'escalated' => 'Escalated',
     'resolved' => 'Resolved',
+    'rejected' => 'Rejected',
+    'cancelled' => 'Cancelled'
+];
+
+// Status chip order for the notification-style filter chips
+$status_chip_keys = ['', 'pending', 'under_review', 'verified', 'in_progress', 'escalated_pending', 'escalated', 'resolved', 'closed', 'rejected', 'cancelled'];
+$status_chip_labels = [
+    '' => 'All',
+    'pending' => 'Pending',
+    'under_review' => 'Under Review',
+    'verified' => 'Verified',
+    'in_progress' => 'In Progress',
+    'escalated_pending' => 'Escalation Pending',
+    'escalated' => 'Escalated',
+    'resolved' => 'Resolved',
+    'closed' => 'Closed',
     'rejected' => 'Rejected',
     'cancelled' => 'Cancelled'
 ];
@@ -764,6 +792,68 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             color: #c53030;
         }
 
+        /* Status filter chips (notification-style pills) */
+        .status-chip-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: var(--lt-white);
+            border: 1px solid var(--lt-border);
+            border-radius: 14px;
+            margin: 12px 0 1.5rem;
+        }
+        .status-chip-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--lt-gray-500);
+            margin-right: 2px;
+        }
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 14px;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            line-height: 1;
+            border: 1px solid #E5E7EB;
+            background: #F3F4F6;
+            color: #6B7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .status-chip:hover {
+            border-color: #2D5A27;
+            color: #2D5A27;
+            background: #E8F0E7;
+        }
+        .status-chip.active {
+            background: #10A37F;
+            border-color: #10A37F;
+            color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(16, 163, 127, 0.25);
+        }
+        .status-chip-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.25);
+            font-size: 0.58rem;
+            font-weight: 700;
+        }
+        .status-chip:not(.active) .status-chip-count {
+            background: #E5E7EB;
+            color: #6B7280;
+        }
+
         /* View Toggle */
         .view-toggle {
             background: #f1f5f9;
@@ -1001,6 +1091,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             }
             .active-filters-row {
                 padding: 8px 12px;
+            }
+            .status-chip-bar {
+                padding: 8px 12px;
+                justify-content: center;
             }
         }
 
@@ -1291,13 +1385,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </a>
         </div>
         
-        <!-- Risk Summary -->
-        <div class="risk-summary-container" id="riskSummaryContainer">
-            <span class="text-xs text-gray-500 font-medium mr-1">Risk Summary:</span>
-            <?php foreach($risk_summary as $risk => $count): if($count > 0): ?>
-            <span class="risk-badge risk-<?php echo $risk; ?>"><?php echo ucfirst($risk); ?>: <?php echo $count; ?></span>
-            <?php endif; endforeach; ?>
-        </div>
+       
         
         <!-- ===== FILTER TOOLBAR (shared partial) ===== -->
         <?php
@@ -1321,14 +1409,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             'search_value'       => $search_keyword,
             'search_placeholder' => 'Search reports...',
             'results_text'       => 'Showing <strong id="resultsCountDisplay">' . count($reports) . '</strong> of <strong>' . $total_reports . '</strong> reports',
-            'inline_selects'     => [
-                [
-                    'id'        => 'toolbarStatus',
-                    'value'     => $filter_status,
-                    'min_width' => null,
-                    'options'   => array_merge(['' => 'All Statuses'], $status_labels),
-                ],
-            ],
+            'inline_selects'     => [],
             'filter_by'          => [
                 'active' => ($filter_risk != '' || $filter_category > 0 || $filter_date > 0),
                 'count'  => $ft_popover_count,
@@ -1345,10 +1426,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 'grid'   => "setViewMode('grid')",
                 'list'   => "setViewMode('list')",
             ],
-            'trailing_select'    => [
+            'trailing_select'    => null,
+            'sort_select'        => [
                 'id'        => 'toolbarSort',
                 'value'     => $sort_order,
-                'min_width' => '140px',
+                'default'   => 'newest',
+                'label'     => 'Sort By',
                 'options'   => ['newest' => 'Recent to Older', 'oldest' => 'Older to Recent'],
             ],
             'active_filters'     => (int)$active_filters,
@@ -1365,6 +1448,23 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         ];
         include __DIR__ . '/../shared/report_filter_toolbar.php';
         ?>
+
+        <!-- Status filter chips (notification-style) -->
+        <?php $status_all_count = array_sum($status_summary); ?>
+        <div class="status-chip-bar" id="statusChipBar">
+            <span class="status-chip-label">Status</span>
+            <input type="hidden" id="toolbarStatus" value="<?php echo htmlspecialchars($filter_status, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php foreach ($status_chip_keys as $sc_key):
+                $sc_active = ($sc_key === $filter_status);
+                $sc_count = ($sc_key === '') ? $status_all_count : (int)($status_summary[$sc_key] ?? 0);
+                if (!$sc_active && $sc_count <= 0) continue;
+            ?>
+            <button type="button" class="status-chip<?php echo $sc_active ? ' active' : ''; ?>" data-status="<?php echo htmlspecialchars($sc_key, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php echo htmlspecialchars($status_chip_labels[$sc_key]); ?>
+                <span class="status-chip-count"><?php echo (int)$sc_count; ?></span>
+            </button>
+            <?php endforeach; ?>
+        </div>
         
         <!-- Reports Grid -->
         <div id="reportsGrid" class="reports-grid <?php echo $view_mode; ?>-view">
@@ -1647,6 +1747,15 @@ function setViewMode(mode) {
 // ===== LOADING =====
 function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+// ===== STATUS FILTER CHIPS (notification-style) =====
+document.querySelectorAll('#statusChipBar .status-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+        var statusInput = document.getElementById('toolbarStatus');
+        if (statusInput) statusInput.value = chip.getAttribute('data-status') || '';
+        applyFilters();
+    });
+});
 
 // ===== APPLY FILTERS (URL-based) =====
 function applyFilters() {

@@ -18,6 +18,11 @@ if ($report_id == 0) {
     exit();
 }
 
+// Auto-confirm this resolution if it has been resolved but unconfirmed for 3+ days.
+require_once dirname(__DIR__, 2) . '/models/Report.php';
+$reportModel = new Report($db);
+$reportModel->autoConfirmExpiredResolutions($report_id, 3);
+
 // Handle resolution confirmation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_resolution'])) {
     $confirm_id = (int)$_POST['report_id'];

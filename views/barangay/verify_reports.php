@@ -1332,10 +1332,12 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 'grid'   => "setViewMode('grid')",
                 'list'   => "setViewMode('list')",
             ],
-            'trailing_select'    => [
+            'trailing_select'    => null,
+            'sort_select'        => [
                 'id'        => 'toolbarSort',
                 'value'     => $sort_order,
-                'min_width' => '140px',
+                'default'   => 'newest',
+                'label'     => 'Sort By',
                 'options'   => ['newest' => 'Recent to Older', 'oldest' => 'Older to Recent'],
             ],
             'active_filters'     => (int)$active_filters,
