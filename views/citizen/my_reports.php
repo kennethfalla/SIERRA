@@ -190,11 +190,10 @@ $active_category_name = ($filter_category > 0 && isset($category_name_map[$filte
 
 // Count active filters
 $active_filters = 0;
-if ($filter_status != '') $active_filters++;
-if ($filter_risk != '') $active_filters++;
-if ($filter_category > 0) $active_filters++;
-if ($filter_date > 0) $active_filters++;
-if ($search_keyword != '') $active_filters++;
+        if ($filter_risk != '') $active_filters++;
+        if ($filter_category > 0) $active_filters++;
+        if ($filter_date > 0) $active_filters++;
+        if ($search_keyword != '') $active_filters++;
 
 // Generate CSRF token for AJAX
 $csrf_token = InputSanitizer::generateCsrfToken();
@@ -1094,8 +1093,16 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             }
             .status-chip-bar {
                 padding: 8px 12px;
-                justify-content: center;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                scroll-snap-type: x proximity;
             }
+            .status-chip-bar::-webkit-scrollbar { display: none; }
+            .status-chip-label { flex-shrink: 0; }
+            .status-chip { flex: 0 0 auto; scroll-snap-align: start; }
         }
 
         /* Floating "New Report" button (mobile only) */
@@ -1396,7 +1403,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         $ft_chips = [];
         if (!empty($search_keyword)) $ft_chips[] = '<span class="filter-chip">"' . htmlspecialchars($search_keyword) . '" <span class="chip-remove" data-filter="search"><i class="fas fa-times"></i></span></span>';
-        if ($filter_status != '') $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($status_labels[$filter_status] ?? ucfirst($filter_status)) . ' <span class="chip-remove" data-filter="status"><i class="fas fa-times"></i></span></span>';
+        // Status is NOT repeated here: the status chip bar below already shows the active selection.
         if ($filter_risk != '') $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($risk_labels[$filter_risk] ?? ucfirst($filter_risk)) . ' <span class="chip-remove" data-filter="risk"><i class="fas fa-times"></i></span></span>';
         if ($filter_category > 0) $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($active_category_name) . ' <span class="chip-remove" data-filter="category"><i class="fas fa-times"></i></span></span>';
         if ($filter_date > 0) $ft_chips[] = '<span class="filter-chip">' . htmlspecialchars($date_range_labels[$filter_date] ?? $filter_date . ' days') . ' <span class="chip-remove" data-filter="date"><i class="fas fa-times"></i></span></span>';

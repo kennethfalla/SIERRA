@@ -1935,6 +1935,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 manageReportUrl($report_id)
             );
 
+            // SEVERE reports (impact tier 4) automatically trigger a High Priority
+            // alert to MENRO so urgent issues get attention first.
+            if ((int)($newReport['impact_modifier'] ?? 0) === 4) {
+                notifyMenro(
+                    $db,
+                    'High Priority Alert',
+                    'SEVERE report "' . ($newReport['title'] ?? 'Report #' . $report_id) . '" (#'.$report_id.') was submitted and requires IMMEDIATE attention.',
+                    'fa-exclamation-triangle',
+                    '#EF4444',
+                    manageReportUrl($report_id)
+                );
+            }
+
             $_SESSION['success'] = "Report submitted successfully with " . count($image_paths) . " photo(s)/video(s)!";
             header("Location: " . trackStatusUrl($report_id));
             exit();

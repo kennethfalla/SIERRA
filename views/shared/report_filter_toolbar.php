@@ -469,6 +469,22 @@ foreach ($ft_popover_fields as $pf) {
         .ft-toolbar .toolbar-results { width: 100%; justify-content: space-between; }
     }
 
+    /* Active filter chips stay on ONE line on mobile: horizontally scrollable */
+    @media (max-width: 640px) {
+        .ft-toolbar .active-filters-row {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            scroll-snap-type: x proximity;
+        }
+        .ft-toolbar .active-filters-row::-webkit-scrollbar { display: none; }
+        .ft-toolbar .active-filters-label,
+        .ft-toolbar .filter-chip,
+        .ft-toolbar .chips-clear-all { flex: 0 0 auto; }
+        .ft-toolbar .filter-chip { scroll-snap-align: start; }
+    }
+
     /* ===== Mobile "3 dots" more menu ===== */
     .ft-toolbar .ft-more-btn {
         display: none;
@@ -499,7 +515,6 @@ foreach ($ft_popover_fields as $pf) {
         .ft-toolbar .popover-grid {
             grid-template-columns: 1fr;
         }
-        /* View toggle gets JS-repositioned to sit right after search on mobile */
         .ft-toolbar .view-toggle {
             flex-shrink: 0;
         }
@@ -543,6 +558,26 @@ foreach ($ft_popover_fields as $pf) {
             inset: 0;
             background: rgba(0, 0, 0, 0.35);
             z-index: 190;
+            animation: ftBackdropIn 0.24s ease;
+        }
+        @keyframes ftBackdropIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        :root {
+            --ft-sheet-100: 100vh;
+            --ft-drawer-peek: 38vh;
+        }
+        @supports (height: 1dvh) {
+            :root {
+                --ft-sheet-100: 100dvh;
+                --ft-drawer-peek: 38dvh;
+            }
+        }
+        body.ft-sheet-open {
+            overflow: hidden;
+            overscroll-behavior: none;
+            touch-action: none;
         }
         .ft-toolbar .ft-more-controls {
             display: none;
@@ -558,15 +593,43 @@ foreach ($ft_popover_fields as $pf) {
             z-index: 200;
             background: var(--ft-white);
             padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
-            border-radius: 18px 18px 0 0;
+            border-radius: 20px 20px 0 0;
             box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
-            max-height: 75vh;
+            height: var(--ft-sheet-100);
+            max-height: var(--ft-sheet-100);
             overflow-y: auto;
-            animation: ftSheetUp 0.22s ease;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            transform: translateY(calc(var(--ft-sheet-100) - var(--ft-drawer-peek)));
+            transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+            animation: ftSheetUp 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+            will-change: transform;
+        }
+        .ft-toolbar .ft-more-controls.open:not(.ft-more-expanded) {
+            touch-action: none;
+        }
+        .ft-toolbar .ft-more-controls.open.ft-more-expanded {
+            transform: translateY(0);
+            touch-action: pan-y;
+        }
+        .ft-toolbar .ft-more-grab {
+            display: block;
+            width: 40px;
+            height: 4px;
+            margin: 0 auto 2px;
+            border-radius: 999px;
+            background: var(--ft-border);
+            align-self: center;
+            flex-shrink: 0;
+            cursor: grab;
+            touch-action: none;
+        }
+        .ft-toolbar .ft-more-grab:active {
+            cursor: grabbing;
         }
         @keyframes ftSheetUp {
-            from { transform: translateY(16px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from { transform: translateY(100%); }
+            to { transform: translateY(calc(var(--ft-sheet-100) - var(--ft-drawer-peek))); }
         }
         .ft-toolbar .ft-more-controls-header {
             display: flex;
@@ -603,7 +666,13 @@ foreach ($ft_popover_fields as $pf) {
             gap: 10px;
         }
         .ft-toolbar .ft-more-controls.open .view-toggle {
-            display: none;
+            display: inline-flex;
+            width: 100%;
+        }
+        .ft-toolbar .ft-more-controls.open .view-btn {
+            flex: 1 1 0;
+            padding: 0.45rem 1rem;
+            font-size: 0.8rem;
         }
         .ft-toolbar .ft-more-controls.open .filter-popover {
             left: 0;
@@ -662,6 +731,7 @@ foreach ($ft_popover_fields as $pf) {
 
         <!-- Controls hidden on mobile behind the 3-dot menu (unchanged on desktop) -->
         <div class="ft-more-controls" id="ftMoreControls">
+            <div class="ft-more-grab" id="ftMoreGrab" aria-hidden="true"></div>
             <div class="ft-more-controls-header">
                 <span>Filters &amp; Sort</span>
                 <button type="button" class="ft-more-close" id="ftMoreClose" aria-label="Close"><i class="fas fa-times"></i></button>
@@ -788,8 +858,7 @@ foreach ($ft_popover_fields as $pf) {
                 <?php endif; ?>
 
                 <?php if ($ft_view_toggle): ?>
-                    <!-- View toggle: lives here on desktop; JS moves it up next to Search on mobile -->
-                    <span id="ftViewTogglePlaceholder" style="display:none"></span>
+                    <!-- View toggle lives inside the 3-dot sheet on mobile, inline on desktop -->
                     <div class="view-toggle" id="ftViewToggle">
                         <button type="button" id="gridViewBtn" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'grid' ? 'active' : ''; ?>"
                                 onclick="<?php echo htmlspecialchars($ft_view_toggle['grid'] ?? ''); ?>"><i class="fas fa-th"></i></button>
@@ -866,16 +935,31 @@ foreach ($ft_popover_fields as $pf) {
     var moreClose = document.getElementById('ftMoreClose');
     var mobileQuery = window.matchMedia('(max-width: 640px)');
 
+    function clearSheetHold() {
+        if (!moreControls) return;
+        moreControls.style.transform = '';
+        moreControls.style.transition = '';
+        moreControls.style.animation = '';
+        moreControls.style.touchAction = '';
+        moreControls.style.userSelect = '';
+        moreControls.style.height = '';
+        moreControls.style.maxHeight = '';
+    }
     function openMore() {
         if (!moreControls) return;
+        document.body.classList.add('ft-sheet-open');
         moreControls.classList.add('open');
+        clearSheetHold();
         moreBackdrop && moreBackdrop.classList.add('open');
         moreBtn && moreBtn.classList.add('active');
         moreBtn && moreBtn.setAttribute('aria-expanded', 'true');
     }
     function closeMore() {
         if (!moreControls) return;
+        document.body.classList.remove('ft-sheet-open');
         moreControls.classList.remove('open');
+        moreControls.classList.remove('ft-more-expanded');
+        clearSheetHold();
         moreBackdrop && moreBackdrop.classList.remove('open');
         moreBtn && moreBtn.classList.remove('active');
         moreBtn && moreBtn.setAttribute('aria-expanded', 'false');
@@ -894,28 +978,116 @@ foreach ($ft_popover_fields as $pf) {
         if (e.key === 'Escape') closeMore();
     });
 
-    // ===== Move the grid/list view toggle next to Search on mobile =====
-    var viewToggle = document.getElementById('ftViewToggle');
-    var viewTogglePlaceholder = document.getElementById('ftViewTogglePlaceholder');
-    var viewToggleMoved = false;
-    function layoutViewToggle() {
-        if (!viewToggle || !moreBtn) return;
-        if (mobileQuery.matches && !viewToggleMoved) {
-            moreBtn.parentNode.insertBefore(viewToggle, moreBtn);
-            viewToggleMoved = true;
-        } else if (!mobileQuery.matches && viewToggleMoved && viewTogglePlaceholder) {
-            viewTogglePlaceholder.parentNode.insertBefore(viewToggle, viewTogglePlaceholder.nextSibling);
-            viewToggleMoved = false;
+    // ===== Draggable bottom sheet: peek by default, swipe up to full, swipe down to close =====
+    var sheetGrab = document.getElementById('ftMoreGrab');
+    var dragY = null;
+    var dragging = false;
+    var dragBaseOffset = 0;
+    var sheetFull = 0;
+    var sheetPeekOffset = 0;
+    function measureSheetLimits() {
+        var h = moreControls ? moreControls.offsetHeight : 0;
+        sheetFull = h > 0 ? h : (window.innerHeight || document.documentElement.clientHeight);
+        sheetPeekOffset = Math.round(sheetFull * 0.62);
+    }
+    function currentOffset() {
+        var tf = window.getComputedStyle(moreControls).transform;
+        if (!tf || tf === 'none') return 0;
+        var m = tf.match(/matrix\(([^)]+)\)/);
+        if (!m) return 0;
+        var v = m[1].split(',');
+        return parseFloat(v[5]) || 0;
+    }
+    function grabY(e) {
+        return (e.touches && e.touches.length) ? e.touches[0].clientY : e.clientY;
+    }
+    function canGrab(e) {
+        if (!moreControls || !moreControls.classList.contains('open')) return false;
+        if (moreControls.scrollTop > 0) return false;
+        if (e.target.closest && e.target.closest('.filter-popover, .date-range-wrapper, .toolbar-results, select, input, button, a, label')) return false;
+        return true;
+    }
+    function gDown(y) {
+        measureSheetLimits();
+        dragBaseOffset = currentOffset();
+        moreControls.style.animation = 'none';
+        moreControls.style.transition = 'none';
+        moreControls.style.touchAction = 'none';
+        moreControls.style.userSelect = 'none';
+        dragY = y;
+        dragging = true;
+    }
+    function gMove(y) {
+        var offset = Math.max(0, Math.min(sheetFull, dragBaseOffset + (y - dragY)));
+        moreControls.style.transform = 'translateY(' + offset + 'px)';
+    }
+    function gEnd(y) {
+        if (!dragging) return;
+        var dy = y - dragY;
+        var wasFull = dragBaseOffset < 20;
+        dragging = false;
+        dragY = null;
+        moreControls.style.touchAction = '';
+        moreControls.style.userSelect = '';
+        moreControls.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+        var snap = function (target, expanded) {
+            moreControls.classList.toggle('ft-more-expanded', expanded);
+            moreControls.style.transform = 'translateY(' + target + 'px)';
+            setTimeout(clearSheetHold, 300);
+        };
+        if (dy < -10) {
+            snap(0, true);
+        } else if (dy > sheetFull * 0.2) {
+            moreControls.style.transform = 'translateY(' + sheetFull + 'px)';
+            setTimeout(closeMore, 250);
+        } else {
+            snap(wasFull ? 0 : sheetPeekOffset, wasFull);
         }
     }
-    layoutViewToggle();
-    if (mobileQuery.addEventListener) {
-        mobileQuery.addEventListener('change', layoutViewToggle);
-    } else if (mobileQuery.addListener) {
-        mobileQuery.addListener(layoutViewToggle);
+    function onGrabDown(e) {
+        if (!canGrab(e)) return;
+        if (moreControls.setPointerCapture) {
+            try { moreControls.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+        if (e.cancelable) e.preventDefault();
+        gDown(grabY(e));
     }
-    window.addEventListener('resize', layoutViewToggle);
+    function onGrabMove(e) {
+        if (!dragging) return;
+        if (e.cancelable) e.preventDefault();
+        gMove(grabY(e));
+    }
+    function onGrabEnd(e) {
+        if (!dragging) return;
+        if (e.cancelable) e.preventDefault();
+        gEnd(grabY(e));
+    }
+    if (window.PointerEvent) {
+        sheetGrab && sheetGrab.addEventListener('pointerdown', onGrabDown);
+        moreControls && moreControls.addEventListener('pointerdown', onGrabDown);
+        document.addEventListener('pointermove', onGrabMove);
+        document.addEventListener('pointerup', onGrabEnd);
+        document.addEventListener('pointercancel', onGrabEnd);
+    } else {
+        sheetGrab && sheetGrab.addEventListener('touchstart', onGrabDown);
+        moreControls && moreControls.addEventListener('touchstart', onGrabDown);
+        document.addEventListener('touchmove', onGrabMove, { passive: false });
+        document.addEventListener('touchend', onGrabEnd);
+        document.addEventListener('mousedown', onGrabDown);
+        document.addEventListener('mousemove', onGrabMove);
+        document.addEventListener('mouseup', onGrabEnd);
+    }
+    // Belt & braces: never let the browser scroll/refresh behind the gesture.
+    document.addEventListener('touchmove', function (e) {
+        if (dragging && e.cancelable) e.preventDefault();
+    }, { passive: false });
+    sheetGrab && sheetGrab.addEventListener('click', function () {
+        if (moreControls && moreControls.classList.contains('open')) {
+            moreControls.classList.toggle('ft-more-expanded');
+        }
+    });
 
+    // ===== Grid/List view toggle stays inside the 3-dot sheet on mobile =====
     function ftRun() {
         if (typeof window[FT.callback] === 'function') window[FT.callback]();
     }

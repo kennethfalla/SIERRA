@@ -197,8 +197,22 @@ if (is_dir($barangays_dir)) {
             box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.08);
         }
         .form-input.error {
-            border-color: #EF4444;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+            border-color: #DC2626;
+            background: #FEF2F2;
+        }
+
+        /* ===== FIELD ERROR MESSAGES ===== */
+        .error-message {
+            display: none;
+            margin: 6px 0 0;
+            padding: 0;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: #DC2626;
+            line-height: 1.4;
+        }
+        .error-message.visible {
+            display: block;
         }
 
         /* ===== AUTO-CORRECTION (CATEGORY KEYWORDS) ===== */
