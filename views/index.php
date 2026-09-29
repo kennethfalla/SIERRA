@@ -1606,6 +1606,23 @@ if (resolutionBar) {
 })();
 </script>
 
+<!-- FAQ: exclusive accordion — only one item open at a time -->
+<script>
+(function () {
+    'use strict';
+    var faqs = document.querySelectorAll('#faq details.faq-item');
+    if (!faqs.length) return;
+    Array.prototype.forEach.call(faqs, function (item) {
+        item.addEventListener('toggle', function () {
+            if (!item.open) return;
+            Array.prototype.forEach.call(faqs, function (other) {
+                if (other !== item && other.open) other.open = false;
+            });
+        });
+    });
+})();
+</script>
+
 <script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
 <?php echo lang_apply_js(); ?>

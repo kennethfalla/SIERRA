@@ -1798,6 +1798,7 @@ text-decoration: underline;
             .new-report-fab { width: 50px !important; height: 50px !important; font-size: 1.15rem !important; right: 14px !important; }
         }
     </style>
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css">
 </head>
 <body class="bg-[#F5FBF6]">
 
@@ -1806,35 +1807,7 @@ text-decoration: underline;
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
         
-        <!-- ===== GREETING BADGE ===== -->
-        <div class="greeting-badge mb-6">
-            <div class="flex justify-between items-start flex-wrap gap-4">
-                <div>
-                    <div class="flex items-center space-x-2 mb-1">
-                        <i class="fas <?php echo $greeting_icon; ?> <?php echo $greeting_color; ?> text-lg"></i>
-                        <span class="text-sm font-medium text-white/80"><?php echo $greeting; ?></span>
-                    </div>
-                    <h1 class="greeting-name"><?php echo htmlspecialchars($user_name); ?></h1>
-                    <p class="text-emerald-100/80 text-xs mt-0.5"><?php echo $current_date; ?></p>
-                </div>
-                
-                <div class="flex items-center gap-3">
-                    <div class="notification-container">
-                        <button type="button" id="notifBellBtn" class="notification-bell bg-white/20 rounded-xl w-10 h-10 flex items-center justify-center" onclick="toggleNotifications()" aria-label="<?php echo t('Toggle notifications'); ?>" aria-haspopup="true" aria-expanded="false">
-                            <i class="fas fa-bell text-white text-lg" aria-hidden="true"></i>
-                            <?php if($unread_count > 0): ?>
-                            <span class="notification-badge" id="notificationBadge"><?php echo $unread_count > 9 ? '9+' : $unread_count; ?></span>
-                            <?php endif; ?>
-                        </button>
-                    </div>
-                    
-                    <div class="time-card">
-                        <div class="time-display" id="currentTime"><?php echo date('h:i'); ?></div>
-                        <div class="time-period" id="currentPeriod"><?php echo date('A'); ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
         
         <!-- ===== NOTIFICATION DROPDOWN ===== -->
         <div id="notificationDropdown" class="notification-dropdown" style="display: none;">
@@ -2453,24 +2426,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Real-time clock
-function updateClock() {
-    var now = new Date();
-    var hours = now.getHours();
-    var minutes = now.getMinutes();
-    var ampm = hours >= 12 ? 'PM' : 'AM';
-    var displayHours = hours % 12 || 12;
-    var timeString = displayHours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
-    
-    var timeElement = document.getElementById('currentTime');
-    var periodElement = document.getElementById('currentPeriod');
-    if (timeElement) timeElement.textContent = timeString;
-    if (periodElement) periodElement.textContent = ampm;
-}
-
-setInterval(updateClock, 1000);
-updateClock();
-
 // Ring animation
 <?php if($unread_count > 0): ?>
 var bell = document.querySelector('.notification-bell');
@@ -2493,7 +2448,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var communityMap = L.map('communityMap', { scrollWheelZoom: true }).setView([15.3092, 120.9033], 13);
 
-    MapLayers.addControl(communityMap);
+    MapLayers.addControl(communityMap, { position: 'bottomright' });
 
     var boundaryData = <?php echo json_encode($boundary_data); ?>;
     var barangayData = <?php echo json_encode($barangay_data); ?>;

@@ -944,7 +944,7 @@ if ($date_to != '') $active_filters++;
             'search_id'          => 'searchInput',
             'search_value'       => htmlspecialchars($search_query),
             'search_placeholder' => 'Search announcements...',
-            'results_text'       => 'Showing <strong>' . count($announcements) . '</strong> of <strong>' . $total_filtered . '</strong> posts',
+            'results_text'       => '',
             'inline_selects'     => [
                 [
                     'id'        => 'toolbarCategory',
@@ -960,14 +960,6 @@ if ($date_to != '') $active_filters++;
             'popover_fields'     => [
                 ['kind' => 'date', 'id' => 'popoverDateFrom', 'label' => 'Date From', 'value' => $date_from],
                 ['kind' => 'date', 'id' => 'popoverDateTo', 'label' => 'Date To', 'value' => $date_to],
-            ],
-            'trailing_select'    => [
-                'id'       => 'perPageSelect',
-                'value'    => $limit,
-                'min_width'=> '80px',
-                'spacer'   => true,
-                'onchange' => 'changePerPage(this.value)',
-                'options'  => ['5' => '5', '10' => '10', '25' => '25', '50' => '50'],
             ],
             'active_filters'     => (int)$active_filters,
             'chips'              => array_filter([
@@ -1570,13 +1562,11 @@ function applyFilters() {
     const category = document.getElementById('toolbarCategory').value;
     const dateFrom = document.getElementById('popoverDateFrom').value;
     const dateTo = document.getElementById('popoverDateTo').value;
-    const limit = document.getElementById('perPageSelect').value;
 
     params.append('search', search);
     params.append('category', category);
     params.append('date_from', dateFrom);
     params.append('date_to', dateTo);
-    params.append('limit', limit);
     params.append('page_num', 1);
 
     window.location.href = '<?php echo BASE_URL; ?>index.php?page=announcements&' + params.toString();
@@ -1585,13 +1575,6 @@ function applyFilters() {
 function goToPage(page) {
     const params = new URLSearchParams(window.location.search);
     params.set('page_num', page);
-    window.location.href = '<?php echo BASE_URL; ?>index.php?page=announcements&' + params.toString();
-}
-
-function changePerPage(limit) {
-    const params = new URLSearchParams(window.location.search);
-    params.set('limit', limit);
-    params.set('page_num', 1);
     window.location.href = '<?php echo BASE_URL; ?>index.php?page=announcements&' + params.toString();
 }
 

@@ -738,6 +738,7 @@ function getDecisionBadge($classification) {
     <!-- Chart.js -->
     <script src="<?php echo BASE_URL; ?>assets/vendor/chart/chart.umd.min.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/chart-stub.js"></script>
+    <script>if (window.Chart && Chart.defaults && Chart.defaults.font) Chart.defaults.font.family = 'Manrope, sans-serif';</script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; overflow-x: hidden; }
@@ -1335,62 +1336,17 @@ function getDecisionBadge($classification) {
         .status-rejected { background: #FEE2E2; color: #DC2626; }
         .status-cancelled { background: #F3F4F6; color: #4B5563; }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css">
 </head>
-<body>
+<body class="dashboard-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
 
-        <!-- Header with Export -->
-        <div class="mb-4 md:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <div>
-                <div class="flex items-center gap-2 mb-1">
-                    <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-chart-pie text-[#10A37F] text-sm"></i>
-                    </div>
-                    <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('Analytics Dashboard'); ?></span>
-                </div>
-                <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800"><?php echo t('MENRO Analytics Dashboard'); ?></h1>
-                <p class="text-gray-500 text-xs sm:text-sm"><?php echo t('Real-time algorithm-driven hazard intelligence for San Isidro'); ?></p>
-            </div>
-            <div class="flex items-center gap-3 mt-2 sm:mt-0">
-                <div class="flex items-center gap-2 text-sm text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-2">
-                    <i class="far fa-calendar-alt text-[#10A37F]"></i>
-                    <span class="font-semibold text-gray-500"><?php echo t('Date:'); ?></span>
-                    <span class="font-semibold text-gray-800"><?php echo date('F d, Y'); ?></span>
-                </div>
-                <!-- Export Analytics -->
-                <div class="export-dropdown" id="exportDropdownWrap">
-                    <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
-                        <i class="fas fa-file-export"></i>
-                        <span><?php echo t('Export'); ?></span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div id="exportDropdown" class="export-dropdown-menu" style="width:280px;">
-                        <div class="export-dropdown-header">
-                            <p><?php echo t('Export Analytics'); ?></p>
-                            <p class="sub"><?php echo t('Download the current analytics'); ?></p>
-                        </div>
-                        <button class="export-dropdown-item" onclick="exportAnalyticsPdf()">
-                            <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
-                            <div class="item-text">
-                                <div class="item-title"><?php echo t('Export as PDF'); ?></div>
-                                <div class="item-desc"><?php echo t('Preview and save as PDF'); ?></div>
-                            </div>
-                        </button>
-                        <button class="export-dropdown-item" onclick="exportAnalyticsCsv()">
-                            <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
-                            <div class="item-text">
-                                <div class="item-title"><?php echo t('Export as CSV'); ?></div>
-                                <div class="item-desc"><?php echo t('Download spreadsheet of analytics'); ?></div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
 
         <!-- Active Analytics Date Filter Banner -->
         <?php if ($analytics_date_from || $analytics_date_to): ?>
@@ -1506,8 +1462,40 @@ function getDecisionBadge($classification) {
             'chips_clear_all'    => false,
             'callback'           => 'applyDashboardFilters',
         ];
-        include BASE_PATH . 'views/shared/report_filter_toolbar.php';
         ?>
+        <div class="dashboard-toolbar-row">
+            <div class="dashboard-toolbar-filters">
+                <?php include BASE_PATH . 'views/shared/report_filter_toolbar.php'; ?>
+            </div>
+                <!-- Export Analytics -->
+                <div class="export-dropdown" id="exportDropdownWrap">
+                    <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
+                        <i class="fas fa-file-export"></i>
+                        <span><?php echo t('Export'); ?></span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div id="exportDropdown" class="export-dropdown-menu" style="width:280px;">
+                        <div class="export-dropdown-header">
+                            <p><?php echo t('Export Analytics'); ?></p>
+                            <p class="sub"><?php echo t('Download the current analytics'); ?></p>
+                        </div>
+                        <button class="export-dropdown-item" onclick="exportAnalyticsPdf()">
+                            <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
+                            <div class="item-text">
+                                <div class="item-title"><?php echo t('Export as PDF'); ?></div>
+                                <div class="item-desc"><?php echo t('Preview and save as PDF'); ?></div>
+                            </div>
+                        </button>
+                        <button class="export-dropdown-item" onclick="exportAnalyticsCsv()">
+                            <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
+                            <div class="item-text">
+                                <div class="item-title"><?php echo t('Export as CSV'); ?></div>
+                                <div class="item-desc"><?php echo t('Download spreadsheet of analytics'); ?></div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- 2. DECISION-SUPPORT HEATMAP WITH TOGGLE -->

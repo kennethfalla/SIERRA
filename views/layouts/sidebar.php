@@ -245,19 +245,6 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
             </div>
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
-            <?php if ($user_role === 'admin'): ?>
-            <button type="button" id="menroNotifBell"
-                    class="notification-bell"
-                    style="width:40px;height:40px;border-radius:10px;background:#F3F4F6;color:#4B5563;position:relative;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;"
-                    onclick="menroToggleNotifs(event)"
-                    aria-label="Notifications"
-                    title="Notifications">
-                <i class="fas fa-bell" style="font-size:15px;"></i>
-                <?php if ($menu_unread > 0): ?>
-                <span class="notification-badge" id="notificationBadge"><?php echo $menu_unread > 9 ? '9+' : (int)$menu_unread; ?></span>
-                <?php endif; ?>
-            </button>
-            <?php endif; ?>
             <button id="hideSidebarBtn" 
                     class="w-10 h-10 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
                     aria-label="Close sidebar menu"
@@ -1060,6 +1047,8 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         var d = document.getElementById('menroNotifDropdown');
         if (d) { d.style.display = 'none'; d.classList.remove('show'); }
         menroOpen = false;
+        var bell = document.getElementById('menroNotifBell');
+        if (bell) bell.setAttribute('aria-expanded', 'false');
     };
 
     window.menroToggleNotifs = function (e) {
@@ -1070,6 +1059,8 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         d.style.display = 'flex';
         d.classList.add('show');
         menroOpen = true;
+        var bell = document.getElementById('menroNotifBell');
+        if (bell) bell.setAttribute('aria-expanded', 'true');
         window.menroPositionDropdown();
     };
 
@@ -1083,7 +1074,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         var top = vb.bottom + 10;
         if (top + d.offsetHeight > vh - 10) top = Math.max(10, vh - d.offsetHeight - 10);
         d.style.top = top + 'px';
-        d.style.left = vb.left + 'px';
+        d.style.left = Math.max(12, Math.min(vb.right - 400, vw - 412)) + 'px';
         if (vw <= 480) {
             d.style.left = '12px';
             d.style.right = '12px';
