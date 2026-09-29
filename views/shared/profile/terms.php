@@ -5,7 +5,7 @@
                     <div id="section-terms">
                         <div class="flex items-center gap-2 mb-4">
                             <i class="fas fa-file-contract text-[#10A37F]"></i>
-                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Terms of Service</h3>
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('Terms of Service'); ?></h3>
                         </div>
                         <div class="legal-content">
                             <p>Welcome to <?php echo htmlspecialchars($system_name); ?> (Web-Based Environmental Reporting Application). By registering an account and using this platform, you agree to comply with and be bound by the following Terms of Service. If you do not agree to these terms, please do not use the application.</p>

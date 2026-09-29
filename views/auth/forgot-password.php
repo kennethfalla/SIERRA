@@ -908,6 +908,10 @@ $reqList[] = 'No spaces allowed';
         }
     });
     </script>
-<?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
+<?php
+require_once BASE_PATH . 'helpers/Lang.php';
+include BASE_PATH . 'views/shared/global_modals.php';
+echo lang_apply_js();
+?>
 </body>
 </html>

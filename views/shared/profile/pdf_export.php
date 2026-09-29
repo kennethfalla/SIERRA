@@ -18,7 +18,7 @@ $b_csrf           = InputSanitizer::generateCsrfToken();
     <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-800 flex items-start gap-3">
         <i class="fas fa-file-pdf text-blue-500 mt-0.5"></i>
         <div>
-            <p class="font-semibold">Barangay PDF Export Settings</p>
+            <p class="font-semibold"><?php echo t('PDF Export Settings'); ?></p>
             <p class="text-blue-700 text-xs mt-1">These settings control the official document header and signatory block used when you export analytics and lists from your barangay dashboard.</p>
         </div>
     </div>

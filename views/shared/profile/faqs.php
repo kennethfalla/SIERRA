@@ -5,7 +5,7 @@
                     <div id="section-faqs">
                         <div class="flex items-center gap-2 mb-4">
                             <i class="fas fa-question-circle text-[#10A37F]"></i>
-                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Frequently Asked Questions</h3>
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('Frequently Asked Questions'); ?></h3>
                         </div>
                         
                         <div class="faq-item">

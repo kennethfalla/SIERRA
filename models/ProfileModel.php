@@ -350,6 +350,7 @@ class ProfileModel {
             $this->db->prepare("UPDATE users SET profile_picture = NULL WHERE id = :id")
                 ->execute([':id' => $user_id]);
             unset($_SESSION['profile_picture']);
+            $this->logActivity($user_id, 'Update Profile Photo', 'User removed their profile photo.');
             return ['success' => true, 'message' => 'Profile photo removed.'];
         }
 
@@ -360,6 +361,7 @@ class ProfileModel {
                 $this->db->prepare("UPDATE users SET profile_picture = :pp WHERE id = :id")
                     ->execute([':pp' => $result, ':id' => $user_id]);
                 $_SESSION['profile_picture'] = $result;
+                $this->logActivity($user_id, 'Update Profile Photo', 'User updated their profile photo.');
                 return ['success' => true, 'message' => 'Profile photo updated!'];
             }
             return ['errors' => [$result]];

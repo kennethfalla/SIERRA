@@ -903,6 +903,7 @@ class SettingsController {
         // Whitelist against known toggles (defense in depth)
         $allowed = [
             'maintenance_mode',
+            'demo_access_enabled',
             'enable_public_registration',
             'show_heatmap',
             'allow_citizen_cancellations',

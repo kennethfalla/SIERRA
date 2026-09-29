@@ -11,6 +11,7 @@
 // this partial) and redirect back to Settings > Category Keywords.
 
 require_once BASE_PATH . 'helpers/PermissionHelper.php';
+require_once BASE_PATH . 'helpers/Lang.php';
 
 // Permission gate (super-admin bypasses via PermissionHelper).
 if (!PermissionHelper::userHasPermission('can_manage_system')) {
@@ -195,36 +196,36 @@ $categories_covered = count(array_unique(array_map(fn($k) => (int)$k['category_i
 <!-- ===== EXPLAINER ===== -->
 <div class="ckw-info">
     <i class="fas fa-magic mr-1"></i>
-    <strong>How auto-correction works:</strong> these keywords are the Admin Dictionary. While a resident types their description on the Submit Report page, the system listens for these words. If the description strongly matches a different category than the one selected (or none at all), the dropdown auto-switches to the correct category and flashes a notice so the resident knows.
+    <strong><?php echo t('How auto-correction works:'); ?></strong> <?php echo t('these keywords are the Admin Dictionary. While a resident types their description on the Submit Report page, the system listens for these words. If the description strongly matches a different category than the one selected (or none at all), the dropdown auto-switches to the correct category and flashes a notice so the resident knows.'); ?>
 </div>
 
 <!-- ===== TOOLBAR ===== -->
 <div class="ckw-toolbar">
     <div class="ckw-stats">
-        <span class="ckw-stat"><strong><?php echo $total; ?></strong> keywords</span>
-        <span class="ckw-stat"><strong><?php echo $active_count; ?></strong> active</span>
-        <span class="ckw-stat"><strong><?php echo $categories_covered; ?></strong> categories covered</span>
+        <span class="ckw-stat"><strong><?php echo $total; ?></strong> <?php echo t('keywords'); ?></span>
+        <span class="ckw-stat"><strong><?php echo $active_count; ?></strong> <?php echo t('active'); ?></span>
+        <span class="ckw-stat"><strong><?php echo $categories_covered; ?></strong> <?php echo t('categories covered'); ?></span>
     </div>
     <button type="button" class="btn-primary" onclick="openKeywordModal()">
-        <i class="fas fa-plus mr-1.5"></i> Create Keyword
+        <i class="fas fa-plus mr-1.5"></i> <?php echo t('Create Keyword'); ?>
     </button>
 </div>
 
 <?php if (empty($keywords)): ?>
     <div class="ckw-empty">
         <i class="fas fa-key"></i>
-        <p class="text-sm font-semibold text-gray-500">No category keywords yet.</p>
-        <p class="text-xs text-gray-400 mt-1">Add words like "basura", "baha", or "usok" so the auto-correction engine can route reports accurately.</p>
+        <p class="text-sm font-semibold text-gray-500"><?php echo t('No category keywords yet.'); ?></p>
+        <p class="text-xs text-gray-400 mt-1"><?php echo t('Add words like "basura", "baha", or "usok" so the auto-correction engine can route reports accurately.'); ?></p>
     </div>
 <?php else: ?>
     <div class="table-container">
         <table>
             <thead>
                 <tr>
-                    <th>Keyword</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th style="text-align:right;">Actions</th>
+                    <th><?php echo t('Keyword'); ?></th>
+                    <th><?php echo t('Category'); ?></th>
+                    <th><?php echo t('Status'); ?></th>
+                    <th style="text-align:right;"><?php echo t('Actions'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -239,9 +240,9 @@ $categories_covered = count(array_unique(array_map(fn($k) => (int)$k['category_i
                     <td><span class="ckw-chip"><?php echo htmlspecialchars($kw['category_name'] ?? 'Unknown'); ?></span></td>
                     <td>
                         <?php if ((int)$kw['is_active'] === 1): ?>
-                            <span class="ckw-badge on"><i class="fas fa-circle fa-2xs"></i> Active</span>
+                            <span class="ckw-badge on"><i class="fas fa-circle fa-2xs"></i> <?php echo t('Active'); ?></span>
                         <?php else: ?>
-                            <span class="ckw-badge off"><i class="fas fa-circle fa-2xs"></i> Inactive</span>
+                            <span class="ckw-badge off"><i class="fas fa-circle fa-2xs"></i> <?php echo t('Inactive'); ?></span>
                         <?php endif; ?>
                     </td>
                     <td style="text-align:right; white-space:nowrap;">
@@ -250,18 +251,18 @@ $categories_covered = count(array_unique(array_map(fn($k) => (int)$k['category_i
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                 <input type="hidden" name="action" value="toggle_status">
                                 <input type="hidden" name="keyword_id" value="<?php echo (int)$kw['id']; ?>">
-                                <button type="submit" class="text-xs text-gray-400 hover:text-emerald-600 transition p-1.5 hover:bg-emerald-50 rounded-lg" title="<?php echo (int)$kw['is_active'] === 1 ? 'Deactivate' : 'Activate'; ?>">
+                                <button type="submit" class="text-xs text-gray-400 hover:text-emerald-600 transition p-1.5 hover:bg-emerald-50 rounded-lg" title="<?php echo (int)$kw['is_active'] === 1 ? t('Deactivate') : t('Activate'); ?>">
                                     <i class="fas <?php echo (int)$kw['is_active'] === 1 ? 'fa-toggle-on' : 'fa-toggle-off'; ?>"></i>
                                 </button>
                             </form>
-                            <button type="button" onclick='openKeywordModal(<?php echo (int)$kw['id']; ?>, <?php echo $kw_json; ?>, <?php echo (int)$kw['category_id']; ?>)' class="text-xs text-gray-400 hover:text-emerald-600 transition p-1.5 hover:bg-emerald-50 rounded-lg" title="Edit">
+                            <button type="button" onclick='openKeywordModal(<?php echo (int)$kw['id']; ?>, <?php echo $kw_json; ?>, <?php echo (int)$kw['category_id']; ?>)' class="text-xs text-gray-400 hover:text-emerald-600 transition p-1.5 hover:bg-emerald-50 rounded-lg" title="<?php echo t('Edit'); ?>">
                                 <i class="fas fa-pen"></i>
                             </button>
                             <form method="POST" action="<?php echo BASE_URL; ?>index.php?page=settings&tab=category_keywords" style="display:inline-block;" onsubmit="return confirm('Delete this keyword?');">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="keyword_id" value="<?php echo (int)$kw['id']; ?>">
-                                <button type="submit" class="text-xs text-gray-400 hover:text-red-600 transition p-1.5 hover:bg-red-50 rounded-lg" title="Delete">
+                                <button type="submit" class="text-xs text-gray-400 hover:text-red-600 transition p-1.5 hover:bg-red-50 rounded-lg" title="<?php echo t('Delete'); ?>">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
@@ -278,8 +279,8 @@ $categories_covered = count(array_unique(array_map(fn($k) => (int)$k['category_i
 <div class="ckw-modal-overlay" id="keywordModal" onclick="if(event.target===this) closeKeywordModal()">
     <div class="ckw-modal" role="dialog" aria-modal="true" aria-labelledby="keywordModalTitle">
         <div class="ckw-modal-header">
-            <h3 id="keywordModalTitle"><i class="fas fa-key text-[#10A37F]"></i> <span id="keywordModalTitleText">Create Keyword</span></h3>
-            <button type="button" class="ckw-modal-close" onclick="closeKeywordModal()" aria-label="Close"><i class="fas fa-xmark"></i></button>
+            <h3 id="keywordModalTitle"><i class="fas fa-key text-[#10A37F]"></i> <span id="keywordModalTitleText"><?php echo t('Create Keyword'); ?></span></h3>
+            <button type="button" class="ckw-modal-close" onclick="closeKeywordModal()" aria-label="<?php echo t('Close'); ?>"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="ckw-modal-body">
             <form method="POST" action="<?php echo BASE_URL; ?>index.php?page=settings&tab=category_keywords">
@@ -287,23 +288,23 @@ $categories_covered = count(array_unique(array_map(fn($k) => (int)$k['category_i
                 <input type="hidden" name="action" id="keywordAction" value="create">
                 <input type="hidden" name="keyword_id" id="keywordId" value="0">
                 <div class="form-group">
-                    <label class="form-label">Linked Category <span class="text-red-500">*</span></label>
+                    <label class="form-label" for="keywordCategory"><?php echo t('Linked Category'); ?> <span class="text-red-500">*</span></label>
                     <select name="category_id" id="keywordCategory" class="form-input" required>
-                        <option value="">Select a category</option>
+                        <option value=""><?php echo t('Select a category'); ?></option>
                         <?php foreach ($CATEGORY_OPTIONS as $cat): ?>
                             <option value="<?php echo (int)$cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <div class="ckw-sm text-gray-400 mt-1">The official category this keyword should point to.</div>
+                    <div class="ckw-sm text-gray-400 mt-1"><?php echo t('The official category this keyword should point to.'); ?></div>
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label">Keyword <span class="text-red-500">*</span></label>
+                    <label class="form-label" for="keywordText"><?php echo t('Keyword'); ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="keyword" id="keywordText" class="form-input" maxlength="100" required placeholder="e.g. basura, baha, usok, clogged" autocomplete="off">
-                    <div class="ckw-sm text-gray-400 mt-1">Common local term, Tagalog phrase, or slang. One word or phrase per entry.</div>
+                    <div class="ckw-sm text-gray-400 mt-1"><?php echo t('Common local term, Tagalog phrase, or slang. One word or phrase per entry.'); ?></div>
                 </div>
                 <div class="flex gap-2 mt-5">
-                    <button type="submit" class="btn-primary flex-1"><i class="fas fa-check mr-1.5"></i> Save Keyword</button>
-                    <button type="button" class="btn-secondary" onclick="closeKeywordModal()">Cancel</button>
+                    <button type="submit" class="btn-primary flex-1"><i class="fas fa-check mr-1.5"></i> <?php echo t('Save Keyword'); ?></button>
+                    <button type="button" class="btn-secondary" onclick="closeKeywordModal()"><?php echo t('Cancel'); ?></button>
                 </div>
             </form>
         </div>

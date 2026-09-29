@@ -162,12 +162,12 @@ $otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
     <!-- ============================================ -->
     <!-- FORM ACTIONS -->
     <!-- ============================================ -->
-    <div class="flex flex-wrap gap-3 justify-end pt-4 border-t border-gray-200">
-        <button type="reset" onclick="resetForm()" class="btn-secondary">
-            <i class="fas fa-undo mr-2"></i> Reset
+    <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
+        <button type="reset" onclick="resetForm()" class="btn-secondary flex items-center gap-2">
+            <i class="fas fa-undo"></i> Reset
         </button>
-        <button type="submit" class="btn-primary">
-            <i class="fas fa-save mr-2"></i> Save Security Settings
+        <button type="submit" class="btn-primary flex items-center gap-2">
+            <i class="fas fa-save"></i> Save Changes
         </button>
     </div>
 </form>

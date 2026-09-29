@@ -107,12 +107,19 @@ if (is_dir($barangays_dir)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
-    <title>Submit Report - EnviroTrack</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title><?php echo t('Submit Report - EnviroTrack'); ?></title>
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
+    <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
+    <!-- Network hints for slow connections (map tiles / reverse geocoding) -->
+    <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+    <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
+    <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
+    <link rel="dns-prefetch" href="https://photon.komoot.io">
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -231,6 +238,99 @@ if (is_dir($barangays_dir)) {
                 background: #D1FAE5;
             }
         }
+        /* ===== DESIGNED CATEGORY DROPDOWN (inline: not affected by asset caching) ===== */
+        .cs { position: relative; width: 100%; }
+        .cs > select {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 1px !important;
+            height: 1px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        .cs-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            width: 100%;
+            min-height: 44px;
+            padding: 0.6rem 0.9rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #1a2e1a;
+            background: #fff;
+            border: 1.5px solid #e5ece8;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            text-align: left;
+            transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+        }
+        .cs-btn:hover { border-color: #10A37F; background: #f5fbf8; }
+        .cs-btn:focus { outline: none; border-color: #10A37F; box-shadow: 0 0 0 3px rgba(16,163,127,.18); }
+        .cs-label { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cs-label.is-placeholder { color: #9ca3af; }
+        .cs-caret {
+            flex: 0 0 auto;
+            width: 1rem;
+            height: 1rem;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 1rem 1rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2310A37F' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            transition: transform .18s ease;
+        }
+        .cs.is-open .cs-caret { transform: rotate(180deg); }
+        .cs.is-error .cs-btn { border-color: #DC2626; background: #FEF2F2; }
+        .cs.is-flash .cs-btn { animation: csFlash .9s ease 2; }
+        @keyframes csFlash {
+            0%, 100% { border-color: #e5ece8; box-shadow: none; background: #fff; }
+            50% { border-color: #10A37F; box-shadow: 0 0 0 4px rgba(16,163,127,.35); background: #D1FAE5; }
+        }
+        .cs-list {
+            position: absolute;
+            z-index: 80;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            max-height: 280px;
+            overflow-y: auto;
+            margin: 0;
+            padding: 6px;
+            list-style: none;
+            background: #fff;
+            border: 1px solid #e5ece8;
+            border-radius: 0.875rem;
+            box-shadow: 0 14px 34px rgba(15,23,42,.16), 0 2px 8px rgba(15,23,42,.07);
+            animation: csIn .14s ease;
+        }
+        @keyframes csIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+        .cs-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0.55rem 0.7rem;
+            border-radius: 0.6rem;
+            font-size: 0.9rem;
+            color: #1f2937;
+            cursor: pointer;
+        }
+        .cs-option:hover, .cs-option.is-active { background: #eef8f4; color: #0f766e; }
+        .cs-option.is-selected { background: #10A37F; color: #fff; }
+        .cs-option.is-selected::after {
+            content: "";
+            flex: 0 0 auto;
+            width: 0.95rem;
+            height: 0.95rem;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 0.95rem 0.95rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+        }
         .auto-correct-notice {
             display: flex;
             align-items: center;
@@ -322,7 +422,9 @@ if (is_dir($barangays_dir)) {
         }
         .impact-option .icon { font-size: 1.25rem; margin-bottom: 0.35rem; }
         .impact-option .title { font-weight: 700; font-size: 0.85rem; color: #1f2937; line-height: 1.2; }
-        .impact-option .desc { font-size: 0.7rem; color: #6b7280; margin-top: 0.2rem; line-height: 1.35; }
+        .impact-option .desc { font-size: 0.7rem; color: #6b7280; margin-top: 0.2rem; line-height: 1.35; display: none; }
+        .impact-option.show-desc .desc { display: block; animation: impactDescIn 0.2s ease; }
+        @keyframes impactDescIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
         .impact-option .badge-severe { font-size: 0.65rem; display: block; margin-top: 0.25rem; color: #ef4444; font-weight: 600; }
         @media (max-width: 480px) {
             .impact-option .card {
@@ -1443,7 +1545,7 @@ if (is_dir($barangays_dir)) {
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <!-- ===== CONTAINER ===== -->
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
 
         <!-- Success/Error Messages -->
@@ -1467,7 +1569,7 @@ if (is_dir($barangays_dir)) {
 
         <?php if (isset($_SESSION['errors']) && is_array($_SESSION['errors'])): ?>
             <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl">
-                <p class="font-medium text-red-800 mb-2 text-sm">Please fix the following errors:</p>
+                <p class="font-medium text-red-800 mb-2 text-sm"><?php echo t('Please fix the following errors:'); ?></p>
                 <ul class="list-disc list-inside text-red-600 text-sm space-y-1">
                     <?php foreach ($_SESSION['errors'] as $err): ?>
                         <li><?php echo htmlspecialchars($err, ENT_QUOTES, 'UTF-8'); ?></li>
@@ -1483,10 +1585,10 @@ if (is_dir($barangays_dir)) {
                 <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
                     <i class="fas fa-plus-circle text-[#10A37F] text-sm"></i>
                 </div>
-                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">New Report</span>
+                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('New Report'); ?></span>
             </div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Submit Environmental Report</h1>
-            <p class="text-gray-500 text-sm mt-1">Document and report environmental concerns in your community</p>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800"><?php echo t('Submit Environmental Report'); ?></h1>
+            <p class="text-gray-500 text-sm mt-1"><?php echo t('Document and report environmental concerns in your community'); ?></p>
             
         </div>
 
@@ -1507,14 +1609,15 @@ if (is_dir($barangays_dir)) {
                     <!-- ===== CATEGORY ===== -->
                     <div class="mb-5">
                         <label for="category_id" class="form-label">
-                            Category <span class="text-red-500">*</span>
+                            <?php echo t('Category'); ?> <span class="text-red-500">*</span>
                            
                         </label>
                         <select id="category_id" 
                                 name="category_id" 
                                 required 
-                                class="form-input">
-                            <option value="">Select a category</option>
+                                class="form-input"
+                                data-design-select>
+                            <option value=""><?php echo t('Select a category'); ?></option>
                             <?php 
                             $categories->execute();
                             while ($cat = $categories->fetch(PDO::FETCH_ASSOC)): 
@@ -1524,71 +1627,62 @@ if (is_dir($barangays_dir)) {
                                 </option>
                             <?php endwhile; ?>
                         </select>
-                        <p id="category-error" class="error-message"></p>
+                        <p id="category-error" class="error-message" role="alert"></p>
                         <!-- Auto-correction notice (Category Keywords) -->
                         <div id="autoCorrectNotice" class="auto-correct-notice" style="display:none;" role="status"></div>
-                        <div class="suggestion-box" id="categoryTipBox" style="background:#f0fdf4; border-left:4px solid #10A37F; padding:0.75rem 1rem; border-radius:0.75rem; margin-top:0.5rem; font-size:0.85rem; color:#065f46; display:none;">
-                            <i class="fas fa-info-circle"></i>
-                            <span class="suggestion-title font-bold">Tip: Choose the right category</span>
-                            <span class="suggestion-desc font-normal text-sm">Selecting the correct category helps barangay officials respond faster to your report.</span>
-                        </div>
                     </div>
 
                     <!-- ===== IMPACT MODIFIER ===== -->
                     <div class="mb-5">
-                        <label class="form-label">
-                            What is the current impact of this issue? <span class="text-red-500">*</span>
+                        <label class="form-label" id="impactLabel">
+                            <?php echo t('What is the current impact of this issue?'); ?> <span class="text-red-500">*</span>
                           
                         </label>
                         
-                        <div class="grid grid-cols-3 gap-2 sm:gap-3" id="impactContainer">
+                        <div class="grid grid-cols-3 gap-2 sm:gap-3" id="impactContainer" role="group" aria-labelledby="impactLabel">
                             <!-- Localized / Minor -->
-                            <div class="impact-option selected selected-localized" data-value="0" role="button" tabindex="0">
+                            <div class="impact-option selected selected-localized" data-value="0" role="button" tabindex="0" aria-pressed="true">
                                 <div class="card">
-                                    <div class="icon"><i class="fas fa-circle text-emerald-500"></i></div>
-                                    <div class="title">Localized / Minor</div>
-                                    <div class="desc">Contained in one small area, no immediate danger.</div>
+                                    <div class="icon"><i class="fas fa-circle-info text-emerald-500"></i></div>
+                                    <div class="title"><?php echo t('Localized / Minor'); ?></div>
+                                    <div class="desc"><?php echo t('Contained in one small area, no immediate danger.'); ?></div>
                                 </div>
                             </div>
                             
                             <!-- Moderate -->
-                            <div class="impact-option" data-value="2" role="button" tabindex="0">
+                            <div class="impact-option" data-value="2" role="button" tabindex="0" aria-pressed="false">
                                 <div class="card">
                                     <div class="icon"><i class="fas fa-exclamation-triangle text-amber-500"></i></div>
-                                    <div class="title">Moderate</div>
-                                    <div class="desc">Affecting sidewalks or causing strong, widespread odor.</div>
+                                    <div class="title"><?php echo t('Moderate'); ?></div>
+                                    <div class="desc"><?php echo t('Affecting sidewalks or causing strong, widespread odor.'); ?></div>
                                 </div>
                             </div>
                             
                             <!-- Severe -->
-                            <div class="impact-option" data-value="4" role="button" tabindex="0">
+                            <div class="impact-option" data-value="4" role="button" tabindex="0" aria-pressed="false">
                                 <div class="card">
                                     <div class="icon"><i class="fas fa-fire text-red-500"></i></div>
-                                    <div class="title">Severe</div>
-                                    <div class="desc">Blocking roads, entering homes, active safety hazard.</div>
+                                    <div class="title"><?php echo t('Severe'); ?></div>
+                                    <div class="desc"><?php echo t('Blocking roads, entering homes, active safety hazard.'); ?></div>
                                    
                                 </div>
                             </div>
                         </div>
                         
                         <input type="hidden" name="impact_modifier" id="impact_modifier" value="0">
-                        <p id="impact-error" class="error-message"></p>
+                        <p id="impact-error" class="error-message" role="alert"></p>
                         
-                        <div class="mt-3 text-xs text-gray-400 flex items-center gap-2">
-                            <i class="fas fa-info-circle text-emerald-500"></i>
-                            <span>This helps us prioritize urgent reports. <strong class="text-red-500">Severe</strong> issues automatically trigger a High Priority alert to MENRO.</span>
-                        </div>
                     </div>
 
                     <!-- ===== MAP ===== -->
                     <div class="mb-5">
                         <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
                             <label class="form-label mb-0">
-                                Geotag Location <span class="text-red-500">*</span>
+                                <?php echo t('Geotag Location'); ?> <span class="text-red-500">*</span>
 
                             </label>
                             <span class="text-xs text-gray-400" id="coordDisplay">
-                                <i class="fas fa-map-marker-alt mr-1"></i>No location selected
+                                <i class="fas fa-map-marker-alt mr-1"></i><?php echo t('No location selected'); ?>
                             </span>
                         </div>
 
@@ -1596,7 +1690,7 @@ if (is_dir($barangays_dir)) {
                             <div id="map"></div>
                             
                             <!-- Fullscreen Button -->
-                            <button type="button" id="mapFullscreenBtn" onclick="toggleMapFullscreen()" title="Toggle Fullscreen">
+                            <button type="button" id="mapFullscreenBtn" onclick="toggleMapFullscreen()" title="<?php echo t('Toggle Fullscreen'); ?>" aria-label="<?php echo t('Toggle fullscreen map'); ?>">
                                 <i class="fas fa-expand" id="fullscreenIcon"></i>
                             </button>
 
@@ -1604,20 +1698,20 @@ if (is_dir($barangays_dir)) {
                             <div id="mapTipTooltip" class="map-tip-tooltip">
                                 <div class="tip-close" onclick="closeMapTip()" style="position:absolute; top:-6px; right:-6px; background:rgba(255,255,255,0.15); border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; color:#aaa;">✕</div>
                                 <i class="fas fa-hand-pointer"></i>
-                                <span><strong>Tip:</strong> Click anywhere on the map to pin the exact location of the environmental issue.</span>
-                                <span style="display:block;font-size:0.7rem;color:#94a3b8;margin-top:4px;">You can also use "My Location" to auto-detect.</span>
+                                <span><strong><?php echo t('Tip:'); ?></strong> <?php echo t('Click anywhere on the map to pin the exact location of the environmental issue.'); ?></span>
+                                <span style="display:block;font-size:0.7rem;color:#94a3b8;margin-top:4px;"><?php echo t('You can also use "My Location" to auto-detect.'); ?></span>
                             </div>
 
                             <div class="absolute bottom-4 right-4 z-[10] flex flex-col space-y-2">
                                 <button type="button" id="getLocationBtn" 
                                         class="map-control-btn bg-white shadow-lg rounded-xl px-3 py-1.5 text-xs font-medium text-[#10A37F] hover:bg-[#10A37F] hover:text-white transition-all flex items-center space-x-2">
                                     <i class="fas fa-location-dot"></i>
-                                    <span>My Location</span>
+                                    <span><?php echo t('My Location'); ?></span>
                                 </button>
                                 <button type="button" id="clearLocationBtn" 
                                         class="map-control-btn bg-white shadow-lg rounded-xl px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-all flex items-center space-x-2">
                                     <i class="fas fa-eraser"></i>
-                                    <span>Clear</span>
+                                    <span><?php echo t('Clear'); ?></span>
                                 </button>
                             </div>
 
@@ -1629,63 +1723,63 @@ if (is_dir($barangays_dir)) {
                         <input type="hidden" name="barangay_id" id="barangay_id">
                         <input type="hidden" name="location_address" id="location_address">
 
-                        <p id="map-error" class="error-message"></p>
+                        <p id="map-error" class="error-message" role="alert"></p>
                         <div id="locationStatus" class="mt-2"></div>
                     </div>
 
                     <!-- ===== PHOTO EVIDENCE ===== -->
                     <div class="mb-5">
-                        <label class="form-label">
-                            Photo/Video Evidence (Max 3) <span class="text-red-500">*</span>
+                        <label class="form-label" id="photoLabel">
+                            <?php echo t('Photo/Video Evidence (Max 3)'); ?> <span class="text-red-500">*</span>
                             
                         </label>
-                        <div class="upload-area" id="uploadArea">
-                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
-                            <p class="text-sm text-gray-500">Click or drag & drop to upload photos</p>
-                            <p class="text-xs text-gray-400 mt-1">Up to 3 files (JPG, PNG, GIF, WebP up to 5MB each; MP4, WEBM, MOV videos up to 25MB each)</p>
-                            <input type="file" id="photoInput" name="report_images[]" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/m4v" multiple style="display: none;" data-max-files="3" data-max-size="26214400">
+                        <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-labelledby="photoLabel" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('photoInput').click();}">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2" aria-hidden="true"></i>
+                            <p class="text-sm text-gray-500"><?php echo t('Click or drag & drop to upload photos'); ?></p>
+                            <p class="text-xs text-gray-400 mt-1"><?php echo t('Up to 3 files (JPG, PNG, GIF, WebP up to 5MB each; MP4, WEBM, MOV videos up to 25MB each)'); ?></p>
+                            <input type="file" id="photoInput" name="report_images[]" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/m4v" multiple style="display: none;" data-max-files="3" data-max-size="26214400" aria-label="<?php echo t('Upload photo or video evidence'); ?>">
                         </div>
 
-                        <div class="mt-3 flex flex-col sm:flex-row gap-3">
+                        <div class="mt-3 flex gap-3">
                             <button type="button" id="cameraBtn" class="flex-1 px-4 py-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-sm">
                                 <i class="fas fa-camera"></i>
-                                <span>Take Photo</span>
+                                <span><?php echo t('Take Photo'); ?></span>
                             </button>
                             <button type="button" id="galleryBtn" class="flex-1 px-4 py-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-sm">
                                 <i class="fas fa-images"></i>
-                                <span>Choose from Gallery</span>
+                                <span><?php echo t('Choose from Gallery'); ?></span>
                             </button>
                         </div>
 
                         <div id="photoPreviews" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4"></div>
-                        <p id="photoCount" class="text-xs text-gray-400 mt-2">0 / 3 files selected</p>
-                        <p id="file-error" class="error-message"></p>
+                        <p id="photoCount" class="text-xs text-gray-400 mt-2"><?php echo t('0 / 3 files selected'); ?></p>
+                        <p id="file-error" class="error-message" role="alert"></p>
                     </div>
 
                     <!-- ===== DESCRIPTION ===== -->
                     <div class="mb-5">
                         <label for="description" class="form-label">
-                            Description <span class="text-red-500">*</span>
+                            <?php echo t('Description'); ?> <span class="text-red-500">*</span>
                         </label>
                         <textarea id="description" 
                                   name="description" 
                                   rows="5" 
                                   required 
                                   maxlength="5000"
-                                  placeholder="Describe the issue, location, and impact (e.g., clogged drainage at Purok 3 causing road flooding since Monday)."
+                                  placeholder="<?php echo t('Describe the issue, location, and impact (e.g., clogged drainage at Purok 3 causing road flooding since Monday).'); ?>"
                                   class="form-input" style="resize:vertical; min-height:120px;"></textarea>
                         
-                        <p id="description-error" class="error-message"></p>
-                        <p id="description-count" class="text-xs text-gray-400 mt-1">0/5000 characters</p>
+                        <p id="description-error" class="error-message" role="alert"></p>
+                        <p id="description-count" class="text-xs text-gray-400 mt-1"><?php echo t('0/5000 characters'); ?></p>
                     </div>
 
                     <!-- FORM ACTIONS -->
                     <div class="form-actions pt-3 border-t border-emerald-50 flex justify-end gap-3">
                         <button type="button" id="resetBtn" class="btn-secondary">
-                            <i class="fas fa-redo mr-2"></i>Reset
+                            <i class="fas fa-redo mr-2"></i><?php echo t('Reset'); ?>
                         </button>
                         <button type="submit" id="submitBtn" class="btn-primary">
-                            <i class="fas fa-paper-plane mr-2"></i>Submit Report
+                            <i class="fas fa-paper-plane mr-2"></i><?php echo t('Submit Report'); ?>
                         </button>
                     </div>
                 </form>
@@ -1703,10 +1797,10 @@ if (is_dir($barangays_dir)) {
                 <i class="fas fa-exclamation-triangle text-lg"></i>
             </div>
             <div class="min-w-0">
-                <h3 class="text-base sm:text-lg font-bold text-gray-800 leading-tight">It looks like this was already reported</h3>
-                <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Someone nearby reported a similar issue. Are you reporting the same incident?</p>
+                <h3 class="text-base sm:text-lg font-bold text-gray-800 leading-tight"><?php echo t('It looks like this was already reported'); ?></h3>
+                <p class="text-xs sm:text-sm text-gray-500 mt-0.5"><?php echo t('Someone nearby reported a similar issue. Are you reporting the same incident?'); ?></p>
             </div>
-            <button type="button" class="dup-close" onclick="closeDuplicateModal()" aria-label="Close">
+            <button type="button" class="dup-close" onclick="closeDuplicateModal()" aria-label="<?php echo t('Close'); ?>">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -1716,14 +1810,14 @@ if (is_dir($barangays_dir)) {
         <div class="dup-foot">
             <div class="flex gap-3">
                 <button id="dupYesBtn" class="flex-1 bg-[#10A37F] hover:bg-[#0D8568] text-white font-semibold py-3 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                    <i class="fas fa-check mr-2"></i>Yes, it's the same
+                    <i class="fas fa-check mr-2"></i><?php echo t("Yes, it's the same"); ?>
                 </button>
                 <button id="dupNoBtn" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                    <i class="fas fa-times mr-2"></i>No, different issue
+                    <i class="fas fa-times mr-2"></i><?php echo t('No, different issue'); ?>
                 </button>
             </div>
             <p class="dup-note">
-                <i class="fas fa-shield-alt mr-1"></i>Your verification helps prioritize real issues.
+                <i class="fas fa-shield-alt mr-1"></i><?php echo t('Your verification helps prioritize real issues.'); ?>
             </p>
         </div>
     </div>
@@ -1736,7 +1830,7 @@ if (is_dir($barangays_dir)) {
             <div class="flex justify-between items-start mb-4">
                 <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <i class="fas fa-file-alt text-[#10A37F]"></i>
-                    Report Details
+                    <?php echo t('Report Details'); ?>
                 </h3>
                 <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-gray-600 transition">
                     <i class="fas fa-times text-xl"></i>
@@ -1746,14 +1840,14 @@ if (is_dir($barangays_dir)) {
             <div id="detailsContent" class="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
                 <div class="text-center py-8">
                     <div class="loading-spinner"></div>
-                    <p class="text-gray-400 text-sm mt-2">Loading report details...</p>
+                    <p class="text-gray-400 text-sm mt-2"><?php echo t('Loading report details...'); ?></p>
                 </div>
             </div>
             
             <div class="mt-4 pt-4 border-t border-gray-200 flex justify-end gap-3">
-                <button onclick="closeDetailsModal()" class="btn-secondary px-4 py-2 text-sm">Close</button>
+                <button onclick="closeDetailsModal()" class="btn-secondary px-4 py-2 text-sm"><?php echo t('Close'); ?></button>
                 <button id="supportFromDetailsBtn" class="btn-primary px-4 py-2 text-sm flex items-center gap-2">
-                    <i class="fas fa-thumbs-up"></i> Support This Report
+                    <i class="fas fa-thumbs-up"></i> <?php echo t('Support This Report'); ?>
                 </button>
             </div>
         </div>
@@ -1765,10 +1859,10 @@ if (is_dir($barangays_dir)) {
     <!-- Photo / Video mode toggle -->
     <div class="camera-mode-toggle">
         <button type="button" id="photoModeBtn" class="mode-btn mode-active" data-mode="photo">
-            <i class="fas fa-camera"></i> Photo
+            <i class="fas fa-camera"></i> <?php echo t('Photo'); ?>
         </button>
         <button type="button" id="videoModeBtn" class="mode-btn" data-mode="video">
-            <i class="fas fa-video"></i> Video
+            <i class="fas fa-video"></i> <?php echo t('Video'); ?>
         </button>
     </div>
 
@@ -1789,31 +1883,31 @@ if (is_dir($barangays_dir)) {
         <div id="recordingIndicator" class="recording-indicator" style="display:none;">
             <span class="rec-dot"></span>
             <span id="recTimer">00:00</span>
-            <span class="rec-max">max 30s</span>
+            <span class="rec-max"><?php echo t('max 30s'); ?></span>
         </div>
 
         <!-- Camera Tips -->
-        <div id="cameraTips" class="camera-tips-overlay">
-            <div class="tip-dismiss" onclick="dismissCameraTips()">✕</div>
-            <div id="tipContent">
+        <div id="cameraTips" class="camera-tips-overlay" tabindex="0" onfocus="stopCameraTips()" onblur="startCameraTips()">
+            <button type="button" class="tip-dismiss" onclick="dismissCameraTips()" aria-label="<?php echo t('Dismiss camera tips'); ?>">✕</button>
+            <div id="tipContent" aria-live="polite">
                 <span class="tip-emoji">📸</span>
-                <span class="tip-text"><strong>Hold steady</strong> and ensure good lighting for clear photos.</span>
+                <span class="tip-text"><strong><?php echo t('Hold steady'); ?></strong> <?php echo t('and ensure good lighting for clear photos.'); ?></span>
             </div>
         </div>
     </div>
     
     <!-- Camera Controls -->
     <div class="camera-controls">
-        <button id="switchCameraBtn" class="ctrl-btn switch-cam" title="Switch Camera">
+        <button id="switchCameraBtn" class="ctrl-btn switch-cam" title="<?php echo t('Switch Camera'); ?>">
             <i class="fas fa-sync-alt"></i>
         </button>
-        <button id="flashToggleBtn" class="ctrl-btn flash" title="Toggle Flash">
+        <button id="flashToggleBtn" class="ctrl-btn flash" title="<?php echo t('Toggle Flash'); ?>">
             <i class="fas fa-bolt"></i>
         </button>
-        <button id="captureBtn" class="ctrl-btn capture" title="Capture Photo">
+        <button id="captureBtn" class="ctrl-btn capture" title="<?php echo t('Capture Photo'); ?>">
             <i class="fas fa-camera"></i>
         </button>
-        <button id="closeCameraBtn" class="ctrl-btn close-cam" title="Close Camera">
+        <button id="closeCameraBtn" class="ctrl-btn close-cam" title="<?php echo t('Close Camera'); ?>">
             <i class="fas fa-times"></i>
         </button>
     </div>
@@ -1931,6 +2025,7 @@ if (is_dir($barangays_dir)) {
         };
         const color = colors[type] || colors.error;
         const toast = document.createElement('div');
+        toast.setAttribute('role', 'alert');
         toast.className = 'toast-notification ' + color.bg + ' text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3';
         toast.style.minWidth = '300px';
         toast.style.maxWidth = '450px';
@@ -1972,11 +2067,15 @@ if (is_dir($barangays_dir)) {
     function selectImpact(value) {
         document.querySelectorAll('.impact-option').forEach(el => {
             el.classList.remove('selected', 'selected-localized', 'selected-moderate', 'selected-severe');
+            el.classList.remove('show-desc');
+            el.setAttribute('aria-pressed', 'false');
         });
         
         const selected = document.querySelector(`.impact-option[data-value="${value}"]`);
         if (selected) {
+            selected.setAttribute('aria-pressed', 'true');
             selected.classList.add('selected');
+            selected.classList.add('show-desc');
             if (value === 0) selected.classList.add('selected-localized');
             else if (value === 2) selected.classList.add('selected-moderate');
             else if (value === 4) selected.classList.add('selected-severe');
@@ -2123,20 +2222,6 @@ if (is_dir($barangays_dir)) {
             }
         }
     });
-
-    // ============================================================
-    // CATEGORY SUGGESTIONS
-    // ============================================================
-    categorySelect.addEventListener('click', function() {
-        const tipBox = document.getElementById('categoryTipBox');
-        tipBox.style.display = 'block';
-        clearTimeout(categoryTipTimer);
-        categoryTipTimer = setTimeout(function() {
-            tipBox.style.display = 'none';
-        }, 8000);
-    });
-
-    let categoryTipTimer = null;
 
     // ============================================================
     // AUTO-CORRECTION (CATEGORY KEYWORDS)
@@ -2340,7 +2425,11 @@ if (is_dir($barangays_dir)) {
             errorEl.textContent = message;
             errorEl.classList.add('visible');
         }
-        if (inputEl) inputEl.classList.add('error');
+        if (inputEl) {
+            inputEl.classList.add('error');
+            inputEl.setAttribute('aria-invalid', 'true');
+            inputEl.setAttribute('aria-describedby', fieldId + '-error');
+        }
     }
 
     function hideFieldError(fieldId) {
@@ -2350,7 +2439,10 @@ if (is_dir($barangays_dir)) {
             errorEl.textContent = '';
             errorEl.classList.remove('visible');
         }
-        if (inputEl) inputEl.classList.remove('error');
+        if (inputEl) {
+            inputEl.classList.remove('error');
+            inputEl.removeAttribute('aria-invalid');
+        }
     }
 
     function updateCharCount(inputId, countId, maxLength) {
@@ -3345,6 +3437,9 @@ if (is_dir($barangays_dir)) {
         });
         selectedPhotos = [];
         selectedFiles = [];
+        delete submitBtn.dataset.optimizing;
+        delete submitBtn.dataset.originalHtml;
+        submitBtn.disabled = false;
         updatePhotoPreviews();
         updateFileInput();
         if (currentMarker && map) map.removeLayer(currentMarker);
@@ -3370,6 +3465,67 @@ if (is_dir($barangays_dir)) {
     // ============================================================
     // FORM SUBMISSION
     // ============================================================
+
+    // Downscale + re-encode large photos client-side so uploads survive weak
+    // connections (massive bandwidth win on slow uplinks).
+    function compressPhoto(file, maxDim, quality) {
+        return new Promise(function (resolve, reject) {
+            var mime = normalizeMimeType(file.type);
+            if (!mime || mime.indexOf('image/') !== 0) { resolve(file); return; }
+
+            var img = new Image();
+            var url = URL.createObjectURL(file);
+            img.onload = function () {
+                var w = img.naturalWidth, h = img.naturalHeight;
+                if ((!w && !h) || (w <= maxDim && h <= maxDim && file.size <= 1024 * 1024)) {
+                    URL.revokeObjectURL(url);
+                    resolve(file);
+                    return;
+                }
+                var scale = Math.min(1, maxDim / Math.max(w || 1, h || 1));
+                var cw = Math.max(1, Math.round((w || 1) * scale));
+                var ch = Math.max(1, Math.round((h || 1) * scale));
+                var canvas = document.createElement('canvas');
+                canvas.width = cw;
+                canvas.height = ch;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, cw, ch);
+                URL.revokeObjectURL(url);
+                canvas.toBlob(function (blob) {
+                    if (blob && blob.size > 0 && blob.size < file.size) {
+                        var name = String(file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+                        resolve(new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() }));
+                    } else {
+                        resolve(file);
+                    }
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = function () {
+                URL.revokeObjectURL(url);
+                resolve(file);
+            };
+            img.src = url;
+        });
+    }
+
+    function prepareFilesForUpload() {
+        return new Promise(function (resolve, reject) {
+            if (!selectedFiles.length) { resolve(); return; }
+            var tasks = selectedFiles.map(function (file) {
+                if (isVideoFile(file)) return Promise.resolve(file);
+                return compressPhoto(file, 1600, 0.82).catch(function () {
+                    showToast('Could not optimize ' + file.name + '. Uploading original.', 'warning');
+                    return file;
+                });
+            });
+            Promise.all(tasks).then(function (files) {
+                selectedFiles = files;
+                updateFileInput();
+                resolve();
+            }).catch(function (err) { reject(err); });
+        });
+    }
+
     reportForm.addEventListener('submit', function(e) {
         let isValid = true;
         descriptionInput.value = sanitizeRichText(descriptionInput.value);
@@ -3387,9 +3543,25 @@ if (is_dir($barangays_dir)) {
             return false;
         }
 
+        if (submitBtn.dataset.optimizing === '1') {
+            e.preventDefault();
+            return false;
+        }
+
+        submitBtn.dataset.originalHtml = submitBtn.dataset.originalHtml || submitBtn.innerHTML;
+        e.preventDefault();
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
-        return true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Preparing photos...';
+
+        prepareFilesForUpload().then(function () {
+            submitBtn.dataset.optimizing = '1';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+            reportForm.submit();
+        }).catch(function () {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+            showToast('Photo preparation failed. Please try smaller photos.', 'error');
+        });
     });
 
     // ============================================================
@@ -3875,15 +4047,11 @@ if (is_dir($barangays_dir)) {
         closeDetailsModal();
     });
 
-    setTimeout(function() {
-        document.getElementById('categoryTipBox').style.display = 'block';
-        setTimeout(function() {
-            document.getElementById('categoryTipBox').style.display = 'none';
-        }, 6000);
-    }, 2000);
-
 })();
 </script>
 
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/design-select.js"></script>
 </body>
 </html>

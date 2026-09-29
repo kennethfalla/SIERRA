@@ -767,11 +767,11 @@ $permissionRisk = [
 
             <!-- ===== ACTIONS ===== -->
             <div class="perm-actions">
-                <button type="button" onclick="resetPermissionsForm()" class="btn-secondary">
-                    <i class="fas fa-undo mr-2"></i> Reset to Saved
+                <button type="button" onclick="resetPermissionsForm()" class="btn-secondary flex items-center gap-2">
+                    <i class="fas fa-undo"></i> Reset
                 </button>
-                <button type="submit" class="btn-primary">
-                    <i class="fas fa-save mr-2"></i> Save Permissions
+                <button type="submit" class="btn-primary flex items-center gap-2">
+                    <i class="fas fa-save"></i> Save Changes
                 </button>
             </div>
         </form>

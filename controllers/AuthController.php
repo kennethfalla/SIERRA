@@ -60,11 +60,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     $is_inactive = (($_GET['reason'] ?? '') === 'inactivity');
 
     if (isset($_SESSION['user_id']) && $activityLog) {
-        $activityLog->log(
-            $_SESSION['user_id'],
-            'Logout',
-            $is_inactive ? 'User logged out automatically due to inactivity' : 'User logged out successfully'
-        );
+        try {
+            $activityLog->log(
+                $_SESSION['user_id'],
+                'Logout',
+                $is_inactive ? 'User logged out automatically due to inactivity' : 'User logged out successfully'
+            );
+        } catch (Throwable $e) {
+            error_log('Logout activity log failed: ' . $e->getMessage());
+        }
     }
 
     // Clear all session variables
@@ -89,7 +93,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
         $_SESSION['success'] = "You have been logged out successfully.";
     }
 
-    header("Location: " . BASE_URL . "index.php?page=login");
+    header("Location: " . BASE_URL . "index.php");
     exit();
 }
 
@@ -327,6 +331,100 @@ function sendRegistrationEmailOtp($db, $email, $first_name = '') {
     return $email_sent
         ? ['success' => true, 'message' => 'OTP sent via email.', 'cooldown_seconds' => $cooldown_seconds]
         : ['error' => 'Failed to send OTP via email. Email service may not be configured. Please try SMS or contact the MENRO office.'];
+}
+
+// ============================================
+// NEW DEVICE LOGIN DETECTION + EMAIL NOTIFICATION
+// ============================================
+// Called right after a successful authentication. Registers the current
+// device/IP in user_devices. If the device signature AND the IP are both
+// brand new for this account, sends a security-alert email and records an
+// Audit Log entry so the action stays traceable. Never throws - failures are
+// logged so a mail hiccup can never block a valid login.
+function maybeNotifyNewDeviceLogin($db, $activityLog, $row) {
+    try {
+        if (empty($row) || empty($row['id'])) return;
+
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $ip        = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+        $deviceModel = new UserDevice($db);
+        $result   = $deviceModel->registerLogin((int)$row['id'], $userAgent, $ip);
+        if (!$result['is_new']) return; // recognized device/IP - nothing to do
+
+        $deviceName = $result['device_name'];
+        $fullName   = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+        $email      = $row['email'] ?? '';
+        $timestamp  = date('F j, Y \a\t g:i A');
+
+        // --- Line 1 of the audit trail: the event itself ---
+        $eventDesc = "New device login for {$fullName}: {$deviceName} from IP {$ip} on {$timestamp}.";
+        if ($activityLog) {
+            $activityLog->log((int)$row['id'], 'Security Alert', $eventDesc, $ip, 'Auth', 'SUCCESS');
+        }
+
+        // --- Line 2: the notification email ---
+        $emailSent = false;
+        $sendNote  = '';
+
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $sendNote = 'no recipient email on account';
+        } elseif (!SettingsHelper::isEmailEnabled()) {
+            $sendNote = 'email gateway not configured';
+        } else {
+            $system_name = SettingsHelper::get('system_name', 'Sierra');
+            $subject     = $system_name . ' - Security Alert: New Device Login';
+            $loginLink   = BASE_URL . 'index.php?page=login';
+
+            $html = "
+            <html>
+            <head><style>body { font-family: 'Manrope', Arial, sans-serif; background:#f9fbfa; color:#1a2e1a; margin:0; padding:0; }</style></head>
+            <body>
+                <div style='max-width:600px;margin:0 auto;'>
+                    <div style='background:#10A37F;color:white;padding:20px;text-align:center;border-radius:12px 12px 0 0;'>
+                        <h2 style='margin:0;'>" . htmlspecialchars($system_name) . "</h2>
+                        <p style='margin:5px 0 0;opacity:.9;'>Security Alert</p>
+                    </div>
+                    <div style='background:#ffffff;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 12px 12px;'>
+                        <h3 style='margin-top:0;color:#1f2937;'>We noticed a new device signed in to your account</h3>
+                        <p style='color:#374151;line-height:1.6;'>Hi " . htmlspecialchars($fullName) . ",</p>
+                        <p style='color:#374151;line-height:1.6;'>A sign-in to your " . htmlspecialchars($system_name) . " account was just made from a device we haven't seen before. If this was you, no action is needed.</p>
+                        <div style='background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:18px 0;'>
+                            <p style='margin:0 0 8px;color:#374151;font-size:14px;'><strong>Device:</strong> " . htmlspecialchars($deviceName) . "</p>
+                            <p style='margin:0 0 8px;color:#374151;font-size:14px;'><strong>IP address:</strong> " . htmlspecialchars($ip) . "</p>
+                            <p style='margin:0;color:#374151;font-size:14px;'><strong>Date &amp; time:</strong> " . htmlspecialchars($timestamp) . "</p>
+                        </div>
+                        <p style='color:#374151;line-height:1.6;'>If you don't recognize this activity, someone else may have your password. <strong>Change your password immediately</strong> and contact the MENRO office.</p>
+                        <div style='text-align:center;margin:25px 0;'>
+                            <a href='" . htmlspecialchars($loginLink, ENT_QUOTES) . "' target='_blank' style='display:inline-block;background:#10A37F;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 30px;border-radius:8px;'>Login to " . htmlspecialchars($system_name) . "</a>
+                        </div>
+                    </div>
+                    <div style='text-align:center;color:#6b7280;font-size:12px;margin-top:20px;'>
+                        <p>&copy; " . date('Y') . " " . htmlspecialchars($system_name) . " - LGU San Isidro</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            ";
+
+            $emailSent = SettingsHelper::sendEmail($email, $fullName, $subject, $html);
+            if (!$emailSent) $sendNote = 'delivery failed';
+        }
+
+        if ($activityLog) {
+            $logNote = $emailSent ? 'sent successfully' : 'not sent (' . $sendNote . ')';
+            $activityLog->log(
+                (int)$row['id'],
+                'New Device Email',
+                'Sent new-device login alert to ' . $email . ' (' . $fullName . ') - ' . $logNote,
+                $ip,
+                'Auth',
+                $emailSent ? 'SUCCESS' : 'FAILED'
+            );
+        }
+    } catch (Exception $e) {
+        error_log('[Auth] New device detection failed: ' . $e->getMessage());
+    }
 }
 
 // ============================================
@@ -840,6 +938,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         );
                     }
 
+                    maybeNotifyNewDeviceLogin($db, $activityLog, $row);
+
                     InputSanitizer::regenerateCsrfToken();
                     $_SESSION['info'] = "Welcome! This is your first login. Please set your permanent password to continue.";
                     header("Location: " . BASE_URL . "index.php?page=reset-password");
@@ -934,6 +1034,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         "User logged into the system as {$role_display}"
                     );
                 }
+
+                maybeNotifyNewDeviceLogin($db, $activityLog, $row);
 
                 header("Location: " . BASE_URL . "index.php?page=dashboard");
                 exit();

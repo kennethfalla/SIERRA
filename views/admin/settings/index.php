@@ -5,6 +5,7 @@
 require_once dirname(__DIR__, 3) . '/config/config.php';
 require_once BASE_PATH . 'helpers/SecurityHelper.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
+require_once BASE_PATH . 'helpers/Lang.php';
 requireRole('admin');
 
 // Get active tab from URL
@@ -15,107 +16,107 @@ $system_name = SettingsHelper::get('system_name', 'Sierra');
 $navigation_groups = [
     'Website Look & Info' => [
         'general' => [
-            'label' => 'General',
+            'label' => t('General'),
             'icon' => 'fa-cog',
-            'description' => 'System name, logo, and contact information',
+            'description' => t('System name, logo, and contact information'),
             'file' => 'general.php'
         ],
         'landing' => [
-            'label' => 'Landing Page',
+            'label' => t('Landing Page'),
             'icon' => 'fa-home',
-            'description' => 'Edit all content shown on the public homepage',
+            'description' => t('Edit all content shown on the public homepage'),
             'file' => 'landing.php'
         ],
         'barangays' => [
-            'label' => 'Barangays',
+            'label' => t('Barangays'),
             'icon' => 'fa-building',
-            'description' => 'Manage barangay information',
+            'description' => t('Manage barangay information'),
             'file' => 'barangays.php'
         ]
     ],
     'User Access & Safety' => [
         'permissions' => [
-            'label' => 'Permissions',
+            'label' => t('Permissions'),
             'icon' => 'fa-user-lock',
-            'description' => 'Role-based access control',
+            'description' => t('Role-based access control'),
             'file' => 'permissions.php'
         ],
         'security' => [
-            'label' => 'Security',
+            'label' => t('Security'),
             'icon' => 'fa-shield-alt',
-            'description' => 'Password policies and login security',
+            'description' => t('Password policies and login security'),
             'file' => 'security.php'
         ]
     ],
     'Report Rules & Automation' => [
         'categories' => [
-            'label' => 'Categories',
+            'label' => t('Categories'),
             'icon' => 'fa-tags',
-            'description' => 'Manage report categories and severity weights',
+            'description' => t('Manage report categories and severity weights'),
             'file' => 'categories.php'
         ],
         'category_keywords' => [
-            'label' => 'Category Keywords',
+            'label' => t('Category Keywords'),
             'icon' => 'fa-key',
-            'description' => 'Auto-correction dictionary — trigger words that auto-suggest a category while residents type',
+            'description' => t('Auto-correction dictionary — trigger words that auto-suggest a category while residents type'),
             'file' => 'category_keywords.php'
         ],
         'quick_notes' => [
-            'label' => 'Quick Note Templates',
+            'label' => t('Quick Note Templates'),
             'icon' => 'fa-bolt',
-            'description' => 'Smart suggestion templates for investigation & resolution notes',
+            'description' => t('Smart suggestion templates for investigation & resolution notes'),
             'file' => 'quick_notes.php'
         ],
         'reporting' => [
-            'label' => 'Reporting Limits',
+            'label' => t('Reporting Limits'),
             'icon' => 'fa-gauge-high',
-            'description' => 'Per-citizen report rate limits to prevent spam',
+            'description' => t('Per-citizen report rate limits to prevent spam'),
             'file' => 'reporting.php'
         ],
         'algorithm' => [
-            'label' => 'Algorithm',
+            'label' => t('Algorithm'),
             'icon' => 'fa-calculator',
-            'description' => 'Severity scoring configuration',
+            'description' => t('Severity scoring configuration'),
             'file' => 'algorithm.php'
         ],
         'features' => [
-            'label' => 'Features & Kill Switches',
+            'label' => t('Features & Kill Switches'),
             'icon' => 'fa-exclamation-triangle',
-            'description' => 'Master kill switches — turn features on/off instantly without touching code',
+            'description' => t('Master kill switches — turn features on/off instantly without touching code'),
             'file' => 'features.php'
         ]
     ],
     'Maps & Alerts' => [
         'map' => [
-            'label' => 'Map',
+            'label' => t('Map'),
             'icon' => 'fa-map',
-            'description' => 'Clustering radius and map settings',
+            'description' => t('Clustering radius and map settings'),
             'file' => 'map.php'
         ],
         'kpi' => [
-            'label' => 'KPI & Insights',
+            'label' => t('KPI & Insights'),
             'icon' => 'fa-chart-pie',
-            'description' => 'Key performance indicator targets for the Insight Engine',
+            'description' => t('Key performance indicator targets for the Insight Engine'),
             'file' => 'kpi.php'
         ],
         'notifications' => [
-            'label' => 'Notifications',
+            'label' => t('Notifications'),
             'icon' => 'fa-envelope',
-            'description' => 'Email and SMS templates',
+            'description' => t('Email and SMS templates'),
             'file' => 'notifications.php'
         ]
     ],
     'Data & Downloads' => [
         'archiving' => [
-            'label' => 'Data Archiving & Retention',
+            'label' => t('Data Archiving & Retention'),
             'icon' => 'fa-archive',
-            'description' => 'Manually archive old reports, retain rejected/spam, and manage the archive',
+            'description' => t('Manually archive old reports, retain rejected/spam, and manage the archive'),
             'file' => 'archiving.php'
         ],
         'pdf_export' => [
-            'label' => 'PDF Export',
+            'label' => t('PDF Export'),
             'icon' => 'fa-file-pdf',
-            'description' => 'MENRO PDF Analytics Export — official LGU header, logos, and signatory block',
+            'description' => t('MENRO PDF Analytics Export — official LGU header, logos, and signatory block'),
             'file' => 'pdf_export.php'
         ]
     ]
@@ -144,14 +145,21 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-    <title>Settings - <?php echo htmlspecialchars($system_name); ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title><?php echo t('Settings'); ?> - <?php echo htmlspecialchars($system_name); ?></title>
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <!-- Leaflet Map (required by the Map settings tab preview) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
+    <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
+    <!-- Network hints for slow connections (map tiles / reverse geocoding) -->
+    <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+    <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
+    <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
+    <link rel="dns-prefetch" href="https://photon.komoot.io">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; }
@@ -563,6 +571,114 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .settings-toast.success { background: #059669; }
         .settings-toast.error   { background: #ef4444; }
 
+        /* ===== UNSAVED CHANGES BAR ===== */
+        .settings-dirty-bar {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            padding: 0.7rem 1rem;
+            margin-bottom: 1rem;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 0.75rem;
+            color: #92400e;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        body.settings-dirty .settings-dirty-bar { display: flex; }
+        .settings-dirty-bar .sd-actions {
+            margin-left: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .sd-btn {
+            padding: 0.45rem 0.9rem;
+            border-radius: 0.6rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sd-btn.save { background: #10A37F; color: white; }
+        .sd-btn.save:hover { background: #0D8568; }
+        .sd-btn.discard { background: white; border-color: #d1d5db; color: #4b5563; }
+        .sd-btn.discard:hover { background: #f8fafc; }
+
+        /* ===== UNSAVED CHANGES MODAL ===== */
+        .settings-unsaved-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10001;
+            background: rgba(17, 24, 39, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .settings-unsaved-modal-overlay.show { display: flex; }
+        .settings-unsaved-modal {
+            background: #ffffff;
+            border-radius: 1rem;
+            max-width: 440px;
+            width: 100%;
+            padding: 1.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+            animation: fadeIn 0.2s ease-out;
+        }
+        .settings-unsaved-modal h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.4rem;
+        }
+        .settings-unsaved-modal p {
+            font-size: 0.85rem;
+            color: #6b7280;
+            line-height: 1.5;
+            margin-bottom: 1.25rem;
+        }
+        .settings-unsaved-modal .sum-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+        .settings-unsaved-modal .sum-actions .btn-primary,
+        .settings-unsaved-modal .sum-actions .btn-secondary {
+            flex: 1 1 auto;
+            min-width: 130px;
+            justify-content: center;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        @media (max-width: 480px) {
+            .settings-dirty-bar .sd-actions { margin-left: 0; width: 100%; }
+            .settings-dirty-bar .sd-btn { flex: 1 1 auto; }
+        }
+
+        /* ===== SAVE VALIDATION ===== */
+        .settings-content .is-invalid {
+            border-color: #ef4444 !important;
+            border-width: 1.5px !important;
+            background-color: #fff5f5 !important;
+        }
+        .settings-content .is-invalid:focus {
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+            outline: none;
+        }
+        .settings-content .field-error {
+            color: #b91c1c;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-top: 0.35rem;
+        }
+        .settings-content .field-error i {
+            margin-right: 0.3rem;
+        }
+
         /* ===== RESPONSIVE ===== */
         @media (max-width: 640px) {
             .settings-content { padding: 1rem; }
@@ -579,7 +695,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
         
         <!-- ===== PAGE HEADER ===== -->
@@ -589,16 +705,16 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
                         <i class="fas fa-sliders-h text-[#10A37F] text-sm"></i>
                     </div>
-                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Administration</span>
+                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('Administration'); ?></span>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-800">System Settings</h1>
-                <p class="text-gray-500 text-sm mt-1">Configure and manage all system settings</p>
+                <h1 class="text-2xl font-bold text-gray-800"><?php echo t('System Settings'); ?></h1>
+                <p class="text-gray-500 text-sm mt-1"><?php echo t('Configure and manage all system settings'); ?></p>
             </div>
             <button id="navToggleBtn" onclick="toggleSettingsNav()"
                     class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-200 bg-white text-sm font-semibold text-gray-600 hover:bg-emerald-50 hover:text-[#10A37F] hover:border-emerald-300 transition shadow-sm flex-shrink-0"
-                    title="Hide/Show the settings navigation menu to give the content more room">
+                    title="<?php echo t('Hide/Show the settings navigation menu to give the content more room'); ?>">
                 <i id="navToggleIcon" class="fas fa-compress-arrows-alt"></i>
-                <span id="navToggleLabel">Hide Menu</span>
+                <span id="navToggleLabel"><?php echo t('Hide Menu'); ?></span>
             </button>
         </div>
 
@@ -617,15 +733,50 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         <?php endif; ?>
 
+        <!-- ===== UNSAVED CHANGES WARNING BAR ===== -->
+        <div class="settings-dirty-bar" id="unsavedBar" role="alert" aria-live="polite">
+            <span><i class="fas fa-exclamation-triangle mr-1" aria-hidden="true"></i><?php echo t('You have unsaved changes in this tab.'); ?></span>
+            <span class="text-xs text-amber-700"><?php echo t('Changes only apply after you click'); ?> <strong><?php echo t('Save'); ?></strong>.</span>
+            <span class="sd-actions">
+                <button type="button" class="sd-btn save" onclick="unsavedSaveNow()"><i class="fas fa-save mr-1" aria-hidden="true"></i><?php echo t('Save Changes'); ?></button>
+                <button type="button" class="sd-btn discard" onclick="unsavedDiscard()"><i class="fas fa-undo mr-1" aria-hidden="true"></i><?php echo t('Discard Changes'); ?></button>
+            </span>
+        </div>
+
+        <!-- ===== UNSAVED CHANGES MODAL (shown before leaving) ===== -->
+        <div class="settings-unsaved-modal-overlay" id="unsavedModal" role="dialog" aria-modal="true" aria-labelledby="unsavedModalTitle" onclick="if(event.target===this) unsavedStay()">
+            <div class="settings-unsaved-modal">
+                <h3 id="unsavedModalTitle"><?php echo t('Unsaved changes'); ?></h3>
+                <p><?php echo t("You edited values in this tab but haven't saved them yet. Save the changes before leaving, discard them, or stay here."); ?></p>
+                <div class="sum-actions">
+                    <button type="button" class="btn-primary" onclick="unsavedSaveNow()"><i class="fas fa-save mr-1" aria-hidden="true"></i><?php echo t('Save Changes'); ?></button>
+                    <button type="button" class="btn-secondary" onclick="unsavedDiscard()"><i class="fas fa-undo mr-1" aria-hidden="true"></i><?php echo t('Discard Changes'); ?></button>
+                    <button type="button" class="btn-secondary" onclick="unsavedStay()"><i class="fas fa-times mr-1" aria-hidden="true"></i><?php echo t('Stay Here'); ?></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== CONFIRM SAVE MODAL (shown after validation passes) ===== -->
+        <div class="settings-unsaved-modal-overlay" id="confirmSaveModal" role="dialog" aria-modal="true" aria-labelledby="confirmSaveModalTitle" onclick="if(event.target===this) confirmSaveCancel()">
+            <div class="settings-unsaved-modal">
+                <h3 id="confirmSaveModalTitle"><?php echo t('Confirm save'); ?></h3>
+                <p><?php echo t('Are you sure you want to save your changes? Saved settings apply immediately to the whole system.'); ?></p>
+                <div class="sum-actions">
+                    <button type="button" class="btn-primary" onclick="confirmSaveProceed()"><i class="fas fa-check mr-1" aria-hidden="true"></i><?php echo t('Yes, Save Changes'); ?></button>
+                    <button type="button" class="btn-secondary" onclick="confirmSaveCancel()"><i class="fas fa-times mr-1" aria-hidden="true"></i><?php echo t('Cancel'); ?></button>
+                </div>
+            </div>
+        </div>
+
         <!-- ===== SETTINGS LAYOUT ===== -->
         <div class="settings-layout">
             
             <!-- ===== SIDEBAR NAVIGATION ===== -->
-            <nav class="settings-sidebar" aria-label="Settings navigation">
+            <nav class="settings-sidebar" aria-label="<?php echo t('Settings navigation'); ?>">
                 <?php foreach ($navigation_groups as $category_name => $category_tabs): ?>
                     <!-- Category Header -->
                     <div class="category-header">
-                        <?php echo htmlspecialchars($category_name); ?>
+                        <?php echo htmlspecialchars(t($category_name)); ?>
                     </div>
                     
                     <!-- Category Links -->
@@ -791,23 +942,272 @@ window.addEventListener('beforeunload', function() {
     } catch (e) {}
 });
 
-// Prevent accidental navigation with unsaved changes
-document.addEventListener('DOMContentLoaded', function() {
-    let formChanged = false;
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-        form.addEventListener('input', () => { formChanged = true; });
-        form.addEventListener('submit', () => { formChanged = false; });
-    });
-    
-    window.addEventListener('beforeunload', function(e) {
-        if (formChanged) {
-            e.preventDefault();
-            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+// ===== UNSAVED CHANGES PROTECTION =====
+// 1. Tracks edits across every settings form in the active tab and shows an
+//    amber "unsaved changes" bar as soon as you edit anything.
+// 2. Intercepts clicks on navigation links while edits are pending and opens
+//    a modal offering: Save Changes / Discard Changes / Stay Here.
+// 3. Blocks the browser's hidden implicit submit (pressing Enter inside a
+//    field) so values are only ever saved by clicking an explicit Save button.
+(function() {
+    'use strict';
+
+    var dirty = false;
+    var pendingHref = null;
+
+    function setDirty(v) {
+        dirty = v;
+        document.body.classList.toggle('settings-dirty', v);
+    }
+
+    // Pick the "main" save form of the active tab: prefer a form whose submit
+    // button text includes "Save", then fall back to the first form with one.
+    function findSavableForm() {
+        var forms = document.querySelectorAll('.settings-content form');
+        var fallback = null;
+        for (var i = 0; i < forms.length; i++) {
+            var btn = forms[i].querySelector('button[type="submit"], input[type="submit"]');
+            if (!btn) continue;
+            if (!fallback) fallback = forms[i];
+            if ((btn.textContent || '').indexOf('Save') !== -1) return forms[i];
         }
+        return fallback;
+    }
+
+    // ---- Track edits ----
+    document.querySelectorAll('.settings-content form').forEach(function(form) {
+        var mark = function(e) {
+            if (!e.isTrusted) return; // ignore script-driven resets
+            setDirty(true);
+        };
+        form.addEventListener('input', mark, true);
+        form.addEventListener('change', mark, true);
+        form.addEventListener('submit', function() { setDirty(false); });
+
+        // Explicit-save only: pressing Enter inside a text field must not
+        // silently submit the form (this was auto-saving edits in the past).
+        form.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+            var t = e.target;
+            if (!t || t.tagName !== 'INPUT') return;
+            var type = (t.type || '').toLowerCase();
+            if (['text', 'number', 'email', 'tel', 'url', 'search', 'password'].indexOf(type) === -1) return;
+            e.preventDefault();
+            if (typeof showNotification === 'function') {
+                showNotification('Changes are not saved until you press the Save button.', 'info');
+            }
+        });
     });
-});
+
+    // ---- Intercept navigation clicks while edits are pending ----
+    document.addEventListener('click', function(e) {
+        if (!dirty) return;
+        var target = e.target;
+        var a = target && target.closest ? target.closest('a[href]') : null;
+        if (!a) return;
+
+        var href = a.getAttribute('href') || '';
+        if (href.indexOf('#') === 0) return;                        // in-page anchors
+        if (a.classList.contains('btn-secondary')) return;          // reset-form links discard by design
+        if (a.getAttribute('target') === '_blank') return;          // open-new-tab links
+        if (/^https?:/i.test(a.href) && a.href.indexOf(window.location.origin) !== 0 && a.href.indexOf(window.location.hostname) === -1) return; // external
+
+        e.preventDefault();
+        pendingHref = a.href;
+        var modal = document.getElementById('unsavedModal');
+        if (modal) modal.classList.add('show');
+    });
+
+    // ---- Modal actions (exposed globally for the inline onclick handlers) ----
+    window.unsavedStay = function() {
+        var modal = document.getElementById('unsavedModal');
+        if (modal) modal.classList.remove('show');
+        pendingHref = null;
+    };
+
+    window.unsavedSaveNow = function() {
+        var form = findSavableForm();
+        window.unsavedStay();
+        if (!form) return;
+        setDirty(false);
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            form.submit();
+        }
+    };
+
+    window.unsavedDiscard = function() {
+        var goto = pendingHref || window.location.href.split('#')[0];
+        window.unsavedStay();
+        window.location.href = goto;
+    };
+})();
+
+// ===== SAVE VALIDATION =====
+// Runs in the capture phase so it checks every settings form before the
+// browser submits. Invalid fields get a red ring + an inline message, the
+// page scrolls to the first problem field, and the submit is cancelled with
+// a toast explaining what to fix. Fields are validated when the tab's
+// "Save Changes" button is clicked (which also covers the unsaved-changes
+// bar/modal Save buttons, since they submit the same form).
+(function() {
+    'use strict';
+
+    var FIELD_TAGS = ['INPUT', 'SELECT', 'TEXTAREA'];
+
+    function clearValidation(form) {
+        form.querySelectorAll('.is-invalid').forEach(function(el) { el.classList.remove('is-invalid'); });
+        form.querySelectorAll('.field-error').forEach(function(el) { el.remove(); });
+    }
+
+    function findLabel(el) {
+        var id = el.id;
+        if (id) {
+            var lbl = document.querySelector('label[for="' + id + '"]');
+            if (lbl) return lbl.textContent.trim();
+        }
+        var wrap = el.closest('.form-group, .form-label, .form-field, .field');
+        if (wrap) {
+            var firstLbl = wrap.querySelector('label');
+            if (firstLbl) return firstLbl.textContent.trim();
+        }
+        return '';
+    }
+
+    function validationMessage(el) {
+        var rawLabel = findLabel(el).replace(/\*.*$/g, '').trim();
+        var label = rawLabel || el.name || el.id || 'this field';
+
+        if (el.validity.valueMissing) {
+            return label + ' is required.';
+        }
+        if (el.validity.typeMismatch) {
+            return el.type === 'email'
+                ? 'Please enter a valid email address for "' + label + '".'
+                : 'Please enter a valid value for "' + label + '".';
+        }
+        if (el.validity.rangeUnderflow) {
+            return '"' + label + '" is too small (minimum ' + (el.min || '') + ').';
+        }
+        if (el.validity.rangeOverflow) {
+            return '"' + label + '" is too large (maximum ' + (el.max || '') + ').';
+        }
+        if (el.validity.tooShort) {
+            return '"' + label + '" is too short (minimum ' + (el.minLength || '') + ' characters).';
+        }
+        if (el.validity.tooLong) {
+            return '"' + label + '" is too long (maximum ' + (el.maxLength || '') + ' characters).';
+        }
+        if (el.tagName === 'SELECT') {
+            return 'Please choose an option for "' + label + '".';
+        }
+        return 'Please fix "' + label + '" before saving.';
+    }
+
+    function showFieldError(el, msg) {
+        el.classList.add('is-invalid');
+        var err = document.createElement('p');
+        err.className = 'field-error';
+        err.innerHTML = '<i class="fas fa-exclamation-circle" aria-hidden="true"></i>' + (msg || '');
+        var anchor = el.closest('.form-group, .form-label, .form-field, .field') || el.parentNode;
+        if (anchor && anchor.parentNode) {
+            anchor.parentNode.insertBefore(err, anchor.nextSibling);
+        } else {
+            el.parentNode.insertBefore(err, el.nextSibling);
+        }
+        el.setAttribute('aria-invalid', 'true');
+    }
+
+    // Intercept submits of settings forms that carry a Save button.
+        document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (!form || form.tagName !== 'FORM') return;
+        var saveBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+        if (!saveBtn) return; // delete/activate sub-forms keep their own confirm()
+
+        clearValidation(form);
+
+        // Forced submit after the user confirmed the "Are you sure?" dialog.
+        if (forcedSubmitForm === form) {
+            forcedSubmitForm = null;
+            return; // valid -> let the form submit normally
+        }
+
+        // Force validation: a hidden/noValidate form can't clear "willValidate"
+        // states from a previous run, so let native validity decide.
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation(); // keep per-tab custom validators from double-firing
+            showFieldErrors(form);
+            return;
+        }
+
+        // Validation passed -> ask for confirmation before saving.
+        e.preventDefault();
+        e.stopPropagation();
+        pendingSaveForm = form;
+        var modal = document.getElementById('confirmSaveModal');
+        if (modal) modal.classList.add('show');
+    }, true);
+
+    var forcedSubmitForm = null;
+    var pendingSaveForm = null;
+
+    window.confirmSaveProceed = function() {
+        var form = pendingSaveForm;
+        pendingSaveForm = null;
+        var modal = document.getElementById('confirmSaveModal');
+        if (modal) modal.classList.remove('show');
+        if (!form || form.tagName !== 'FORM') return;
+        forcedSubmitForm = form;
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            form.submit();
+        }
+    };
+
+    window.confirmSaveCancel = function() {
+        pendingSaveForm = null;
+        var modal = document.getElementById('confirmSaveModal');
+        if (modal) modal.classList.remove('show');
+    };
+
+    function showFieldErrors(form) {
+        var firstBad = null;
+        FIELD_TAGS.forEach(function(tag) {
+            Array.prototype.forEach.call(form.querySelectorAll(tag + ':invalid'), function(el) {
+                showFieldError(el, validationMessage(el));
+                if (!firstBad) firstBad = el;
+            });
+        });
+
+        if (firstBad) {
+            try { firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
+            try { firstBad.focus({ preventScroll: true }); } catch (err) {}
+        }
+
+        if (typeof showNotification === 'function') {
+            showNotification('Please fix the highlighted fields before saving.', 'error');
+        }
+    }
+
+    // Clear a field's error as soon as the admin types/selects into it again.
+    document.addEventListener('input', function(e) {
+        var el = e.target;
+        if (!el || !el.classList || !el.classList.contains('is-invalid')) return;
+        el.classList.remove('is-invalid');
+        el.removeAttribute('aria-invalid');
+        var anchor = el.closest('.form-group, .form-label, .form-field, .field') || el.parentNode;
+        if (anchor && anchor.nextSibling && anchor.nextSibling.classList && anchor.nextSibling.classList.contains('field-error')) {
+            anchor.nextSibling.remove();
+        }
+    }, true);
+})();
 </script>
 
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
 </body>
 </html>

@@ -210,13 +210,12 @@ $limits = SettingsHelper::getReportLimits();
     </div>
 
     <!-- Actions -->
-    <div class="flex flex-wrap items-center gap-3 pt-2">
-        <button type="submit" class="btn-primary">
-            <i class="fas fa-save mr-1"></i> Save Reporting Limits
+    <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
+        <button type="button" onclick="location.reload()" class="btn-secondary flex items-center gap-2">
+            <i class="fas fa-undo"></i> Reset
         </button>
-        <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=reporting" class="btn-secondary">
-            <i class="fas fa-sync-alt mr-1"></i> Reset form
-        </a>
-        <span class="text-xs text-gray-400">Changes take effect immediately on the next report submission.</span>
+        <button type="submit" class="btn-primary flex items-center gap-2">
+            <i class="fas fa-save"></i> Save Changes
+        </button>
     </div>
 </form>

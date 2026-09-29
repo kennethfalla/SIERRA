@@ -18,20 +18,28 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
     <title><?php echo htmlspecialchars($system_name); ?> - Environmental Reporting System</title>
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
     
     <!-- Leaflet Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
+    <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
+    <!-- Network hints for slow connections (map tiles / reverse geocoding) -->
+    <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+    <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
+    <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
+    <link rel="dns-prefetch" href="https://photon.komoot.io">
     
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/vendor/chart/chart.umd.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/chart-stub.js"></script>
     
     <style>
         * {

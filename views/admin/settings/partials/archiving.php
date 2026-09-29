@@ -275,20 +275,16 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
 </style>
 
 <div class="card-info">
-    <div class="title"><i class="fas fa-archive mr-1"></i> Data Archiving & Retention</div>
+    <div class="title"><i class="fas fa-archive mr-1"></i> <?php echo t('Data Archiving & Retention'); ?></div>
     <div class="desc">
-        Keeps the database fast and clean. Archiving is fully manual: click
-        "Run Manual Archive Now" to apply the retention rules below. Old
-        resolved reports, rejected/spam reports, and expired announcements are
-        moved to the archive <strong>only when you trigger it</strong>. Export
-        an audit backup before rejected reports are permanently purged.
+        <?php echo t('Keeps the database fast and clean. Archiving is fully manual: click "Run Manual Archive Now" to apply the retention rules below. Old resolved reports, rejected/spam reports, and expired announcements are moved to the archive'); ?> <strong><?php echo t('only when you trigger it'); ?></strong><?php echo t('. Export an audit backup before rejected reports are permanently purged.'); ?>
     </div>
 </div>
 
 <!-- ============================================ -->
 <!-- SECTION A: RETENTION RULES -->
 <!-- ============================================ -->
-<div class="archive-section-title"><span class="num">A</span> Retention Rules</div>
+<div class="archive-section-title"><span class="num">A</span> <?php echo t('Retention Rules'); ?></div>
 
 <form method="POST" action="<?php echo $settings_url; ?>" id="archivingForm">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
@@ -299,23 +295,22 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
         <div style="flex:1;">
             <div class="setting-title">
                 <i class="fas fa-check-circle text-[#10A37F]"></i>
-                Resolved Report Retention Period
+                <?php echo t('Resolved Report Retention Period'); ?>
             </div>
             <p class="setting-desc">
-                Move <strong>Resolved</strong> tickets to the archive after this many days of being
-                closed. Resolved reports are archived forever (never permanently deleted).
+                <?php echo t('Move'); ?> <strong><?php echo t('Resolved'); ?></strong> <?php echo t('tickets to the archive after this many days of being closed. Resolved reports are archived forever (never permanently deleted).'); ?>
             </p>
             <div class="form-group" style="max-width: 240px; margin-top: 0.75rem;">
-                <label for="archive_after_days">Retention period</label>
+                <label for="archive_after_days"><?php echo t('Retention period'); ?></label>
                 <select name="archive_after_days" id="archive_after_days" class="form-input">
                     <?php
-                    $options = [30 => '30 Days', 90 => '90 Days', 365 => '1 Year'];
+                    $options = [30 => t('30 Days'), 90 => t('90 Days'), 365 => t('1 Year')];
                     foreach ($options as $val => $label):
                     ?>
                         <option value="<?php echo $val; ?>" <?php echo $archive_after_days == $val ? 'selected' : ''; ?>><?php echo $label; ?></option>
                     <?php endforeach; ?>
                 </select>
-                <p class="help-text">After this period, resolved reports leave the active lists.</p>
+                <p class="help-text"><?php echo t('After this period, resolved reports leave the active lists.'); ?></p>
             </div>
         </div>
     </div>
@@ -325,24 +320,22 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
         <div style="flex:1;">
             <div class="setting-title">
                 <i class="fas fa-ban text-amber-600"></i>
-                Spam / Rejected Retention Period
+                <?php echo t('Spam / Rejected Retention Period'); ?>
             </div>
             <p class="setting-desc">
-                Move <strong>Rejected / Spam</strong> reports to the archive after this many days,
-                and <strong>permanently delete</strong> them once the full window has elapsed.
-                Export an archive backup before purging if you need an audit copy.
+                <?php echo t('Move'); ?> <strong><?php echo t('Rejected / Spam'); ?></strong> <?php echo t('reports to the archive after this many days, and'); ?> <strong><?php echo t('permanently delete'); ?></strong> <?php echo t('them once the full window has elapsed. Export an archive backup before purging if you need an audit copy.'); ?>
             </p>
             <div class="form-group" style="max-width: 240px; margin-top: 0.75rem;">
-                <label for="archive_rejected_days">Retention before permanent deletion</label>
+                <label for="archive_rejected_days"><?php echo t('Retention before permanent deletion'); ?></label>
                 <select name="archive_rejected_days" id="archive_rejected_days" class="form-input">
                     <?php
-                    $rej_options = [30 => '30 Days', 60 => '60 Days', 90 => '90 Days'];
+                    $rej_options = [30 => t('30 Days'), 60 => t('60 Days'), 90 => t('90 Days')];
                     foreach ($rej_options as $val => $label):
                     ?>
                         <option value="<?php echo $val; ?>" <?php echo $archive_rejected_days == $val ? 'selected' : ''; ?>><?php echo $label; ?></option>
                     <?php endforeach; ?>
                 </select>
-                <p class="help-text">After archiving, rejected reports are kept for this window, then purged from the database.</p>
+                <p class="help-text"><?php echo t('After archiving, rejected reports are kept for this window, then purged from the database.'); ?></p>
             </div>
         </div>
     </div>
@@ -352,23 +345,22 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
         <div style="flex:1;">
             <div class="setting-title">
                 <i class="fas fa-bullhorn text-indigo-600"></i>
-                Expired Municipal Broadcasts &amp; Announcements
+                <?php echo t('Expired Municipal Broadcasts &amp; Announcements'); ?>
             </div>
             <p class="setting-desc">
-                Announcements whose <strong>expiry date has passed</strong> are moved
-                to the archive when you run the manual archive. They remain restorable.
+                <?php echo t('Announcements whose'); ?> <strong><?php echo t('expiry date has passed'); ?></strong> <?php echo t('are moved to the archive when you run the manual archive. They remain restorable.'); ?>
             </p>
         </div>
-        <span class="badge-inactive">Manual</span>
+        <span class="badge-inactive"><?php echo t('Manual'); ?></span>
     </div>
 
     <!-- Save Rules -->
-    <div class="flex flex-wrap gap-3 justify-end pt-4 border-t border-gray-200">
-        <button type="reset" onclick="resetArchivingForm()" class="btn-secondary">
-            <i class="fas fa-undo mr-2"></i>Reset
+    <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
+        <button type="reset" onclick="resetArchivingForm()" class="btn-secondary flex items-center gap-2">
+            <i class="fas fa-undo"></i> <?php echo t('Reset'); ?>
         </button>
-        <button type="submit" class="btn-primary">
-            <i class="fas fa-save mr-2"></i>Save Retention Rules
+        <button type="submit" class="btn-primary flex items-center gap-2">
+            <i class="fas fa-save"></i> <?php echo t('Save Changes'); ?>
         </button>
     </div>
 </form>
@@ -376,24 +368,23 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
 <!-- ============================================ -->
 <!-- SECTION B: MANUAL ARCHIVE ACTION TRIGGERS -->
 <!-- ============================================ -->
-<div class="archive-section-title"><span class="num">B</span> Manual Archive Action Triggers</div>
+<div class="archive-section-title"><span class="num">B</span> <?php echo t('Manual Archive Action Triggers'); ?></div>
 
 <div class="setting-row" style="align-items:center;">
     <div style="flex:1;">
         <div class="setting-title">
             <i class="fas fa-play text-[#10A37F]"></i>
-            Run Manual Archive Now
+            <?php echo t('Run Manual Archive Now'); ?>
         </div>
         <p class="setting-desc">
-            Apply all retention rules immediately. Rejected reports that have
-            passed their retention window will be permanently purged.
+            <?php echo t('Apply all retention rules immediately. Rejected reports that have passed their retention window will be permanently purged.'); ?>
         </p>
     </div>
     <form method="POST" action="<?php echo $settings_url; ?>" style="flex-shrink:0;">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="sub_action" value="run_archive">
         <button type="submit" class="btn-primary" onclick="return confirm('Run the archiving job now? Rejected reports past their retention window will be permanently deleted.');">
-            <i class="fas fa-play mr-2"></i>Run Manual Archive Now
+            <i class="fas fa-play mr-2"></i><?php echo t('Run Manual Archive Now'); ?>
         </button>
     </form>
 </div>
@@ -402,11 +393,10 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     <div style="flex:1;">
         <div class="setting-title">
             <i class="fas fa-download text-indigo-600"></i>
-            Export Archive Backup
+            <?php echo t('Export Archive Backup'); ?>
         </div>
         <p class="setting-desc">
-            Download all archived data as a CSV spreadsheet or a portable SQL file for
-            off-site audit storage.
+            <?php echo t('Download all archived data as a CSV spreadsheet or a portable SQL file for off-site audit storage.'); ?>
         </p>
     </div>
     <form method="POST" action="<?php echo $settings_url; ?>" style="flex-shrink:0; display:flex; gap:0.5rem; align-items:center;">
@@ -417,7 +407,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
             <option value="sql">SQL</option>
         </select>
         <button type="submit" class="btn-secondary">
-            <i class="fas fa-download mr-2"></i>Export
+            <i class="fas fa-download mr-2"></i><?php echo t('Export'); ?>
         </button>
     </form>
 </div>
@@ -425,28 +415,28 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
 <!-- ============================================ -->
 <!-- SECTION C: ARCHIVE MANAGEMENT TABLE -->
 <!-- ============================================ -->
-<div class="archive-section-title"><span class="num">C</span> Archive Management</div>
+<div class="archive-section-title"><span class="num">C</span> <?php echo t('Archive Management'); ?></div>
 
 <div class="bg-white rounded-2xl border border-[#10A37F]/10 overflow-hidden">
     <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
         <div>
-            <h4 class="font-bold text-gray-800 text-sm"><i class="fas fa-box-archive text-[#10A37F] mr-2"></i>Archived Items</h4>
-            <p class="text-xs text-gray-500 mt-0.5"><?php echo count($archive_rows); ?> item(s) currently archived · search to filter</p>
+            <h4 class="font-bold text-gray-800 text-sm"><i class="fas fa-box-archive text-[#10A37F] mr-2"></i><?php echo t('Archived Items'); ?></h4>
+            <p class="text-xs text-gray-500 mt-0.5"><?php echo count($archive_rows); ?> <?php echo t('item(s) currently archived · search to filter'); ?></p>
         </div>
-        <input type="text" id="archiveSearch" class="archive-search" placeholder="Search by title, ID, category, barangay...">
+        <input type="text" id="archiveSearch" class="archive-search" placeholder="<?php echo t('Search by title, ID, category, barangay...'); ?>">
     </div>
 
     <div class="archive-table-wrap">
         <table class="archive-table" id="archiveTable">
             <thead>
                 <tr>
-                    <th>Archive ID</th>
-                    <th>Original ID</th>
-                    <th>Title</th>
-                    <th>Category</th>
-                    <th>Barangay Location</th>
-                    <th>Date Resolved / Rejected</th>
-                    <th>Action</th>
+                    <th><?php echo t('Archive ID'); ?></th>
+                    <th><?php echo t('Original ID'); ?></th>
+                    <th><?php echo t('Title'); ?></th>
+                    <th><?php echo t('Category'); ?></th>
+                    <th><?php echo t('Barangay Location'); ?></th>
+                    <th><?php echo t('Date Resolved / Rejected'); ?></th>
+                    <th><?php echo t('Action'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -454,7 +444,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
                     <tr>
                         <td colspan="7" class="empty-archive">
                             <i class="fas fa-inbox text-3xl text-gray-300 block mb-2"></i>
-                            The archive is empty. Archived reports and announcements will appear here.
+                            <?php echo t('The archive is empty. Archived reports and announcements will appear here.'); ?>
                         </td>
                     </tr>
                 <?php else: ?>
@@ -479,7 +469,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
                         <td data-label="Actions">
                             <div class="flex items-center gap-1.5 archive-actions">
                                 <button type="button" class="btn-view" onclick="viewArchiveItem(this)">
-                                    <i class="fas fa-eye text-[10px]"></i>View
+                                    <i class="fas fa-eye text-[10px]"></i><?php echo t('View'); ?>
                                 </button>
                                 <form method="POST" action="<?php echo $settings_url; ?>">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
@@ -487,7 +477,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
                                     <input type="hidden" name="archive_type" value="<?php echo $item['source_type']; ?>">
                                     <input type="hidden" name="archive_id" value="<?php echo (int)$item['original_id']; ?>">
                                     <button type="submit" class="btn-restore" onclick="return confirm('Restore this <?php echo $item['source_type']; ?> back to the active system?');">
-                                        <i class="fas fa-rotate-left text-[10px]"></i>Restore
+                                        <i class="fas fa-rotate-left text-[10px]"></i><?php echo t('Restore'); ?>
                                     </button>
                                 </form>
                             </div>
@@ -506,19 +496,19 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
 <div class="archive-modal-backdrop" id="archiveModal">
     <div class="archive-modal">
         <div class="archive-modal-header">
-            <h3><i class="fas fa-box-archive text-[#10A37F] mr-2"></i>Archived Item Details</h3>
+            <h3><i class="fas fa-box-archive text-[#10A37F] mr-2"></i><?php echo t('Archived Item Details'); ?></h3>
             <button type="button" class="archive-modal-close" onclick="closeArchiveModal()"><i class="fas fa-times"></i></button>
         </div>
         <div class="archive-modal-body">
-            <div class="detail-row"><div class="k">Archive ID</div><div class="v" id="mdlArchiveId">—</div></div>
-            <div class="detail-row"><div class="k">Original Report / Announcement ID</div><div class="v" id="mdlOriginalId">—</div></div>
-            <div class="detail-row"><div class="k">Title</div><div class="v" id="mdlTitle">—</div></div>
-            <div class="detail-row"><div class="k">Source Type</div><div class="v" id="mdlType">—</div></div>
-            <div class="detail-row"><div class="k">Category</div><div class="v" id="mdlCategory">—</div></div>
-            <div class="detail-row"><div class="k">Barangay Location</div><div class="v" id="mdlBarangay">—</div></div>
-            <div class="detail-row"><div class="k">Status</div><div class="v" id="mdlStatus">—</div></div>
-            <div class="detail-row"><div class="k">Date Resolved / Rejected</div><div class="v" id="mdlClosed">—</div></div>
-            <div class="detail-row"><div class="k">Archived At</div><div class="v" id="mdlArchived">—</div></div>
+            <div class="detail-row"><div class="k"><?php echo t('Archive ID'); ?></div><div class="v" id="mdlArchiveId">—</div></div>
+            <div class="detail-row"><div class="k"><?php echo t('Original Report / Announcement ID'); ?></div><div class="v" id="mdlOriginalId">—</div></div>
+            <div class="detail-row"><div class="k"><?php echo t('Title'); ?></div><div class="v" id="mdlTitle">—</div></div>
+            <div class="detail-row"><div class="k"><?php echo t('Source Type'); ?></div><div class="v" id="mdlType">—</div></div>
+            <div class="detail-row"><div class="k"><?php echo t('Category'); ?></div><div class="v" id="mdlCategory">—</div></div>
+            <div class="detail-row"><div class="k"><?php echo t('Barangay Location'); ?></div><div class="v" id="mdlBarangay">—</div></div>
+            <div class="detail-row"><div class="k"><?php echo t('Status'); ?></div><div class="v" id="mdlStatus">—</div></div>
+            <div class="detail-row"><div class="k"><?php echo t('Date Resolved / Rejected'); ?></div><div class="v" id="mdlClosed">—</div></div>
+            <div class="detail-row"><div class="k"><?php echo t('Archived At'); ?></div><div class="v" id="mdlArchived">—</div></div>
         </div>
     </div>
 </div>

@@ -8,7 +8,7 @@
 // Determine which section to display
 // ============================================================
 $section = $_GET['section'] ?? '';
-$valid_sections = ['personal-information', 'change-password', 'pdf-export-settings', 'about', 'terms', 'privacy', 'faqs', 'help'];
+$valid_sections = ['personal-information', 'change-password', 'lang-settings', 'pdf-export-settings', 'activity-log', 'about', 'terms', 'privacy', 'faqs', 'help'];
 if ($section && !in_array($section, $valid_sections)) {
     $section = ''; // treat as no section
 }
@@ -43,6 +43,8 @@ $p_number  = (int) SettingsHelper::get('password_require_number', 1);
 $p_special = (int) SettingsHelper::get('password_require_special', 1);
 
 $csrf_token = InputSanitizer::generateCsrfToken();
+
+require_once BASE_PATH . 'helpers/Lang.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -54,14 +56,16 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
     <title><?php echo $section ? ucwords(str_replace('-', ' ', $section)) : 'My Profile'; ?> - <?php echo htmlspecialchars($system_name); ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/cropperjs/cropper.min.css">
+    <script src="<?php echo BASE_URL; ?>assets/vendor/cropperjs/cropper.min.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; overflow-x: hidden; }
+        
+        <?php echo lang_toggle_css(); ?>
         
         @media (max-width: 768px) {
             .lg\:ml-72 { margin-left: 0 !important; width: 100%; padding: 0; }
@@ -558,25 +562,29 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <!-- ===== MAIN CONTAINER ===== -->
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container mx-auto">
         
         
         <!-- ===== HEADER ===== -->
         <div class="page-header">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-user-circle text-[#10A37F] text-xs md:text-sm"></i>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-user-circle text-[#10A37F] text-xs md:text-sm"></i>
+                        </div>
+                        <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('My Account'); ?></span>
+                    </div>
+                    <div>
+                        <h1 class="page-title font-bold text-gray-800">
+                            <?php echo $section ? t(ucwords(str_replace('-', ' ', $section))) : t('My Profile'); ?>
+                        </h1>
+                        <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">
+                            <?php echo $section ? t('Manage your account details') : t('Choose a section to manage your account'); ?>
+                        </p>
+                    </div>
                 </div>
-                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold">My Account</span>
-            </div>
-            <div>
-                <h1 class="page-title font-bold text-gray-800">
-                    <?php echo $section ? ucwords(str_replace('-', ' ', $section)) : 'My Profile'; ?>
-                </h1>
-                <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">
-                    <?php echo $section ? 'Manage your account details' : 'Choose a section to manage your account'; ?>
-                </p>
             </div>
         </div>
         
@@ -652,61 +660,71 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <!-- Menu items -->
                 <nav class="mt-2" aria-label="Profile sections">
                     <!-- Account -->
-                    <div class="profile-menu-group-label">Account</div>
+                    <div class="profile-menu-group-label"><?php echo t('Account'); ?></div>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=personal-information">
                         <span class="menu-icon"><i class="fas fa-id-card"></i></span>
-                        <span class="menu-label">Personal Information</span>
+                        <span class="menu-label"><?php echo t('Personal Information'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=change-password">
                         <span class="menu-icon"><i class="fas fa-key"></i></span>
-                        <span class="menu-label">Change Password</span>
+                        <span class="menu-label"><?php echo t('Change Password'); ?></span>
+                        <i class="fas fa-chevron-right menu-chevron"></i>
+                    </a>
+                    <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=activity-log">
+                        <span class="menu-icon"><i class="fas fa-history"></i></span>
+                        <span class="menu-label"><?php echo t('Activity Logs'); ?></span>
+                        <i class="fas fa-chevron-right menu-chevron"></i>
+                    </a>
+                    <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=lang-settings">
+                        <span class="menu-icon"><i class="fas fa-globe"></i></span>
+                        <span class="menu-label"><?php echo t('Language Settings'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     <?php if (($_SESSION['user_role'] ?? '') === 'barangay_official'): ?>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=pdf-export-settings">
                         <span class="menu-icon"><i class="fas fa-file-pdf"></i></span>
-                        <span class="menu-label">PDF Export Settings</span>
+                        <span class="menu-label"><?php echo t('PDF Export Settings'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     <?php endif; ?>
                     
                     <!-- Legal & About -->
-                    <div class="profile-menu-group-label">Legal &amp; About</div>
+                    <div class="profile-menu-group-label"><?php echo t('Legal & About'); ?></div>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=about">
                         <span class="menu-icon"><i class="fas fa-info-circle"></i></span>
-                        <span class="menu-label">About <?php echo htmlspecialchars($system_name); ?></span>
+                        <span class="menu-label"><?php echo t('About'); ?> <?php echo htmlspecialchars($system_name); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=terms">
                         <span class="menu-icon"><i class="fas fa-file-contract"></i></span>
-                        <span class="menu-label">Terms of Service</span>
+                        <span class="menu-label"><?php echo t('Terms of Service'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=privacy">
                         <span class="menu-icon"><i class="fas fa-user-shield"></i></span>
-                        <span class="menu-label">Privacy Notice</span>
+                        <span class="menu-label"><?php echo t('Privacy Notice'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     
                     <!-- Support -->
-                    <div class="profile-menu-group-label">Support</div>
+                    <div class="profile-menu-group-label"><?php echo t('Support'); ?></div>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=faqs">
                         <span class="menu-icon"><i class="fas fa-question-circle"></i></span>
-                        <span class="menu-label">FAQs</span>
+                        <span class="menu-label"><?php echo t('FAQs'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=help">
                         <span class="menu-icon"><i class="fas fa-headset"></i></span>
-                        <span class="menu-label">Help and Support</span>
+                        <span class="menu-label"><?php echo t('Help and Support'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     
                     <!-- Session -->
-                    <div class="profile-menu-group-label" style="border-top:1px solid #f0f4f1; padding-top:0.75rem; margin-top:0.5rem;">Session</div>
+                    <div class="profile-menu-group-label" style="border-top:1px solid #f0f4f1; padding-top:0.75rem; margin-top:0.5rem;"><?php echo t('Session'); ?></div>
                     <a class="profile-menu-item logout-item" href="javascript:void(0)" onclick="window.openLogoutModal()">
                         <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
-                        <span class="menu-label">Logout</span>
+                        <span class="menu-label"><?php echo t('Logout'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                 </nav>
@@ -718,7 +736,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <!-- Back to Profile link -->
                     <div class="mb-4">
                         <a href="<?php echo BASE_URL; ?>index.php?page=profile" class="inline-flex items-center gap-2 text-gray-500 hover:text-[#10A37F] transition text-sm font-medium">
-                            <i class="fas fa-arrow-left"></i> Back to Profile
+                            <i class="fas fa-arrow-left"></i> <?php echo t('Back to Profile'); ?>
                         </a>
                     </div>
                     
@@ -731,8 +749,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         case 'change-password':
                             include __DIR__ . '/change_password.php';
                             break;
+                        case 'lang-settings':
+                            include __DIR__ . '/language.php';
+                            break;
                         case 'pdf-export-settings':
                             include __DIR__ . '/pdf_export.php';
+                            break;
+                        case 'activity-log':
+                            include __DIR__ . '/activity_logs.php';
                             break;
                         case 'about':
                             include __DIR__ . '/about.php';
@@ -777,7 +801,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="crop-modal-content" style="max-width: 420px;">
         <div class="crop-modal-header">
             <h3><i class="fas fa-user-circle"></i> Change Profile Photo</h3>
-            <button onclick="closeAvatarPicker()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            <button onclick="closeAvatarPicker()" class="text-gray-400 hover:text-gray-600 text-2xl" aria-label="Close avatar picker">&times;</button>
         </div>
         <div class="crop-modal-body avatar-picker-body">
             <div class="avatar-picker-label">Choose an avatar</div>
@@ -795,7 +819,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="crop-modal-content">
         <div class="crop-modal-header">
             <h3><i class="fas fa-crop-alt"></i> Crop Photo</h3>
-            <button onclick="closeCropModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            <button onclick="closeCropModal()" class="text-gray-400 hover:text-gray-600 text-2xl" aria-label="Close crop photo">&times;</button>
         </div>
         <div class="crop-modal-body crop-body-crop">
             <img id="cropImage" src="" alt="Crop">
@@ -812,7 +836,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="crop-modal-content" style="max-width:420px;">
         <div class="crop-modal-header">
             <h3><i class="fas fa-shield-alt"></i> Verify Phone Number</h3>
-            <button onclick="closePhoneOtpModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            <button onclick="closePhoneOtpModal()" class="text-gray-400 hover:text-gray-600 text-2xl" aria-label="Close phone verification">&times;</button>
         </div>
         <div class="crop-modal-body" style="padding:24px;">
             <p class="text-sm text-gray-500 mb-4">We've sent a 6-digit OTP to your new mobile number. Enter it below to verify.</p>
@@ -831,7 +855,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="crop-modal-content" style="max-width:420px;">
         <div class="crop-modal-header">
             <h3><i class="fas fa-envelope-check"></i> Confirm Email Address</h3>
-            <button onclick="closeEmailConfirmModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            <button onclick="closeEmailConfirmModal()" class="text-gray-400 hover:text-gray-600 text-2xl" aria-label="Close email confirmation">&times;</button>
         </div>
         <div class="crop-modal-body" style="padding:24px;">
             <p class="text-sm text-gray-500 mb-4">We've sent a confirmation code to your new email address. Enter it below to confirm.</p>
@@ -1446,6 +1470,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     // ===== TOAST NOTIFICATION =====
     function showToast(message, type) {
         var toast = document.createElement('div');
+        toast.setAttribute('role', 'alert');
         var colors = {
             success: 'bg-green-50 border-green-500 text-green-700',
             error: 'bg-red-50 border-red-500 text-red-700',
@@ -1479,5 +1504,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 })();
 </script>
 
+<script>
+// ============================================
+// LANGUAGE DROPDOWNS
+// ============================================
+<?php echo lang_toggle_js(); ?>
+</script>
+
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
 </body>
 </html>

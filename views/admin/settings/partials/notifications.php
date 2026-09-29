@@ -34,27 +34,27 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 // Available placeholders for templates
 $placeholders = [
     'General' => [
-        '{system_name}' => 'System name (e.g., Sierra)',
-        '{login_url}' => 'Login page URL'
+        '{system_name}' => t('System name (e.g., Sierra)'),
+        '{login_url}' => t('Login page URL')
     ],
     'User' => [
-        '{first_name}' => 'User\'s first name',
-        '{last_name}' => 'User\'s last name',
-        '{full_name}' => 'User\'s full name',
-        '{email}' => 'User\'s email address',
-        '{contact_number}' => 'User\'s contact number',
-        '{role}' => 'User\'s role (Barangay Official / MENRO Staff)'
+        '{first_name}' => t("User's first name"),
+        '{last_name}' => t("User's last name"),
+        '{full_name}' => t("User's full name"),
+        '{email}' => t("User's email address"),
+        '{contact_number}' => t("User's contact number"),
+        '{role}' => t("User's role (Barangay Official / MENRO Staff)")
     ],
     'Account' => [
-        '{temp_password}' => 'Temporary password (for new staff accounts)'
+        '{temp_password}' => t('Temporary password (for new staff accounts)')
     ],
     'Report' => [
-        '{report_id}' => 'Report ID number',
-        '{report_title}' => 'Report title',
-        '{report_status}' => 'Current status of the report',
-        '{barangay_name}' => 'Barangay name',
-        '{category_name}' => 'Category name',
-        '{severity_score}' => 'Severity score'
+        '{report_id}' => t('Report ID number'),
+        '{report_title}' => t('Report title'),
+        '{report_status}' => t('Current status of the report'),
+        '{barangay_name}' => t('Barangay name'),
+        '{category_name}' => t('Category name'),
+        '{severity_score}' => t('Severity score')
     ]
 ];
 ?>
@@ -289,12 +289,12 @@ $placeholders = [
         <div class="flex items-start gap-3">
             <i class="fas fa-info-circle text-blue-500 mt-0.5 text-lg"></i>
             <div>
-                <h4 class="font-bold text-blue-800 text-sm">Available Placeholders</h4>
-                <p class="text-xs text-blue-600 mb-2">Use these placeholders in your templates. They will be replaced with actual data when notifications are sent.</p>
+                <h4 class="font-bold text-blue-800 text-sm"><?php echo t('Available Placeholders'); ?></h4>
+                <p class="text-xs text-blue-600 mb-2"><?php echo t('Use these placeholders in your templates. They will be replaced with actual data when notifications are sent.'); ?></p>
                 
                 <?php foreach($placeholders as $group => $items): ?>
                 <div class="placeholder-group">
-                    <span class="group-label"><?php echo $group; ?></span>
+                    <span class="group-label"><?php echo t($group); ?></span>
                     <div class="placeholders">
                         <?php foreach($items as $placeholder => $description): ?>
                         <span class="placeholder-badge" title="<?php echo htmlspecialchars($description); ?>" onclick="insertPlaceholder(this, '<?php echo $placeholder; ?>')">
@@ -307,7 +307,7 @@ $placeholders = [
                 
                 <p class="text-xs text-blue-600 mt-2">
                     <i class="fas fa-mouse-pointer mr-1"></i>
-                    Click any placeholder to insert it into the active textarea.
+                    <?php echo t('Click any placeholder to insert it into the active textarea.'); ?>
                 </p>
             </div>
         </div>
@@ -319,9 +319,9 @@ $placeholders = [
     <div class="mb-6">
         <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
             <i class="fas fa-envelope text-[#10A37F]"></i>
-            Notification Templates
+            <?php echo t('Notification Templates'); ?>
         </h3>
-        <p class="text-sm text-gray-500 mb-4">Customize the messages sent to users via email and SMS.</p>
+        <p class="text-sm text-gray-500 mb-4"><?php echo t('Customize the messages sent to users via email and SMS.'); ?></p>
         
         <!-- Staff Account Created Template -->
         <div class="template-card" id="template-staff-account">
@@ -329,19 +329,19 @@ $placeholders = [
                 <div>
                     <div class="template-label">
                         <i class="fas fa-user-plus text-[#10A37F] mr-2"></i>
-                        Staff Account Created
+                        <?php echo t('Staff Account Created'); ?>
                     </div>
                     <div class="template-desc">
-                        Sent when a new Barangay Official or MENRO Staff account is created. 
-                        <span class="text-red-500 font-medium">Includes temporary password!</span>
+                        <?php echo t('Sent when a new Barangay Official or MENRO Staff account is created.'); ?>
+                        <span class="text-red-500 font-medium"><?php echo t('Includes temporary password!'); ?></span>
                     </div>
                 </div>
-                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Required</span>
+                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium"><?php echo t('Required'); ?></span>
             </div>
             <textarea name="template_staff_account_created" id="template_staff_account_created" rows="4" 
                       oninput="updateCharCount(this)"><?php echo htmlspecialchars($templates['template_staff_account_created'] ?: 'Hello {first_name}, an official {role} account has been created for you. Username: {email}. Temporary Password: {temp_password}. Login: {login_url}'); ?></textarea>
             <div class="char-count">
-                <span id="staff_count">0</span> characters
+                <span id="staff_count">0</span> <?php echo t('characters'); ?>
             </div>
         </div>
         
@@ -351,16 +351,16 @@ $placeholders = [
                 <div>
                     <div class="template-label">
                         <i class="fas fa-user-check text-[#10A37F] mr-2"></i>
-                        Account Created (Citizen)
+                        <?php echo t('Account Created (Citizen)'); ?>
                     </div>
-                    <div class="template-desc">Sent to a citizen when they successfully register and verify their account.</div>
+                    <div class="template-desc"><?php echo t('Sent to a citizen when they successfully register and verify their account.'); ?></div>
                 </div>
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Optional</span>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium"><?php echo t('Optional'); ?></span>
             </div>
             <textarea name="template_account_created" id="template_account_created" rows="3" 
                       oninput="updateCharCount(this)"><?php echo htmlspecialchars($templates['template_account_created']); ?></textarea>
             <div class="char-count">
-                <span id="account_created_count">0</span> characters
+                <span id="account_created_count">0</span> <?php echo t('characters'); ?>
             </div>
         </div>
 
@@ -370,16 +370,16 @@ $placeholders = [
                 <div>
                     <div class="template-label">
                         <i class="fas fa-paper-plane text-[#10A37F] mr-2"></i>
-                        Report Submitted
+                        <?php echo t('Report Submitted'); ?>
                     </div>
-                    <div class="template-desc">Sent to the citizen when they successfully submit a report.</div>
+                    <div class="template-desc"><?php echo t('Sent to the citizen when they successfully submit a report.'); ?></div>
                 </div>
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Optional</span>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium"><?php echo t('Optional'); ?></span>
             </div>
             <textarea name="template_submitted" id="template_submitted" rows="3" 
                       oninput="updateCharCount(this)"><?php echo htmlspecialchars($templates['template_submitted']); ?></textarea>
             <div class="char-count">
-                <span id="submitted_count">0</span> characters
+                <span id="submitted_count">0</span> <?php echo t('characters'); ?>
             </div>
         </div>
         
@@ -389,16 +389,16 @@ $placeholders = [
                 <div>
                     <div class="template-label">
                         <i class="fas fa-sync-alt text-[#10A37F] mr-2"></i>
-                        Status Update
+                        <?php echo t('Status Update'); ?>
                     </div>
-                    <div class="template-desc">Sent when a report status changes (e.g., In Progress, Escalated).</div>
+                    <div class="template-desc"><?php echo t('Sent when a report status changes (e.g., In Progress, Escalated).'); ?></div>
                 </div>
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Optional</span>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium"><?php echo t('Optional'); ?></span>
             </div>
             <textarea name="template_status_update" id="template_status_update" rows="3" 
                       oninput="updateCharCount(this)"><?php echo htmlspecialchars($templates['template_status_update']); ?></textarea>
             <div class="char-count">
-                <span id="status_count">0</span> characters
+                <span id="status_count">0</span> <?php echo t('characters'); ?>
             </div>
         </div>
         
@@ -408,16 +408,16 @@ $placeholders = [
                 <div>
                     <div class="template-label">
                         <i class="fas fa-check-circle text-[#10A37F] mr-2"></i>
-                        Report Resolved
+                        <?php echo t('Report Resolved'); ?>
                     </div>
-                    <div class="template-desc">Sent when a report is marked as resolved.</div>
+                    <div class="template-desc"><?php echo t('Sent when a report is marked as resolved.'); ?></div>
                 </div>
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Optional</span>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium"><?php echo t('Optional'); ?></span>
             </div>
             <textarea name="template_resolved" id="template_resolved" rows="3" 
                       oninput="updateCharCount(this)"><?php echo htmlspecialchars($templates['template_resolved']); ?></textarea>
             <div class="char-count">
-                <span id="resolved_count">0</span> characters
+                <span id="resolved_count">0</span> <?php echo t('characters'); ?>
             </div>
         </div>
         
@@ -427,16 +427,16 @@ $placeholders = [
                 <div>
                     <div class="template-label">
                         <i class="fas fa-share-alt text-[#10A37F] mr-2"></i>
-                        Report Escalated
+                        <?php echo t('Report Escalated'); ?>
                     </div>
-                    <div class="template-desc">Sent when a report is escalated to MENRO.</div>
+                    <div class="template-desc"><?php echo t('Sent when a report is escalated to MENRO.'); ?></div>
                 </div>
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Optional</span>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium"><?php echo t('Optional'); ?></span>
             </div>
             <textarea name="template_escalated" id="template_escalated" rows="3" 
                       oninput="updateCharCount(this)"><?php echo htmlspecialchars($templates['template_escalated']); ?></textarea>
             <div class="char-count">
-                <span id="escalated_count">0</span> characters
+                <span id="escalated_count">0</span> <?php echo t('characters'); ?>
             </div>
         </div>
     </div>
@@ -448,12 +448,11 @@ $placeholders = [
         <input type="hidden" name="email_gateway" value="brevo">
         <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
             <i class="fas fa-envelope-open-text text-[#10A37F]"></i>
-            Brevo Email (Report Receipts)
+            <?php echo t('Brevo Email (Report Receipts)'); ?>
         </h3>
         <p class="text-sm text-gray-500 mb-4">
-            InfinityFree does not support PHP <code>mail()</code>, so official report receipt emails are sent through the
-            <a href="https://www.brevo.com" target="_blank" rel="noopener" class="text-[#10A37F] font-medium">Brevo</a> API (free tier: 300 emails/day, no custom domain required).
-            Email is used <strong>only</strong> for official report receipts — SMS remains the channel for OTP login/reset.
+            <?php echo t('InfinityFree does not support PHP'); ?> <code>mail()</code>, <?php echo t('so official report receipt emails are sent through the'); ?>
+            <a href="https://www.brevo.com" target="_blank" rel="noopener" class="text-[#10A37F] font-medium">Brevo</a> <?php echo t('API (free tier: 300 emails/day, no custom domain required). Email is used'); ?> <strong>only</strong> <?php echo t('for official report receipts — SMS remains the channel for OTP login/reset.'); ?>
         </p>
 
         <!-- Enable Email Receipts Toggle -->
@@ -462,12 +461,12 @@ $placeholders = [
                 <div>
                     <div class="gateway-title">
                         <i class="fas fa-toggle-on text-[#10A37F]"></i>
-                        Enable Email Receipts
+                        <?php echo t('Enable Email Receipts'); ?>
                         <span class="badge <?php echo $enable_email ? 'badge-active' : 'badge-inactive'; ?>">
-                            <?php echo $enable_email ? 'Active' : 'Disabled'; ?>
+                            <?php echo $enable_email ? t('Active') : t('Disabled'); ?>
                         </span>
                     </div>
-                    <p class="text-sm text-gray-500">When enabled, a receipt email is sent to citizens when they submit a report, and again whenever its status changes (verified, resolved, rejected, or escalated).</p>
+                    <p class="text-sm text-gray-500"><?php echo t('When enabled, a receipt email is sent to citizens when they submit a report, and again whenever its status changes (verified, resolved, rejected, or escalated).'); ?></p>
                 </div>
                 <div class="toggle-switch">
                     <input type="checkbox" name="enable_email_receipts" id="enable_email" value="1" <?php echo $enable_email ? 'checked' : ''; ?> onchange="toggleEmailFields()">
@@ -482,33 +481,33 @@ $placeholders = [
                 <i class="fas fa-paper-plane text-blue-500"></i>
                 Brevo
                 <span class="badge <?php echo $brevo_api ? 'badge-active' : 'badge-inactive'; ?>">
-                    <?php echo $brevo_api ? 'Configured' : 'Not Configured'; ?>
+                    <?php echo $brevo_api ? t('Configured') : t('Not Configured'); ?>
                 </span>
             </div>
-            <p class="text-sm text-gray-500 mb-3">Get your API key from <a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener" class="text-[#10A37F] font-medium">Brevo &rarr; SMTP &amp; API &rarr; API Keys</a> (free plan, no credit card, no custom domain needed).</p>
+            <p class="text-sm text-gray-500 mb-3"><?php echo t('Get your API key from'); ?> <a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener" class="text-[#10A37F] font-medium">Brevo &rarr; SMTP &amp; API &rarr; API Keys</a> <?php echo t('(free plan, no credit card, no custom domain needed).'); ?></p>
 
             <div class="form-group">
-                <label for="brevo_api_key">Brevo API Key <span class="text-red-500">*</span></label>
+                <label for="brevo_api_key"><?php echo t('Brevo API Key'); ?> <span class="text-red-500">*</span></label>
                 <input type="text" name="brevo_api_key" id="brevo_api_key" class="form-input"
                        value="<?php echo htmlspecialchars($brevo_api); ?>"
                        placeholder="xkeysib-...">
-                <div class="help-text">Your Brevo API key (starts with <code>xkeysib-</code>). Keep this secure.</div>
+                <div class="help-text"><?php echo t('Your Brevo API key (starts with'); ?> <code>xkeysib-</code><?php echo t('). Keep this secure.'); ?></div>
             </div>
 
             <div class="form-group">
-                <label for="brevo_sender_email">Sender Email <span class="text-red-500">*</span></label>
+                <label for="brevo_sender_email"><?php echo t('Sender Email'); ?> <span class="text-red-500">*</span></label>
                 <input type="email" name="brevo_sender_email" id="brevo_sender_email" class="form-input"
                        value="<?php echo htmlspecialchars($brevo_sender_email); ?>"
                        placeholder="noreply@yourdomain.com">
-                <div class="help-text">Must be a verified sender in Brevo (Senders, Domains &amp; Dedicated IPs &rarr; Senders). A plain email address works — no domain verification required on Brevo's free tier.</div>
+                <div class="help-text"><?php echo t("Must be a verified sender in Brevo (Senders, Domains &amp; Dedicated IPs &rarr; Senders). A plain email address works — no domain verification required on Brevo's free tier."); ?></div>
             </div>
 
             <div class="form-group">
-                <label for="brevo_sender_name">Sender Name</label>
+                <label for="brevo_sender_name"><?php echo t('Sender Name'); ?></label>
                 <input type="text" name="brevo_sender_name" id="brevo_sender_name" class="form-input"
                        value="<?php echo htmlspecialchars($brevo_sender_name); ?>"
                        placeholder="Sierra LGU">
-                <div class="help-text">Shown as the sender display name on receipts (e.g., "Sierra LGU").</div>
+                <div class="help-text"><?php echo t('Shown as the sender display name on receipts (e.g., "Sierra LGU").'); ?></div>
             </div>
         </div>
 
@@ -516,36 +515,36 @@ $placeholders = [
         <div class="sms-gateway-card">
             <div class="gateway-title">
                 <i class="fas fa-info-circle text-blue-500"></i>
-                Brevo Gateway Status
+                <?php echo t('Brevo Gateway Status'); ?>
             </div>
             <?php if ($brevo_api && $brevo_sender_email && $enable_email): ?>
                 <div class="p-3 rounded-lg border border-green-200 bg-green-50">
                     <p class="font-semibold text-sm text-green-700">
                         <i class="fas fa-check-circle mr-1"></i>
-                        Brevo is configured and ready to send report receipts.
+                        <?php echo t('Brevo is configured and ready to send report receipts.'); ?>
                     </p>
                     <p class="text-xs text-green-600 mt-1">
-                        API Key: <?php echo substr($brevo_api, 0, 10); ?>... (masked)
+                        <?php echo t('API Key:'); ?> <?php echo substr($brevo_api, 0, 10); ?>... (<?php echo t('masked'); ?>)
                     </p>
                     <p class="text-xs text-green-600">
-                        Sender: <?php echo htmlspecialchars($brevo_sender_name . ' <' . $brevo_sender_email . '>'); ?>
+                        <?php echo t('Sender:'); ?> <?php echo htmlspecialchars($brevo_sender_name . ' <' . $brevo_sender_email . '>'); ?>
                     </p>
                 </div>
             <?php else: ?>
                 <div class="p-3 rounded-lg border border-yellow-200 bg-yellow-50">
                     <p class="font-semibold text-sm text-yellow-700">
                         <i class="fas fa-exclamation-triangle mr-1"></i>
-                        Brevo is not configured or email receipts are disabled.
+                        <?php echo t('Brevo is not configured or email receipts are disabled.'); ?>
                     </p>
                     <ul class="text-xs text-yellow-600 mt-1 list-disc list-inside">
                         <?php if (!$enable_email): ?>
-                        <li>Email receipts are disabled. Enable the toggle above.</li>
+                        <li><?php echo t('Email receipts are disabled. Enable the toggle above.'); ?></li>
                         <?php endif; ?>
                         <?php if (empty($brevo_api)): ?>
-                        <li>API Key is missing. Enter your Brevo API key.</li>
+                        <li><?php echo t('API Key is missing. Enter your Brevo API key.'); ?></li>
                         <?php endif; ?>
                         <?php if (empty($brevo_sender_email)): ?>
-                        <li>Sender email is missing. Enter and verify a sender email in Brevo.</li>
+                        <li><?php echo t('Sender email is missing. Enter and verify a sender email in Brevo.'); ?></li>
                         <?php endif; ?>
                     </ul>
                 </div>
@@ -559,19 +558,19 @@ $placeholders = [
     <div class="mb-6 border-t border-gray-200 pt-6">
         <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
             <i class="fas fa-vial text-[#10A37F]"></i>
-            Test Email
+            <?php echo t('Test Email'); ?>
         </h3>
-        <p class="text-sm text-gray-500 mb-4">Send a test email to verify your Brevo configuration.</p>
+        <p class="text-sm text-gray-500 mb-4"><?php echo t('Send a test email to verify your Brevo configuration.'); ?></p>
 
         <div class="sms-gateway-card">
             <div class="flex flex-wrap items-end gap-4">
                 <div class="flex-1 min-w-[200px]">
-                    <label for="test_email_to" class="font-semibold text-sm text-gray-700 block mb-1">Test Email Address</label>
+                    <label for="test_email_to" class="font-semibold text-sm text-gray-700 block mb-1"><?php echo t('Test Email Address'); ?></label>
                     <input type="email" name="test_email_to" id="test_email_to" class="form-input"
                            placeholder="you@example.com">
                 </div>
                 <button type="button" onclick="sendTestEmail()" class="btn-primary px-6 py-2.5 text-white font-semibold rounded-xl" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
-                    <i class="fas fa-paper-plane mr-2"></i>Send Test Email
+                    <i class="fas fa-paper-plane mr-2"></i><?php echo t('Send Test Email'); ?>
                 </button>
             </div>
             <div id="testEmailResult" class="mt-3" style="display: none;"></div>
@@ -580,14 +579,14 @@ $placeholders = [
             <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p class="text-sm text-blue-700">
                     <i class="fas fa-check-circle mr-1"></i>
-                    Brevo is configured. Click "Send Test Email" to verify.
+                    <?php echo t('Brevo is configured. Click "Send Test Email" to verify.'); ?>
                 </p>
             </div>
             <?php else: ?>
             <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p class="text-sm text-yellow-700">
                     <i class="fas fa-exclamation-triangle mr-1"></i>
-                    Please configure Brevo (API key and sender email) above before testing.
+                    <?php echo t('Please configure Brevo (API key and sender email) above before testing.'); ?>
                 </p>
             </div>
             <?php endif; ?>
@@ -600,9 +599,9 @@ $placeholders = [
     <div class="mb-6 border-t border-gray-200 pt-6">
         <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
             <i class="fas fa-sms text-[#10A37F]"></i>
-            SMS Gateway Settings (iProg)
+            <?php echo t('SMS Gateway Settings (iProg)'); ?>
         </h3>
-        <p class="text-sm text-gray-500 mb-4">Configure your iProg SMS gateway to send SMS notifications.</p>
+        <p class="text-sm text-gray-500 mb-4"><?php echo t('Configure your iProg SMS gateway to send SMS notifications.'); ?></p>
         
         <!-- Enable SMS Toggle -->
         <div class="sms-gateway-card">
@@ -610,12 +609,12 @@ $placeholders = [
                 <div>
                     <div class="gateway-title">
                         <i class="fas fa-toggle-on text-[#10A37F]"></i>
-                        Enable SMS Notifications
+                        <?php echo t('Enable SMS Notifications'); ?>
                         <span class="badge <?php echo $enable_sms ? 'badge-active' : 'badge-inactive'; ?>">
-                            <?php echo $enable_sms ? 'Active' : 'Disabled'; ?>
+                            <?php echo $enable_sms ? t('Active') : t('Disabled'); ?>
                         </span>
                     </div>
-                    <p class="text-sm text-gray-500">When enabled, SMS notifications will be sent using iProg.</p>
+                    <p class="text-sm text-gray-500"><?php echo t('When enabled, SMS notifications will be sent using iProg.'); ?></p>
                 </div>
                 <div class="toggle-switch">
                     <input type="checkbox" name="enable_sms_notifications" id="enable_sms" value="1" <?php echo $enable_sms ? 'checked' : ''; ?> onchange="toggleSMSFields()">
@@ -627,11 +626,11 @@ $placeholders = [
         <!-- SMS Sender Name -->
         <div class="sms-gateway-card">
             <div class="form-group">
-                <label for="sms_sender_name">SMS Sender Name</label>
+                <label for="sms_sender_name"><?php echo t('SMS Sender Name'); ?></label>
                 <input type="text" name="sms_sender_name" id="sms_sender_name" class="form-input" 
                        value="<?php echo htmlspecialchars($sms_sender); ?>" maxlength="11" 
                        placeholder="SierraLGU">
-                <div class="help-text">Appears as the sender name on SMS (max 11 characters).</div>
+                <div class="help-text"><?php echo t('Appears as the sender name on SMS (max 11 characters).'); ?></div>
             </div>
         </div>
         
@@ -641,30 +640,30 @@ $placeholders = [
                 <i class="fas fa-mobile-alt text-blue-500"></i>
                 iProg SMS
                 <span class="badge <?php echo $iprog_api ? 'badge-active' : 'badge-inactive'; ?>">
-                    <?php echo $iprog_api ? 'Configured' : 'Not Configured'; ?>
+                    <?php echo $iprog_api ? t('Configured') : t('Not Configured'); ?>
                 </span>
             </div>
-            <p class="text-sm text-gray-500 mb-3">Philippine SMS gateway. Get your credentials from your iProg account dashboard.</p>
+            <p class="text-sm text-gray-500 mb-3"><?php echo t('Philippine SMS gateway. Get your credentials from your iProg account dashboard.'); ?></p>
             
             <div class="form-group">
-                <label for="iprog_api_key">API Token <span class="text-red-500">*</span></label>
+                <label for="iprog_api_key"><?php echo t('API Token'); ?> <span class="text-red-500">*</span></label>
                 <!-- 🔥 FIXED: Changed from type="password" to type="text" so value is always submitted -->
                 <input type="text" name="iprog_api_key" id="iprog_api_key" class="form-input" 
                        value="<?php echo htmlspecialchars($iprog_api); ?>" 
                        placeholder="Enter your iProg API Token">
-                <div class="help-text">Your iProg API token from your account dashboard. Keep this secure.</div>
+                <div class="help-text"><?php echo t('Your iProg API token from your account dashboard. Keep this secure.'); ?></div>
             </div>
             
             <div class="form-group">
-                <label for="iprog_sender_id">Sender ID (Optional)</label>
+                <label for="iprog_sender_id"><?php echo t('Sender ID (Optional)'); ?></label>
                 <input type="text" name="iprog_sender_id" id="iprog_sender_id" class="form-input" 
                        value="<?php echo htmlspecialchars($iprog_sender); ?>" 
                        placeholder="SierraLGU">
-                <div class="help-text">Overrides the global sender name for iProg messages (max 11 chars). Leave blank to use the global sender name.</div>
+                <div class="help-text"><?php echo t('Overrides the global sender name for iProg messages (max 11 chars). Leave blank to use the global sender name.'); ?></div>
             </div>
             
             <div class="form-group">
-                <label for="iprog_base_url">API Endpoint</label>
+                <label for="iprog_base_url"><?php echo t('API Endpoint'); ?></label>
                 <input type="text" name="iprog_base_url" id="iprog_base_url" class="form-input" 
                        value="<?php echo htmlspecialchars($iprog_base_url); ?>" 
                        placeholder="https://sms.iprogtech.com/api/v1/sms_messages">
@@ -759,12 +758,12 @@ $placeholders = [
     <!-- ============================================================ -->
     <!-- FORM ACTIONS -->
     <!-- ============================================================ -->
-    <div class="flex flex-wrap gap-3 justify-end pt-4 border-t border-gray-200">
-        <button type="reset" onclick="resetForm()" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium text-sm">
-            <i class="fas fa-undo mr-2"></i>Reset
+    <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
+        <button type="reset" onclick="resetForm()" class="btn-secondary flex items-center gap-2">
+            <i class="fas fa-undo"></i> Reset
         </button>
-        <button type="submit" class="btn-primary px-6 py-2.5 text-white font-semibold rounded-xl flex items-center gap-2" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
-            <i class="fas fa-save"></i> Save Settings
+        <button type="submit" class="btn-primary flex items-center gap-2">
+            <i class="fas fa-save"></i> Save Changes
         </button>
     </div>
 </form>

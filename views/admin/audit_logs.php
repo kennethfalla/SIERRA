@@ -1,6 +1,7 @@
 <?php
 // views/admin/audit_logs.php - SIERRA AUDIT LOGS PAGE (READ-ONLY)
 require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/Lang.php';
 requireLogin();
 
 // Audit Logs are read-only and reserved for the System Administrator.
@@ -182,10 +183,10 @@ $top_actions = $db->query("
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-    <title>Audit Logs - Sierra</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title><?php echo t('Audit Logs - Sierra'); ?></title>
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -332,7 +333,7 @@ $top_actions = $db->query("
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
         
         <!-- Header (on-brand) -->
@@ -341,16 +342,16 @@ $top_actions = $db->query("
                 <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
                     <i class="fas fa-history text-[#10A37F] text-xs md:text-sm"></i>
                 </div>
-                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Administration</span>
+                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('Administration'); ?></span>
             </div>
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h1 class="page-title font-bold text-gray-800">Audit Logs</h1>
-                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Track all system activities and user actions</p>
+                    <h1 class="page-title font-bold text-gray-800"><?php echo t('Audit Logs'); ?></h1>
+                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1"><?php echo t('Track all system activities and user actions'); ?></p>
                 </div>
                 <a href="?page=audit-logs-report<?php echo $date_from ? '&from=' . urlencode($date_from) : ''; ?><?php echo $date_to ? '&to=' . urlencode($date_to) : ''; ?><?php echo $action_filter !== 'all' ? '&action=' . urlencode($action_filter) : ''; ?><?php echo !empty($user_filter) ? '&user=' . urlencode($user_filter) : ''; ?><?php echo $status_filter !== 'all' ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="btn-export-trigger">
                     <i class="fas fa-file-export"></i>
-                    <span>Export</span>
+                    <span><?php echo t('Export'); ?></span>
                 </a>
             </div>
         </div>
@@ -375,7 +376,7 @@ $top_actions = $db->query("
             <div class="stat-card bg-white p-5">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1 font-semibold">Total Activities</p>
+                        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1 font-semibold"><?php echo t('Total Activities'); ?></p>
                         <p class="text-2xl font-extrabold text-gray-800 tracking-tight"><?php echo number_format($total_activities); ?></p>
                     </div>
                     <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
@@ -386,7 +387,7 @@ $top_actions = $db->query("
             <div class="stat-card bg-white p-5">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1 font-semibold">Today's Activities</p>
+                        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1 font-semibold"><?php echo t("Today's Activities"); ?></p>
                         <p class="text-2xl font-extrabold text-blue-600 tracking-tight"><?php echo number_format($today_activities); ?></p>
                     </div>
                     <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -397,7 +398,7 @@ $top_actions = $db->query("
             <div class="stat-card bg-white p-5">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1 font-semibold">Unique Users</p>
+                        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1 font-semibold"><?php echo t('Unique Users'); ?></p>
                         <p class="text-2xl font-extrabold text-emerald-600 tracking-tight"><?php echo number_format($unique_users); ?></p>
                     </div>
                     <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
@@ -408,7 +409,7 @@ $top_actions = $db->query("
             <div class="stat-card bg-white p-5">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1 font-semibold">Logs Shown</p>
+                        <p class="text-xs text-gray-400 uppercase tracking-wider mb-1 font-semibold"><?php echo t('Logs Shown'); ?></p>
                         <p class="text-2xl font-extrabold text-amber-600 tracking-tight"><?php echo count($logs); ?></p>
                     </div>
                     <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
@@ -422,7 +423,7 @@ $top_actions = $db->query("
         <?php if(!empty($top_actions)): ?>
         <div class="bg-white rounded-xl p-4 mb-6 border border-emerald-50 animate-slide-up">
             <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                <i class="fas fa-chart-pie text-[#10A37F]"></i> Most Common Actions
+                <i class="fas fa-chart-pie text-[#10A37F]"></i> <?php echo t('Most Common Actions'); ?>
             </h3>
             <div class="flex flex-wrap gap-3">
                 <?php foreach($top_actions as $action): ?>
@@ -515,15 +516,15 @@ $top_actions = $db->query("
                 <table class="w-full">
                     <thead>
                         <tr class="border-b" style="background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%);">
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Timestamp</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Role</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Action</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Module</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Details</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">IP Address</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Device</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Timestamp'); ?></th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('User'); ?></th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Role'); ?></th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Action'); ?></th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Module'); ?></th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Status'); ?></th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Details'); ?></th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('IP Address'); ?></th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Device'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -598,7 +599,7 @@ $top_actions = $db->query("
                                     <p class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($log_user_name); ?></p>
                                     <?php if($log_user_email): ?><p class="text-xs text-gray-400"><?php echo htmlspecialchars($log_user_email); ?></p><?php endif; ?>
                                     <?php else: ?>
-                                    <span class="text-gray-400 text-sm">System</span>
+                                    <span class="text-gray-400 text-sm"><?php echo t('System'); ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-4 py-3">
@@ -652,8 +653,8 @@ $top_actions = $db->query("
                                         <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                                             <i class="fas fa-history text-xl sm:text-2xl text-gray-400"></i>
                                         </div>
-                                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg">No audit logs found</h3>
-                                        <p class="text-gray-400 text-xs sm:text-sm">Try adjusting your filters</p>
+                                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg"><?php echo t('No audit logs found'); ?></h3>
+                                        <p class="text-gray-400 text-xs sm:text-sm"><?php echo t('Try adjusting your filters'); ?></p>
                                     </div>
                                 </td>
                             </tr>
@@ -667,7 +668,7 @@ $top_actions = $db->query("
         <?php if($total_pages > 1): ?>
         <div class="flex justify-center gap-2 animate-slide-up">
             <?php if($page > 1): ?>
-            <a href="?page=audit-logs&page_num=<?php echo $page-1; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&status=<?php echo $status_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn"><i class="fas fa-chevron-left mr-1"></i>Prev</a>
+            <a href="?page=audit-logs&page_num=<?php echo $page-1; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&status=<?php echo $status_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn"><i class="fas fa-chevron-left mr-1"></i><?php echo t('Prev'); ?></a>
             <?php endif; ?>
             
             <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
@@ -675,7 +676,7 @@ $top_actions = $db->query("
             <?php endfor; ?>
             
             <?php if($page < $total_pages): ?>
-            <a href="?page=audit-logs&page_num=<?php echo $page+1; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&status=<?php echo $status_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn">Next<i class="fas fa-chevron-right ml-1"></i></a>
+            <a href="?page=audit-logs&page_num=<?php echo $page+1; ?>&action=<?php echo $action_filter; ?>&user=<?php echo $user_filter; ?>&status=<?php echo $status_filter; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&search=<?php echo urlencode($search); ?>" class="pagination-btn"><?php echo t('Next'); ?><i class="fas fa-chevron-right ml-1"></i></a>
             <?php endif; ?>
         </div>
         <?php endif; ?>
@@ -707,5 +708,6 @@ function applyFilters() {
 }
 </script>
 
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
 </body>
 </html>

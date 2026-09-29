@@ -306,8 +306,8 @@ if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barangay Dashboard Report - Sierra</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -718,5 +718,6 @@ if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
     <script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 700); });</script>
     <?php endif; ?>
     <?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
 </body>
 </html>

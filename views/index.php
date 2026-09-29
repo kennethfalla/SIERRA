@@ -4,6 +4,7 @@
 
 require_once dirname(__DIR__) . '/config/config.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
+require_once BASE_PATH . 'helpers/Lang.php';
 
 // Get statistics for homepage
 $database = new Database();
@@ -12,14 +13,6 @@ $db = $database->getConnection();
 // Get total reports count
 $stmt = $db->query("SELECT COUNT(*) as total FROM reports");
 $total_reports = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-// Get resolved reports count
-$stmt = $db->query("SELECT COUNT(*) as total FROM reports WHERE status = 'resolved'");
-$resolved_reports = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
-// Get total users count
-$stmt = $db->query("SELECT COUNT(*) as total FROM users");
-$total_users = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
 // San Isidro Statistics (editable in Settings > Landing Page)
 $lp = function($key, $default = '') {
@@ -124,11 +117,8 @@ if ($isLoggedIn && $is_staff) {
 } elseif ($isLoggedIn) {
     $hero_subtitle = $lp('lp_hero_subtitle_user', "Your voice matters. Report environmental issues like illegal dumping, flooding, or pollution —\nand we'll help track them until they're resolved.");
 } else {
-    $hero_subtitle = $lp('lp_hero_subtitle_guest', "See something wrong in your neighborhood? Illegal dumping, clogged canals, or air pollution?\nReport it here, and your barangay will take action. It's free, fast, and easy.");
+    $hero_subtitle = $lp('lp_hero_subtitle_guest', "See something wrong in your neighborhood? Drainage blockage, illegal dumping, or uncollected garbage?\nReport it here, and your barangay will take action. It's free, fast, and easy.");
 }
-
-// Resolution rate for the hero stat panel
-$resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_reports) * 100) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -139,13 +129,20 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title><?php echo htmlspecialchars($system_name); ?> - San Isidro Environmental Reporting System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
+    <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
+    <!-- Network hints for slow connections (map tiles / reverse geocoding) -->
+    <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+    <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
+    <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
+    <link rel="dns-prefetch" href="https://photon.komoot.io">
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/vendor/gsap/gsap.min.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -294,6 +291,113 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
         .hero-scroll-cue {
             text-shadow: 0 1px 6px rgba(0,0,0,0.25);
         }
+
+        /* Hero bottom corners: square on load, rounded once the page is scrolled */
+        #home {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            transition: border-radius 0.5s ease;
+            will-change: border-radius;
+        }
+        body.is-scrolled-landing #home {
+            border-bottom-left-radius: 2rem;
+            border-bottom-right-radius: 2rem;
+        }
+        @media (min-width: 640px) {
+            body.is-scrolled-landing #home {
+                border-bottom-left-radius: 2.5rem;
+                border-bottom-right-radius: 2.5rem;
+            }
+        }
+
+        /* FAQ accordion */
+        .faq-item {
+            background: #ffffff;
+            border: 1px solid #e7efe9;
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .faq-item[open] {
+            border-color: #a7f3d0;
+            box-shadow: 0 10px 28px -14px rgba(5, 150, 105, 0.22);
+        }
+        .faq-q {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.1rem 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .faq-q::-webkit-details-marker { display: none; }
+        .faq-q i {
+            color: #059669;
+            transition: transform 0.25s ease;
+            flex-shrink: 0;
+        }
+        .faq-item[open] .faq-q i { transform: rotate(180deg); }
+        .faq-a {
+            padding: 0 1.25rem 1.25rem;
+            color: #6b7280;
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+        .faq-a strong { color: #047857; }
+
+        /* ============================================ */
+        /* LANDING NAVBAR (the compiled Tailwind build  */
+        /* lacks responsive/hover/opacity utilities)    */
+        /* ============================================ */
+        .nav-landing {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .nav-landing.shadow-md { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
+
+        .nav-link {
+            color: #4b5563;
+            font-weight: 500;
+            white-space: nowrap;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .nav-link:hover { color: #059669; }
+
+        .nav-links { display: none; align-items: center; gap: 1.25rem; }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .nav-links { gap: 1rem; }
+        }
+        @media (min-width: 1024px) { .nav-links { display: flex; } }
+        @media (min-width: 1280px) { .nav-links { gap: 1.5rem; } }
+
+        .nav-actions { display: flex; align-items: center; gap: 0.6rem; }
+        @media (min-width: 640px) { .nav-actions { gap: 0.75rem; } }
+
+        .nav-auth { display: none; align-items: center; gap: 0.75rem; }
+        @media (min-width: 768px) { .nav-auth { display: flex; } }
+
+        .nav-hamburger { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+        .nav-hamburger:hover { background: #f9fafb; color: #059669; }
+        @media (min-width: 1024px) { .nav-hamburger { display: none !important; } }
+
+        .nav-mobile-menu { max-height: calc(100vh - 4rem); overflow-y: auto; }
+        @media (min-width: 1024px) { .nav-mobile-menu { display: none !important; } }
+
+        .nav-mobile-link {
+            padding: 0.55rem 0.75rem;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .nav-mobile-link:hover { background: #ecfdf5; color: #047857; }
+
+        .nav-menu-cta { display: flex; flex-direction: column; gap: 0.5rem; }
+        @media (min-width: 640px) { .nav-menu-cta { flex-direction: row; } }
+
+        <?php echo lang_toggle_css(); ?>
 
         .glass-card {
             background: rgba(255,255,255,0.92);
@@ -560,6 +664,8 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
 </head>
 <body class="bg-[#F5FBF6] splash-lock">
 
+<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-emerald-600 focus:text-white focus:rounded-lg">Skip to main content</a>
+
 <!-- ============================================ -->
 <!-- INTRO SPLASH — logo drops from top, zooms,   -->
 <!-- then the landing page fades in               -->
@@ -587,7 +693,7 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
 <!-- ============================================ -->
 <!-- NAVIGATION -->
 <!-- ============================================ -->
-<nav class="fixed w-full z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+<nav class="fixed w-full z-50 nav-landing">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
             <div class="flex items-center gap-2">
@@ -602,23 +708,56 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
                 <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full hidden sm:inline-block">San Isidro</span>
             </div>
             
-            <div class="hidden md:flex items-center gap-6">
-                <a href="#home" class="text-gray-600 hover:text-emerald-600 transition font-medium">Home</a>
-                <a href="#features" class="text-gray-600 hover:text-emerald-600 transition font-medium">How It Works</a>
-                <a href="#map-section" class="text-gray-600 hover:text-emerald-600 transition font-medium">Map</a>
-                <a href="#stats" class="text-gray-600 hover:text-emerald-600 transition font-medium">Stats</a>
-                <a href="#about" class="text-gray-600 hover:text-emerald-600 transition font-medium">About LGU</a>
+            <div class="nav-links">
+                <a href="#home" class="nav-link"><?php echo t('Home'); ?></a>
+                <a href="#features" class="nav-link"><?php echo t('How It Works'); ?></a>
+                <a href="#map-section" class="nav-link"><?php echo t('Map'); ?></a>
+                <a href="#stats" class="nav-link"><?php echo t('Stats'); ?></a>
+                <a href="#about" class="nav-link"><?php echo t('About LGU'); ?></a>
+                <a href="#faq" class="nav-link"><?php echo t('FAQ'); ?></a>
             </div>
             
-            <div class="flex items-center gap-3">
+            <div class="nav-actions">
+                <?php echo lang_toggle_widget(); ?>
+                <div class="nav-auth">
                 <?php if($isLoggedIn): ?>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium">
-                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium whitespace-nowrap">
+                        <i class="fas fa-tachometer-alt mr-2"></i><?php echo t('Dashboard'); ?>
                     </a>
                 <?php else: ?>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=login" class="text-gray-600 hover:text-emerald-600 transition font-medium">Sign In</a>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium">
-                        <i class="fas fa-user-plus mr-2"></i>Join Now
+                    <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-link"><?php echo t('Sign In'); ?></a>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium whitespace-nowrap">
+                        <i class="fas fa-user-plus mr-2"></i><?php echo t('Join Now'); ?>
+                    </a>
+                <?php endif; ?>
+                </div>
+                <button type="button" id="navToggle" class="nav-hamburger w-11 h-11 rounded-xl border border-gray-200 text-gray-600 items-center justify-center transition" aria-label="Toggle navigation menu" aria-expanded="false">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile navigation menu (below lg) -->
+    <div id="mobileNavMenu" class="nav-mobile-menu hidden bg-white border-t border-gray-100 shadow-xl">
+        <div class="px-4 sm:px-6 py-3 space-y-1">
+            <a href="#home" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('Home'); ?></a>
+            <a href="#features" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('How It Works'); ?></a>
+            <a href="#map-section" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('Map'); ?></a>
+            <a href="#stats" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('Stats'); ?></a>
+            <a href="#about" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('About LGU'); ?></a>
+            <a href="#faq" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('FAQ'); ?></a>
+            <div class="border-t border-gray-100 mt-3 pt-3 nav-menu-cta">
+                <?php if($isLoggedIn): ?>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary px-4 py-2.5 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                        <i class="fas fa-tachometer-alt"></i><?php echo t('Dashboard'); ?>
+                    </a>
+                <?php else: ?>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-primary px-4 py-2.5 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                        <i class="fas fa-user-plus"></i><?php echo t('Create Free Account'); ?>
+                    </a>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-mobile-link block px-3 py-2.5 rounded-xl border border-emerald-600 text-emerald-700 text-sm font-medium text-center">
+                        <i class="fas fa-sign-in-alt"></i> <?php echo t('Sign In'); ?>
                     </a>
                 <?php endif; ?>
             </div>
@@ -626,20 +765,21 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
     </div>
 </nav>
 
+<main id="main-content" tabindex="-1" role="main">
 <!-- ============================================ -->
 <!-- SECTION 1: HOME (HERO) -->
 <!-- ============================================ -->
-<section id="home" class="relative min-h-screen overflow-hidden hero-bg rounded-b-[2rem] sm:rounded-b-[2.5rem] flex flex-col justify-end" style="<?php echo $hero_bg_style; ?>">
+<section id="home" class="relative min-h-screen overflow-hidden hero-bg flex flex-col justify-end" style="<?php echo $hero_bg_style; ?>">
     <?php if ($show_hero_video): ?>
-        <video class="hero-media-video" autoplay muted loop playsinline src="<?php echo htmlspecialchars($hero_bg_video); ?>"></video>
+        <video class="hero-media-video" id="heroVideo" autoplay muted loop playsinline src="<?php echo htmlspecialchars($hero_bg_video); ?>"></video>
     <?php endif; ?>
     <?php if ($show_hero_overlay): ?>
         <div class="absolute inset-0 hero-bg-overlay"></div>
     <?php endif; ?>
-    <div class="relative z-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-24 sm:pb-28 pt-24">
+    <div class="relative z-10 flex flex-col gap-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-24 sm:pb-28 pt-24">
 
-            <!-- Left: eyebrow + heading + subtitle + CTAs -->
-            <div class="max-w-2xl animate-fade-up">
+            <!-- Left: eyebrow + heading + subtitle + CTAs (left aligned) -->
+            <div class="max-w-3xl animate-fade-up">
                 <p class="hero-eyebrow inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold mb-6">
                     <span class="relative flex h-2 w-2 flex-shrink-0">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60"></span>
@@ -658,73 +798,33 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
                     <?php endif; ?>
                 </h1>
 
-                <p class="text-white/85 text-base sm:text-lg leading-relaxed mb-8 max-w-xl">
+                <p class="text-white/85 text-base sm:text-lg leading-relaxed mb-8">
                     <?php echo nl2br(htmlspecialchars($hero_subtitle)); ?>
                 </p>
 
                 <div class="flex flex-wrap gap-3 animate-fade-up delay-2">
                     <?php if($isLoggedIn && ($user_role === 'barangay_official' || $user_role === 'admin')): ?>
                         <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" class="btn-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
-                            <i class="fas fa-check-double"></i> Manage Reports
+                            <i class="fas fa-check-double"></i> <?php echo t('Manage Reports'); ?>
                         </a>
                         <a href="<?php echo BASE_URL; ?>index.php?page=announcements" class="btn-outline-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
-                            <i class="fas fa-bullhorn"></i> Post Announcement
+                            <i class="fas fa-bullhorn"></i> <?php echo t('Post Announcement'); ?>
                         </a>
                     <?php elseif($isLoggedIn): ?>
                         <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
-                            <i class="fas fa-plus-circle"></i> Report an Issue
+                            <i class="fas fa-plus-circle"></i> <?php echo t('Report an Issue'); ?>
                         </a>
                         <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="btn-outline-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
-                            <i class="fas fa-list"></i> My Reports
+                            <i class="fas fa-list"></i> <?php echo t('My Reports'); ?>
                         </a>
                     <?php else: ?>
                         <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
-                            <i class="fas fa-user-plus"></i> Create Free Account
+                            <i class="fas fa-user-plus"></i> <?php echo t('Create Free Account'); ?>
                         </a>
                         <a href="<?php echo BASE_URL; ?>index.php?page=login" class="btn-outline-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
-                            <i class="fas fa-sign-in-alt"></i> Sign In
+                            <i class="fas fa-sign-in-alt"></i> <?php echo t('Sign In'); ?>
                         </a>
                     <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Right: unified community stats panel -->
-            <div class="w-full lg:w-96 flex-shrink-0 animate-fade-up delay-3">
-                <div class="glass-card rounded-3xl p-7">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-seedling text-white text-base"></i>
-                        </div>
-                        <div>
-                            <div class="text-sm font-extrabold text-gray-800 leading-tight uppercase">San Isidro at a Glance</div>
-                            <p class="text-[11px] text-gray-500 mt-1 text-base"><?php echo htmlspecialchars($lp('lp_hero_stats_caption', 'Community impact in real time.')); ?></p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-3 divide-x divide-gray-200">
-                        <div class="pr-3">
-                            <div class="text-2xl font-extrabold text-emerald-700"><?php echo number_format($total_reports); ?></div>
-                            <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wide mt-1">Reports</div>
-                        </div>
-                        <div class="px-3">
-                            <div class="text-2xl font-extrabold text-emerald-700"><?php echo number_format($total_users); ?></div>
-                            <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wide mt-1">Citizens</div>
-                        </div>
-                        <div class="pl-3">
-                            <div class="text-2xl font-extrabold text-emerald-700"><?php echo $resolution_rate; ?>%</div>
-                            <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wide mt-1">Resolved</div>
-                        </div>
-                    </div>
-
-                    <div class="mt-6">
-                        <div class="flex justify-between text-[11px] font-semibold text-gray-600 mb-1.5">
-                            <span>Resolution rate</span>
-                            <span><?php echo $resolution_rate; ?>%</span>
-                        </div>
-                        <div class="h-2 rounded-full bg-gray-200 overflow-hidden">
-                            <div class="h-full rounded-full bg-gradient-to-r from-emerald-600 to-green-500" style="width: <?php echo $resolution_rate; ?>%;"></div>
-                        </div>
-                    </div>
                 </div>
             </div>
     </div>
@@ -874,29 +974,6 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
                 <div class="text-3xl font-bold text-emerald-700"><?php echo number_format($total_reports); ?></div>
                 <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_reports_label', 'Reports Submitted')); ?></p>
                 <p class="text-xs text-gray-400 mt-2"><?php echo htmlspecialchars($lp('lp_stat_reports_sub')); ?></p>
-            </div>
-        </div>
-        
-        <!-- Resolution Rate -->
-        <?php 
-        $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_reports) * 100) : 0;
-        ?>
-        <div class="mt-8 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
-            <div class="flex flex-wrap justify-between items-center gap-4">
-                <div>
-                    <p class="text-sm font-semibold text-gray-700">Resolution Rate</p>
-                    <p class="text-3xl font-bold text-emerald-600"><?php echo $resolution_rate; ?>%</p>
-                    <p class="text-xs text-gray-500 mt-1"><?php echo number_format($resolved_reports); ?> of <?php echo number_format($total_reports); ?> reports resolved</p>
-                </div>
-                <div class="w-full md:w-2/3">
-                    <div class="h-3 bg-white rounded-full overflow-hidden border border-emerald-100">
-                        <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-1000" style="width: <?php echo $resolution_rate; ?>%;"></div>
-                    </div>
-                    <div class="flex justify-between text-xs text-gray-400 mt-1">
-                        <span>0%</span>
-                        <span>100%</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1086,6 +1163,72 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
 </section>
 
 <!-- ============================================ -->
+<!-- SECTION 6: FAQ -->
+<!-- ============================================ -->
+<section id="faq" class="py-20 bg-[#F5FBF6]">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider">FAQ</span>
+            <div class="section-divider"></div>
+            <h2 class="text-3xl font-bold text-gray-800 mt-2">Frequently Asked Questions</h2>
+            <p class="text-gray-500 mt-2 max-w-2xl mx-auto">Everything you need to know about reporting environmental issues in San Isidro.</p>
+        </div>
+
+        <div class="max-w-3xl mx-auto space-y-3">
+            <details class="faq-item" open>
+                <summary class="faq-q">
+                    <span>How do I report an environmental issue?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a">Create a free account, then click <strong>Submit Report</strong> in your dashboard. Choose the category, take a photo, describe the issue, and pin the exact location on the map. Your barangay will review it and take action.</div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-q">
+                    <span>Who can report environmental issues?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a">Any citizen, whether a resident of San Isidro or not. You only need a free account. Your report is anonymous to the public but visible to your barangay and MENRO so they can act on it.</div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-q">
+                    <span>What types of issues can I report?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a">Common reports include illegal dumping, uncollected garbage, drainage blockage, flooding, burning, air or water pollution, and other environmental concerns affecting your neighborhood.</div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-q">
+                    <span>How do I track the status of my report?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a">Open <strong>My Reports</strong> from your sidebar. Every report shows its current status &#8212; Pending, Verified, In Progress, Resolved, or Rejected. You also receive in-app notifications when your report's status changes.</div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-q">
+                    <span>Do I need to include a photo?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a">A photo is highly recommended because it helps your barangay assess the issue faster. You can take a photo with your camera or choose one from your gallery when submitting the report.</div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-q">
+                    <span>What happens after I submit a report?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a">Your report goes to the appropriate barangay or MENRO staff. They verify the report, assign it, and work to resolve it. You will be notified at every step until the issue is marked resolved.</div>
+            </details>
+        </div>
+    </div>
+</section>
+
+</main>
+
+<!-- ============================================ -->
 <!-- FOOTER (UPDATED WITH DYNAMIC CONTACT INFO) -->
 <!-- ============================================ -->
 <footer class="bg-gray-900 text-white py-12">
@@ -1156,6 +1299,50 @@ $resolution_rate = $total_reports > 0 ? round(($resolved_reports / $total_report
 <!-- SCRIPTS -->
 <!-- ============================================ -->
 <script>
+// ============================================
+// MOBILE NAV TOGGLE
+// ============================================
+(function () {
+    var btn = document.getElementById('navToggle');
+    var menu = document.getElementById('mobileNavMenu');
+    if (!btn || !menu) return;
+    function close() {
+        menu.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.innerHTML = '<i class="fas fa-bars"></i>';
+    }
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = menu.classList.toggle('hidden');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.innerHTML = '<i class="fas ' + (open ? 'fa-times' : 'fa-bars') + '"></i>';
+    });
+    menu.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', close);
+    });
+    document.addEventListener('click', function (e) {
+        if (!btn.contains(e.target) && !menu.contains(e.target)) close();
+    });
+})();
+
+// ============================================
+// HERO SCROLL CORNERS
+// ============================================
+function heroScrollState() {
+    if (window.scrollY > 40) {
+        document.body.classList.add('is-scrolled-landing');
+    } else {
+        document.body.classList.remove('is-scrolled-landing');
+    }
+}
+window.addEventListener('scroll', heroScrollState, { passive: true });
+heroScrollState();
+
+// ============================================
+// LANGUAGE DROPDOWNS
+// ============================================
+<?php echo lang_toggle_js(); ?>
+
 // ============================================
 // MAP
 // ============================================
@@ -1419,5 +1606,8 @@ if (resolutionBar) {
 })();
 </script>
 
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
+<?php echo lang_apply_js(); ?>
 </body>
 </html>

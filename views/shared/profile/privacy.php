@@ -5,7 +5,7 @@
                     <div id="section-privacy">
                         <div class="flex items-center gap-2 mb-4">
                             <i class="fas fa-user-shield text-[#10A37F]"></i>
-                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Privacy Notice</h3>
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('Privacy Notice'); ?></h3>
                         </div>
                         <div class="legal-content">
                             <p>Your privacy is critically important to us. This Privacy Notice outlines how the <?php echo htmlspecialchars($system_name); ?> Platform collects, uses, protects, and shares your personal information in strict compliance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>

@@ -97,6 +97,7 @@ require_once BASE_PATH . 'config/database.php';
 require_once BASE_PATH . 'includes/functions.php';
 require_once BASE_PATH . 'helpers/SecurityHelper.php';
 require_once BASE_PATH . 'helpers/IdGuard.php';
+require_once BASE_PATH . 'helpers/Lang.php';
 
 // ============================================
 // AUTO-LOAD MODEL FILES

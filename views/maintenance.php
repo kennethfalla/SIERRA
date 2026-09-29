@@ -2,6 +2,7 @@
 // views/maintenance.php - Site-wide maintenance splash
 // Shown by the index.php router whenever the maintenance_mode kill switch is ON
 // and the visitor is not a logged-in admin.
+require_once BASE_PATH . 'helpers/Lang.php';
 
 $system_name = SettingsHelper::get('system_name', 'Sierra');
 ?>
@@ -51,6 +52,7 @@ $system_name = SettingsHelper::get('system_name', 'Sierra');
             </div>
         </div>
     </div>
+<?php echo lang_apply_js(); ?>
 </body>
 </html>
 <?php exit(); ?>

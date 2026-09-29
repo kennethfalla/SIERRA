@@ -76,8 +76,8 @@ foreach ($barangay_boundaries as $bid => $bb) {
 </style>
 <div class="fade-in">
     <div class="stat-card bg-white rounded-xl p-6 mb-6 map-card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-1">Map Settings</h2>
-        <p class="text-sm text-gray-500 mb-6">Calibrates the geospatial analytics and heatmap.</p>
+        <h2 class="text-lg font-semibold text-gray-900 mb-1"><?php echo t('Map Settings'); ?></h2>
+        <p class="text-sm text-gray-500 mb-6"><?php echo t('Calibrates the geospatial analytics and heatmap.'); ?></p>
 
         <form method="POST" action="<?php echo BASE_URL; ?>controllers/SettingsController.php?tab=map" data-validate>
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
@@ -85,8 +85,8 @@ foreach ($barangay_boundaries as $bid => $bb) {
             <!-- Clustering Radius -->
             <div class="mb-8">
                 <label class="form-label" for="clustering_radius_meters">
-                    Clustering Radius
-                    <span class="text-gray-400 font-normal">— group hazards within this distance of each other</span>
+                    <?php echo t('Clustering Radius'); ?>
+                    <span class="text-gray-400 font-normal"><?php echo t('— group hazards within this distance of each other'); ?></span>
                 </label>
                 <div class="flex items-center gap-4">
                     <input
@@ -113,12 +113,12 @@ foreach ($barangay_boundaries as $bid => $bb) {
             <!-- Default Map Center -->
             <div class="mb-8">
                 <label class="form-label">
-                    Default Map Center
-                    <span class="text-gray-400 font-normal">— the map always loads centered here (San Isidro)</span>
+                    <?php echo t('Default Map Center'); ?>
+                    <span class="text-gray-400 font-normal"><?php echo t('— the map always loads centered here (San Isidro)'); ?></span>
                 </label>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="form-label text-xs" for="map_default_lat">Latitude</label>
+                        <label class="form-label text-xs" for="map_default_lat"><?php echo t('Latitude'); ?></label>
                         <input
                             type="text"
                             id="map_default_lat"
@@ -132,7 +132,7 @@ foreach ($barangay_boundaries as $bid => $bb) {
                         >
                     </div>
                     <div>
-                        <label class="form-label text-xs" for="map_default_lng">Longitude</label>
+                        <label class="form-label text-xs" for="map_default_lng"><?php echo t('Longitude'); ?></label>
                         <input
                             type="text"
                             id="map_default_lng"
@@ -152,15 +152,15 @@ foreach ($barangay_boundaries as $bid => $bb) {
                     class="mt-3 text-sm text-emerald-600 hover:text-emerald-700 font-medium"
                     onclick="enablePickMode()"
                 >
-                    <i class="fas fa-map-marker-alt mr-1"></i> Click the preview map to set coordinates
+                    <i class="fas fa-map-marker-alt mr-1"></i> <?php echo t('Click the preview map to set coordinates'); ?>
                 </button>
             </div>
 
             <!-- Default Zoom Level -->
             <div class="mb-8">
                 <label class="form-label" for="map_default_zoom">
-                    Default Zoom Level
-                    <span class="text-gray-400 font-normal">— how zoomed-in the map starts (1 = whole world, 19 = street level)</span>
+                    <?php echo t('Default Zoom Level'); ?>
+                    <span class="text-gray-400 font-normal"><?php echo t('— how zoomed-in the map starts (1 = whole world, 19 = street level)'); ?></span>
                 </label>
                 <input
                     type="number"
@@ -177,13 +177,13 @@ foreach ($barangay_boundaries as $bid => $bb) {
 
             <!-- Live Preview -->
             <div class="mb-6">
-                <label class="form-label">Preview</label>
+                <label class="form-label"><?php echo t('Preview'); ?></label>
                 <div id="mapSettingsPreview" class="map-container" style="height: 320px;"></div>
             </div>
 
             <div class="flex justify-end">
-                <button type="submit" class="btn-primary">
-                    <i class="fas fa-save mr-2"></i>Save Map Settings
+                <button type="submit" class="btn-primary flex items-center gap-2">
+                    <i class="fas fa-save"></i><?php echo t('Save Changes'); ?>
                 </button>
             </div>
         </form>
@@ -191,10 +191,9 @@ foreach ($barangay_boundaries as $bid => $bb) {
 
     <!-- ===== BARANGAY BOUNDARY GeoJSON MANAGEMENT ===== -->
     <div class="stat-card bg-white rounded-xl p-6 mb-6 map-card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-1">Barangay Boundaries</h2>
+        <h2 class="text-lg font-semibold text-gray-900 mb-1"><?php echo t('Barangay Boundaries'); ?></h2>
         <p class="text-sm text-gray-500 mb-6">
-            Upload or edit the official boundary GeoJSON for each barangay. These files power the
-            accurate point-in-polygon detection on the citizen reporting map.
+            <?php echo t('Upload or edit the official boundary GeoJSON for each barangay. These files power the accurate point-in-polygon detection on the citizen reporting map.'); ?>
         </p>
 
         <form
@@ -217,11 +216,11 @@ foreach ($barangay_boundaries as $bid => $bb) {
                                 <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($bb['name']); ?></span>
                                 <?php if ($bb['exists']): ?>
                                     <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                        <i class="fas fa-check-circle"></i>Boundary loaded
+                                        <i class="fas fa-check-circle"></i><?php echo t('Boundary loaded'); ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
-                                        <i class="fas fa-exclamation-circle"></i>No boundary file
+                                        <i class="fas fa-exclamation-circle"></i><?php echo t('No boundary file'); ?>
                                     </span>
                                 <?php endif; ?>
                             </div>
@@ -231,14 +230,14 @@ foreach ($barangay_boundaries as $bid => $bb) {
                         <div class="flex flex-col sm:flex-row gap-2 sm:items-center boundary-actions">
                             <label class="cursor-pointer">
                                 <span class="btn-secondary inline-flex items-center gap-1.5 !py-2 !px-3 text-sm">
-                                    <i class="fas fa-upload text-[#10A37F]"></i>Upload .geojson
+                                    <i class="fas fa-upload text-[#10A37F]"></i><?php echo t('Upload .geojson'); ?>
                                 </span>
                                 <input type="file" name="barangay_geojson_file[<?php echo (int)$bid; ?>]"
                                        accept=".geojson,application/json,application/geo+json"
                                        class="boundary-file-input hidden" data-name="<?php echo htmlspecialchars($bb['name']); ?>">
                             </label>
                             <button type="button" class="btn-secondary inline-flex items-center gap-1.5 !py-2 !px-3 text-sm toggle-boundary-edit">
-                                <i class="fas fa-edit text-gray-500"></i>Edit JSON
+                                <i class="fas fa-edit text-gray-500"></i><?php echo t('Edit JSON'); ?>
                             </button>
                         </div>
                     </div>
@@ -254,10 +253,10 @@ foreach ($barangay_boundaries as $bid => $bb) {
                         <div class="flex items-center justify-between mt-2">
                             <p class="text-xs text-gray-400 flex items-center gap-1">
                                 <i class="fas fa-info-circle"></i>
-                                Must be a valid GeoJSON FeatureCollection with Polygon/MultiPolygon features.
+                                <?php echo t('Must be a valid GeoJSON FeatureCollection with Polygon/MultiPolygon features.'); ?>
                             </p>
                             <button type="button" class="text-xs text-[#10A37F] font-medium preview-boundary" data-id="<?php echo (int)$bid; ?>">
-                                <i class="fas fa-eye mr-1"></i>Preview this boundary
+                                <i class="fas fa-eye mr-1"></i><?php echo t('Preview this boundary'); ?>
                             </button>
                         </div>
                     </div>
@@ -268,17 +267,17 @@ foreach ($barangay_boundaries as $bid => $bb) {
             <!-- Combined preview map -->
             <div class="mb-4">
                 <div class="flex items-center justify-between mb-2">
-                    <label class="form-label !mb-0">Boundary Preview</label>
+                    <label class="form-label !mb-0"><?php echo t('Boundary Preview'); ?></label>
                     <button type="button" id="refreshBoundaryPreview" class="text-xs text-[#10A37F] font-medium">
-                        <i class="fas fa-sync-alt mr-1"></i>Refresh preview
+                        <i class="fas fa-sync-alt mr-1"></i><?php echo t('Refresh preview'); ?>
                     </button>
                 </div>
                 <div id="barangayBoundaryMap" class="map-container" style="height: 380px;"></div>
             </div>
 
             <div class="flex justify-end">
-                <button type="submit" class="btn-primary">
-                    <i class="fas fa-save mr-2"></i>Save Barangay Boundaries
+                <button type="submit" class="btn-primary flex items-center gap-2">
+                    <i class="fas fa-save"></i><?php echo t('Save Changes'); ?>
                 </button>
             </div>
         </form>

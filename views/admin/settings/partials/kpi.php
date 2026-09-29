@@ -142,11 +142,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
 
     <div class="card-info">
-        <div class="title"><i class="fas fa-bullseye mr-1"></i> Insight Engine Targets</div>
+        <div class="title"><i class="fas fa-bullseye mr-1"></i> <?php echo t('Insight Engine Targets'); ?></div>
         <div class="desc">
-            These targets define what the system treats as acceptable performance. When a live KPI
-            falls below (or exceeds) one of these thresholds, the dashboards automatically generate
-            a textual recommendation to the MENRO Chief.
+            <?php echo t('These targets define what the system treats as acceptable performance. When a live KPI falls below (or exceeds) one of these thresholds, the dashboards automatically generate a textual recommendation to the MENRO Chief.'); ?>
         </div>
     </div>
 
@@ -154,15 +152,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- 1. RESOLUTION RATE TARGET -->
     <!-- ============================================ -->
     <div class="kpi-section">
-        <h4><i class="fas fa-trophy"></i> Resolution Rate Target</h4>
+        <h4><i class="fas fa-trophy"></i> <?php echo t('Resolution Rate Target'); ?></h4>
         <p class="kpi-desc">
-            The minimum acceptable barangay resolution rate. When a barangay on the
-            <strong>Barangay Performance Leaderboard</strong> drops below this value, the system
-            recommends <strong>MENRO backup / intervention</strong> for that barangay.
+            <?php echo t('The minimum acceptable barangay resolution rate. When a barangay on the'); ?> <strong><?php echo t('Barangay Performance Leaderboard'); ?></strong> <?php echo t('drops below this value, the system recommends'); ?> <strong><?php echo t('MENRO backup / intervention'); ?></strong> <?php echo t('for that barangay.'); ?>
         </p>
         <div class="form-group">
             <label class="form-label" for="kpi_resolution_rate_target">
-                Minimum Acceptable Barangay Resolution Rate (%)
+                <?php echo t('Minimum Acceptable Barangay Resolution Rate (%)'); ?>
             </label>
             <div class="kpi-input-wrap">
                 <input type="number" name="kpi_resolution_rate_target" id="kpi_resolution_rate_target"
@@ -170,7 +166,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                        class="form-input">
                 <span class="kpi-unit">%</span>
             </div>
-            <p class="help-text">Default: 60</p>
+            <p class="help-text"><?php echo t('Default: 60'); ?></p>
         </div>
     </div>
 
@@ -178,23 +174,21 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- 2. MUNICIPAL SLA (SERVICE LEVEL AGREEMENT) -->
     <!-- ============================================ -->
     <div class="kpi-section">
-        <h4><i class="fas fa-stopwatch"></i> Municipal SLA (Service Level Agreement)</h4>
+        <h4><i class="fas fa-stopwatch"></i> <?php echo t('Municipal SLA (Service Level Agreement)'); ?></h4>
         <p class="kpi-desc">
-            The target maximum response time. When the <strong>Average Municipal Response Time</strong>
-            chart exceeds this value, the system warns about <strong>dispatch bottlenecks / staffing
-            shortfalls</strong>.
+            <?php echo t('The target maximum response time. When the'); ?> <strong><?php echo t('Average Municipal Response Time'); ?></strong> <?php echo t('chart exceeds this value, the system warns about'); ?> <strong><?php echo t('dispatch bottlenecks / staffing shortfalls'); ?></strong>.
         </p>
         <div class="form-group">
             <label class="form-label" for="kpi_sla_response_hours">
-                Target Maximum Response Time (Hours)
+                <?php echo t('Target Maximum Response Time (Hours)'); ?>
             </label>
             <div class="kpi-input-wrap">
                 <input type="number" name="kpi_sla_response_hours" id="kpi_sla_response_hours"
                        value="<?php echo (float)$kpi_sla_response_hours; ?>" min="1" max="720" step="0.5"
                        class="form-input">
-                <span class="kpi-unit">hours</span>
+                <span class="kpi-unit"><?php echo t('hours'); ?></span>
             </div>
-            <p class="help-text">Default: 48 (≈ 2 days)</p>
+            <p class="help-text"><?php echo t('Default: 48 (≈ 2 days)'); ?></p>
         </div>
     </div>
 
@@ -202,15 +196,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- 3. SURGE ALERT THRESHOLD -->
     <!-- ============================================ -->
     <div class="kpi-section">
-        <h4><i class="fas fa-chart-line"></i> Surge Alert Threshold</h4>
+        <h4><i class="fas fa-chart-line"></i> <?php echo t('Surge Alert Threshold'); ?></h4>
         <p class="kpi-desc">
-            The month-over-month percentage increase that triggers a <strong>surge alert</strong>. When the
-            <strong>Seasonal Hazard Trends</strong> chart shows a category (e.g. flooding) rising by at least
-            this percentage vs. the previous month, the system recommends <strong>budget reallocation</strong>.
+            <?php echo t('The month-over-month percentage increase that triggers a'); ?> <strong><?php echo t('surge alert'); ?></strong>. <?php echo t('When the'); ?> <strong><?php echo t('Seasonal Hazard Trends'); ?></strong> <?php echo t('chart shows a category (e.g. flooding) rising by at least this percentage vs. the previous month, the system recommends'); ?> <strong><?php echo t('budget reallocation'); ?></strong>.
         </p>
         <div class="form-group">
             <label class="form-label" for="kpi_surge_alert_threshold">
-                Category Spike Warning Threshold (%)
+                <?php echo t('Category Spike Warning Threshold (%)'); ?>
             </label>
             <div class="kpi-input-wrap">
                 <input type="number" name="kpi_surge_alert_threshold" id="kpi_surge_alert_threshold"
@@ -218,7 +210,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                        class="form-input">
                 <span class="kpi-unit">%</span>
             </div>
-            <p class="help-text">Default: 25</p>
+            <p class="help-text"><?php echo t('Default: 25'); ?></p>
         </div>
     </div>
 
@@ -226,15 +218,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- 4. HOTSPOT DEFINITION RADIUS -->
     <!-- ============================================ -->
     <div class="kpi-section">
-        <h4><i class="fas fa-map-marker-alt"></i> Hotspot Definition Radius</h4>
+        <h4><i class="fas fa-map-marker-alt"></i> <?php echo t('Hotspot Definition Radius'); ?></h4>
         <p class="kpi-desc">
-            The radius used by the <strong>Repeat Offender Locations</strong> chart to decide whether multiple
-            reports come from the <strong>same location</strong>. Reports within this radius are grouped as a
-            single repeat offender before recommending <strong>CCTV / permanent infrastructure</strong> changes.
+            <?php echo t('The radius used by the'); ?> <strong><?php echo t('Repeat Offender Locations'); ?></strong> <?php echo t('chart to decide whether multiple reports come from the'); ?> <strong><?php echo t('same location'); ?></strong>. <?php echo t('Reports within this radius are grouped as a single repeat offender before recommending'); ?> <strong><?php echo t('CCTV / permanent infrastructure'); ?></strong> <?php echo t('changes.'); ?>
         </p>
         <div class="form-group">
             <label class="form-label" for="kpi_hotspot_radius_meters">
-                Repeat Offender Grouping Radius (Meters)
+                <?php echo t('Repeat Offender Grouping Radius (Meters)'); ?>
             </label>
             <div class="kpi-input-wrap">
                 <input type="number" name="kpi_hotspot_radius_meters" id="kpi_hotspot_radius_meters"
@@ -242,7 +232,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                        class="form-input">
                 <span class="kpi-unit">m</span>
             </div>
-            <p class="help-text">Default: 10</p>
+            <p class="help-text"><?php echo t('Default: 10'); ?></p>
         </div>
     </div>
 
@@ -250,16 +240,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- 5. CRITICAL REPORTS ALERT THRESHOLD -->
     <!-- ============================================ -->
     <div class="kpi-section">
-        <h4><i class="fas fa-exclamation-triangle"></i> Critical Reports Alert Threshold</h4>
+        <h4><i class="fas fa-exclamation-triangle"></i> <?php echo t('Critical Reports Alert Threshold'); ?></h4>
         <p class="kpi-desc">
-            The maximum acceptable share of <strong>Critical-severity</strong> reports among all active
-            reports. When the <strong>Severity Distribution</strong> chart shows Critical exceeding this
-            percentage, the system issues a <strong>high-severity alert</strong> and recommends
-            immediate MENRO intervention.
+            <?php echo t('The maximum acceptable share of'); ?> <strong><?php echo t('Critical-severity'); ?></strong> <?php echo t('reports among all active reports. When the'); ?> <strong><?php echo t('Severity Distribution'); ?></strong> <?php echo t('chart shows Critical exceeding this percentage, the system issues a'); ?> <strong><?php echo t('high-severity alert'); ?></strong> <?php echo t('and recommends immediate MENRO intervention.'); ?>
         </p>
         <div class="form-group">
             <label class="form-label" for="kpi_critical_reports_pct">
-                Critical Reports Share Warning (%)
+                <?php echo t('Critical Reports Share Warning (%)'); ?>
             </label>
             <div class="kpi-input-wrap">
                 <input type="number" name="kpi_critical_reports_pct" id="kpi_critical_reports_pct"
@@ -267,7 +254,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                        class="form-input">
                 <span class="kpi-unit">%</span>
             </div>
-            <p class="help-text">Default: 30</p>
+            <p class="help-text"><?php echo t('Default: 30'); ?></p>
         </div>
     </div>
 
@@ -275,16 +262,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- 6. DEMOGRAPHIC ENGAGEMENT THRESHOLD -->
     <!-- ============================================ -->
     <div class="kpi-section">
-        <h4><i class="fas fa-users"></i> Demographic Engagement Threshold</h4>
+        <h4><i class="fas fa-users"></i> <?php echo t('Demographic Engagement Threshold'); ?></h4>
         <p class="kpi-desc">
-            The minimum share a major demographic group must hold of all reports in the
-            <strong>Reports Demographics</strong> chart. If a major group accounts for less than this
-            percentage, the system recommends <strong>IEC (Information, Education &amp; Communication)
-            campaigns</strong> targeted at that group.
+            <?php echo t('The minimum share a major demographic group must hold of all reports in the'); ?> <strong><?php echo t('Reports Demographics'); ?></strong> <?php echo t('chart. If a major group accounts for less than this percentage, the system recommends'); ?> <strong><?php echo t('IEC (Information, Education &amp; Communication) campaigns'); ?></strong> <?php echo t('targeted at that group.'); ?>
         </p>
         <div class="form-group">
             <label class="form-label" for="kpi_demographic_threshold">
-                Minimum Major-Group Share (%)
+                <?php echo t('Minimum Major-Group Share (%)'); ?>
             </label>
             <div class="kpi-input-wrap">
                 <input type="number" name="kpi_demographic_threshold" id="kpi_demographic_threshold"
@@ -292,7 +276,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                        class="form-input">
                 <span class="kpi-unit">%</span>
             </div>
-            <p class="help-text">Default: 10</p>
+            <p class="help-text"><?php echo t('Default: 10'); ?></p>
         </div>
     </div>
 
@@ -300,48 +284,45 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- 7. REPEAT OFFENDER DEFINITION -->
     <!-- ============================================ -->
     <div class="kpi-section">
-        <h4><i class="fas fa-sync-alt"></i> Repeat Offender Definition</h4>
+        <h4><i class="fas fa-sync-alt"></i> <?php echo t('Repeat Offender Definition'); ?></h4>
         <p class="kpi-desc">
-            A location becomes a <strong>repeat offender</strong> in the <strong>Top Repeat Offender
-            Locations</strong> chart when it logs more than <em>N</em> distinct reports within the
-            rolling window of days below. Repeat offenders trigger <strong>CCTV / permanent
-            infrastructural</strong> recommendations.
+            <?php echo t('A location becomes a'); ?> <strong><?php echo t('repeat offender'); ?></strong> <?php echo t('in the'); ?> <strong><?php echo t('Top Repeat Offender Locations'); ?></strong> <?php echo t('chart when it logs more than'); ?> <em>N</em> <?php echo t('distinct reports within the rolling window of days below. Repeat offenders trigger'); ?> <strong><?php echo t('CCTV / permanent infrastructural'); ?></strong> <?php echo t('recommendations.'); ?>
         </p>
         <div class="form-group">
             <label class="form-label" for="kpi_repeat_min_reports">
-                Minimum Distinct Reports
+                <?php echo t('Minimum Distinct Reports'); ?>
             </label>
             <div class="kpi-input-wrap">
                 <input type="number" name="kpi_repeat_min_reports" id="kpi_repeat_min_reports"
                        value="<?php echo (float)$kpi_repeat_min_reports; ?>" min="2" max="50" step="1"
                        class="form-input">
-                <span class="kpi-unit">reports</span>
+                <span class="kpi-unit"><?php echo t('reports'); ?></span>
             </div>
-            <p class="help-text">Default: 3</p>
+            <p class="help-text"><?php echo t('Default: 3'); ?></p>
         </div>
         <div class="form-group">
             <label class="form-label" for="kpi_repeat_window_days">
-                Rolling Window (Days)
+                <?php echo t('Rolling Window (Days)'); ?>
             </label>
             <div class="kpi-input-wrap">
                 <input type="number" name="kpi_repeat_window_days" id="kpi_repeat_window_days"
                        value="<?php echo (float)$kpi_repeat_window_days; ?>" min="7" max="365" step="1"
                        class="form-input">
-                <span class="kpi-unit">days</span>
+                <span class="kpi-unit"><?php echo t('days'); ?></span>
             </div>
-            <p class="help-text">Default: 30</p>
+            <p class="help-text"><?php echo t('Default: 30'); ?></p>
         </div>
     </div>
 
     <!-- ============================================ -->
     <!-- FORM ACTIONS -->
     <!-- ============================================ -->
-    <div class="flex flex-wrap gap-3 justify-end pt-4 border-t border-gray-200">
-        <button type="reset" onclick="resetKpiForm()" class="btn-secondary">
-            <i class="fas fa-undo mr-2"></i>Reset
+    <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
+        <button type="reset" onclick="resetKpiForm()" class="btn-secondary flex items-center gap-2">
+            <i class="fas fa-undo"></i> <?php echo t('Reset'); ?>
         </button>
-        <button type="submit" class="btn-primary">
-            <i class="fas fa-save mr-2"></i>Save KPI &amp; Insights Settings
+        <button type="submit" class="btn-primary flex items-center gap-2">
+            <i class="fas fa-save"></i> <?php echo t('Save Changes'); ?>
         </button>
     </div>
 </form>

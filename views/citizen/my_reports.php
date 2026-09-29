@@ -207,10 +207,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
-    <title>My Reports - EnviroTrack</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title><?php echo t('My Reports - EnviroTrack'); ?></title>
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -1351,7 +1351,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
         
         <div id="loadingOverlay" class="loading-overlay">
@@ -1364,16 +1364,16 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
                     <i class="fas fa-list text-[#10A37F] text-sm"></i>
                 </div>
-                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo $active_tab === 'supported' ? 'Supported Reports' : 'My Reports'; ?></span>
+                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo $active_tab === 'supported' ? t('Supported Reports') : t('My Reports'); ?></span>
             </div>
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800"><?php echo $active_tab === 'supported' ? 'Reports I Supported' : 'My Reports'; ?></h1>
-                    <p class="text-gray-500 text-sm mt-1"><?php echo $active_tab === 'supported' ? 'Track reports you have supported — see their progress and status updates.' : 'Track and manage all your environmental reports'; ?></p>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800"><?php echo $active_tab === 'supported' ? t('Reports I Supported') : t('My Reports'); ?></h1>
+                    <p class="text-gray-500 text-sm mt-1"><?php echo $active_tab === 'supported' ? t('Track reports you have supported — see their progress and status updates.') : t('Track and manage all your environmental reports'); ?></p>
                 </div>
                 <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 sm:w-auto justify-center">
                     <i class="fas fa-plus-circle text-xs md:text-sm"></i> 
-                    <span class="text-xs md:text-sm">New Report</span>
+                    <span class="text-xs md:text-sm"><?php echo t('New Report'); ?></span>
                 </a>
             </div>
         </div>
@@ -1382,12 +1382,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <div class="tab-switcher">
             <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="tab-btn <?php echo $active_tab === 'my' ? 'active' : ''; ?>">
                 <i class="fas fa-file-alt"></i>
-                My Reports
+                <?php echo t('My Reports'); ?>
                 <span class="tab-badge"><?php echo $total_reports; ?></span>
             </a>
             <a href="<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported" class="tab-btn supported-tab <?php echo $active_tab === 'supported' ? 'active' : ''; ?>">
                 <i class="fas fa-heart" style="color: <?php echo $active_tab === 'supported' ? '#0A7E6B' : 'inherit'; ?>;"></i>
-                Supported
+                <?php echo t('Supported'); ?>
                 <span class="tab-badge" style="<?php echo $active_tab === 'supported' ? 'background:#0A7E6B; color:white;' : ''; ?>"><?php echo $total_supported; ?></span>
             </a>
         </div>
@@ -1415,7 +1415,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             'search_id'          => 'searchInput',
             'search_value'       => $search_keyword,
             'search_placeholder' => 'Search reports...',
-            'results_text'       => 'Showing <strong id="resultsCountDisplay">' . count($reports) . '</strong> of <strong>' . $total_reports . '</strong> reports',
+            'results_text'       => '',
             'inline_selects'     => [],
             'filter_by'          => [
                 'active' => ($filter_risk != '' || $filter_category > 0 || $filter_date > 0),
@@ -1459,7 +1459,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <!-- Status filter chips (notification-style) -->
         <?php $status_all_count = array_sum($status_summary); ?>
         <div class="status-chip-bar" id="statusChipBar">
-            <span class="status-chip-label">Status</span>
+            <span class="status-chip-label"><?php echo t('Status'); ?></span>
             <input type="hidden" id="toolbarStatus" value="<?php echo htmlspecialchars($filter_status, ENT_QUOTES, 'UTF-8'); ?>">
             <?php foreach ($status_chip_keys as $sc_key):
                 $sc_active = ($sc_key === $filter_status);
@@ -1490,7 +1490,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                 <div class="space-y-2">
                                     <div class="supported-banner">
                                         <i class="fas fa-heart" style="color: #ef4444;"></i>
-                                        You Supported This
+                                        <?php echo t('You Supported This'); ?>
                                     </div>
                                     <h3 class="header-title"><?php echo htmlspecialchars($report['title']); ?></h3>
                                 </div>
@@ -1546,7 +1546,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                         <i class="fas fa-calendar-check mr-1"></i> <?php echo date('M d', strtotime($report['supported_at'])); ?>
                                     </span>
                                     <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>" class="track-report-btn" onclick="event.stopPropagation();">
-                                        <i class="fas fa-satellite-dish"></i> Track
+                                        <i class="fas fa-satellite-dish"></i> <?php echo t('Track'); ?>
                                     </a>
                                 </div>
                             </div>
@@ -1561,7 +1561,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         $cover_src = !empty($report['cover_image']) ? BASE_URL . htmlspecialchars($report['cover_image'], ENT_QUOTES, 'UTF-8') : '';
                         $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(13,133,104,0.30) 0%, rgba(8,78,62,0.92) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
                     ?>
-                    <div class="report-card-grid" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'" style="cursor:pointer;">
+                    <div class="report-card-grid" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'" onkeydown="if(event.key==='Enter'){window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>';}" role="link" tabindex="0" style="cursor:pointer;" aria-label="<?php echo htmlspecialchars($report['title']); ?> — open report details">
                         <div class="report-card-header rounded-t-2xl<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
                             <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
                                 <div class="space-y-2">
@@ -1569,7 +1569,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                         <div class="w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-lg flex items-center justify-center">
                                             <i class="fas fa-file-alt text-white/80 text-[10px] md:text-xs"></i>
                                         </div>
-                                        <span class="header-label">Report Summary</span>
+                                        <span class="header-label"><?php echo t('Report Summary'); ?></span>
                                     </div>
                                     <h3 class="header-title"><?php echo htmlspecialchars($report['title']); ?></h3>
                                 </div>
@@ -1643,19 +1643,19 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                     <!-- Only show verify options if not the owner -->
                                     <?php if ($report['is_verified_by_user'] > 0): ?>
                                         <span class="verification-badge">
-                                            <i class="fas fa-check-circle"></i> You verified this
+                                            <i class="fas fa-check-circle"></i> <?php echo t('You verified this'); ?>
                                         </span>
                                     <?php else: ?>
                                         <?php if (!in_array($report['status'], ['resolved', 'rejected', 'cancelled'])): ?>
                                             <button class="verify-btn" onclick="event.stopPropagation(); verifyReport(<?php echo $report['id']; ?>, this)">
-                                                <i class="fas fa-thumbs-up"></i> Verify
+                                                <i class="fas fa-thumbs-up"></i> <?php echo t('Verify'); ?>
                                             </button>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                 <?php else: ?>
                                     <!-- Own report – show a label -->
                                     <span class="own-report-label">
-                                        <i class="fas fa-user"></i> Your report
+                                        <i class="fas fa-user"></i> <?php echo t('Your report'); ?>
                                     </span>
                                 <?php endif; ?>
                             </div>
@@ -1670,16 +1670,16 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <i class="fas <?php echo $active_tab === 'supported' ? 'fa-thumbs-up' : 'fa-inbox'; ?> text-xl sm:text-2xl text-gray-400"></i>
                     </div>
                     <?php if ($active_tab === 'supported'): ?>
-                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg">No supported reports yet</h3>
-                        <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">When you support a report from the community, it will appear here so you can track its progress.</p>
+                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg"><?php echo t('No supported reports yet'); ?></h3>
+                        <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4"><?php echo t('When you support a report from the community, it will appear here so you can track its progress.'); ?></p>
                         <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                            <i class="fas fa-map"></i> Explore Community Reports
+                            <i class="fas fa-map"></i> <?php echo t('Explore Community Reports'); ?>
                         </a>
                     <?php else: ?>
-                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg">No reports found</h3>
-                        <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Try adjusting your filters</p>
+                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg"><?php echo t('No reports found'); ?></h3>
+                        <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4"><?php echo t('Try adjusting your filters'); ?></p>
                         <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                            <i class="fas fa-plus-circle"></i> New Report
+                            <i class="fas fa-plus-circle"></i> <?php echo t('New Report'); ?>
                         </a>
                     <?php endif; ?>
                 </div>
@@ -1722,7 +1722,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
     <!-- Floating "New Report" button (mobile only) -->
     <a href="<?php echo BASE_URL; ?>index.php?page=submit-report"
-       class="new-report-fab flex sm:hidden" aria-label="New Report">
+       class="new-report-fab flex sm:hidden" aria-label="<?php echo t('New Report'); ?>">
         <i class="fas fa-plus"></i>
     </a>
 </div>
@@ -1863,5 +1863,7 @@ document.querySelectorAll('.verify-btn').forEach(function(btn) {
 });
 </script>
 
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
 </body>
 </html>

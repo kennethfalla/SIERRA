@@ -5,7 +5,7 @@
                     <div id="section-about">
                         <div class="flex items-center gap-2 mb-4">
                             <i class="fas fa-info-circle text-[#10A37F]"></i>
-                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">About <?php echo htmlspecialchars($system_name); ?></h3>
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('About'); ?> <?php echo htmlspecialchars($system_name); ?></h3>
                         </div>
                         <div class="legal-content">
                             <p><strong><?php echo htmlspecialchars($system_name); ?></strong> is the Web-Based Environmental Reporting Application of the Municipality of San Isidro, Nueva Ecija. It is a civic technology platform designed to make environmental reporting fast, transparent, and accountable.</p>

@@ -392,10 +392,10 @@ if (!isset($csrf_token)) {
     <input type="text" 
            id="newBarangayName" 
            class="add-input" 
-           placeholder="Enter new barangay name..."
+           placeholder="<?php echo t('Enter new barangay name...'); ?>"
            onkeydown="if(event.key === 'Enter') addBarangay()">
     <button type="button" class="btn-add-barangay" id="addBarangayBtn" onclick="addBarangay()">
-        <i class="fas fa-plus mr-1"></i> Add Barangay
+        <i class="fas fa-plus mr-1"></i> <?php echo t('Add Barangay'); ?>
     </button>
 </div>
 
@@ -408,10 +408,10 @@ if (!isset($csrf_token)) {
             <thead>
                 <tr>
                     <th style="width: 50px;">#</th>
-                    <th style="min-width: 160px;">Barangay Name</th>
-                    <th style="min-width: 160px;">Barangay Captain</th>
-                    <th style="min-width: 150px;">Office Number</th>
-                    <th style="width: 150px; text-align: center;">Action</th>
+                    <th style="min-width: 160px;"><?php echo t('Barangay Name'); ?></th>
+                    <th style="min-width: 160px;"><?php echo t('Barangay Captain'); ?></th>
+                    <th style="min-width: 150px;"><?php echo t('Office Number'); ?></th>
+                    <th style="width: 150px; text-align: center;"><?php echo t('Action'); ?></th>
                 </tr>
             </thead>
             <tbody id="barangayTableBody">
@@ -420,8 +420,8 @@ if (!isset($csrf_token)) {
                         <td colspan="5">
                             <div class="barangay-empty">
                                 <i class="fas fa-building"></i>
-                                <p>No barangays found in the system.</p>
-                                <p class="text-xs mt-1">Use the form above to add your first barangay.</p>
+                                <p><?php echo t('No barangays found in the system.'); ?></p>
+                                <p class="text-xs mt-1"><?php echo t('Use the form above to add your first barangay.'); ?></p>
                             </div>
                         </td>
                     </tr>
@@ -437,7 +437,7 @@ if (!isset($csrf_token)) {
                                        id="barangay_name_<?php echo $barangay['id']; ?>"
                                        class="barangay-input"
                                        value="<?php echo htmlspecialchars($barangay['name']); ?>"
-                                       placeholder="Enter barangay name"
+                                       placeholder="<?php echo t('Enter barangay name'); ?>"
                                        disabled>
                             </td>
                             <td>
@@ -445,7 +445,7 @@ if (!isset($csrf_token)) {
                                        id="captain_name_<?php echo $barangay['id']; ?>"
                                        class="barangay-input"
                                        value="<?php echo htmlspecialchars($barangay['captain_name'] ?? ''); ?>"
-                                       placeholder="Enter captain name"
+                                       placeholder="<?php echo t('Enter captain name'); ?>"
                                        disabled>
                             </td>
                             <td>
@@ -453,7 +453,7 @@ if (!isset($csrf_token)) {
                                        id="captain_contact_<?php echo $barangay['id']; ?>"
                                        class="barangay-input"
                                        value="<?php echo htmlspecialchars($barangay['captain_contact'] ?? ''); ?>"
-                                       placeholder="Enter office number"
+                                       placeholder="<?php echo t('Enter office number'); ?>"
                                        disabled>
                             </td>
                             <td data-label="Actions" style="text-align: center;">
@@ -462,19 +462,19 @@ if (!isset($csrf_token)) {
                                             class="barangay-btn barangay-btn-edit"
                                             id="edit-btn-<?php echo $barangay['id']; ?>"
                                             onclick="enableEdit(<?php echo $barangay['id']; ?>)">
-                                        <i class="fas fa-pen"></i> Edit
+                                        <i class="fas fa-pen"></i> <?php echo t('Edit'); ?>
                                     </button>
                                     <button type="button"
                                             class="barangay-btn barangay-btn-save"
                                             id="save-btn-<?php echo $barangay['id']; ?>"
                                             onclick="saveBarangay(<?php echo $barangay['id']; ?>)">
-                                        <i class="fas fa-check"></i> Save
+                                        <i class="fas fa-check"></i> <?php echo t('Save'); ?>
                                     </button>
                                     <button type="button"
                                             class="barangay-btn-delete"
                                             id="delete-btn-<?php echo $barangay['id']; ?>"
                                             onclick="deleteBarangay(<?php echo $barangay['id']; ?>, '<?php echo htmlspecialchars(addslashes($barangay['name'])); ?>')"
-                                            title="Delete this barangay">
+                                            title="<?php echo t('Delete this barangay'); ?>">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -492,9 +492,9 @@ if (!isset($csrf_token)) {
 <!-- ================================================================ -->
 <?php if (!empty($barangays)): ?>
     <div class="mt-4 text-xs text-gray-400 flex items-center gap-4 flex-wrap">
-        <span><i class="fas fa-list-ul mr-1"></i> Total: <strong><?php echo count($barangays); ?></strong> barangays</span>
-        <span><i class="fas fa-users mr-1"></i> Click <strong>Edit</strong> to update barangay info</span>
-        <span><i class="fas fa-keyboard mr-1"></i> Press <kbd class="px-1 py-0.5 bg-gray-100 rounded border border-gray-300 text-xs">Enter</kbd> to save, <kbd class="px-1 py-0.5 bg-gray-100 rounded border border-gray-300 text-xs">Esc</kbd> to cancel</span>
+        <span><i class="fas fa-list-ul mr-1"></i> <?php echo t('Total:'); ?> <strong><?php echo count($barangays); ?></strong> <?php echo t('barangays'); ?></span>
+        <span><i class="fas fa-users mr-1"></i> <?php echo t('Click'); ?> <strong><?php echo t('Edit'); ?></strong> <?php echo t('to update barangay info'); ?></span>
+        <span><i class="fas fa-keyboard mr-1"></i> <?php echo t('Press'); ?> <kbd class="px-1 py-0.5 bg-gray-100 rounded border border-gray-300 text-xs">Enter</kbd> <?php echo t('to save,'); ?> <kbd class="px-1 py-0.5 bg-gray-100 rounded border border-gray-300 text-xs">Esc</kbd> <?php echo t('to cancel'); ?></span>
     </div>
 <?php endif; ?>
 

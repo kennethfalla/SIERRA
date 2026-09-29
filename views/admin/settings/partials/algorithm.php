@@ -118,33 +118,33 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="mb-6">
         <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
             <i class="fas fa-bolt text-[#10A37F]"></i>
-            Impact Modifier Points
+            <?php echo t('Impact Modifier Points'); ?>
         </h4>
         <p class="text-sm text-gray-500 mb-3">
-            Points awarded based on the <strong>impact modifier</strong> (re‑classified by barangay officials).<br>
-            Higher impact → higher severity score.
+            <?php echo t('Points awarded based on the'); ?> <strong><?php echo t('impact modifier'); ?></strong> <?php echo t('(re‑classified by barangay officials).'); ?><br>
+            <?php echo t('Higher impact → higher severity score.'); ?>
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="form-group">
-                <label class="form-label" for="impact_modifier_0">Impact 0 (Minor)</label>
+                <label class="form-label" for="impact_modifier_0"><?php echo t('Impact 0 (Minor)'); ?></label>
                 <input type="number" name="impact_modifier_0" id="impact_modifier_0"
                        value="<?php echo (int)$impact_modifier_0; ?>" min="0" max="20"
                        class="form-input">
-                <p class="help-text">Default: 0</p>
+                <p class="help-text"><?php echo t('Default: 0'); ?></p>
             </div>
             <div class="form-group">
-                <label class="form-label" for="impact_modifier_2">Impact 2 (Moderate)</label>
+                <label class="form-label" for="impact_modifier_2"><?php echo t('Impact 2 (Moderate)'); ?></label>
                 <input type="number" name="impact_modifier_2" id="impact_modifier_2"
                        value="<?php echo (int)$impact_modifier_2; ?>" min="0" max="20"
                        class="form-input">
-                <p class="help-text">Default: 2</p>
+                <p class="help-text"><?php echo t('Default: 2'); ?></p>
             </div>
             <div class="form-group">
-                <label class="form-label" for="impact_modifier_4">Impact 4 (Severe)</label>
+                <label class="form-label" for="impact_modifier_4"><?php echo t('Impact 4 (Severe)'); ?></label>
                 <input type="number" name="impact_modifier_4" id="impact_modifier_4"
                        value="<?php echo (int)$impact_modifier_4; ?>" min="0" max="20"
                        class="form-input">
-                <p class="help-text">Default: 4</p>
+                <p class="help-text"><?php echo t('Default: 4'); ?></p>
             </div>
         </div>
     </div>
@@ -155,40 +155,40 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="mb-6">
         <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
             <i class="fas fa-layer-group text-[#10A37F]"></i>
-            Density Multiplier Points
+            <?php echo t('Density Multiplier Points'); ?>
         </h4>
         <p class="text-sm text-gray-500 mb-3">
-            Points added per <strong>number of nearby reports</strong> within the clustering radius.<br>
-            More duplicates → higher severity.
+            <?php echo t('Points added per'); ?> <strong><?php echo t('number of nearby reports'); ?></strong> <?php echo t('within the clustering radius.'); ?><br>
+            <?php echo t('More duplicates → higher severity.'); ?>
         </p>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div class="form-group">
-                <label class="form-label" for="density_points_0">0 nearby</label>
+                <label class="form-label" for="density_points_0"><?php echo t('0 nearby'); ?></label>
                 <input type="number" name="density_points_0" id="density_points_0"
                        value="<?php echo (int)$density_points_0; ?>" min="0" max="20"
                        class="form-input">
-                <p class="help-text">Default: 0</p>
+                <p class="help-text"><?php echo t('Default: 0'); ?></p>
             </div>
             <div class="form-group">
-                <label class="form-label" for="density_points_2">1‑2 nearby</label>
+                <label class="form-label" for="density_points_2"><?php echo t('1‑2 nearby'); ?></label>
                 <input type="number" name="density_points_2" id="density_points_2"
                        value="<?php echo (int)$density_points_2; ?>" min="0" max="20"
                        class="form-input">
-                <p class="help-text">Default: 2</p>
+                <p class="help-text"><?php echo t('Default: 2'); ?></p>
             </div>
             <div class="form-group">
-                <label class="form-label" for="density_points_4">3‑5 nearby</label>
+                <label class="form-label" for="density_points_4"><?php echo t('3‑5 nearby'); ?></label>
                 <input type="number" name="density_points_4" id="density_points_4"
                        value="<?php echo (int)$density_points_4; ?>" min="0" max="20"
                        class="form-input">
-                <p class="help-text">Default: 4</p>
+                <p class="help-text"><?php echo t('Default: 4'); ?></p>
             </div>
             <div class="form-group">
-                <label class="form-label" for="density_points_6">6+ nearby</label>
+                <label class="form-label" for="density_points_6"><?php echo t('6+ nearby'); ?></label>
                 <input type="number" name="density_points_6" id="density_points_6"
                        value="<?php echo (int)$density_points_6; ?>" min="0" max="20"
                        class="form-input">
-                <p class="help-text">Default: 6</p>
+                <p class="help-text"><?php echo t('Default: 6'); ?></p>
             </div>
         </div>
     </div>
@@ -199,17 +199,17 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="mb-6">
         <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
             <i class="fas fa-arrows-alt-h text-[#10A37F]"></i>
-            Clustering Radius
+            <?php echo t('Clustering Radius'); ?>
         </h4>
         <p class="text-sm text-gray-500 mb-3">
-            Maximum distance (in meters) to consider reports as “nearby” for density calculations.
+            <?php echo t('Maximum distance (in meters) to consider reports as “nearby” for density calculations.'); ?>
         </p>
         <div class="form-group max-w-xs">
-            <label class="form-label" for="clustering_radius_meters">Radius (meters)</label>
+            <label class="form-label" for="clustering_radius_meters"><?php echo t('Radius (meters)'); ?></label>
             <input type="number" name="clustering_radius_meters" id="clustering_radius_meters"
                    value="<?php echo (int)$clustering_radius; ?>" min="10" max="500"
                    class="form-input">
-            <p class="help-text">Default: 50m (range 10‑500m)</p>
+            <p class="help-text"><?php echo t('Default: 50m (range 10‑500m)'); ?></p>
         </div>
     </div>
 
@@ -219,26 +219,26 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="mb-6">
         <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
             <i class="fas fa-flag text-[#10A37F]"></i>
-            Severity Thresholds
+            <?php echo t('Severity Thresholds'); ?>
         </h4>
         <p class="text-sm text-gray-500 mb-3">
-            Define the score boundaries for automatic risk classification.<br>
-            The <strong>Critical Threshold</strong> is the score above which a report is flagged as <span class="text-red-600 font-semibold">CRITICAL</span>.
+            <?php echo t('Define the score boundaries for automatic risk classification.'); ?><br>
+            <?php echo t('The'); ?> <strong><?php echo t('Critical Threshold'); ?></strong> <?php echo t('is the score above which a report is flagged as'); ?> <span class="text-red-600 font-semibold"><?php echo t('CRITICAL'); ?></span>.
         </p>
         <div class="form-group max-w-xs">
             <label class="form-label" for="critical_threshold_score">
-                Critical Threshold Score
-                <span class="text-xs font-normal text-gray-400 ml-1">(≥ this score → CRITICAL)</span>
+                <?php echo t('Critical Threshold Score'); ?>
+                <span class="text-xs font-normal text-gray-400 ml-1"><?php echo t('(≥ this score → CRITICAL)'); ?></span>
             </label>
             <input type="number" name="critical_threshold_score" id="critical_threshold_score"
                    value="<?php echo (int)$critical_threshold; ?>" min="0" max="100"
                    class="form-input">
-            <p class="help-text">Default: 15</p>
+            <p class="help-text"><?php echo t('Default: 15'); ?></p>
         </div>
         <div class="card-info mt-3">
-            <div class="title">Current Critical Threshold</div>
+            <div class="title"><?php echo t('Current Critical Threshold'); ?></div>
             <div class="desc">
-                Reports with severity score <strong>≥ <?php echo (int)$critical_threshold; ?></strong> will be marked as <span class="text-red-600 font-semibold">CRITICAL</span>.
+                <?php echo t('Reports with severity score'); ?> <strong>≥ <?php echo (int)$critical_threshold; ?></strong> <?php echo t('will be marked as'); ?> <span class="text-red-600 font-semibold"><?php echo t('CRITICAL'); ?></span>.
             </div>
         </div>
     </div>
@@ -249,34 +249,34 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="mb-6">
         <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
             <i class="fas fa-thumbs-up text-[#10A37F]"></i>
-            Verification Bonus (Upvotes)
+            <?php echo t('Verification Bonus (Upvotes)'); ?>
         </h4>
         <p class="text-sm text-gray-500 mb-3">
-            Each time a citizen confirms an existing report, the report gains points.<br>
-            This encourages community validation and raises priority for confirmed issues.
+            <?php echo t('Each time a citizen confirms an existing report, the report gains points.'); ?><br>
+            <?php echo t('This encourages community validation and raises priority for confirmed issues.'); ?>
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="form-group">
-                <label class="form-label" for="verification_points_per_upvote">Points per Upvote</label>
+                <label class="form-label" for="verification_points_per_upvote"><?php echo t('Points per Upvote'); ?></label>
                 <input type="number" name="verification_points_per_upvote" id="verification_points_per_upvote"
                        value="<?php echo (int)$verification_points_per_upvote; ?>" min="0" max="10"
                        class="form-input">
-                <p class="help-text">Default: 1</p>
+                <p class="help-text"><?php echo t('Default: 1'); ?></p>
             </div>
             <div class="form-group">
-                <label class="form-label" for="verification_max_points">Maximum Bonus from Upvotes</label>
+                <label class="form-label" for="verification_max_points"><?php echo t('Maximum Bonus from Upvotes'); ?></label>
                 <input type="number" name="verification_max_points" id="verification_max_points"
                        value="<?php echo (int)$verification_max_points; ?>" min="0" max="20"
                        class="form-input">
-                <p class="help-text">Default: 5 (caps total contribution)</p>
+                <p class="help-text"><?php echo t('Default: 5 (caps total contribution)'); ?></p>
             </div>
         </div>
         <div class="card-info mt-3">
-            <div class="title">How Verification Bonus Works</div>
+            <div class="title"><?php echo t('How Verification Bonus Works'); ?></div>
             <div class="desc">
                 <strong>Total Bonus = min( Upvotes × <?php echo (int)$verification_points_per_upvote; ?>, <?php echo (int)$verification_max_points; ?> )</strong><br>
-                Each unique citizen who verifies the same report adds <?php echo (int)$verification_points_per_upvote; ?> point(s), up to a maximum of <?php echo (int)$verification_max_points; ?> points.
-                This bonus is added to the severity score alongside impact and density.
+                <?php echo t('Each unique citizen who verifies the same report adds'); ?> <?php echo (int)$verification_points_per_upvote; ?> <?php echo t('point(s), up to a maximum of'); ?> <?php echo (int)$verification_max_points; ?> <?php echo t('points.'); ?>
+                <?php echo t('This bonus is added to the severity score alongside impact and density.'); ?>
             </div>
         </div>
     </div>
@@ -287,17 +287,17 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
         <h5 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <i class="fas fa-calculator text-[#10A37F]"></i>
-            Severity Score Calculation
+            <?php echo t('Severity Score Calculation'); ?>
         </h5>
         <p class="text-sm text-gray-600 mt-2">
-            <strong>Severity Score = Base Weight + Impact Points + Density Points + Verification Bonus</strong>
+            <strong><?php echo t('Severity Score = Base Weight + Impact Points + Density Points + Verification Bonus'); ?></strong>
         </p>
         <div class="text-xs text-gray-500 mt-1">
-            <span class="inline-block bg-gray-200 px-2 py-0.5 rounded">Base Weight</span> (from category, 1‑10)
-            + <span class="inline-block bg-gray-200 px-2 py-0.5 rounded">Impact Points</span> (0, 2, or 4)
-            + <span class="inline-block bg-gray-200 px-2 py-0.5 rounded">Density Points</span> (0‑6)
-            + <span class="inline-block bg-gray-200 px-2 py-0.5 rounded">Verification Bonus</span> (0‑5)
-            = <strong>Score (1‑20)</strong>
+            <span class="inline-block bg-gray-200 px-2 py-0.5 rounded"><?php echo t('Base Weight'); ?></span> <?php echo t('(from category, 1‑10)'); ?>
+            + <span class="inline-block bg-gray-200 px-2 py-0.5 rounded"><?php echo t('Impact Points'); ?></span> <?php echo t('(0, 2, or 4)'); ?>
+            + <span class="inline-block bg-gray-200 px-2 py-0.5 rounded"><?php echo t('Density Points'); ?></span> <?php echo t('(0‑6)'); ?>
+            + <span class="inline-block bg-gray-200 px-2 py-0.5 rounded"><?php echo t('Verification Bonus'); ?></span> <?php echo t('(0‑5)'); ?>
+            = <strong><?php echo t('Score (1‑20)'); ?></strong>
         </div>
         <div class="mt-2 text-xs text-gray-500">
             <?php
@@ -312,9 +312,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <em>Example:</em> Base (5) + Impact 2 (<?php echo $impact_modifier_2; ?> pts) + 4 nearby (<?php echo $density_points_4; ?> pts) + 3 upvotes (<?php echo $exampleBonus; ?> pts)
             → Score = <?php echo $exampleScore; ?>
             <?php if ($exampleScore >= $critical_threshold): ?>
-                <span class="text-red-600 font-semibold">→ CRITICAL</span>
+                <span class="text-red-600 font-semibold"><?php echo t('→ CRITICAL'); ?></span>
             <?php else: ?>
-                <span class="text-gray-500">→ Not critical</span>
+                <span class="text-gray-500"><?php echo t('→ Not critical'); ?></span>
             <?php endif; ?>
         </div>
     </div>
@@ -322,12 +322,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- ============================================ -->
     <!-- FORM ACTIONS -->
     <!-- ============================================ -->
-    <div class="flex flex-wrap gap-3 justify-end pt-4 border-t border-gray-200">
-        <button type="reset" onclick="resetForm()" class="btn-secondary">
-            <i class="fas fa-undo mr-2"></i>Reset
+    <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
+        <button type="reset" onclick="resetForm()" class="btn-secondary flex items-center gap-2">
+            <i class="fas fa-undo"></i> <?php echo t('Reset'); ?>
         </button>
-        <button type="submit" class="btn-primary">
-            <i class="fas fa-save mr-2"></i>Save Algorithm Settings
+        <button type="submit" class="btn-primary flex items-center gap-2">
+            <i class="fas fa-save"></i> <?php echo t('Save Changes'); ?>
         </button>
     </div>
 </form>

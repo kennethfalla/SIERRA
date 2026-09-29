@@ -5,6 +5,7 @@
 // account creation posts to AdminController.
 
 require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/Lang.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
 require_once BASE_PATH . 'helpers/PermissionHelper.php';
 requireRole('admin');
@@ -417,9 +418,9 @@ function getRoleBadge($user_type, $job_title = '') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
     <title>User Management - <?php echo htmlspecialchars($system_name); ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -440,7 +441,7 @@ function getRoleBadge($user_type, $job_title = '') {
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
 
         <!-- ===== PAGE HEADER (with Export button, matching other pages) ===== -->
@@ -463,31 +464,31 @@ function getRoleBadge($user_type, $job_title = '') {
                     <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
                         <i class="fas fa-users-cog text-[#10A37F] text-sm"></i>
                     </div>
-                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Administration</span>
+                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('Administration'); ?></span>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
-                <p class="text-gray-500 text-sm mt-1">Manage citizens, barangay personnel, and MENRO staff accounts</p>
+                <h1 class="text-2xl font-bold text-gray-800"><?php echo t('User Management'); ?></h1>
+                <p class="text-gray-500 text-sm mt-1"><?php echo t('Manage citizens, barangay personnel, and MENRO staff accounts'); ?></p>
             </div>
             <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
             <div class="export-dropdown" id="usersExportWrap">
                 <button onclick="toggleUsersExport()" id="usersExportBtn" class="btn-export-trigger">
                     <i class="fas fa-file-export"></i>
-                    <span>Export</span>
+                    <span><?php echo t('Export'); ?></span>
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div id="usersExportDropdown" class="export-dropdown-menu" style="width:280px;">
                     <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php<?php echo $report_url; ?>', '_blank')">
                         <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
                         <div class="item-text">
-                            <div class="item-title">Export as PDF</div>
-                            <div class="item-desc">Preview and save as PDF</div>
+                            <div class="item-title"><?php echo t('Export as PDF'); ?></div>
+                            <div class="item-desc"><?php echo t('Preview and save as PDF'); ?></div>
                         </div>
                     </button>
                     <div class="export-dropdown-divider"></div>
                     <button class="export-dropdown-item" onclick="downloadUsersExport('<?php echo $export_csv_type; ?>')">
                         <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
                         <div class="item-text">
-                            <div class="item-title">Export as CSV</div>
+                            <div class="item-title"><?php echo t('Export as CSV'); ?></div>
                             <div class="item-desc">Users from the <?php echo $users_tab; ?> tab</div>
                         </div>
                     </button>
@@ -755,7 +756,7 @@ function getRoleBadge($user_type, $job_title = '') {
         <div class="stat-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="stat-label">Citizens</p>
+                    <p class="stat-label"><?php echo t('Citizens'); ?></p>
                     <p class="stat-value"><?php echo $total_citizens; ?></p>
                     <p class="text-xs text-gray-400 mt-1 font-medium">
                         <span class="text-emerald-600"><?php echo $active_citizens; ?> active</span>
@@ -769,7 +770,7 @@ function getRoleBadge($user_type, $job_title = '') {
         <div class="stat-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="stat-label">Barangay Personnel</p>
+                    <p class="stat-label"><?php echo t('Barangay Personnel'); ?></p>
                     <p class="stat-value"><?php echo $total_barangay; ?></p>
                     <p class="text-xs text-gray-400 mt-1 font-medium">
                         <span class="text-emerald-600"><?php echo $active_barangay; ?> active</span>
@@ -783,7 +784,7 @@ function getRoleBadge($user_type, $job_title = '') {
         <div class="stat-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="stat-label">MENRO Staff</p>
+                    <p class="stat-label"><?php echo t('MENRO Staff'); ?></p>
                     <p class="stat-value"><?php echo $total_menro; ?></p>
                     <p class="text-xs text-gray-400 mt-1 font-medium">
                         <span class="text-emerald-600"><?php echo $active_menro; ?> active</span>
@@ -798,23 +799,23 @@ function getRoleBadge($user_type, $job_title = '') {
 
     <!-- ===== SUB-TABS ===== -->
     <div class="border-b border-emerald-100 mb-5 flex flex-wrap items-center justify-between gap-3">
-        <nav class="sub-tabs-nav flex gap-1 sm:gap-0 sm:space-x-8 sm:flex-wrap overflow-x-auto sm:overflow-visible whitespace-nowrap sm:whitespace-normal flex-1 min-w-0" aria-label="User tabs">
+        <nav class="sub-tabs-nav flex gap-1 sm:gap-0 sm:space-x-8 sm:flex-wrap overflow-x-auto sm:overflow-visible whitespace-nowrap sm:whitespace-normal flex-1 min-w-0" aria-label="<?php echo t('User tabs'); ?>">
             <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=citizens<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?><?php echo $registered_filter !== '' ? '&registered='.$registered_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'citizens' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-users"></i>
-                Citizens
+                <?php echo t('Citizens'); ?>
                 <span class="tab-badge"><?php echo $total_citizens; ?></span>
             </a>
             <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=barangay<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?><?php echo $registered_filter !== '' ? '&registered='.$registered_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'barangay' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-landmark"></i>
-                Barangay Personnel
+                <?php echo t('Barangay Personnel'); ?>
                 <span class="tab-badge"><?php echo $total_barangay; ?></span>
             </a>
             <a href="<?php echo BASE_URL; ?>index.php?page=manage-users&subtab=menro<?php echo !empty($search_query) ? '&search='.urlencode($search_query) : ''; ?><?php echo $barangay_filter > 0 ? '&barangay='.$barangay_filter : ''; ?><?php echo $status_filter !== '' ? '&status='.$status_filter : ''; ?><?php echo $residency_filter !== '' ? '&residency='.$residency_filter : ''; ?><?php echo $registered_filter !== '' ? '&registered='.$registered_filter : ''; ?>"
                class="px-3 sm:px-1 py-4 text-sm transition-all duration-200 flex items-center gap-2 <?php echo $users_tab == 'menro' ? 'tab-active' : 'tab-inactive'; ?>">
                 <i class="fas fa-crown"></i>
-                MENRO Staff
+                <?php echo t('MENRO Staff'); ?>
                 <span class="tab-badge"><?php echo $total_menro; ?></span>
             </a>
         </nav>
@@ -912,21 +913,21 @@ function getRoleBadge($user_type, $job_title = '') {
             <table class="w-full">
                 <thead>
                     <tr>
-                        <th class="text-left">User</th>
-                        <th class="text-left">Contact</th>
+                        <th class="text-left"><?php echo t('User'); ?></th>
+                        <th class="text-left"><?php echo t('Contact'); ?></th>
                         <?php if($users_tab === 'barangay' || $users_tab === 'citizens'): ?>
                         <th class="text-left"><?php echo $residency_filter === 'non_resident' ? 'Province / Municipality' : 'Barangay'; ?></th>
                         <?php endif; ?>
                         <?php if($users_tab === 'menro'): ?>
-                        <th class="text-left">Job Title</th>
+                        <th class="text-left"><?php echo t('Job Title'); ?></th>
                         <?php endif; ?>
-                        <th class="text-left">Role</th>
-                        <th class="text-left">Status</th>
+                        <th class="text-left"><?php echo t('Role'); ?></th>
+                        <th class="text-left"><?php echo t('Status'); ?></th>
                         <?php if($users_tab === 'barangay' || $users_tab === 'citizens'): ?>
-                        <th class="text-left">Residency</th>
+                        <th class="text-left"><?php echo t('Residency'); ?></th>
                         <?php endif; ?>
-                        <th class="text-left">Registered</th>
-                        <th class="text-left">Actions</th>
+                        <th class="text-left"><?php echo t('Registered'); ?></th>
+                        <th class="text-left"><?php echo t('Actions'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -937,7 +938,7 @@ function getRoleBadge($user_type, $job_title = '') {
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                         <?php if(!empty($user['profile_picture'])): ?>
-                                            <img src="<?php echo BASE_URL . $user['profile_picture']; ?>" alt="Profile" class="w-full h-full object-cover">
+                                            <img src="<?php echo BASE_URL . $user['profile_picture']; ?>" alt="<?php echo t('Profile'); ?>" class="w-full h-full object-cover">
                                         <?php else: ?>
                                             <i class="fas <?php echo ($user['user_type'] ?? '') === 'admin' || ($user['user_type'] ?? '') === 'menro_staff' ? 'fa-crown' : (($user['user_type'] ?? '') === 'barangay_personnel' ? 'fa-landmark' : 'fa-user'); ?> text-[#10A37F] text-sm"></i>
                                         <?php endif; ?>
@@ -985,9 +986,9 @@ function getRoleBadge($user_type, $job_title = '') {
                             <?php if($users_tab === 'barangay' || $users_tab === 'citizens'): ?>
                             <td data-label="Residency">
                                 <?php if(isset($user['is_resident']) && (int)$user['is_resident'] === 1): ?>
-                                    <span class="status-badge status-active"><i class="fas fa-home text-[8px] mr-1.5"></i>Resident</span>
+                                    <span class="status-badge status-active"><i class="fas fa-home text-[8px] mr-1.5"></i><?php echo t('Resident'); ?></span>
                                 <?php elseif(isset($user['is_resident']) && (int)$user['is_resident'] === 0): ?>
-                                    <span class="status-badge status-inactive"><i class="fas fa-map-marker-alt text-[8px] mr-1.5"></i>Non-Resident</span>
+                                    <span class="status-badge status-inactive"><i class="fas fa-map-marker-alt text-[8px] mr-1.5"></i><?php echo t('Non-Resident'); ?></span>
                                 <?php else: ?>
                                     <span class="text-sm text-gray-400 font-medium">—</span>
                                 <?php endif; ?>
@@ -1000,7 +1001,7 @@ function getRoleBadge($user_type, $job_title = '') {
                                 <div class="flex flex-wrap items-center gap-1.5">
                                     <!-- View Profile -->
                                     <button onclick="viewProfile(<?php echo $user['id']; ?>)"
-                                            class="action-btn action-btn-view" title="View Profile">
+                                            class="action-btn action-btn-view" title="<?php echo t('View Profile'); ?>">
                                         <i class="fas fa-eye text-xs"></i>
                                     </button>
 
@@ -1010,7 +1011,7 @@ function getRoleBadge($user_type, $job_title = '') {
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                             <input type="hidden" name="action" value="deactivate">
                                             <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                            <button type="submit" class="action-btn action-btn-suspend" title="Suspend Account">
+                                            <button type="submit" class="action-btn action-btn-suspend" title="<?php echo t('Suspend Account'); ?>">
                                                 <i class="fas fa-user-slash text-xs"></i>
                                             </button>
                                         </form>
@@ -1019,14 +1020,14 @@ function getRoleBadge($user_type, $job_title = '') {
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                             <input type="hidden" name="action" value="activate">
                                             <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                            <button type="submit" class="action-btn action-btn-activate" title="Activate Account">
+                                            <button type="submit" class="action-btn action-btn-activate" title="<?php echo t('Activate Account'); ?>">
                                                 <i class="fas fa-user-check text-xs"></i>
                                             </button>
                                         </form>
                                         <?php endif; ?>
                                     <?php else: ?>
-                                        <span class="action-btn action-btn-disabled" title="Admin accounts are protected">
-                                            <i class="fas fa-lock text-xs"></i> Protected
+                                        <span class="action-btn action-btn-disabled" title="<?php echo t('Admin accounts are protected'); ?>">
+                                            <i class="fas fa-lock text-xs"></i> <?php echo t('Protected'); ?>
                                         </span>
                                     <?php endif; ?>
                                 </div>
@@ -1041,7 +1042,7 @@ function getRoleBadge($user_type, $job_title = '') {
                                         <i class="fas fa-users-slash text-xl sm:text-2xl text-gray-400"></i>
                                     </div>
                                     <h3 class="font-semibold text-gray-700 mb-1 text-base">No <?php echo strtolower($tab_label); ?> found</h3>
-                                    <p class="text-gray-400 text-xs sm:text-sm">Try adjusting your filters</p>
+                                    <p class="text-gray-400 text-xs sm:text-sm"><?php echo t('Try adjusting your filters'); ?></p>
                                 </div>
                             </td>
                         </tr>
@@ -1054,15 +1055,15 @@ function getRoleBadge($user_type, $job_title = '') {
     <!-- ============================================================ -->
     <!-- CREATE STAFF MODAL -->
     <!-- ============================================================ -->
-    <div id="createModal" class="modal-overlay" onclick="if(event.target===this) closeCreateModal()">
+    <div id="createModal" class="modal-overlay" onclick="if(event.target===this) closeCreateModal()" role="dialog" aria-modal="true" aria-labelledby="createModalTitle">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="flex justify-between items-center">
                     <h2>
                         <i class="fas fa-user-plus"></i>
-                        <span id="createModalTitle">Create Staff Account</span>
+                        <span id="createModalTitle"><?php echo t('Create Staff Account'); ?></span>
                     </h2>
-                    <button onclick="closeCreateModal()" class="close-btn">&times;</button>
+                    <button onclick="closeCreateModal()" class="close-btn" aria-label="<?php echo t('Close create staff modal'); ?>">&times;</button>
                 </div>
             </div>
 
@@ -1072,72 +1073,72 @@ function getRoleBadge($user_type, $job_title = '') {
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">First Name <span class="text-red-500">*</span></label>
-                        <input type="text" name="first_name" required
+                        <label class="block text-sm font-bold text-gray-700 mb-2" for="createFirstName"><?php echo t('First Name'); ?> <span class="text-red-500">*</span></label>
+                        <input type="text" name="first_name" id="createFirstName" required
                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"
                                placeholder="Juan">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Last Name <span class="text-red-500">*</span></label>
-                        <input type="text" name="last_name" required
+                        <label class="block text-sm font-bold text-gray-700 mb-2" for="createLastName"><?php echo t('Last Name'); ?> <span class="text-red-500">*</span></label>
+                        <input type="text" name="last_name" id="createLastName" required
                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"
                                placeholder="Dela Cruz">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Email Address <span class="text-red-500">*</span></label>
-                        <input type="email" name="email" required
+                        <label class="block text-sm font-bold text-gray-700 mb-2" for="createEmail"><?php echo t('Email Address'); ?> <span class="text-red-500">*</span></label>
+                        <input type="email" name="email" id="createEmail" required
                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"
                                placeholder="user@example.com">
-                        <p class="text-xs text-gray-400 mt-1 font-medium">Email will be used for login</p>
+                        <p class="text-xs text-gray-400 mt-1 font-medium"><?php echo t('Email will be used for login'); ?></p>
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Contact Number <span class="text-red-500">*</span></label>
-                        <input type="tel" name="contact_number" required
+                        <label class="block text-sm font-bold text-gray-700 mb-2" for="createContact"><?php echo t('Contact Number'); ?> <span class="text-red-500">*</span></label>
+                        <input type="tel" name="contact_number" id="createContact" required
                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"
                                placeholder="09123456789" pattern="09[0-9]{9}">
-                        <p class="text-xs text-gray-400 mt-1 font-medium">11-digit number starting with 09</p>
+                        <p class="text-xs text-gray-400 mt-1 font-medium"><?php echo t('11-digit number starting with 09'); ?></p>
                     </div>
 
                     <!-- User Type -->
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">User Type <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-bold text-gray-700 mb-2" for="createUserType"><?php echo t('User Type'); ?> <span class="text-red-500">*</span></label>
                         <select name="user_type" id="createUserType" required
                                 class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm"
                                 onchange="onUserTypeChange()">
-                            <option value="barangay_personnel">Barangay Personnel</option>
-                            <option value="menro_staff">MENRO Staff</option>
-                            <option value="admin">Admin</option>
+                            <option value="barangay_personnel"><?php echo t('Barangay Personnel'); ?></option>
+                            <option value="menro_staff"><?php echo t('MENRO Staff'); ?></option>
+                            <option value="admin"><?php echo t('Admin'); ?></option>
                         </select>
                     </div>
 
                     <!-- Role (dynamic, from Permission Settings -> Create Role) -->
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Role <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-bold text-gray-700 mb-2" for="createRoleId"><?php echo t('Role'); ?> <span class="text-red-500">*</span></label>
                         <select name="role_id" id="createRoleId" required
                                 class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm">
-                            <option value="">Select Role</option>
+                            <option value=""><?php echo t('Select Role'); ?></option>
                             <?php foreach($role_list as $r): ?>
                             <option value="<?php echo $r['id']; ?>"><?php echo htmlspecialchars($r['title']); ?></option>
                             <?php endforeach; ?>
                         </select>
                         <p class="text-xs text-gray-400 mt-1 font-medium">
-                            Controls what this account can do. Manage roles in Settings &rarr; Permissions.
+                            <?php echo t('Controls what this account can do. Manage roles in Settings &rarr; Permissions.'); ?>
                         </p>
                     </div>
 
                     <!-- Job Title (for MENRO Staff / Admin) -->
                     <div id="jobTitleField" class="md:col-span-2" style="display: none;">
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Job Title</label>
-                        <input type="text" name="job_title"
+                        <label class="block text-sm font-bold text-gray-700 mb-2" for="createJobTitle"><?php echo t('Job Title'); ?></label>
+                        <input type="text" name="job_title" id="createJobTitle"
                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"
                                placeholder="e.g., Environmental Officer">
                     </div>
 
                     <!-- Barangay selection (only for User Type = Barangay Personnel) -->
                     <div id="barangayField" class="md:col-span-2" style="display: none;">
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Assigned Barangay <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-bold text-gray-700 mb-2" for="createBarangayId"><?php echo t('Assigned Barangay'); ?> <span class="text-red-500">*</span></label>
                         <select name="barangay_id" id="createBarangayId" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none bg-white text-sm">
-                            <option value="">Select Barangay</option>
+                            <option value=""><?php echo t('Select Barangay'); ?></option>
                             <?php foreach($barangay_list as $brgy): ?>
                             <option value="<?php echo $brgy['id']; ?>"><?php echo htmlspecialchars($brgy['name']); ?></option>
                             <?php endforeach; ?>
@@ -1149,7 +1150,7 @@ function getRoleBadge($user_type, $job_title = '') {
                     <div class="flex items-start gap-3">
                         <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
                         <div class="text-sm text-blue-800">
-                            <p class="font-extrabold mb-1">Account Setup:</p>
+                            <p class="font-extrabold mb-1"><?php echo t('Account Setup:'); ?></p>
                             <ul class="list-disc list-inside space-y-1 text-xs font-medium">
                                 <li>A <strong>temporary password</strong> will be generated automatically</li>
                                 <li>The user will receive their credentials via <strong>SMS</strong></li>
@@ -1161,10 +1162,10 @@ function getRoleBadge($user_type, $job_title = '') {
 
                 <div class="flex gap-3 mt-6">
                     <button type="submit" class="flex-1 btn-primary py-3 rounded-xl font-semibold">
-                        <i class="fas fa-check-circle mr-2"></i> Create Account
+                        <i class="fas fa-check-circle mr-2"></i> <?php echo t('Create Account'); ?>
                     </button>
                     <button type="button" onclick="closeCreateModal()" class="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition font-medium text-sm">
-                        Cancel
+                        <?php echo t('Cancel'); ?>
                     </button>
                 </div>
             </form>
@@ -1174,13 +1175,13 @@ function getRoleBadge($user_type, $job_title = '') {
     <!-- ============================================================ -->
     <!-- VIEW PROFILE MODAL -->
     <!-- ============================================================ -->
-    <div id="profileModal" class="modal-overlay" onclick="if(event.target===this) closeProfileModal()">
+    <div id="profileModal" class="modal-overlay" onclick="if(event.target===this) closeProfileModal()" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
             <div class="modal-header">
                 <div class="flex justify-between items-center">
-                    <h2>
+                    <h2 id="profileModalTitle">
                         <i class="fas fa-user-circle"></i>
-                        User Profile
+                        <?php echo t('User Profile'); ?>
                     </h2>
                     <button onclick="closeProfileModal()" class="close-btn">&times;</button>
                 </div>
@@ -1188,7 +1189,7 @@ function getRoleBadge($user_type, $job_title = '') {
             <div id="profileContent" class="p-6">
                 <div class="text-center py-8">
                     <i class="fas fa-spinner fa-spin text-2xl text-[#10A37F]"></i>
-                    <p class="text-gray-400 mt-2 text-sm">Loading profile...</p>
+                    <p class="text-gray-400 mt-2 text-sm"><?php echo t('Loading profile...'); ?></p>
                 </div>
             </div>
         </div>
@@ -1291,7 +1292,7 @@ function viewProfile(userId) {
                 <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
                     <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center overflow-hidden">
                         ${data.profile_picture ?
-                            `<img src="${data.profile_picture}" class="w-full h-full object-cover">` :
+                            `<img src="${data.profile_picture}" class="w-full h-full object-cover" alt="${data.full_name}'s profile photo">` :
                             `<i class="fas fa-user text-3xl text-[#10A37F]"></i>`
                         }
                     </div>
@@ -1457,5 +1458,7 @@ function downloadUsersExport(type) {
     </div>
 </div>
 
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
 </body>
 </html>

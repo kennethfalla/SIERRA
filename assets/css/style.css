@@ -145,6 +145,32 @@ body {
     background-color: #4b5563;
 }
 
+/* ===== Mobile touch targets ===== */
+/* Prevents iOS zoom-on-focus and ensures comfortable tap sizes on small screens. */
+@media (max-width: 767px) {
+    .form-input,
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="search"],
+    input[type="date"],
+    input[type="time"],
+    input[type="month"],
+    select,
+    textarea {
+        font-size: 16px;
+    }
+    .form-input {
+        min-height: 46px;
+    }
+    .btn-primary,
+    .btn-secondary {
+        min-height: 44px;
+    }
+}
+
 /* Table Styles */
 .data-table {
     width: 100%;

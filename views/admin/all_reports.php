@@ -6,6 +6,7 @@
 // UPDATED: Added stats summary cards
 
 require_once dirname(__DIR__, 2) . '/config/config.php';
+require_once dirname(__DIR__, 2) . '/helpers/Lang.php';
 require_once dirname(__DIR__, 2) . '/helpers/SettingsHelper.php';
 require_once dirname(__DIR__, 2) . '/helpers/PermissionHelper.php';
 requireRole('admin');
@@ -338,10 +339,10 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-    <title>All Reports - Sierra</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title><?php echo t('All Reports - Sierra'); ?></title>
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -860,7 +861,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
 
         <!-- Header (adapted from my_reports.php branding style) -->
@@ -869,34 +870,34 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                 <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
                     <i class="fas fa-flag text-[#10A37F] text-xs md:text-sm"></i>
                 </div>
-                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold">All Reports</span>
+                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('All Reports'); ?></span>
             </div>
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h1 class="page-title font-bold text-gray-800">All Reports</h1>
-                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">View and manage all environmental reports across San Isidro</p>
+                    <h1 class="page-title font-bold text-gray-800"><?php echo t('All Reports'); ?></h1>
+                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1"><?php echo t('View and manage all environmental reports across San Isidro'); ?></p>
                 </div>
                 <div class="flex items-center gap-3">
                     <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
                     <div class="export-dropdown" id="exportDropdownWrap">
                         <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
                             <i class="fas fa-file-export"></i>
-                            <span>Export</span>
+                            <span><?php echo t('Export'); ?></span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div id="exportDropdown" class="export-dropdown-menu" style="width:280px;">
                             <button class="export-dropdown-item" onclick="printReports()">
                                 <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
                                 <div class="item-text">
-                                    <div class="item-title">Export as PDF</div>
-                                    <div class="item-desc">Preview and save as PDF</div>
+                                    <div class="item-title"><?php echo t('Export as PDF'); ?></div>
+                                    <div class="item-desc"><?php echo t('Preview and save as PDF'); ?></div>
                                 </div>
                             </button>
                             <button class="export-dropdown-item" onclick="downloadExport('master')">
                                 <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
                                 <div class="item-text">
-                                    <div class="item-title">Export as CSV</div>
-                                    <div class="item-desc">All reports with current filters</div>
+                                    <div class="item-title"><?php echo t('Export as CSV'); ?></div>
+                                    <div class="item-desc"><?php echo t('All reports with current filters'); ?></div>
                                 </div>
                             </button>
                         </div>
@@ -911,7 +912,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <!-- Total -->
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
                 <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Total</p>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('Total'); ?></p>
                     <p class="text-xl md:text-2xl font-extrabold text-[#10A37F] tracking-tight"><?php echo $totalReports; ?></p>
                 </div>
                 <div class="w-10 h-10 bg-[#10A37F]/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -921,7 +922,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <!-- Pending -->
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-yellow-400 transition-all duration-200">
                 <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Pending</p>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('Pending'); ?></p>
                     <p class="text-xl md:text-2xl font-extrabold text-yellow-600 tracking-tight"><?php echo $pendingCount; ?></p>
                 </div>
                 <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -931,7 +932,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <!-- Under Review -->
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-blue-400 transition-all duration-200">
                 <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Under Review</p>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('Under Review'); ?></p>
                     <p class="text-xl md:text-2xl font-extrabold text-blue-600 tracking-tight"><?php echo $underReviewCount; ?></p>
                 </div>
                 <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -941,7 +942,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <!-- In Progress -->
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-pink-400 transition-all duration-200">
                 <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">In Progress</p>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('In Progress'); ?></p>
                     <p class="text-xl md:text-2xl font-extrabold text-pink-600 tracking-tight"><?php echo $inProgressCount; ?></p>
                 </div>
                 <div class="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -951,7 +952,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <!-- Escalated -->
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-orange-400 transition-all duration-200">
                 <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Escalated</p>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('Escalated'); ?></p>
                     <p class="text-xl md:text-2xl font-extrabold text-orange-600 tracking-tight"><?php echo $escalatedCount; ?></p>
                 </div>
                 <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -961,7 +962,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <!-- High Risk -->
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-red-400 transition-all duration-200">
                 <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">High Risk</p>
+                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('High Risk'); ?></p>
                     <p class="text-xl md:text-2xl font-extrabold text-red-600 tracking-tight"><?php echo $highRiskCount; ?></p>
                 </div>
                 <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -989,12 +990,12 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                 <div class="flex items-center gap-3">
                     <div class="bg-yellow-100 text-yellow-800 rounded-full w-10 h-10 flex items-center justify-center text-lg"><i class="fas fa-exclamation-triangle"></i></div>
                     <div>
-                        <div class="text-sm font-semibold">Escalated Reports</div>
+                        <div class="text-sm font-semibold"><?php echo t('Escalated Reports'); ?></div>
                         <div class="text-xs text-gray-600"><?php echo (int)$escalatedCount; ?> reports require attention</div>
                     </div>
                 </div>
                 <div>
-                    <a href="?page=all-reports&status=escalated" class="px-3 py-1 bg-yellow-500 text-white rounded-lg text-sm hover:bg-yellow-600 transition">View All Escalated</a>
+                    <a href="?page=all-reports&status=escalated" class="px-3 py-1 bg-yellow-500 text-white rounded-lg text-sm hover:bg-yellow-600 transition"><?php echo t('View All Escalated'); ?></a>
                 </div>
             </div>
             <div class="mt-3">
@@ -1093,15 +1094,15 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                     <table class="w-full">
                         <thead>
                             <tr class="border-b" style="background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%);">
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">ID</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Title</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Reporter</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Category</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Barangay</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Risk</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Action</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('ID'); ?></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Title'); ?></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Reporter'); ?></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Category'); ?></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Barangay'); ?></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Risk'); ?></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Status'); ?></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Date'); ?></th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Action'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1139,7 +1140,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                                     <td class="px-4 py-3 text-sm text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
                                     <td class="px-4 py-3">
                                         <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$row['id']); ?>" class="btn-primary px-4 py-1.5 text-white text-sm rounded-lg inline-block">
-                                            <i class="fas fa-eye mr-1"></i> View
+                                            <i class="fas fa-eye mr-1"></i> <?php echo t('View'); ?>
                                         </a>
                                         <?php /* MENRO staff may open any report to view it, but can only
                                                  MANAGE (add investigation notes, mark resolved, reject
@@ -1156,8 +1157,8 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                                             <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                                                 <i class="fas fa-inbox text-xl sm:text-2xl text-gray-400"></i>
                                             </div>
-                                            <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg">No reports found</h3>
-                                            <p class="text-gray-400 text-xs sm:text-sm">Try adjusting your filters</p>
+                                            <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg"><?php echo t('No reports found'); ?></h3>
+                                            <p class="text-gray-400 text-xs sm:text-sm"><?php echo t('Try adjusting your filters'); ?></p>
                                         </div>
                                     </td>
                                 </tr>
@@ -1298,5 +1299,6 @@ function printReports() {
 }
 </script>
 
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
 </body>
 </html>

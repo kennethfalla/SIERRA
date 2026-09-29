@@ -9,6 +9,7 @@
 
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
 require_once BASE_PATH . 'helpers/PermissionHelper.php';
+require_once BASE_PATH . 'helpers/Lang.php';
 
 $current_page = $_GET['page'] ?? 'dashboard';
 $user_role = $_SESSION['user_role'] ?? 'citizen';
@@ -152,22 +153,22 @@ $role_badge_color = '';
 $role_icon = '';
 switch($user_type) {
     case 'admin':
-        $role_display_name = 'Admin';
+        $role_display_name = t('Admin');
         $role_badge_color = 'bg-purple-100 text-purple-700';
         $role_icon = 'fa-building';
         break;
     case 'menro_staff':
-        $role_display_name = 'MENRO Staff';
+        $role_display_name = t('MENRO Staff');
         $role_badge_color = 'bg-purple-100 text-purple-700';
         $role_icon = 'fa-building';
         break;
     case 'barangay_personnel':
-        $role_display_name = 'Barangay Official';
+        $role_display_name = t('Barangay Official');
         $role_badge_color = 'bg-emerald-100 text-emerald-700';
         $role_icon = 'fa-map-marker-alt';
         break;
     default:
-        $role_display_name = isset($user_is_resident) && $user_is_resident == 0 ? 'Non-Resident' : 'Resident';
+        $role_display_name = isset($user_is_resident) && $user_is_resident == 0 ? t('Non-Resident') : t('Resident');
         $role_badge_color = 'bg-blue-100 text-blue-700';
         $role_icon = 'fa-user';
 }
@@ -201,7 +202,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
 
 <!-- Skip to main content link -->
 <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-emerald-600 focus:text-white focus:rounded-lg">
-    Skip to main content
+    <?php echo t('Skip to main content'); ?>
 </a>
 
 <!-- Minimal Non-Intrusive Burger Menu Button -->
@@ -237,17 +238,17 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
             <?php endif; ?>
             <div>
                 <!-- UPDATED: Dynamic system name -->
-                <h2 class="text-xl font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">
+                <p class="text-xl font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">
                     <?php echo htmlspecialchars($system_name); ?>
-                </h2>
-                <p class="text-[10px] text-gray-400 uppercase tracking-wider">Environmental Reporting</p>
+                </p>
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider"><?php echo t('Environmental Reporting'); ?></p>
             </div>
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
             <?php if ($user_role === 'admin'): ?>
             <button type="button" id="menroNotifBell"
                     class="notification-bell"
-                    style="width:34px;height:34px;border-radius:10px;background:#F3F4F6;color:#4B5563;position:relative;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;"
+                    style="width:40px;height:40px;border-radius:10px;background:#F3F4F6;color:#4B5563;position:relative;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;"
                     onclick="menroToggleNotifs(event)"
                     aria-label="Notifications"
                     title="Notifications">
@@ -258,7 +259,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
             </button>
             <?php endif; ?>
             <button id="hideSidebarBtn" 
-                    class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
+                    class="w-10 h-10 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
                     aria-label="Close sidebar menu"
                     title="Hide Sidebar">
             <svg class="w-4 h-4 text-gray-500 group-hover:text-red-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,53 +277,26 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         <!-- Citizen Section -->
         <div class="mb-6">
 
-            
             <!-- Home -->
             <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Home</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Home'); ?></span>
                 <?php if($current_page == 'dashboard'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
             </a>
-            
-            <!-- Announcements -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium">Announcements</span>
-                <?php if($current_page == 'announcements'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
-            <!-- Notifications -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium">Notifications</span>
-                <?php if($current_page == 'notifications'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
+
             <!-- Submit Report -->
             <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'submit-report' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'submit-report' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-plus-circle text-sm <?php echo $current_page == 'submit-report' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Submit Report</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Submit Report'); ?></span>
                 <?php if($current_page == 'submit-report'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -335,8 +309,34 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'my-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-list text-sm <?php echo $current_page == 'my-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">My Reports</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('My Reports'); ?></span>
                 <?php if($current_page == 'my-reports'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
+            <!-- Announcements -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
+                <?php if($current_page == 'announcements'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
+            <!-- Notifications -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
+                <?php if($current_page == 'notifications'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
                 <?php endif; ?>
@@ -354,7 +354,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Dashboard</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Dashboard'); ?></span>
                 <?php if($current_page == 'dashboard'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -367,7 +367,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Announcements</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
                 <?php if($current_page == 'announcements'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -380,7 +380,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Notifications</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
                 <?php if($current_page == 'notifications'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -393,7 +393,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'verify-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-check-double text-sm <?php echo $current_page == 'verify-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Manage Reports</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Manage Reports'); ?></span>
                 <?php if($current_page == 'verify-reports'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -407,7 +407,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-address-book text-sm <?php echo $current_page == 'reporters-directory' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Reporters Directory</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Reporters Directory'); ?></span>
                 <?php if($current_page == 'reporters-directory'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -427,7 +427,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Dashboard</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Dashboard'); ?></span>
                 <?php if($current_page == 'dashboard'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -440,7 +440,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Announcements</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
                 <?php if($current_page == 'announcements'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -453,7 +453,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Notifications</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
                 <?php if($current_page == 'notifications'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -466,7 +466,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'all-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-flag text-sm <?php echo $current_page == 'all-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">All Reports</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('All Reports'); ?></span>
                 <?php if($current_page == 'all-reports'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -480,7 +480,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'manage-users' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-users-cog text-sm <?php echo $current_page == 'manage-users' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">User Management</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('User Management'); ?></span>
                 <?php if($current_page == 'manage-users'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -494,7 +494,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'audit-logs' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                     <i class="fas fa-history text-sm <?php echo $current_page == 'audit-logs' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
-                <span class="ml-3 text-sm font-medium">Audit Logs</span>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Audit Logs'); ?></span>
                 <?php if($current_page == 'audit-logs'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -505,13 +505,13 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
             <!-- UPDATED: System Settings (tabbed interface) -->
             <?php if (PermissionHelper::userHasPermission('can_manage_system')): ?>
             <div class="mt-4 pt-2 border-t border-emerald-50">
-                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3">Settings</p>
+                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3"><?php echo t('Settings'); ?></p>
                 <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=general" 
                    class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'settings' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
                     <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'settings' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
                         <i class="fas fa-cog text-sm <?php echo $current_page == 'settings' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                     </div>
-                    <span class="ml-3 text-sm font-medium">System Settings</span>
+                    <span class="ml-3 text-sm font-medium"><?php echo t('System Settings'); ?></span>
                     <?php if($current_page == 'settings'): ?>
                     <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                     <span class="sr-only">(current)</span>
@@ -561,8 +561,8 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
     <div class="menro-notif-header">
         <div class="flex justify-between items-center">
             <div>
-                <h3 class="font-semibold text-gray-800 text-sm">Notifications</h3>
-                <p class="text-xs text-gray-400 mt-0.5">MENRO alerts &amp; report updates</p>
+                <h3 class="font-semibold text-gray-800 text-sm"><?php echo t('Notifications'); ?></h3>
+                <p class="text-xs text-gray-400 mt-0.5"><?php echo t('MENRO alerts &amp; report updates'); ?></p>
             </div>
             <span class="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-medium" id="menroNotifCount"><?php echo count($menu_notifs); ?></span>
         </div>
@@ -583,9 +583,9 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                         <i class="far fa-clock"></i>
                         <?php
                         $mtime = time() - strtotime($mnotif['created_at']);
-                        if ($mtime < 60) echo 'Just now';
-                        elseif ($mtime < 3600) echo floor($mtime / 60) . ' min ago';
-                        elseif ($mtime < 86400) echo floor($mtime / 3600) . ' hrs ago';
+                        if ($mtime < 60) echo t('Just now');
+                        elseif ($mtime < 3600) echo floor($mtime / 60) . t(' min ago');
+                        elseif ($mtime < 86400) echo floor($mtime / 3600) . t(' hrs ago');
                         else echo date('M d', strtotime($mnotif['created_at']));
                         ?>
                     </div>
@@ -600,18 +600,18 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-bell-slash text-xl text-gray-400"></i>
                 </div>
-                <p class="text-gray-400 text-sm">No notifications yet</p>
-                <p class="text-xs text-gray-300 mt-1">New reports and escalations will appear here</p>
+                <p class="text-gray-400 text-sm"><?php echo t('No notifications yet'); ?></p>
+                <p class="text-xs text-gray-300 mt-1"><?php echo t('New reports and escalations will appear here'); ?></p>
             </div>
         <?php endif; ?>
     </div>
     <?php if (count($menu_notifs) > 0): ?>
     <div class="menro-notif-actions">
-        <button type="button" class="menro-mark-all" onclick="menroMarkAllRead()"><i class="fas fa-check-double mr-1"></i>Mark all as read</button>
-        <button type="button" class="menro-clear-all" onclick="menroClearAll()"><i class="fas fa-trash-alt mr-1"></i>Clear all</button>
+        <button type="button" class="menro-mark-all" onclick="menroMarkAllRead()"><i class="fas fa-check-double mr-1"></i><?php echo t('Mark all as read'); ?></button>
+        <button type="button" class="menro-clear-all" onclick="menroClearAll()"><i class="fas fa-trash-alt mr-1"></i><?php echo t('Clear all'); ?></button>
     </div>
     <?php endif; ?>
-    <div class="menro-notif-view-all" onclick="menroViewAll()"><i class="fas fa-list-alt mr-2"></i>View all notifications</div>
+    <div class="menro-notif-view-all" role="button" tabindex="0" onclick="menroViewAll()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();menroViewAll();}"><i class="fas fa-list-alt mr-2"></i><?php echo t('View all notifications'); ?></div>
 </div>
 <?php endif; ?>
 
@@ -627,16 +627,16 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
             <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-sign-out-alt text-red-500 text-2xl"></i>
             </div>
-            <h3 id="logout-modal-title" class="text-xl font-semibold text-gray-800 mb-2">Confirm Logout</h3>
-            <p class="text-gray-500 text-sm mb-6">Are you sure you want to logout from your account?</p>
+            <h3 id="logout-modal-title" class="text-xl font-semibold text-gray-800 mb-2"><?php echo t('Confirm Logout'); ?></h3>
+            <p class="text-gray-500 text-sm mb-6"><?php echo t('Are you sure you want to logout from your account?'); ?></p>
             <div class="flex gap-3">
                 <button type="button" onclick="closeLogoutModal()" 
                         class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition">
-                    Cancel
+                    <?php echo t('Cancel'); ?>
                 </button>
                 <a href="<?php echo BASE_URL; ?>index.php?page=logout" 
                    class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition text-center">
-                    Logout
+                    <?php echo t('Logout'); ?>
                 </a>
             </div>
         </div>
@@ -892,7 +892,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
 (function () {
     'use strict';
     var LIVE_URL = '<?php echo BASE_URL; ?>controllers/LiveSyncController.php';
-    var POLL_MS = 10000;   // check for new notifications every 10 seconds
+    var POLL_MS = 30000;   // check for new notifications every 30 seconds (was 10s — free hosts throttle on hit volume)
     var TOAST_MS = 6000;   // how long each toast stays on screen
 
     var baselineVersion = null;
@@ -946,6 +946,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         }
 
         var toast = document.createElement('div');
+        toast.setAttribute('role', 'alert');
         toast.style.cssText = 'pointer-events:auto;display:flex;align-items:flex-start;gap:12px;background:#ffffff;border:1px solid #e2e8f0;border-left:4px solid ' + (latest.color || '#10A37F') + ';border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:14px 16px;font-family:inherit;cursor:pointer;opacity:0;transform:translateY(-16px);animation:rtToastIn .35s cubic-bezier(.16,1,.3,1) forwards;';
 
         var icon = document.createElement('div');
@@ -967,7 +968,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         m.textContent = latest.message;
 
         var meta = document.createElement('div');
-        meta.style.cssText = 'font-size:0.68rem;color:#9CA3AF;display:flex;align-items:center;gap:4px;';
+        meta.style.cssText = 'font-size:0.68rem;color:#6B7280;display:flex;align-items:center;gap:4px;';
         var ci = document.createElement('i');
         ci.className = 'far fa-clock';
         ci.style.fontSize = '0.68rem';
@@ -980,7 +981,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
 
         var close = document.createElement('button');
         close.innerHTML = '&times;';
-        close.style.cssText = 'flex-shrink:0;border:none;background:transparent;color:#9CA3AF;font-size:1.1rem;line-height:1;cursor:pointer;padding:0 2px;';
+        close.style.cssText = 'flex-shrink:0;border:none;background:transparent;color:#6B7280;font-size:1.1rem;line-height:1;cursor:pointer;padding:0 2px;';
         close.addEventListener('click', function (e) { e.stopPropagation(); dismiss(toast); });
 
         toast.appendChild(icon);
@@ -1204,3 +1205,5 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
 </style>
 
 <?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
+
+<?php echo lang_apply_js(); ?>

@@ -32,7 +32,26 @@ class Database {
      * Get database connection
      * @return PDO
      */
+    // Bump this whenever new auto-migrations are added further below. The
+    // migration block only runs when this value changes, so normal requests run
+    // zero schema checks (important on shared hosting / high-traffic polling).
+    const SCHEMA_VERSION = '2026-09-29-1';
+
+    // Reuse a single PDO connection per request (see getConnection()).
+    private static $sharedConn = null;
+    // Run the schema/column migration block at most once per request.
+    private static $columnsEnsured = false;
+
     public function getConnection() {
+        // Reuse the connection created earlier in this request. Creating a new
+        // PDO for every `new Database()` (there are ~50 call sites) exhausts
+        // shared-hosting connection limits and re-runs the migration checks
+        // dozens of times, which is a common cause of 502/limit errors.
+        if (self::$sharedConn instanceof PDO) {
+            $this->conn = self::$sharedConn;
+            return $this->conn;
+        }
+
         $this->conn = null;
         try {
             $dsn = "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name . ";charset=utf8mb4";
@@ -50,10 +69,15 @@ class Database {
             } catch(PDOException $tzException) {
                 error_log("[Database] Could not set session time_zone to +08:00: " . $tzException->getMessage());
             }
-            
-            // Auto-ensure required columns exist
-            $this->ensureColumns();
-            
+
+            // Auto-ensure required columns exist (once per request only).
+            if (!self::$columnsEnsured) {
+                $this->ensureColumns();
+                self::$columnsEnsured = true;
+            }
+
+            self::$sharedConn = $this->conn;
+
         } catch(PDOException $exception) {
             die("Database Connection Error: " . $exception->getMessage());
         }
@@ -65,6 +89,14 @@ class Database {
      * This auto-migrates the database on connection
      */
     private function ensureColumns() {
+        // Cheap gate: once the migrations have run for this schema version we
+        // drop a marker file and skip every SHOW/ALTER/CREATE check on later
+        // requests. On shared hosting this removes dozens of queries per request.
+        $marker = dirname(__DIR__) . '/config/.schema_version';
+        if (is_file($marker) && trim((string) @file_get_contents($marker)) === self::SCHEMA_VERSION) {
+            return true;
+        }
+
         try {
             // ============================================
             // 1. CHECK: force_password_reset column in users table
@@ -376,6 +408,30 @@ class Database {
                 }
             }
 
+            // ============================================
+            // 11. CHECK: user_devices table (new-device login detection)
+            // ============================================
+            if (!$this->tableExists('user_devices')) {
+                $this->conn->exec("
+                    CREATE TABLE IF NOT EXISTS user_devices (
+                        id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                        user_id INT(11) NOT NULL,
+                        device_key VARCHAR(64) NOT NULL,
+                        device_name VARCHAR(191) DEFAULT NULL,
+                        user_agent VARCHAR(255) DEFAULT NULL,
+                        ip_address VARCHAR(64) DEFAULT NULL,
+                        first_seen_at DATETIME DEFAULT NULL,
+                        last_login_at DATETIME DEFAULT NULL,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY uq_user_device (user_id, device_key),
+                        KEY idx_user_ip (user_id, ip_address),
+                        KEY idx_user (user_id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+                ");
+                error_log("[Database] Created 'user_devices' table.");
+            }
+
+            @file_put_contents($marker, self::SCHEMA_VERSION);
             return true;
 
         } catch (PDOException $e) {

@@ -34,19 +34,18 @@ $escalated_count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
 date_default_timezone_set('Asia/Manila');
 $current_hour = date('H');
-$current_time = date('g:i A');
 $current_date = date('F j, Y');
 
 if ($current_hour < 12) {
-    $greeting = "Good Morning";
+    $greeting = t("Good Morning");
     $greeting_icon = "fa-sun";
     $greeting_color = "text-yellow-200";
 } elseif ($current_hour < 18) {
-    $greeting = "Good Afternoon";
+    $greeting = t("Good Afternoon");
     $greeting_icon = "fa-cloud";
     $greeting_color = "text-orange-200";
 } else {
-    $greeting = "Good Evening";
+    $greeting = t("Good Evening");
     $greeting_icon = "fa-moon";
     $greeting_color = "text-indigo-200";
 }
@@ -195,12 +194,19 @@ if (is_dir($barangays_dir)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-    <title>Citizen Dashboard - EnviroTrack</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title><?php echo t('Citizen Dashboard - EnviroTrack'); ?></title>
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
+    <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
+    <!-- Network hints for slow connections (map tiles / reverse geocoding) -->
+    <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+    <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
+    <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
+    <link rel="dns-prefetch" href="https://photon.komoot.io">
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -532,7 +538,7 @@ if (is_dir($barangays_dir)) {
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             flex-shrink: 0;
         }
         @media (min-width: 640px) {
@@ -547,6 +553,8 @@ if (is_dir($barangays_dir)) {
             border-radius: 9999px;
             font-size: 0.6rem;
             font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         @media (min-width: 640px) {
             .badge-delay {
@@ -569,6 +577,7 @@ if (is_dir($barangays_dir)) {
             cursor: pointer;
             text-decoration: none;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         @media (min-width: 640px) {
             .btn-announce {
@@ -1640,34 +1649,10 @@ if (is_dir($barangays_dir)) {
             font-size: 0.85rem;
         }
         .empty-reports a:hover {
-            text-decoration: underline;
-        }
-        
-        .community-footer {
-            margin-top: 1.5rem;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 12px;
-            font-size: 0.75rem;
-            color: #6B7280;
-            border-top: 1px solid #E5E7EB;
-            padding-top: 1rem;
-        }
-        @media (min-width: 640px) {
-            .community-footer {
-                margin-top: 1.75rem;
-                gap: 16px;
-                font-size: 0.85rem;
-                padding-top: 1.25rem;
-            }
-        }
-        .community-footer i { color: #10A37F; width: 18px; }
-        @media (min-width: 640px) {
-            .community-footer i { width: 20px; }
-        }
-        
-        .ring-animation { 
+text-decoration: underline;
+}
+
+        .ring-animation {
             animation: ring 0.6s ease-in-out; 
         }
         @keyframes ring { 
@@ -1777,6 +1762,8 @@ if (is_dir($barangays_dir)) {
             .announce-label { font-size: 0.58rem !important; }
             .announce-msg   { font-size: 0.75rem !important; }
             .btn-announce   { padding: 5px 11px !important; font-size: 0.7rem !important; gap: 4px !important; }
+            .announce-card { flex-wrap: nowrap !important; }
+            .announce-left { flex: 0 1 auto !important; min-width: 0 !important; }
 
             /* ── Report-issue CTA card ── */
             .report-issue-card {
@@ -1807,9 +1794,6 @@ if (is_dir($barangays_dir)) {
             #map-container { padding: 0.65rem !important; border-radius: 1rem !important; }
             .map-toggle button { padding: 0.3rem 0.75rem !important; font-size: 0.65rem !important; }
 
-            /* ── Community footer ── */
-            .community-footer { font-size: 0.65rem !important; gap: 8px !important; margin-top: 0.75rem !important; }
-
             /* ── FAB (floating action button) ── */
             .new-report-fab { width: 50px !important; height: 50px !important; font-size: 1.15rem !important; right: 14px !important; }
         }
@@ -1819,7 +1803,7 @@ if (is_dir($barangays_dir)) {
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
         
         <!-- ===== GREETING BADGE ===== -->
@@ -1831,17 +1815,17 @@ if (is_dir($barangays_dir)) {
                         <span class="text-sm font-medium text-white/80"><?php echo $greeting; ?></span>
                     </div>
                     <h1 class="greeting-name"><?php echo htmlspecialchars($user_name); ?></h1>
-                    <p class="text-emerald-100/80 text-xs mt-0.5">It's <?php echo $current_time; ?> on <?php echo $current_date; ?></p>
+                    <p class="text-emerald-100/80 text-xs mt-0.5"><?php echo $current_date; ?></p>
                 </div>
                 
                 <div class="flex items-center gap-3">
                     <div class="notification-container">
-                        <div class="notification-bell bg-white/20 rounded-xl w-10 h-10 flex items-center justify-center" onclick="toggleNotifications()">
-                            <i class="fas fa-bell text-white text-lg"></i>
+                        <button type="button" id="notifBellBtn" class="notification-bell bg-white/20 rounded-xl w-10 h-10 flex items-center justify-center" onclick="toggleNotifications()" aria-label="<?php echo t('Toggle notifications'); ?>" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-bell text-white text-lg" aria-hidden="true"></i>
                             <?php if($unread_count > 0): ?>
                             <span class="notification-badge" id="notificationBadge"><?php echo $unread_count > 9 ? '9+' : $unread_count; ?></span>
                             <?php endif; ?>
-                        </div>
+                        </button>
                     </div>
                     
                     <div class="time-card">
@@ -1857,8 +1841,8 @@ if (is_dir($barangays_dir)) {
             <div class="notification-header">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h3 class="font-semibold text-gray-800 text-sm">Notifications</h3>
-                        <p class="text-xs text-gray-400 mt-0.5">Stay updated on your reports</p>
+                        <h3 class="font-semibold text-gray-800 text-sm"><?php echo t('Notifications'); ?></h3>
+                        <p class="text-xs text-gray-400 mt-0.5"><?php echo t('Stay updated on your reports'); ?></p>
                     </div>
                     <span class="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-medium">
                         <?php echo count($notifications); ?>
@@ -1869,7 +1853,7 @@ if (is_dir($barangays_dir)) {
             <div class="notification-list">
                 <?php if(count($notifications) > 0): ?>
                     <?php foreach($notifications as $notif): ?>
-                    <div class="notification-item" data-link="<?php echo isset($notif['link']) ? $notif['link'] : ''; ?>" data-id="<?php echo (int)$notif['id']; ?>">
+                    <div class="notification-item" data-link="<?php echo isset($notif['link']) ? $notif['link'] : ''; ?>" data-id="<?php echo (int)$notif['id']; ?>" role="link" tabindex="0" aria-label="Open notification: <?php echo htmlspecialchars($notif['title']); ?>" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                         <div class="notification-icon" style="background: <?php echo $notif['color']; ?>20;">
                             <i class="fas <?php echo $notif['icon']; ?>" style="color: <?php echo $notif['color']; ?>; font-size: 1rem;"></i>
                         </div>
@@ -1880,7 +1864,7 @@ if (is_dir($barangays_dir)) {
                                 <i class="far fa-clock"></i>
                                 <?php
                                     $time_diff = time() - strtotime($notif['created_at']);
-                                    if($time_diff < 60) echo "Just now";
+                                    if($time_diff < 60) echo t("Just now");
                                     elseif($time_diff < 3600) echo floor($time_diff / 60) . " min ago";
                                     elseif($time_diff < 86400) echo floor($time_diff / 3600) . " hrs ago";
                                     else echo date('M d', strtotime($notif['created_at']));
@@ -1897,24 +1881,24 @@ if (is_dir($barangays_dir)) {
                         <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                             <i class="fas fa-bell-slash text-xl text-gray-400"></i>
                         </div>
-                        <p class="text-gray-400 text-sm">No notifications yet</p>
-                        <p class="text-xs text-gray-300 mt-1">We'll notify you when something arrives</p>
+                        <p class="text-gray-400 text-sm"><?php echo t('No notifications yet'); ?></p>
+                        <p class="text-xs text-gray-300 mt-1"><?php echo t("We'll notify you when something arrives"); ?></p>
                     </div>
                 <?php endif; ?>
             </div>
             
             <?php if(count($notifications) > 0): ?>
             <div class="notification-actions">
-                <div class="mark-all-read" onclick="markAllAsRead()">
-                    <i class="fas fa-check-double mr-1"></i>Mark all as read
+                <div class="mark-all-read" role="button" tabindex="0" onclick="markAllAsRead()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();markAllAsRead();}">
+                    <i class="fas fa-check-double mr-1" aria-hidden="true"></i><?php echo t('Mark all as read'); ?>
                 </div>
-                <div class="clear-notifications" onclick="clearAllNotifications()">
-                    <i class="fas fa-trash-alt mr-1"></i>Clear all
+                <div class="clear-notifications" role="button" tabindex="0" onclick="clearAllNotifications()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clearAllNotifications();}">
+                    <i class="fas fa-trash-alt mr-1" aria-hidden="true"></i><?php echo t('Clear all'); ?>
                 </div>
             </div>
             <?php endif; ?>
-            <div class="view-all-notifications" onclick="viewAllNotifications()">
-                <i class="fas fa-list-alt mr-2"></i>View all notifications
+            <div class="view-all-notifications" role="button" tabindex="0" onclick="viewAllNotifications()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();viewAllNotifications();}">
+                <i class="fas fa-list-alt mr-2" aria-hidden="true"></i><?php echo t('View all notifications'); ?>
             </div>
         </div>
         
@@ -1929,7 +1913,7 @@ if (is_dir($barangays_dir)) {
                         if ($latest_announcement) {
                             echo date('M d, Y', strtotime($latest_announcement['created_at']));
                         } else {
-                            echo 'No announcements';
+                            echo t('No announcements');
                         }
                         ?>
                     </span>
@@ -1950,7 +1934,7 @@ if (is_dir($barangays_dir)) {
                                 }
                             ?>
                         <?php else: ?>
-                            No announcements available at the moment.
+                            <?php echo t('No announcements available at the moment.'); ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -1960,14 +1944,14 @@ if (is_dir($barangays_dir)) {
                 <span class="badge-delay">
                     <?php 
                     $days = floor((time() - strtotime($latest_announcement['created_at'])) / 86400);
-                    if ($days == 0) echo 'New';
-                    elseif ($days == 1) echo '1 day ago';
+                    if ($days == 0) echo t('New');
+                    elseif ($days == 1) echo t('1 day ago');
                     else echo $days . ' days ago';
                     ?>
                 </span>
                 <?php endif; ?>
                 <a href="<?php echo BASE_URL; ?>index.php?page=announcements" class="btn-announce">
-                    Details <i class="fas fa-chevron-right text-xs"></i>
+                    <?php echo t('Details'); ?> <i class="fas fa-chevron-right text-xs"></i>
                 </a>
             </div>
         </div>
@@ -1979,64 +1963,45 @@ if (is_dir($barangays_dir)) {
                     <div class="flex flex-wrap items-center gap-3">
                         <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
                             <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
-                            Community Reports
+                            <?php echo t('Community Reports'); ?>
                         </h2>
                     </div>
                 </div>
 
                 <div class="flex flex-wrap gap-3 text-xs mb-3">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Pending</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#3B82F6;"></span> Verified</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#8B5CF6;"></span> In Progress</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Escalated</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> <?php echo t('Pending'); ?></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#3B82F6;"></span> <?php echo t('Verified'); ?></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#8B5CF6;"></span> <?php echo t('In Progress'); ?></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> <?php echo t('Escalated'); ?></span>
                 </div>
 
                 <div id="communityMap"></div>
 
                 <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
                     <i class="fas fa-info-circle"></i>
-                    Click any marker to view details. <span class="inline-flex items-center gap-1 ml-1"><span class="w-2.5 h-2.5 rounded-full border-2 border-[#10A37F] bg-[#10A37F]"></span> = your report.</span>
+                    <?php echo t('Click any marker to view details.'); ?> <span class="inline-flex items-center gap-1 ml-1"><span class="w-2.5 h-2.5 rounded-full border-2 border-[#10A37F] bg-[#10A37F]"></span> = your report.</span>
                 </p>
 
         <!-- ===== REPORT DETAIL MODAL ===== -->
-        <div id="reportDetailModal" role="dialog" aria-modal="true" aria-label="Report Details">
+        <div id="reportDetailModal" role="dialog" aria-modal="true" aria-label="<?php echo t('Report Details'); ?>">
             <div class="rdm-backdrop" onclick="closeReportDetail()"></div>
             <div class="rdm-sheet" id="rdmSheet">
                 <div class="rdm-handle"></div>
-                <button class="rdm-close" onclick="closeReportDetail()" aria-label="Close"><i class="fas fa-times"></i></button>
+                <button class="rdm-close" onclick="closeReportDetail()" aria-label="<?php echo t('Close'); ?>"><i class="fas fa-times"></i></button>
                 <div id="rdmContent" class="px-5 pb-6">
                     <!-- filled by JS -->
                 </div>
             </div>
         </div>
         <!-- Lightbox -->
-        <div id="rdmLightbox">
-            <button id="rdmLightboxClose" onclick="document.getElementById('rdmLightbox').classList.remove('open')" aria-label="Close image"><i class="fas fa-times"></i></button>
-            <img id="rdmLightboxImg" src="" alt="Report photo">
+        <div id="rdmLightbox" data-modal="1" role="dialog" aria-modal="true" aria-label="<?php echo t('Report photo viewer'); ?>">
+            <button id="rdmLightboxClose" onclick="document.getElementById('rdmLightbox').classList.remove('open')" aria-label="<?php echo t('Close image'); ?>"><i class="fas fa-times"></i></button>
+            <img id="rdmLightboxImg" src="" alt="<?php echo t('Report photo'); ?>">
         </div>
             </div>
 
             <!-- RIGHT: Ecological CTA on top, statistics below -->
             <div class="right-col">
-
-            <!-- ECOLOGICAL CTA -->
-            <div class="report-issue-card">
-                <div class="flex items-start gap-3 md:gap-4">
-                    <div class="issue-icon-large"><i class="fas fa-tree"></i></div>
-                    <div>
-                        <div class="issue-title"><i class="fas fa-leaf"></i> Have you spotted an ecological concern?</div>
-                    </div>
-                </div>
-                <div class="issue-description">
-                    Rapid reporting helps local authorities address illegal dumping, pollution, and wildlife concerns before they escalate.
-                </div>
-                <div class="issue-action">
-                    <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-report">
-                        <span>Report an Issue Now</span>
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-            </div>
 
             <!-- STATISTICS -->
             <div class="stats-grid">
@@ -2044,7 +2009,7 @@ if (is_dir($barangays_dir)) {
                     <div class="flex justify-between items-start">
                         <div>
                             <div class="stat-value"><?php echo $total_reports; ?></div>
-                            <div class="stat-label">Total Reports</div>
+                            <div class="stat-label"><?php echo t('Total Reports'); ?></div>
                         </div>
                         <div class="stat-icon bg-emerald-100">
                             <i class="fas fa-flag text-[#10A37F] text-base md:text-lg"></i>
@@ -2056,7 +2021,7 @@ if (is_dir($barangays_dir)) {
                     <div class="flex justify-between items-start">
                         <div>
                             <div class="stat-value text-green-600"><?php echo $total_resolved_count; ?></div>
-                            <div class="stat-label">Resolved</div>
+                            <div class="stat-label"><?php echo t('Resolved'); ?></div>
                             <?php if($closed_count > 0): ?>
                             <span class="text-[10px] text-gray-400">(<?php echo $closed_count; ?> closed)</span>
                             <?php endif; ?>
@@ -2071,12 +2036,31 @@ if (is_dir($barangays_dir)) {
                     <div class="flex justify-between items-start">
                         <div>
                             <div class="stat-value text-yellow-600"><?php echo $pending_count; ?></div>
-                            <div class="stat-label">Pending Action</div>
+                            <div class="stat-label"><?php echo t('Pending Action'); ?></div>
                         </div>
                         <div class="stat-icon bg-yellow-50">
                             <i class="fas fa-hourglass-half text-yellow-500 text-base md:text-lg"></i>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- ECOLOGICAL CTA -->
+            <div class="report-issue-card">
+                <div class="flex items-start gap-3 md:gap-4">
+                    <div class="issue-icon-large"><i class="fas fa-tree"></i></div>
+                    <div>
+                        <div class="issue-title"><i class="fas fa-leaf"></i> <?php echo t('Have you spotted an ecological concern?'); ?></div>
+                    </div>
+                </div>
+                <div class="issue-description">
+                    <?php echo t('Rapid reporting helps local authorities address illegal dumping, pollution, and wildlife concerns before they escalate.'); ?>
+                </div>
+                <div class="issue-action">
+                    <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-report">
+                        <span><?php echo t('Report an Issue Now'); ?></span>
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
                 </div>
             </div>
             </div>
@@ -2086,23 +2070,24 @@ if (is_dir($barangays_dir)) {
         <div class="table-container">
             <div class="table-header">
                 <h3>
-                    <i class="fas fa-list-ul"></i> Recent Reports
+                    <i class="fas fa-list-ul"></i> <?php echo t('Recent Reports'); ?>
                 </h3>
                 <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="view-all">
-                    View All <i class="fas fa-arrow-right text-xs"></i>
+                    <?php echo t('View All'); ?> <i class="fas fa-arrow-right text-xs"></i>
                 </a>
             </div>
             
             <!-- Desktop Table -->
+            <div class="overflow-x-auto">
             <table class="desktop-table">
                 <thead>
                     <tr>
-                        <th>Report</th>
-                        <th>Category</th>
-                        <th>Barangay</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                        <th class="text-right">Action</th>
+                        <th><?php echo t('Report'); ?></th>
+                        <th><?php echo t('Category'); ?></th>
+                        <th><?php echo t('Barangay'); ?></th>
+                        <th><?php echo t('Status'); ?></th>
+                        <th><?php echo t('Date'); ?></th>
+                        <th class="text-right"><?php echo t('Action'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2134,7 +2119,7 @@ if (is_dir($barangays_dir)) {
                             <td class="date-cell"><?php echo date('M d', strtotime($row['created_at'])); ?></td>
                             <td class="action-cell">
                                 <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$row['id']); ?>">
-                                    <i class="fas fa-eye"></i> View
+                                    <i class="fas fa-eye"></i> <?php echo t('View'); ?>
                                 </a>
                             </td>
                         </tr>
@@ -2144,14 +2129,15 @@ if (is_dir($barangays_dir)) {
                             <td colspan="6">
                                 <div class="empty-reports">
                                     <i class="fas fa-inbox"></i>
-                                    <p>No reports yet</p>
-                                    <a href="<?php echo BASE_URL; ?>index.php?page=submit-report">Submit your first report →</a>
+                                    <p><?php echo t('No reports yet'); ?></p>
+                                    <a href="<?php echo BASE_URL; ?>index.php?page=submit-report"><?php echo t('Submit your first report →'); ?></a>
                                 </div>
                             </td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
+            </div>
             
             <!-- Mobile Cards -->
             <div class="mobile-cards">
@@ -2195,7 +2181,7 @@ if (is_dir($barangays_dir)) {
                             </span>
                             <span class="card-action">
                                 <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$row['id']); ?>">
-                                    <i class="fas fa-eye"></i> View
+                                    <i class="fas fa-eye"></i> <?php echo t('View'); ?>
                                 </a>
                             </span>
                         </div>
@@ -2204,19 +2190,14 @@ if (is_dir($barangays_dir)) {
                 <?php else: ?>
                     <div class="empty-reports">
                         <i class="fas fa-inbox"></i>
-                        <p>No reports yet</p>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=submit-report">Submit your first report →</a>
+                        <p><?php echo t('No reports yet'); ?></p>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=submit-report"><?php echo t('Submit your first report →'); ?></a>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
         
         <!-- ===== COMMUNITY FOOTER ===== -->
-        <div class="community-footer">
-            <div><i class="fas fa-trophy"></i> <strong>Community Status:</strong> Calaba is ranked #3</div>
-            <div><i class="fas fa-recycle"></i> <strong>Impact:</strong> 1.2 tons waste cleared</div>
-            <div><i class="fas fa-leaf"></i> <strong>Sustainability:</strong> 85%</div>
-        </div>
         
     </div>
 </div>
@@ -2230,14 +2211,17 @@ let currentDropdownElement = null;
 function toggleNotifications() {
     var dropdown = document.getElementById('notificationDropdown');
     if (!dropdown) return;
+    var bellBtn = document.getElementById('notifBellBtn');
     
     if (isDropdownOpen) {
         dropdown.style.display = 'none';
         isDropdownOpen = false;
+        if (bellBtn) bellBtn.setAttribute('aria-expanded', 'false');
     } else {
         dropdown.style.display = 'flex';
         positionDropdown();
         isDropdownOpen = true;
+        if (bellBtn) bellBtn.setAttribute('aria-expanded', 'true');
         
         if (currentDropdownElement) {
             window.removeEventListener('scroll', positionDropdown);
@@ -2292,6 +2276,7 @@ function showNotification(message, type) {
     type = type || 'info';
     var color = type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : '#3B82F6';
     var toast = document.createElement('div');
+    toast.setAttribute('role', 'alert');
     toast.className = 'fixed top-4 right-4 z-[9999] text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 max-w-sm';
     toast.style.background = color;
     toast.innerHTML = '<span>' + message + '</span>';
@@ -2341,10 +2326,12 @@ function handleNotificationClick(id, link) {
 
 function closeDropdown() {
     var dropdown = document.getElementById('notificationDropdown');
+    var bellBtn = document.getElementById('notifBellBtn');
     if (dropdown) {
         dropdown.style.display = 'none';
         isDropdownOpen = false;
     }
+    if (bellBtn) bellBtn.setAttribute('aria-expanded', 'false');
     if (currentDropdownElement) {
         window.removeEventListener('scroll', positionDropdown);
         window.removeEventListener('resize', positionDropdown);
@@ -2744,9 +2731,11 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeRep
 
 <!-- Floating circular "New Report" button (mobile only) -->
 <a href="<?php echo BASE_URL; ?>index.php?page=submit-report"
-   class="new-report-fab flex sm:hidden" aria-label="New Report">
+   class="new-report-fab flex sm:hidden" aria-label="<?php echo t('New Report'); ?>">
     <i class="fas fa-plus"></i>
 </a>
 
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
 </body>
 </html>

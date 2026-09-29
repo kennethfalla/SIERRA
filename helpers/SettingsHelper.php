@@ -150,7 +150,7 @@ class SettingsHelper {
             'lp_hero_bg_type' => 'image',
             'lp_hero_bg_image' => 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2069&q=80',
             'lp_hero_bg_video' => '',
-            'lp_hero_subtitle_guest' => "See something wrong in your neighborhood? Illegal dumping, clogged canals, or air pollution?\nReport it here, and your barangay will take action. It's free, fast, and easy.",
+            'lp_hero_subtitle_guest' => "See something wrong in your neighborhood? Drainage blockage, illegal dumping, or uncollected garbage?\nReport it here, and your barangay will take action. It's free, fast, and easy.",
             'lp_hero_subtitle_staff' => "As a {role}, you can review, verify, and manage environmental reports from your community.\nTake action on pending reports and help resolve issues faster.",
             'lp_hero_subtitle_user' => "Your voice matters. Report environmental issues like illegal dumping, flooding, or pollution —\nand we'll help track them until they're resolved.",
             'lp_how_kicker' => 'How It Works',
@@ -229,6 +229,7 @@ class SettingsHelper {
             // FEATURE TOGGLES
             // ========================================
             'enable_public_registration' => 1,
+            'demo_access_enabled' => 1,
             'show_heatmap' => 1,
             'allow_citizen_cancellations' => 1,
             'allow_edit_pending_reports' => 1,

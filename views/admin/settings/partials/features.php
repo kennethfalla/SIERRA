@@ -107,14 +107,14 @@ $maintenance_active = $ks('maintenance_mode');
 <div class="mb-5 p-4 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm flex items-start gap-3">
     <i class="fas fa-exclamation-triangle mt-0.5"></i>
     <div>
-        <strong>MAINTENANCE MODE IS ACTIVE.</strong> The public site is showing the maintenance splash. Only admin accounts can keep using the system. Toggle it off below to restore normal access.
+        <strong><?php echo t('MAINTENANCE MODE IS ACTIVE.'); ?></strong> <?php echo t('The public site is showing the maintenance splash. Only admin accounts can keep using the system. Toggle it off below to restore normal access.'); ?>
     </div>
 </div>
 <?php else: ?>
 <div class="mb-5 p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm flex items-start gap-3">
     <i class="fas fa-shield-alt mt-0.5"></i>
     <div>
-        These are the <strong>master kill switches</strong>. If something misbehaves in production, MENRO can disable the affected feature here instantly — no code changes or redeploys required.
+        <?php echo t('These are the'); ?> <strong><?php echo t('master kill switches'); ?></strong><?php echo t('. If something misbehaves in production, MENRO can disable the affected feature here instantly — no code changes or redeploys required.'); ?>
     </div>
 </div>
 <?php endif; ?>
@@ -129,14 +129,14 @@ $maintenance_active = $ks('maintenance_mode');
         <div class="ks-toggle-row">
             <div class="ks-toggle-icon bg-red-100 text-red-600"><i class="fas fa-power-off"></i></div>
             <div class="ks-toggle-body">
-                <h4>Maintenance Mode
+                <h4><?php echo t('Maintenance Mode'); ?>
                     <span class="ks-on-badge <?php echo $maintenance_active ? 'on' : 'off'; ?>">
-                        <?php echo $maintenance_active ? 'ON' : 'OFF'; ?>
+                        <?php echo $maintenance_active ? t('ON') : t('OFF'); ?>
                     </span>
                 </h4>
-                <p>Turns on the site-wide maintenance splash. Public visitors and citizen accounts see a "system under maintenance" page; only logged-in admins can keep using the system. Use this as the ultimate emergency stop.</p>
+                <p><?php echo t('Turns on the site-wide maintenance splash. Public visitors and citizen accounts see a "system under maintenance" page; only logged-in admins can keep using the system. Use this as the ultimate emergency stop.'); ?></p>
             </div>
-            <label class="toggle-switch" title="Maintenance Mode">
+            <label class="toggle-switch" title="<?php echo t('Maintenance Mode'); ?>">
                 <input type="checkbox" name="maintenance_mode" <?php echo $maintenance_active ? 'checked' : ''; ?>>
                 <span class="toggle-slider"></span>
             </label>
@@ -147,19 +147,19 @@ $maintenance_active = $ks('maintenance_mode');
     <!-- ============================================================
          CITIZEN FEATURES
          ============================================================ -->
-    <div class="ks-section-title"><span class="ks-dot"></span> Citizen Features</div>
+    <div class="ks-section-title"><span class="ks-dot"></span> <?php echo t('Citizen Features'); ?></div>
     <div class="ks-card mb-6">
 
         <!-- Public Registration -->
         <div class="ks-toggle-row">
             <div class="ks-toggle-icon bg-sky-100 text-sky-600"><i class="fas fa-user-plus"></i></div>
             <div class="ks-toggle-body">
-                <h4>Public Registration
+                <h4><?php echo t('Public Registration'); ?>
                     <span class="ks-on-badge <?php echo $ks('enable_public_registration') ? 'on' : 'off'; ?>">
-                        <?php echo $ks('enable_public_registration') ? 'On' : 'Off'; ?>
+                        <?php echo $ks('enable_public_registration') ? t('On') : t('Off'); ?>
                     </span>
                 </h4>
-                <p>Allows new citizens to sign up on the public registration page. Turn off to block new account signups (existing users are unaffected).</p>
+                <p><?php echo t('Allows new citizens to sign up on the public registration page. Turn off to block new account signups (existing users are unaffected).'); ?></p>
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" name="enable_public_registration" <?php echo $ks('enable_public_registration') ? 'checked' : ''; ?>>
@@ -172,12 +172,12 @@ $maintenance_active = $ks('maintenance_mode');
         <div class="ks-toggle-row">
             <div class="ks-toggle-icon bg-emerald-100 text-emerald-600"><i class="fas fa-paper-plane"></i></div>
             <div class="ks-toggle-body">
-                <h4>Report Submission
+                <h4><?php echo t('Report Submission'); ?>
                     <span class="ks-on-badge <?php echo $ks('enable_report_submission') ? 'on' : 'off'; ?>">
-                        <?php echo $ks('enable_report_submission') ? 'On' : 'Off'; ?>
+                        <?php echo $ks('enable_report_submission') ? t('On') : t('Off'); ?>
                     </span>
                 </h4>
-                <p>Allows citizens to submit new environmental reports. Disable if the intake pipeline is failing so no new reports pile up.</p>
+                <p><?php echo t('Allows citizens to submit new environmental reports. Disable if the intake pipeline is failing so no new reports pile up.'); ?></p>
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" name="enable_report_submission" <?php echo $ks('enable_report_submission') ? 'checked' : ''; ?>>
@@ -190,12 +190,12 @@ $maintenance_active = $ks('maintenance_mode');
         <div class="ks-toggle-row">
             <div class="ks-toggle-icon bg-teal-100 text-teal-600"><i class="fas fa-thumbs-up"></i></div>
             <div class="ks-toggle-body">
-                <h4>Support & Community Verification
+                <h4><?php echo t('Support & Community Verification'); ?>
                     <span class="ks-on-badge <?php echo $ks('enable_report_support') ? 'on' : 'off'; ?>">
-                        <?php echo $ks('enable_report_support') ? 'On' : 'Off'; ?>
+                        <?php echo $ks('enable_report_support') ? t('On') : t('Off'); ?>
                     </span>
                 </h4>
-                <p>Allows citizens to upvote/verify others' reports (the support counter). Disable if the verification logic is counting incorrectly.</p>
+                <p><?php echo t("Allows citizens to upvote/verify others' reports (the support counter). Disable if the verification logic is counting incorrectly."); ?></p>
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" name="enable_report_support" <?php echo $ks('enable_report_support') ? 'checked' : ''; ?>>
@@ -208,12 +208,12 @@ $maintenance_active = $ks('maintenance_mode');
         <div class="ks-toggle-row">
             <div class="ks-toggle-icon bg-amber-100 text-amber-600"><i class="fas fa-ban"></i></div>
             <div class="ks-toggle-body">
-                <h4>Citizen Report Cancellations
+                <h4><?php echo t('Citizen Report Cancellations'); ?>
                     <span class="ks-on-badge <?php echo $ks('allow_citizen_cancellations') ? 'on' : 'off'; ?>">
-                        <?php echo $ks('allow_citizen_cancellations') ? 'On' : 'Off'; ?>
+                        <?php echo $ks('allow_citizen_cancellations') ? t('On') : t('Off'); ?>
                     </span>
                 </h4>
-                <p>Allows residents to cancel their own pending reports. Disable to freeze cancellations (e.g. before a review drive).</p>
+                <p><?php echo t('Allows residents to cancel their own pending reports. Disable to freeze cancellations (e.g. before a review drive).'); ?></p>
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" name="allow_citizen_cancellations" <?php echo $ks('allow_citizen_cancellations') ? 'checked' : ''; ?>>
@@ -227,19 +227,37 @@ $maintenance_active = $ks('maintenance_mode');
     <!-- ============================================================
          STAFF & SYSTEM FEATURES
          ============================================================ -->
-    <div class="ks-section-title"><span class="ks-dot"></span> Staff & System Features</div>
+    <div class="ks-section-title"><span class="ks-dot"></span> <?php echo t('Staff & System Features'); ?></div>
     <div class="ks-card mb-6">
+
+        <!-- Demo Access -->
+        <div class="ks-toggle-row">
+            <div class="ks-toggle-icon bg-violet-100 text-violet-600"><i class="fas fa-flask"></i></div>
+            <div class="ks-toggle-body">
+                <h4><?php echo t('Demo Access'); ?>
+                    <span class="ks-on-badge <?php echo $ks('demo_access_enabled') ? 'on' : 'off'; ?>">
+                        <?php echo $ks('demo_access_enabled') ? t('On') : t('Off'); ?>
+                    </span>
+                </h4>
+                <p><?php echo t('Shows the one-click demo accounts on the public login page (MENRO admin, barangay officials, and citizens). Turn off to hide demo accounts from the login screen entirely.'); ?></p>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" name="demo_access_enabled" <?php echo $ks('demo_access_enabled') ? 'checked' : ''; ?>>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <input type="hidden" name="feature_keys[]" value="demo_access_enabled">
 
         <!-- Escalation to MENRO -->
         <div class="ks-toggle-row">
             <div class="ks-toggle-icon bg-orange-100 text-orange-600"><i class="fas fa-arrow-up"></i></div>
             <div class="ks-toggle-body">
-                <h4>Escalation to MENRO
+                <h4><?php echo t('Escalation to MENRO'); ?>
                     <span class="ks-on-badge <?php echo $ks('enable_escalation') ? 'on' : 'off'; ?>">
-                        <?php echo $ks('enable_escalation') ? 'On' : 'Off'; ?>
+                        <?php echo $ks('enable_escalation') ? t('On') : t('Off'); ?>
                     </span>
                 </h4>
-                <p>Allows barangay officials to escalate reports to MENRO. Disable if the escalation queue or notifications to the MENRO team misbehave.</p>
+                <p><?php echo t('Allows barangay officials to escalate reports to MENRO. Disable if the escalation queue or notifications to the MENRO team misbehave.'); ?></p>
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" name="enable_escalation" <?php echo $ks('enable_escalation') ? 'checked' : ''; ?>>
@@ -252,12 +270,12 @@ $maintenance_active = $ks('maintenance_mode');
         <div class="ks-toggle-row">
             <div class="ks-toggle-icon bg-indigo-100 text-indigo-600"><i class="fas fa-bullhorn"></i></div>
             <div class="ks-toggle-body">
-                <h4>Announcements
+                <h4><?php echo t('Announcements'); ?>
                     <span class="ks-on-badge <?php echo $ks('enable_announcements') ? 'on' : 'off'; ?>">
-                        <?php echo $ks('enable_announcements') ? 'On' : 'Off'; ?>
+                        <?php echo $ks('enable_announcements') ? t('On') : t('Off'); ?>
                     </span>
                 </h4>
-                <p>Allows staff to create new announcements. Disable to stop new broadcasts while keeping existing announcements visible.</p>
+                <p><?php echo t('Allows staff to create new announcements. Disable to stop new broadcasts while keeping existing announcements visible.'); ?></p>
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" name="enable_announcements" <?php echo $ks('enable_announcements') ? 'checked' : ''; ?>>
@@ -271,14 +289,12 @@ $maintenance_active = $ks('maintenance_mode');
     <!-- ============================================================
          ACTIONS
          ============================================================ -->
-    <div class="flex flex-wrap items-center gap-3 pt-2">
-        <button type="submit" class="btn-primary">
-            <i class="fas fa-save mr-1"></i> Save Kill Switches
+    <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
+        <button type="button" onclick="location.reload()" class="btn-secondary flex items-center gap-2">
+            <i class="fas fa-undo"></i> <?php echo t('Reset'); ?>
         </button>
-        <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=features"
-           class="btn-secondary">
-            <i class="fas fa-sync-alt mr-1"></i> Reset form
-        </a>
-        <span class="text-xs text-gray-400">Changes take effect immediately on the next page load.</span>
+        <button type="submit" class="btn-primary flex items-center gap-2">
+            <i class="fas fa-save"></i> <?php echo t('Save Changes'); ?>
+        </button>
     </div>
 </form>

@@ -5,7 +5,7 @@
                     <div id="section-help">
                         <div class="flex items-center gap-2 mb-4">
                             <i class="fas fa-headset text-[#10A37F]"></i>
-                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Help and Support</h3>
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('Help and Support'); ?></h3>
                         </div>
                         <div class="legal-content">
                             <p>Need assistance with <?php echo htmlspecialchars($system_name); ?>? We're here to help.</p>

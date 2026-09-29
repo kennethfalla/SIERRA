@@ -321,7 +321,6 @@ $display_status_label = isset($status_display[$display_status]) ? $status_displa
 // A citizen may only cancel their own report while it is still 'pending'
 $is_owner = ($report['user_id'] == $_SESSION['user_id']);
 $can_cancel = ($is_pending && $is_owner);
-$show_cancel_locked_notice = (!$is_pending && !$is_cancelled && !$is_rejected && !$is_resolved && $is_owner);
 $can_confirm_resolution = ($is_resolved && $resolution_confirmed === 0 && $_SESSION['user_id'] == $report['user_id']);
 
 // CSRF token for AJAX
@@ -336,14 +335,21 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
-    <title>Track Report - EnviroTrack</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title><?php echo t('Track Report - EnviroTrack'); ?></title>
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
+    <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
+    <!-- Network hints for slow connections (map tiles / reverse geocoding) -->
+    <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+    <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
+    <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
+    <link rel="dns-prefetch" href="https://photon.komoot.io">
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+    <script src="<?php echo BASE_URL; ?>assets/vendor/confetti/confetti.browser.min.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -897,7 +903,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
         
         <?php if(isset($_SESSION['success'])): ?>
@@ -925,18 +931,18 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <i class="fas <?php echo $is_supporter ? 'fa-heart' : 'fa-map-pin'; ?> <?php echo $is_supporter ? 'text-[#0A7E6B]' : 'text-[#10A37F]'; ?> text-sm"></i>
                 </div>
                 <span class="text-xs uppercase tracking-wider <?php echo $is_supporter ? 'text-[#0A7E6B]' : 'text-[#10A37F]'; ?> font-semibold">
-                    <?php echo $is_supporter ? 'Supported Report Tracking' : 'Report Tracking'; ?>
+                    <?php echo $is_supporter ? t('Supported Report Tracking') : t('Report Tracking'); ?>
                 </span>
             </div>
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
-                        <?php echo $is_supporter ? 'Track Supported Report' : 'Track Report'; ?>
+                        <?php echo $is_supporter ? t('Track Supported Report') : t('Track Report'); ?>
                     </h1>
                     <p class="text-gray-500 text-sm mt-1">
                         <?php echo $is_supporter 
-                            ? 'You supported this report — follow its progress below.' 
-                            : 'Real-time status and details of your environmental report'; ?>
+                            ? t('You supported this report — follow its progress below.') 
+                            : t('Real-time status and details of your environmental report'); ?>
                     </p>
                 </div>
                 <div class="flex gap-3 flex-wrap">
@@ -944,13 +950,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <button onclick="openCancelModal()" 
                                 class="bg-red-500 hover:bg-red-600 text-white px-4 md:px-5 py-2 rounded-xl transition-all flex items-center gap-2 text-sm">
                             <i class="fas fa-times-circle"></i>
-                            <span>Cancel Report</span>
-                        </button>
-                    <?php elseif($show_cancel_locked_notice): ?>
-                        <button disabled title="This report is already being reviewed by the barangay and can no longer be cancelled."
-                                class="bg-gray-100 text-gray-400 px-4 md:px-5 py-2 rounded-xl flex items-center gap-2 text-sm cursor-not-allowed">
-                            <i class="fas fa-lock"></i>
-                            <span>Cancel Unavailable</span>
+                            <span><?php echo t('Cancel Report'); ?></span>
                         </button>
                     <?php endif; ?>
                     <a href="<?php 
@@ -966,16 +966,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     ?>" 
                        class="btn-back">
                         <i class="fas fa-arrow-left"></i>
-                        <span><?php echo $is_supporter ? 'Supported Reports' : 'Back'; ?></span>
+                        <span><?php echo $is_supporter ? t('Supported Reports') : t('Back'); ?></span>
                     </a>
                 </div>
             </div>
-            <?php if($show_cancel_locked_notice): ?>
-            <p class="text-xs text-gray-400 mt-2 md:text-right">
-                <i class="fas fa-info-circle mr-1"></i>
-                A barangay official has already started reviewing this report, so it can no longer be cancelled.
-            </p>
-            <?php endif; ?>
         </div>
         
         <!-- ===== REPORT DETAILS CARD ===== -->
@@ -989,7 +983,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                 <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background:rgba(10,126,107,0.12);">
                                     <i class="fas fa-heart text-sm" style="color:#0A7E6B;"></i>
                                 </div>
-                                <span class="text-xs uppercase tracking-wider font-semibold" style="color:#0A7E6B;">You Supported This Report</span>
+                                 <span class="text-xs uppercase tracking-wider font-semibold" style="color:#0A7E6B;"><?php echo t('You Supported This Report'); ?></span>
                             </div>
                             <h2 class="text-xl md:text-2xl font-bold" style="color:#0A7E6B;"><?php echo htmlspecialchars($report['title']); ?></h2>
                             <div class="flex flex-wrap gap-2 mt-1">
@@ -1003,7 +997,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <?php if($is_cancelled && !empty($report['cancellation_remarks'])): ?>
                                 <div class="mt-2 p-2 rounded-lg text-xs" style="background:rgba(10,126,107,0.08);color:#0A7E6B;border:1px solid rgba(10,126,107,0.2);">
                                     <i class="fas fa-info-circle mr-1"></i>
-                                    <strong>Cancellation reason:</strong> <?php echo htmlspecialchars($report['cancellation_remarks']); ?>
+                                    <strong><?php echo t('Cancellation reason:'); ?></strong> <?php echo htmlspecialchars($report['cancellation_remarks']); ?>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -1046,7 +1040,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                 <div class="w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-lg flex items-center justify-center">
                                     <i class="fas fa-file-alt text-white/80 text-[10px] md:text-xs"></i>
                                 </div>
-                                <span class="text-white/80 text-[10px] md:text-xs uppercase tracking-wider font-semibold">Report Details</span>
+                                 <span class="text-white/80 text-[10px] md:text-xs uppercase tracking-wider font-semibold"><?php echo t('Report Details'); ?></span>
                             </div>
                             <h2 class="text-xl md:text-2xl font-bold text-white"><?php echo htmlspecialchars($report['title']); ?></h2>
                             <div class="flex flex-wrap gap-2 mt-1">
@@ -1060,7 +1054,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <?php if($is_cancelled && !empty($report['cancellation_remarks'])): ?>
                                 <div class="mt-2 p-2 bg-white/20 rounded-lg text-white text-xs">
                                     <i class="fas fa-info-circle mr-1"></i>
-                                    <strong>Cancellation reason:</strong> <?php echo htmlspecialchars($report['cancellation_remarks']); ?>
+                                    <strong><?php echo t('Cancellation reason:'); ?></strong> <?php echo htmlspecialchars($report['cancellation_remarks']); ?>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -1100,7 +1094,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-emerald-50">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-sm text-gray-400 mb-1">Current Status</p>
+                        <p class="text-sm text-gray-400 mb-1"><?php echo t('Current Status'); ?></p>
                         <div class="flex items-center gap-2 mt-1">
                             <span class="status-badge status-<?php echo $report['status']; ?>">
                                 <i class="fas <?php echo $report['status'] == 'pending' ? 'fa-clock' : ($report['status'] == 'resolved' ? 'fa-check-circle' : 'fa-check'); ?> mr-1 text-xs"></i>
@@ -1109,15 +1103,15 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         </div>
                         <p class="text-sm text-gray-500 mt-3 leading-relaxed">
                             <?php 
-                                if($report['status'] == 'pending') echo "Your report is waiting for verification from barangay officials.";
-                                elseif($report['status'] == 'under_review') echo "Your report is currently under review by barangay officials.";
-                                elseif($report['status'] == 'in_progress') echo "Your report is being actioned by the barangay.";
-                                elseif($report['status'] == 'resolved') echo "Your report has been successfully resolved. Thank you for your contribution!";
-                                elseif($report['status'] == 'escalated_pending') echo "Your report has been escalated to MENRO and is awaiting approval.";
-                                elseif($report['status'] == 'escalated') echo "Your report is now under MENRO supervision.";
-                                elseif($report['status'] == 'rejected') echo "Your report was rejected by the barangay.";
-                                elseif($report['status'] == 'cancelled') echo "This report has been cancelled.";
-                                else echo "Action is being taken on your report by the concerned authorities.";
+                                if($report['status'] == 'pending') echo t("Your report is waiting for verification from barangay officials.");
+                                elseif($report['status'] == 'under_review') echo t("Your report is currently under review by barangay officials.");
+                                elseif($report['status'] == 'in_progress') echo t("Your report is being actioned by the barangay.");
+                                elseif($report['status'] == 'resolved') echo t("Your report has been successfully resolved. Thank you for your contribution!");
+                                elseif($report['status'] == 'escalated_pending') echo t("Your report has been escalated to MENRO and is awaiting approval.");
+                                elseif($report['status'] == 'escalated') echo t("Your report is now under MENRO supervision.");
+                                elseif($report['status'] == 'rejected') echo t("Your report was rejected by the barangay.");
+                                elseif($report['status'] == 'cancelled') echo t("This report has been cancelled.");
+                                else echo t("Action is being taken on your report by the concerned authorities.");
                             ?>
                         </p>
                     </div>
@@ -1131,7 +1125,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-emerald-50">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-sm text-gray-400 mb-1">Severity Level</p>
+                        <p class="text-sm text-gray-400 mb-1"><?php echo t('Severity Level'); ?></p>
                         <div class="flex items-center gap-2 mt-1">
                             <span class="risk-<?php echo $current_risk; ?> px-2 py-0.5 text-xs rounded-full font-medium flex items-center gap-1">
                                 <i class="fas <?php echo $risk_info['icon']; ?> text-xs"></i>
@@ -1150,7 +1144,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="bg-white rounded-2xl p-5 shadow-sm border <?php echo $is_supporter ? 'border-[#0A7E6B]' : 'border-emerald-50'; ?>">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-sm text-gray-400 mb-1">Community Support</p>
+                        <p class="text-sm text-gray-400 mb-1"><?php echo t('Community Support'); ?></p>
                         <div class="flex items-center gap-2 mt-1">
                             <span class="verification-count">
                                 <i class="fas fa-thumbs-up"></i>
@@ -1160,11 +1154,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         </div>
                         <p class="text-sm mt-3 leading-relaxed <?php echo $is_supporter ? 'text-[#0A7E6B]' : 'text-gray-500'; ?>">
                             <?php if ($report['owner_id'] == $_SESSION['user_id']): ?>
-                                <span class="text-gray-500">This is your report</span>
+                                <span class="text-gray-500"><?php echo t('This is your report'); ?></span>
                             <?php elseif ($report['is_verified_by_user'] > 0): ?>
-                                <span class="font-medium"><i class="fas fa-heart mr-1" style="color:#ef4444;"></i> You supported this report</span>
+                                <span class="font-medium"><i class="fas fa-heart mr-1" style="color:#ef4444;"></i> <?php echo t('You supported this report'); ?></span>
                             <?php else: ?>
-                                Verify that you witnessed this issue too.
+                                <?php echo t('Verify that you witnessed this issue too.'); ?>
                             <?php endif; ?>
                         </p>
                     </div>
@@ -1173,15 +1167,15 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
                                 <i class="fas fa-user text-gray-400 text-2xl"></i>
                             </div>
-                            <p class="text-xs text-gray-400 mt-1 text-center">Your report</p>
+                            <p class="text-xs text-gray-400 mt-1 text-center"><?php echo t('Your report'); ?></p>
                         <?php elseif ($report['is_verified_by_user'] > 0): ?>
                             <div class="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center">
                                 <i class="fas fa-heart text-pink-500 text-2xl"></i>
                             </div>
-                            <p class="text-xs text-pink-500 mt-1 text-center font-medium">Supported</p>
+                            <p class="text-xs text-pink-500 mt-1 text-center font-medium"><?php echo t('Supported'); ?></p>
                         <?php elseif (!in_array($report['status'], ['resolved', 'rejected', 'cancelled'])): ?>
                             <button id="supportBtn" class="verify-btn" onclick="supportReport(<?php echo $report['id']; ?>, this)">
-                                <i class="fas fa-thumbs-up"></i> Support
+                                <i class="fas fa-thumbs-up"></i> <?php echo t('Support'); ?>
                             </button>
                         <?php else: ?>
                             <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
@@ -1195,25 +1189,25 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         
         <!-- Timeline -->
         <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8 <?php echo $is_supporter ? 'supported-timeline' : ''; ?>">
-            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 md:mb-6">Report Progress Timeline</h3>
+            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 md:mb-6"><?php echo t('Report Progress Timeline'); ?></h3>
             <div class="timeline-container">
                 <div class="timeline-progress" style="width: <?php echo $progress_width; ?>%;"></div>
                 
                 <div class="timeline-step completed">
                     <div class="step-icon"><i class="fas fa-check"></i></div>
-                    <div class="step-label">Submitted</div>
+                    <div class="step-label"><?php echo t('Submitted'); ?></div>
                     <div class="step-date"><?php echo date('M d', strtotime($report['created_at'])); ?></div>
                 </div>
                 
                 <div class="timeline-step <?php echo $step2_class; ?>">
                     <div class="step-icon"><i class="fas <?php echo $step2_class == 'completed' ? 'fa-check' : 'fa-search'; ?>"></i></div>
-                    <div class="step-label">Under Review</div>
+                    <div class="step-label"><?php echo t('Under Review'); ?></div>
                     <div class="step-date"><?php echo $step2_text; ?></div>
                 </div>
                 
                 <div class="timeline-step <?php echo $step3_class; ?>">
                     <div class="step-icon"><i class="fas <?php echo $step3_class == 'completed' ? 'fa-check' : ($step3_class == 'current' ? 'fa-spinner fa-pulse' : 'fa-spinner'); ?>"></i></div>
-                    <div class="step-label">In Progress</div>
+                    <div class="step-label"><?php echo t('In Progress'); ?></div>
                     <div class="step-date"><?php echo $step3_text; ?></div>
                 </div>
                 
@@ -1234,12 +1228,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <i class="fas fa-check-circle text-green-600 text-xl"></i>
                     </div>
                     <div class="min-w-0">
-                        <h3 class="font-bold text-gray-800 text-sm md:text-base">Resolution Confirmation Required</h3>
+                        <h3 class="font-bold text-gray-800 text-sm md:text-base"><?php echo t('Resolution Confirmation Required'); ?></h3>
                         <p class="text-gray-600 text-xs md:text-sm sm:truncate">
                             <?php if($menro_accepted): ?>
-                                MENRO has marked this report as resolved. Please confirm if you agree with the resolution.
+                                <?php echo t('MENRO has marked this report as resolved. Please confirm if you agree with the resolution.'); ?>
                             <?php else: ?>
-                                Barangay has marked this report as resolved. Please confirm if you agree with the resolution.
+                                <?php echo t('Barangay has marked this report as resolved. Please confirm if you agree with the resolution.'); ?>
                             <?php endif; ?>
                         </p>
                     </div>
@@ -1248,7 +1242,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                     <button type="submit" name="confirm_resolution" class="btn-primary px-5 md:px-6 py-2.5 md:py-3 text-white rounded-xl font-semibold flex items-center gap-2">
                         <i class="fas fa-thumbs-up"></i>
-                        <span>Confirm Resolution</span>
+                        <span><?php echo t('Confirm Resolution'); ?></span>
                     </button>
                 </form>
             </div>
@@ -1264,7 +1258,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <i class="fas fa-tag text-[#10A37F] text-sm md:text-base"></i>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-semibold">Category</p>
+                            <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-semibold"><?php echo t('Category'); ?></p>
                             <p class="font-semibold text-gray-800 text-sm md:text-base truncate"><?php echo htmlspecialchars($report['category_name']); ?></p>
                         </div>
                     </div>
@@ -1275,7 +1269,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <i class="fas fa-map-marker-alt text-[#10A37F] text-sm md:text-base"></i>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-semibold">Barangay</p>
+                            <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-semibold"><?php echo t('Barangay'); ?></p>
                             <p class="font-semibold text-gray-800 text-sm md:text-base truncate"><?php echo htmlspecialchars($report['barangay_name']); ?></p>
                         </div>
                     </div>
@@ -1286,7 +1280,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
                         <i class="fas fa-align-left text-[#10A37F] text-sm"></i>
                     </div>
-                    <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider">Description</h3>
+                    <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('Description'); ?></h3>
                 </div>
                 <div class="bg-gradient-to-br from-[#F5FBF6] to-[#EEF8F1] rounded-xl p-4 md:p-5 lg:p-6 border border-emerald-100 min-h-[180px] md:min-h-[220px] overflow-hidden">
                     <p class="text-gray-700 text-base md:text-lg leading-relaxed break-words whitespace-pre-line overflow-wrap-anywhere max-w-full"><?php echo nl2br(htmlspecialchars($report['description'])); ?></p>
@@ -1296,13 +1290,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         
         <!-- Map -->
         <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8">
-            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 md:mb-4">Report Location</h3>
+            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 md:mb-4"><?php echo t('Report Location'); ?></h3>
             <?php if($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
             <div class="rounded-xl overflow-hidden border border-emerald-100 relative">
                 <div id="reportMap" class="h-64 md:h-80"></div>
                 <div id="mapTapOverlay" class="absolute inset-0 bg-black/0 active:bg-black/5 flex items-center justify-center md:hidden">
                     <span class="bg-white/95 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-full shadow flex items-center gap-1.5">
-                        <i class="fas fa-hand-pointer text-[#10A37F]"></i> Tap to interact with map
+                        <i class="fas fa-hand-pointer text-[#10A37F]"></i> <?php echo t('Tap to interact with map'); ?>
                     </span>
                 </div>
             </div>
@@ -1312,13 +1306,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </p>
             <p class="text-xs text-gray-400 mt-1 text-center">
                 <i class="fas fa-map-marked-alt mr-1 text-[#10A37F]"></i>
-                Pin falls within: <strong class="text-gray-600" id="detectedBarangayLabel">Checking barangay boundary...</strong>
+                <?php echo t('Pin falls within:'); ?> <strong class="text-gray-600" id="detectedBarangayLabel"><?php echo t('Checking barangay boundary...'); ?></strong>
             </p>
             <div class="text-center mt-1">
                 <a href="https://www.openstreetmap.org/?mlat=<?php echo $report['latitude']; ?>&amp;mlon=<?php echo $report['longitude']; ?>#map=17/<?php echo $report['latitude']; ?>/<?php echo $report['longitude']; ?>" 
                    target="_blank" 
                    class="text-xs text-[#10A37F] hover:underline inline-flex items-center gap-1">
-                    <i class="fas fa-external-link-alt"></i> View larger map
+                    <i class="fas fa-external-link-alt"></i> <?php echo t('View larger map'); ?>
                 </a>
             </div>
             <?php elseif($report['location_address']): ?>
@@ -1326,22 +1320,22 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <p class="text-sm text-gray-700"><i class="fas fa-map-marker-alt text-[#10A37F] mr-2"></i><?php echo htmlspecialchars($report['location_address']); ?></p>
             </div>
             <?php else: ?>
-            <p class="text-gray-400 text-sm text-center py-8">No location data available</p>
+            <p class="text-gray-400 text-sm text-center py-8"><?php echo t('No location data available'); ?></p>
             <?php endif; ?>
         </div>
         
         <!-- Two Columns: Evidentiary Photo + Resolution Evidence -->
         <div class="two-col">
             <div class="card card-bleed">
-                <div class="card-header"><i class="fas fa-image"></i> Evidentiary Photo</div>
+                <div class="card-header"><i class="fas fa-image"></i> <?php echo t('Evidentiary Photo'); ?></div>
                 <?php if(!empty($images)): ?>
                     <div class="photo-grid pg-<?php echo min(count($images), 5); ?>">
                         <?php foreach($images as $i => $img): ?>
                             <?php if(!empty($img['is_video'])): ?>
-                                <div class="photo-card relative" onclick="openLightbox(<?php echo (int)$i; ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo (int)$i; ?>)">
+                                <div class="photo-card relative" onclick="openLightbox(<?php echo (int)$i; ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo (int)$i; ?>)" aria-label="Evidentiary video <?php echo (int)$i + 1; ?>, click to enlarge">
                                     <video src="<?php echo $img['image_path']; ?>" muted playsinline preload="metadata"></video>
                                     <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
-                                        <i class="fas fa-video"></i>Video
+                                        <i class="fas fa-video"></i><?php echo t('Video'); ?>
                                     </div>
                                 </div>
                             <?php else: ?>
@@ -1350,32 +1344,32 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <?php endforeach; ?>
                     </div>
                     <?php if(count($images) > 1): ?>
-                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click any photo/video to view full size — <?php echo count($images); ?> media total.</p>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i><?php echo t('Click any photo/video to view full size'); ?> — <?php echo count($images); ?> media total.</p>
                     <?php else: ?>
-                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i>Click to view full size.</p>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-expand mr-1"></i><?php echo t('Click to view full size.'); ?></p>
                     <?php endif; ?>
                 <?php else: ?>
                     <div class="empty-state">
                         <i class="fas fa-image"></i>
-                        <p class="text-sm">No photos submitted with this report.</p>
+                        <p class="text-sm"><?php echo t('No photos submitted with this report.'); ?></p>
                     </div>
                 <?php endif; ?>
             </div>
 
             <div class="card card-bleed">
-                <div class="card-header"><i class="fas fa-check-circle" style="color:#10A37F"></i> Resolution Evidence</div>
+                <div class="card-header"><i class="fas fa-check-circle" style="color:#10A37F"></i> <?php echo t('Resolution Evidence'); ?></div>
                 <?php if(!empty($resolution_evidence)): ?>
                     <div class="photo-grid pg-<?php echo min(count($resolution_evidence), 5); ?>">
                         <?php foreach($resolution_evidence as $ev): ?>
                             <div class="photo-grid-cell">
                                 <div class="photo-card relative">
                                     <?php if(!empty($ev['is_video'])): ?>
-                                        <video src="<?php echo $ev['image_path']; ?>" muted playsinline preload="metadata" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)"></video>
+                                        <video src="<?php echo $ev['image_path']; ?>" muted playsinline preload="metadata" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" aria-label="<?php echo t('Resolution evidence video, click to enlarge'); ?>"></video>
                                         <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
-                                            <i class="fas fa-video"></i>Video
+                                            <i class="fas fa-video"></i><?php echo t('Video'); ?>
                                         </div>
                                     <?php else: ?>
-                                        <img src="<?php echo $ev['image_path']; ?>" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" alt="Resolution evidence photo" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)">
+                                        <img src="<?php echo $ev['image_path']; ?>" onclick="openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)" alt="<?php echo t('Resolution evidence photo'); ?>" loading="lazy" tabindex="0" onkeydown="if(event.key==='Enter')openLightbox(<?php echo count($images) + (int)array_search($ev, $resolution_evidence, true); ?>)">
                                     <?php endif; ?>
                                 </div>
                                 <?php if(!empty($ev['caption'])): ?>
@@ -1385,14 +1379,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <?php endforeach; ?>
                     </div>
                     <?php if($report['status'] == 'resolved'): ?>
-                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-check-circle mr-1 text-emerald-500"></i>This report has been resolved — evidence uploaded by <?php echo htmlspecialchars($resolution_evidence[0]['uploaded_by_name'] ?? 'MENRO'); ?>.</p>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-check-circle mr-1 text-emerald-500"></i><?php echo t('This report has been resolved — evidence uploaded by'); ?> <?php echo htmlspecialchars($resolution_evidence[0]['uploaded_by_name'] ?? 'MENRO'); ?>.</p>
                     <?php else: ?>
-                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i>Evidence of the actions taken to resolve this report.</p>
+                        <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i><?php echo t('Evidence of the actions taken to resolve this report.'); ?></p>
                     <?php endif; ?>
                 <?php else: ?>
                     <div class="empty-state">
                         <i class="fas fa-check-circle"></i>
-                        <p class="text-sm">No resolution evidence uploaded yet.</p>
+                        <p class="text-sm"><?php echo t('No resolution evidence uploaded yet.'); ?></p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -1401,7 +1395,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <!-- Investigation Notes -->
         <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8">
             <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 md:mb-4">
-                <i class="fas fa-sticky-note mr-1"></i> Investigation Notes
+                <i class="fas fa-sticky-note mr-1"></i> <?php echo t('Investigation Notes'); ?>
             </h3>
             <div class="space-y-3 max-h-64 overflow-y-auto">
                 <?php if(!empty($notes)): ?>
@@ -1415,7 +1409,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <p class="text-gray-400 text-sm text-center py-6">No investigation notes yet.</p>
+                    <p class="text-gray-400 text-sm text-center py-6"><?php echo t('No investigation notes yet.'); ?></p>
                 <?php endif; ?>
             </div>
         </div>
@@ -1425,27 +1419,27 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 </div>
 
 
-<button id="scrollTopBtn" class="scroll-top-btn" aria-label="Scroll to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+<button id="scrollTopBtn" class="scroll-top-btn" aria-label="<?php echo t('Scroll to top'); ?>" onclick="window.scrollTo({top:0,behavior:'smooth'})">
     <i class="fas fa-arrow-up"></i>
 </button>
 
 <!-- Lightbox Modal -->
-<div id="lightboxModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[10000] hidden items-center justify-center p-4" onclick="closeLightbox()">
-    <button onclick="closeLightbox()" class="absolute top-3 right-3 sm:top-6 sm:right-6 text-white hover:text-gray-300 transition z-10 p-2">
+<div id="lightboxModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[10000] hidden items-center justify-center p-4" onclick="closeLightbox()" data-modal="1" role="dialog" aria-modal="true" aria-label="<?php echo t('Media viewer'); ?>">
+    <button onclick="closeLightbox()" class="absolute top-3 right-3 sm:top-6 sm:right-6 text-white hover:text-gray-300 transition z-10 p-2" aria-label="<?php echo t('Close media viewer'); ?>">
         <i class="fas fa-times text-2xl sm:text-3xl"></i>
     </button>
-    <button onclick="prevImage()" class="absolute left-1 sm:left-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10 p-2 sm:p-3">
+    <button onclick="prevImage()" class="absolute left-1 sm:left-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10 p-2 sm:p-3" aria-label="<?php echo t('Previous media'); ?>">
         <i class="fas fa-chevron-left text-3xl sm:text-4xl"></i>
     </button>
-    <button onclick="nextImage()" class="absolute right-1 sm:right-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10 p-2 sm:p-3">
+    <button onclick="nextImage()" class="absolute right-1 sm:right-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10 p-2 sm:p-3" aria-label="<?php echo t('Next media'); ?>">
         <i class="fas fa-chevron-right text-3xl sm:text-4xl"></i>
     </button>
     <div class="max-w-5xl max-h-[85vh] w-full h-full flex items-center justify-center" onclick="event.stopPropagation()">
-        <img id="lightboxImage" src="" alt="Full size image" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl">
+        <img id="lightboxImage" src="" alt="<?php echo t('Full size image'); ?>" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl">
         <video id="lightboxVideo" src="" controls autoplay playsinline preload="metadata" disablepictureinpicture class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" style="display:none;"></video>
     </div>
     <div class="absolute bottom-6 left-0 right-0 text-center text-white/70 text-sm" id="lightboxCounter">
-        Media 1 of <?php echo count($lightbox_media); ?>
+        <?php echo t('Media'); ?> 1 of <?php echo count($lightbox_media); ?>
     </div>
 </div>
 
@@ -1456,15 +1450,15 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <div class="celebration-icon">
             <i class="fas fa-leaf"></i>
         </div>
-        <h2 class="text-3xl font-bold text-gray-800 mb-3">Thank You!</h2>
-        <p class="text-gray-600 text-lg mb-2">for contributing to a</p>
-        <p class="text-2xl font-bold text-[#10A37F] mb-4">CLEANER SAN ISIDRO</p>
+        <h2 class="text-3xl font-bold text-gray-800 mb-3"><?php echo t('Thank You!'); ?></h2>
+        <p class="text-gray-600 text-lg mb-2"><?php echo t('for contributing to a'); ?></p>
+        <p class="text-2xl font-bold text-[#10A37F] mb-4"><?php echo t('CLEANER SAN ISIDRO'); ?></p>
         <div class="bg-green-50 rounded-xl p-4 mb-6">
             <i class="fas fa-hand-peace text-[#10A37F] text-2xl mb-2 block"></i>
-            <p class="text-gray-700">Your report has been confirmed resolved. Together, we're making San Isidro a better place to live.</p>
+            <p class="text-gray-700"><?php echo t("Your report has been confirmed resolved. Together, we're making San Isidro a better place to live."); ?></p>
         </div>
         <button onclick="closeCelebration()" class="btn-primary px-8 py-3 text-white rounded-xl font-semibold text-lg">
-            Continue
+            <?php echo t('Continue'); ?>
         </button>
     </div>
 </div>
@@ -1486,7 +1480,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <?php endif; ?>
 
 <!-- Cancel Report Modal -->
-<div id="cancelModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[50000] hidden items-center justify-center p-4" onclick="if(event.target===this) closeCancelModal()">
+<div id="cancelModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[50000] hidden items-center justify-center p-4" onclick="if(event.target===this) closeCancelModal()" role="dialog" aria-modal="true" aria-labelledby="cancelModalTitle">
     <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
         <div class="p-6">
             <div class="flex items-center gap-3 mb-4">
@@ -1494,10 +1488,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <i class="fas fa-exclamation-triangle text-red-500 text-lg"></i>
                 </div>
                 <div>
-                    <h3 class="text-xl font-bold text-gray-800">Cancel Report</h3>
-                    <p class="text-sm text-gray-500">Please tell us why you're cancelling this report.</p>
+                    <h3 id="cancelModalTitle" class="text-xl font-bold text-gray-800"><?php echo t('Cancel Report'); ?></h3>
+                    <p class="text-sm text-gray-500"><?php echo t("Please tell us why you're cancelling this report."); ?></p>
                 </div>
-                <button onclick="closeCancelModal()" class="ml-auto text-gray-400 hover:text-gray-600">
+                <button onclick="closeCancelModal()" class="ml-auto text-gray-400 hover:text-gray-600" aria-label="<?php echo t('Close cancel report modal'); ?>">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -1508,24 +1502,24 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
 
                 <div class="mb-4">
-                    <label for="cancel_reason_select" class="block text-sm font-semibold text-gray-700 mb-2">Reason for cancellation</label>
+                    <label for="cancel_reason_select" class="block text-sm font-semibold text-gray-700 mb-2"><?php echo t('Reason for cancellation'); ?></label>
                     <select id="cancel_reason_select" name="cancellation_remarks_select" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition" onchange="toggleCancelOther(this.value)">
-                        <option value="">Select a reason...</option>
-                        <option value="Submitted by mistake">Submitted by mistake</option>
-                        <option value="Issue already resolved by the community">Issue already resolved by the community</option>
-                        <option value="Duplicate report (I already reported this)">Duplicate report</option>
-                        <option value="Other">Other (please specify)</option>
+                        <option value=""><?php echo t('Select a reason...'); ?></option>
+                        <option value="Submitted by mistake"><?php echo t('Submitted by mistake'); ?></option>
+                        <option value="Issue already resolved by the community"><?php echo t('Issue already resolved by the community'); ?></option>
+                        <option value="Duplicate report (I already reported this)"><?php echo t('Duplicate report'); ?></option>
+                        <option value="Other"><?php echo t('Other (please specify)'); ?></option>
                     </select>
                 </div>
 
                 <div id="cancel_other_container" class="mb-4" style="display: none;">
-                    <label for="cancel_remarks_other" class="block text-sm font-semibold text-gray-700 mb-2">Please specify</label>
-                    <textarea id="cancel_remarks_other" name="cancellation_remarks" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition" placeholder="Describe why you're cancelling this report..."></textarea>
+                    <label for="cancel_remarks_other" class="block text-sm font-semibold text-gray-700 mb-2"><?php echo t('Please specify'); ?></label>
+                    <textarea id="cancel_remarks_other" name="cancellation_remarks" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition" placeholder="<?php echo t("Describe why you're cancelling this report..."); ?>"></textarea>
                 </div>
 
                 <div class="flex gap-3 mt-6">
-                    <button type="button" onclick="closeCancelModal()" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium">Cancel</button>
-                    <button type="submit" class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition font-semibold">Confirm Cancellation</button>
+                    <button type="button" onclick="closeCancelModal()" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium"><?php echo t('Cancel'); ?></button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition font-semibold"><?php echo t('Confirm Cancellation'); ?></button>
                 </div>
             </form>
         </div>
@@ -1882,6 +1876,7 @@ function showToast(message, type) {
     };
     const color = colors[type] || colors.info;
     const toast = document.createElement('div');
+    toast.setAttribute('role', 'alert');
     toast.className = `fixed top-4 right-4 z-50 ${color} text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 max-w-sm`;
     toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i><span>${message}</span>`;
     document.body.appendChild(toast);
@@ -1988,5 +1983,7 @@ if (reportImages.length <= 1) {
 }
 </script>
 
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
 </body>
 </html>

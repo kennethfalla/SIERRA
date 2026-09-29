@@ -5,7 +5,7 @@
                     <div id="section-change-password">
                         <div class="flex items-center gap-2 mb-4">
                             <i class="fas fa-key text-[#10A37F]"></i>
-                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Change Password</h3>
+                            <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('Change Password'); ?></h3>
                         </div>
                         <p class="text-sm text-gray-500 mb-5">Update your password to keep your account secure. Use a strong password you don't use anywhere else.</p>
 
@@ -22,30 +22,30 @@
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="md:col-span-2">
-                                    <label class="form-label">Current Password *</label>
+                                    <label class="form-label" for="currentPassword">Current Password *</label>
                                     <div class="relative">
                                         <input type="password" name="current_password" id="currentPassword" class="form-input pr-10" required>
-                                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" onclick="togglePwVisibility('currentPassword', this)"><i class="fas fa-eye"></i></button>
+                                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" onclick="togglePwVisibility('currentPassword', this)" aria-label="Show or hide current password"><i class="fas fa-eye"></i></button>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="form-label">New Password *</label>
+                                    <label class="form-label" for="newPassword">New Password *</label>
                                     <div class="relative">
                                         <input type="password" name="new_password" id="newPassword" class="form-input pr-10" required>
-                                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" onclick="togglePwVisibility('newPassword', this)"><i class="fas fa-eye"></i></button>
+                                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" onclick="togglePwVisibility('newPassword', this)" aria-label="Show or hide new password"><i class="fas fa-eye"></i></button>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="form-label">Confirm New Password *</label>
+                                    <label class="form-label" for="confirmPassword">Confirm New Password *</label>
                                     <div class="relative">
                                         <input type="password" name="confirm_password" id="confirmPassword" class="form-input pr-10" required>
-                                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" onclick="togglePwVisibility('confirmPassword', this)"><i class="fas fa-eye"></i></button>
+                                        <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" onclick="togglePwVisibility('confirmPassword', this)" aria-label="Show or hide password confirmation"><i class="fas fa-eye"></i></button>
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Password Requirements</p>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2"><?php echo t('Password Requirements'); ?></p>
                                 <div id="pwChecks">
                                     <div class="pw-check" data-rule="min"><i class="fas fa-circle text-[8px]"></i><i class="fas fa-check-circle"></i> At least <?php echo $p_min; ?> characters</div>
                                     <?php if ($p_upper): ?><div class="pw-check" data-rule="upper"><i class="fas fa-circle text-[8px]"></i><i class="fas fa-check-circle"></i> At least 1 uppercase letter (A-Z)</div><?php endif; ?>
@@ -74,11 +74,11 @@
                         <div class="crop-modal-content" style="max-width:420px;">
                             <div class="crop-modal-header">
                                 <h3><i class="fas fa-shield-alt"></i> Verify Password Change</h3>
-                                <button onclick="closePasswordOtpModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                                <button onclick="closePasswordOtpModal()" class="text-gray-400 hover:text-gray-600 text-2xl" aria-label="Close">&times;</button>
                             </div>
                             <div class="crop-modal-body" style="padding:24px;">
                                 <p class="text-sm text-gray-500 mb-4">We've sent a 6-digit OTP to your registered mobile number. Enter it below to confirm your password change.</p>
-                                <input type="text" id="passwordOtpInput" maxlength="6" placeholder="000000" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code" inputmode="numeric">
+                                <input type="text" id="passwordOtpInput" maxlength="6" placeholder="000000" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code" inputmode="numeric" aria-label="One-time password">
                                 <p class="text-xs text-gray-400 mt-2 text-center">Expires in 10 minutes.</p>
                             </div>
                             <div class="crop-modal-footer">
@@ -196,6 +196,7 @@
 
                         function showPwToast(message, type) {
                             var toast = document.createElement('div');
+                            toast.setAttribute('role', 'alert');
                             var colors = {
                                 success: 'bg-green-50 border-green-500 text-green-700',
                                 error: 'bg-red-50 border-red-500 text-red-700',

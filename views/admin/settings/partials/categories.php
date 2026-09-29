@@ -9,6 +9,7 @@
 
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
 require_once BASE_PATH . 'helpers/PermissionHelper.php';
+require_once BASE_PATH . 'helpers/Lang.php';
 
 // Permission gate (super-admin bypasses via PermissionHelper).
 if (!PermissionHelper::userHasPermission('can_manage_system')) {
@@ -354,16 +355,16 @@ function categoryWeightLevelClass($weight) {
         <div class="flex items-center gap-3 flex-wrap">
             <p class="text-sm text-gray-500 font-medium">
                 <i class="fas fa-tags mr-1.5 text-[#10A37F]"></i>
-                Manage report categories and severity weights.
+                <?php echo t('Manage report categories and severity weights.'); ?>
             </p>
             <button onclick="openRubricModal()" class="text-[#10A37F] hover:text-[#0D8568] transition text-sm flex items-center gap-1.5 font-semibold px-2.5 py-1.5 rounded-lg hover:bg-emerald-50">
-                <i class="fas fa-chart-line"></i> Weight Rubric
+                <i class="fas fa-chart-line"></i> <?php echo t('Weight Rubric'); ?>
             </button>
         </div>
         <button onclick="openAddCategoryModal()"
                 class="btn-primary px-5 py-2.5 text-white font-semibold flex items-center justify-center gap-2 shadow-sm text-sm w-full sm:w-auto">
             <i class="fas fa-plus-circle"></i>
-            Add Category
+            <?php echo t('Add Category'); ?>
         </button>
     </div>
 
@@ -372,7 +373,7 @@ function categoryWeightLevelClass($weight) {
         <div class="stat-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="stat-label">Total Categories</p>
+                    <p class="stat-label"><?php echo t('Total Categories'); ?></p>
                     <p class="stat-value"><?php echo $total_categories; ?></p>
                 </div>
                 <div class="stat-icon bg-purple-50">
@@ -383,10 +384,10 @@ function categoryWeightLevelClass($weight) {
         <div class="stat-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="stat-label">Active Categories</p>
+                    <p class="stat-label"><?php echo t('Active Categories'); ?></p>
                     <p class="stat-value"><?php echo $active_categories; ?></p>
                     <p class="text-xs text-gray-400 mt-1 font-medium">
-                        <span class="text-emerald-600"><?php echo $active_categories; ?> active</span>
+                        <span class="text-emerald-600"><?php echo $active_categories; ?> <?php echo t('active'); ?></span>
                     </p>
                 </div>
                 <div class="stat-icon bg-emerald-50">
@@ -397,7 +398,7 @@ function categoryWeightLevelClass($weight) {
         <div class="stat-card">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="stat-label">Inactive Categories</p>
+                    <p class="stat-label"><?php echo t('Inactive Categories'); ?></p>
                     <p class="stat-value"><?php echo $inactive_categories; ?></p>
                 </div>
                 <div class="stat-icon bg-gray-100">
@@ -416,14 +417,14 @@ function categoryWeightLevelClass($weight) {
     $ft = [
         'search_id'          => 'searchInput',
         'search_value'       => $search_query,
-        'search_placeholder' => 'Search by name, description, or icon...',
+        'search_placeholder' => t('Search by name, description, or icon...'),
         'results_text'       => 'Showing <strong>' . count($filtered_categories) . '</strong> of <strong>' . $total_categories . '</strong> categories',
         'inline_selects'     => [
             [
                 'id'        => 'toolbarStatus',
                 'value'     => $status_filter,
                 'min_width' => '130px',
-                'options'   => ['all' => 'All Status', 'active' => 'Active', 'inactive' => 'Inactive'],
+                'options'   => ['all' => t('All Status'), 'active' => t('Active'), 'inactive' => t('Inactive')],
             ],
         ],
         'filter_by'          => ['active' => false, 'count' => 0],
@@ -448,13 +449,13 @@ function categoryWeightLevelClass($weight) {
             <table class="w-full">
                 <thead>
                     <tr>
-                        <th class="text-left">Icon</th>
-                        <th class="text-left">Name</th>
-                        <th class="text-left">Description</th>
-                        <th class="text-left">Weight</th>
-                        <th class="text-left">Status</th>
-                        <th class="text-left">Usage</th>
-                        <th class="text-left">Actions</th>
+                        <th class="text-left"><?php echo t('Icon'); ?></th>
+                        <th class="text-left"><?php echo t('Name'); ?></th>
+                        <th class="text-left"><?php echo t('Description'); ?></th>
+                        <th class="text-left"><?php echo t('Weight'); ?></th>
+                        <th class="text-left"><?php echo t('Status'); ?></th>
+                        <th class="text-left"><?php echo t('Usage'); ?></th>
+                        <th class="text-left"><?php echo t('Actions'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -476,24 +477,24 @@ function categoryWeightLevelClass($weight) {
                             </td>
                             <td data-label="Weight">
                                 <div onclick="showWeightInfo(<?php echo $weight; ?>)"
-                                     class="weight-badge <?php echo categoryWeightLevelClass($weight); ?>" title="Click to view threat level">
+                                     class="weight-badge <?php echo categoryWeightLevelClass($weight); ?>" title="<?php echo t('Click to view threat level'); ?>">
                                     <?php echo $weight; ?>
                                 </div>
                             </td>
                             <td data-label="Status">
                                 <span class="status-badge <?php echo $cat['is_active'] ? 'status-active' : 'status-inactive'; ?>">
-                                    <?php echo $cat['is_active'] ? 'Active' : 'Inactive'; ?>
+                                    <?php echo $cat['is_active'] ? t('Active') : t('Inactive'); ?>
                                 </span>
                             </td>
                             <td data-label="Usage">
                                 <span class="text-sm <?php echo $usage_count > 0 ? 'text-blue-600 font-bold' : 'text-gray-400 font-medium'; ?>">
-                                    <?php echo $usage_count; ?> <?php echo $usage_count == 1 ? 'report' : 'reports'; ?>
+                                    <?php echo $usage_count; ?> <?php echo $usage_count == 1 ? t('report') : t('reports'); ?>
                                 </span>
                             </td>
                             <td data-label="Actions">
                                 <div class="flex flex-wrap items-center gap-1.5 cat-actions">
                                     <button onclick='editCategory(<?php echo $cat['id']; ?>, "<?php echo addslashes($cat['name']); ?>", "<?php echo addslashes($cat['description']); ?>", "<?php echo $cat['icon_class']; ?>", <?php echo $cat['is_active']; ?>, <?php echo $weight; ?>)'
-                                            class="action-btn action-btn-edit" title="Edit Category">
+                                            class="action-btn action-btn-edit" title="<?php echo t('Edit Category'); ?>">
                                         <i class="fas fa-edit text-xs"></i>
                                     </button>
 
@@ -501,7 +502,7 @@ function categoryWeightLevelClass($weight) {
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                         <input type="hidden" name="action" value="toggle_status">
                                         <input type="hidden" name="category_id" value="<?php echo $cat['id']; ?>">
-                                        <button type="submit" class="action-btn <?php echo $cat['is_active'] ? 'action-btn-deactivate' : 'action-btn-activate'; ?>" title="<?php echo $cat['is_active'] ? 'Deactivate' : 'Activate'; ?>">
+                                        <button type="submit" class="action-btn <?php echo $cat['is_active'] ? 'action-btn-deactivate' : 'action-btn-activate'; ?>" title="<?php echo $cat['is_active'] ? t('Deactivate') : t('Activate'); ?>">
                                             <i class="fas <?php echo $cat['is_active'] ? 'fa-toggle-off' : 'fa-toggle-on'; ?> text-xs"></i>
                                         </button>
                                     </form>
@@ -511,12 +512,12 @@ function categoryWeightLevelClass($weight) {
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="category_id" value="<?php echo $cat['id']; ?>">
-                                        <button type="submit" class="action-btn action-btn-delete" title="Delete Category">
+                                        <button type="submit" class="action-btn action-btn-delete" title="<?php echo t('Delete Category'); ?>">
                                             <i class="fas fa-trash-alt text-xs"></i>
                                         </button>
                                     </form>
                                     <?php else: ?>
-                                    <span class="action-btn action-btn-disabled" title="Cannot delete - used in <?php echo $usage_count; ?> report(s)">
+                                    <span class="action-btn action-btn-disabled" title="<?php echo t('Cannot delete - used in'); ?> <?php echo $usage_count; ?> <?php echo t('report(s)'); ?>">
                                         <i class="fas fa-trash-alt text-xs"></i>
                                     </span>
                                     <?php endif; ?>
@@ -531,8 +532,8 @@ function categoryWeightLevelClass($weight) {
                                     <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                                         <i class="fas fa-tags text-xl sm:text-2xl text-gray-400"></i>
                                     </div>
-                                    <h3 class="font-semibold text-gray-700 mb-1 text-base">No categories found</h3>
-                                    <p class="text-gray-400 text-xs sm:text-sm">Try adjusting your filters</p>
+                                    <h3 class="font-semibold text-gray-700 mb-1 text-base"><?php echo t('No categories found'); ?></h3>
+                                    <p class="text-gray-400 text-xs sm:text-sm"><?php echo t('Try adjusting your filters'); ?></p>
                                 </div>
                             </td>
                         </tr>
@@ -545,15 +546,15 @@ function categoryWeightLevelClass($weight) {
     <!-- ============================================================ -->
     <!-- ADD / EDIT CATEGORY MODAL -->
     <!-- ============================================================ -->
-    <div id="categoryModal" class="modal-overlay" onclick="if(event.target===this) closeCategoryModal()">
+    <div id="categoryModal" class="modal-overlay" onclick="if(event.target===this) closeCategoryModal()" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="flex justify-between items-center">
                     <h2>
                         <i class="fas fa-layer-group"></i>
-                        <span id="modalTitle">Add Category</span>
+                        <span id="modalTitle"><?php echo t('Add Category'); ?></span>
                     </h2>
-                    <button onclick="closeCategoryModal()" class="close-btn">&times;</button>
+                    <button onclick="closeCategoryModal()" class="close-btn" aria-label="<?php echo t('Close add category'); ?>">&times;</button>
                 </div>
             </div>
 
@@ -563,52 +564,52 @@ function categoryWeightLevelClass($weight) {
                 <input type="hidden" name="category_id" id="categoryId">
 
                 <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Category Name <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-bold text-gray-700 mb-2" for="catName"><?php echo t('Category Name'); ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="name" id="catName" required
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm">
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
+                    <label class="block text-sm font-bold text-gray-700 mb-2" for="catDescription"><?php echo t('Description'); ?></label>
                     <textarea name="description" id="catDescription" rows="3"
                               class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"></textarea>
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Icon Class (Font Awesome)</label>
+                    <label class="block text-sm font-bold text-gray-700 mb-2" for="catIcon"><?php echo t('Icon Class (Font Awesome)'); ?></label>
                     <input type="text" name="icon_class" id="catIcon" placeholder="fa-trash"
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm">
-                    <p class="text-xs text-gray-400 mt-1 font-medium">Use Font Awesome 6: fa-trash, fa-water, fa-smog, fa-tree, fa-recycle, etc.</p>
+                    <p class="text-xs text-gray-400 mt-1 font-medium"><?php echo t('Use Font Awesome 6: fa-trash, fa-water, fa-smog, fa-tree, fa-recycle, etc.'); ?></p>
                 </div>
 
                 <div class="mb-4">
                     <div class="flex items-center justify-between mb-2">
-                        <label class="block text-sm font-bold text-gray-700">Base Weight Point <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-bold text-gray-700" for="baseWeight"><?php echo t('Base Weight Point'); ?> <span class="text-red-500">*</span></label>
                         <button type="button" onclick="openRubricModal()" class="text-[#10A37F] hover:text-[#0D8568] text-xs flex items-center gap-1 font-semibold">
-                            <i class="fas fa-info-circle"></i> View Rubric
+                            <i class="fas fa-info-circle"></i> <?php echo t('View Rubric'); ?>
                         </button>
                     </div>
                     <input type="number" name="base_weight" id="baseWeight" min="1" max="10" required
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"
                            oninput="validateWeightInput(this)">
-                    <p class="text-xs text-gray-400 mt-1 font-medium">Weight must be between 1 and 10 (1 = lowest threat, 10 = highest threat)</p>
+                    <p class="text-xs text-gray-400 mt-1 font-medium"><?php echo t('Weight must be between 1 and 10 (1 = lowest threat, 10 = highest threat)'); ?></p>
                     <div id="weightWarning" class="hidden mt-2 text-xs text-red-600 bg-red-50 p-2 rounded-lg font-medium"></div>
                 </div>
 
                 <div class="mb-4">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" name="is_active" id="catActive" value="1" class="w-4 h-4 text-[#10A37F] rounded">
-                        <span class="text-sm font-bold text-gray-700">Active</span>
+                        <span class="text-sm font-bold text-gray-700"><?php echo t('Active'); ?></span>
                     </label>
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
                     <button type="button" onclick="closeCategoryModal()"
                             class="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition font-semibold text-sm">
-                        Cancel
+                        <?php echo t('Cancel'); ?>
                     </button>
                     <button type="submit" class="px-5 py-2.5 btn-primary text-white font-semibold text-sm">
-                        Save Category
+                        <?php echo t('Save Category'); ?>
                     </button>
                 </div>
             </form>
@@ -624,9 +625,9 @@ function categoryWeightLevelClass($weight) {
                 <div class="flex justify-between items-center">
                     <h2>
                         <i class="fas fa-info-circle"></i>
-                        Weight Information
+                        <?php echo t('Weight Information'); ?>
                     </h2>
-                    <button onclick="closeWeightInfoModal()" class="close-btn">&times;</button>
+                    <button onclick="closeWeightInfoModal()" class="close-btn" aria-label="<?php echo t('Close weight information'); ?>">&times;</button>
                 </div>
             </div>
             <div id="weightInfoContent" class="p-6">
@@ -636,7 +637,7 @@ function categoryWeightLevelClass($weight) {
             </div>
             <div class="p-6 pt-0 flex justify-end">
                 <button onclick="closeWeightInfoModal()" class="px-5 py-2.5 btn-primary text-white font-semibold text-sm">
-                    Close
+                    <?php echo t('Close'); ?>
                 </button>
             </div>
         </div>
@@ -651,62 +652,62 @@ function categoryWeightLevelClass($weight) {
                 <div class="flex justify-between items-center">
                     <h2>
                         <i class="fas fa-chart-line"></i>
-                        Weight Assignment Rubric
+                        <?php echo t('Weight Assignment Rubric'); ?>
                     </h2>
-                    <button onclick="closeRubricModal()" class="close-btn">&times;</button>
+                    <button onclick="closeRubricModal()" class="close-btn" aria-label="<?php echo t('Close rubric'); ?>">&times;</button>
                 </div>
             </div>
             <div class="p-6">
                 <div class="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                    <p class="text-sm text-gray-700 font-medium"><span class="font-extrabold">How to use:</span> Assign a base weight point (1-10) to each category based on its potential threat level to the community and environment.</p>
+                    <p class="text-sm text-gray-700 font-medium"><span class="font-extrabold"><?php echo t('How to use:'); ?></span> <?php echo t('Assign a base weight point (1-10) to each category based on its potential threat level to the community and environment.'); ?></p>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="rubric-table">
                         <thead>
                             <tr>
-                                <th>Threat Level</th>
-                                <th>Recommended Weight</th>
-                                <th>Defining Criteria for MENRO Admin</th>
-                                <th>Example Scenarios</th>
+                                <th><?php echo t('Threat Level'); ?></th>
+                                <th><?php echo t('Recommended Weight'); ?></th>
+                                <th><?php echo t('Defining Criteria for MENRO Admin'); ?></th>
+                                <th><?php echo t('Example Scenarios'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="hover:bg-gray-50">
-                                <td class="font-semibold text-blue-700">Level 1: Operational Nuisance</td>
-                                <td class="text-center font-bold">1 to 3</td>
-                                <td>Causes aesthetic decay or foul odor, but poses no immediate danger. Can be resolved by standard daily LGU operations.</td>
-                                <td>Uncollected garbage, overgrown weeds on public sidewalks, scattered dry leaves.</td>
+                                <td class="font-semibold text-blue-700"><?php echo t('Level 1: Operational Nuisance'); ?></td>
+                                <td class="text-center font-bold"><?php echo t('1 to 3'); ?></td>
+                                <td><?php echo t('Causes aesthetic decay or foul odor, but poses no immediate danger. Can be resolved by standard daily LGU operations.'); ?></td>
+                                <td><?php echo t('Uncollected garbage, overgrown weeds on public sidewalks, scattered dry leaves.'); ?></td>
                             </tr>
                             <tr class="hover:bg-gray-50">
-                                <td class="font-semibold text-yellow-700">Level 2: Ordinance Violation</td>
-                                <td class="text-center font-bold">4 to 6</td>
-                                <td>Requires active policy enforcement or Barangay Tanod intervention. Shows a behavioral hazard from the community.</td>
-                                <td>Illegal dumping of solid waste, noise pollution, open burning of small garbage piles.</td>
+                                <td class="font-semibold text-yellow-700"><?php echo t('Level 2: Ordinance Violation'); ?></td>
+                                <td class="text-center font-bold"><?php echo t('4 to 6'); ?></td>
+                                <td><?php echo t('Requires active policy enforcement or Barangay Tanod intervention. Shows a behavioral hazard from the community.'); ?></td>
+                                <td><?php echo t('Illegal dumping of solid waste, noise pollution, open burning of small garbage piles.'); ?></td>
                             </tr>
                             <tr class="hover:bg-gray-50">
-                                <td class="font-semibold text-orange-700">Level 3: Infrastructure Threat</td>
-                                <td class="text-center font-bold">7 to 8</td>
-                                <td>High probability of causing secondary physical damage to municipal property or restricting public mobility.</td>
-                                <td>Drainage blockage (flood risk), fallen trees blocking roadways, damaged retaining walls.</td>
+                                <td class="font-semibold text-orange-700"><?php echo t('Level 3: Infrastructure Threat'); ?></td>
+                                <td class="text-center font-bold"><?php echo t('7 to 8'); ?></td>
+                                <td><?php echo t('High probability of causing secondary physical damage to municipal property or restricting public mobility.'); ?></td>
+                                <td><?php echo t('Drainage blockage (flood risk), fallen trees blocking roadways, damaged retaining walls.'); ?></td>
                             </tr>
                             <tr class="hover:bg-gray-50">
-                                <td class="font-semibold text-red-700">Level 4: Critical Biohazard</td>
-                                <td class="text-center font-bold">9 to 10</td>
-                                <td>Immediate, catastrophic threat to human life, agriculture, or the municipality's water supply. Requires emergency multi-agency response.</td>
-                                <td>Toxic chemical spills, raw sewage in waterways, massive medical waste dumping.</td>
+                                <td class="font-semibold text-red-700"><?php echo t('Level 4: Critical Biohazard'); ?></td>
+                                <td class="text-center font-bold"><?php echo t('9 to 10'); ?></td>
+                                <td><?php echo t("Immediate, catastrophic threat to human life, agriculture, or the municipality's water supply. Requires emergency multi-agency response."); ?></td>
+                                <td><?php echo t('Toxic chemical spills, raw sewage in waterways, massive medical waste dumping.'); ?></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="mt-5 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                    <p class="text-xs text-gray-700 font-medium"><i class="fas fa-lightbulb text-amber-500 mr-1"></i> <span class="font-extrabold">Pro Tip:</span> Categories with higher weights will be prioritized in reports and alerts. Choose weights carefully based on real-world impact assessment.</p>
+                    <p class="text-xs text-gray-700 font-medium"><i class="fas fa-lightbulb text-amber-500 mr-1"></i> <span class="font-extrabold"><?php echo t('Pro Tip:'); ?></span> <?php echo t('Categories with higher weights will be prioritized in reports and alerts. Choose weights carefully based on real-world impact assessment.'); ?></p>
                 </div>
 
                 <div class="flex justify-end mt-5">
                     <button onclick="closeRubricModal()" class="px-5 py-2.5 btn-primary text-white font-semibold">
-                        Got it
+                        <?php echo t('Got it'); ?>
                     </button>
                 </div>
             </div>

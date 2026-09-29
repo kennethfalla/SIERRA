@@ -181,9 +181,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </div>
     </div>
 
-    <div class="flex items-center gap-3">
-        <button type="submit" class="btn-primary">
-            <i class="fas fa-save mr-1"></i> Save PDF Export Settings
+    <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
+        <button type="button" onclick="location.reload()" class="btn-secondary flex items-center gap-2">
+            <i class="fas fa-undo"></i> Reset
+        </button>
+        <button type="submit" class="btn-primary flex items-center gap-2">
+            <i class="fas fa-save"></i> Save Changes
         </button>
     </div>
 </form>

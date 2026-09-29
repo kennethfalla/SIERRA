@@ -21,14 +21,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- ============================================ -->
     <div class="form-group">
         <label class="form-label" for="system_name">
-            System Name <span class="text-red-500">*</span>
-            <span class="text-xs font-normal text-gray-400 ml-1">(Appears in header, sidebar, and page titles)</span>
+            <?php echo t('System Name'); ?> <span class="text-red-500">*</span>
+            <span class="text-xs font-normal text-gray-400 ml-1"><?php echo t('(Appears in header, sidebar, and page titles)'); ?></span>
         </label>
         <input type="text" name="system_name" id="system_name" 
                value="<?php echo htmlspecialchars($system_name); ?>" 
                class="form-input" required 
                placeholder="e.g., Sierra">
-        <p class="text-xs text-gray-400 mt-1">This name appears throughout the system and in email notifications.</p>
+        <p class="text-xs text-gray-400 mt-1"><?php echo t('This name appears throughout the system and in email notifications.'); ?></p>
     </div>
     
     <!-- ============================================ -->
@@ -36,14 +36,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- ============================================ -->
     <div class="form-group">
         <label class="form-label" for="contact_email">
-            Contact Email <span class="text-red-500">*</span>
-            <span class="text-xs font-normal text-gray-400 ml-1">(Displayed in footer and notifications)</span>
+            <?php echo t('Contact Email'); ?> <span class="text-red-500">*</span>
+            <span class="text-xs font-normal text-gray-400 ml-1"><?php echo t('(Displayed in footer and notifications)'); ?></span>
         </label>
         <input type="email" name="contact_email" id="contact_email" 
                value="<?php echo htmlspecialchars($contact_email); ?>" 
                class="form-input" required 
                placeholder="menro@sanisidro.gov.ph">
-        <p class="text-xs text-gray-400 mt-1">Citizens use this email to contact the LGU for support or inquiries.</p>
+        <p class="text-xs text-gray-400 mt-1"><?php echo t('Citizens use this email to contact the LGU for support or inquiries.'); ?></p>
     </div>
     
     <!-- ============================================ -->
@@ -51,23 +51,23 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- ============================================ -->
     <div class="form-group">
         <label class="form-label" for="emergency_hotline">
-            Emergency Hotline
-            <span class="text-xs font-normal text-gray-400 ml-1">(Displayed in footer)</span>
+            <?php echo t('Emergency Hotline'); ?>
+            <span class="text-xs font-normal text-gray-400 ml-1"><?php echo t('(Displayed in footer)'); ?></span>
         </label>
         <input type="text" name="emergency_hotline" id="emergency_hotline" 
                value="<?php echo htmlspecialchars($emergency_hotline); ?>" 
                class="form-input" 
                placeholder="e.g., 0917-123-4567">
-        <p class="text-xs text-gray-400 mt-1">This number is shown in the footer for emergency contact purposes.</p>
+        <p class="text-xs text-gray-400 mt-1"><?php echo t('This number is shown in the footer for emergency contact purposes.'); ?></p>
     </div>
     
     <!-- ============================================ -->
     <!-- LGU LOGO -->
     <!-- ============================================ -->
     <div class="form-group">
-        <label class="form-label">
-            LGU Logo
-            <span class="text-xs font-normal text-gray-400 ml-1">(Appears in sidebar, header, and login pages)</span>
+        <label class="form-label" for="logoInput">
+            <?php echo t('LGU Logo'); ?>
+            <span class="text-xs font-normal text-gray-400 ml-1"><?php echo t('(Appears in sidebar, header, and login pages)'); ?></span>
         </label>
         
         <div class="flex flex-col sm:flex-row items-start gap-4">
@@ -75,26 +75,26 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="flex-shrink-0">
                 <div class="logo-preview flex items-center justify-center bg-gray-50 border border-gray-200">
                     <?php if ($logo_url): ?>
-                        <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="Current Logo" class="w-full h-full object-contain" id="logoPreviewImg">
+                        <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="<?php echo t('Current Logo'); ?>" class="w-full h-full object-contain" id="logoPreviewImg">
                     <?php else: ?>
-                        <span class="text-gray-400 text-sm text-center px-2" id="logoPreviewFallback">No logo uploaded</span>
+                        <span class="text-gray-400 text-sm text-center px-2" id="logoPreviewFallback"><?php echo t('No logo uploaded'); ?></span>
                     <?php endif; ?>
                 </div>
-                <p class="text-xs text-gray-400 mt-1 text-center">Recommended: Square image, PNG or JPG</p>
+                <p class="text-xs text-gray-400 mt-1 text-center"><?php echo t('Recommended: Square image, PNG or JPG'); ?></p>
             </div>
             
             <!-- Upload Area -->
             <div class="flex-1 w-full">
                 <div class="upload-area" id="logoUploadArea">
                     <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2 block"></i>
-                    <p class="text-sm text-gray-500 font-medium">Click or drag & drop to upload</p>
-                    <p class="text-xs text-gray-400 mt-1">JPG, PNG, GIF, WebP (Max 5MB)</p>
+                    <p class="text-sm text-gray-500 font-medium"><?php echo t('Click or drag & drop to upload'); ?></p>
+                    <p class="text-xs text-gray-400 mt-1"><?php echo t('JPG, PNG, GIF, WebP (Max 5MB)'); ?></p>
                     <input type="file" name="lgu_logo" id="logoInput" accept="image/*" style="display: none;">
                     <p class="file-label text-xs text-gray-400 mt-2">
                         <?php if ($logo_url): ?>
-                            Current: <?php echo basename($lgu_logo); ?>
+                            <?php echo t('Current:'); ?> <?php echo basename($lgu_logo); ?>
                         <?php else: ?>
-                            No file chosen
+                            <?php echo t('No file chosen'); ?>
                         <?php endif; ?>
                     </p>
                 </div>
@@ -108,35 +108,35 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
         <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <i class="fas fa-eye text-[#10A37F]"></i>
-            Live Preview
+            <?php echo t('Live Preview'); ?>
         </h4>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div class="bg-white rounded-lg p-3 border border-gray-200">
-                <p class="text-xs text-gray-400 mb-1">System Name</p>
+                <p class="text-xs text-gray-400 mb-1"><?php echo t('System Name'); ?></p>
                 <p class="font-bold text-gray-800" id="previewSystemName"><?php echo htmlspecialchars($system_name); ?></p>
             </div>
             <div class="bg-white rounded-lg p-3 border border-gray-200">
-                <p class="text-xs text-gray-400 mb-1">Contact Email</p>
+                <p class="text-xs text-gray-400 mb-1"><?php echo t('Contact Email'); ?></p>
                 <p class="text-gray-700" id="previewContactEmail"><?php echo htmlspecialchars($contact_email); ?></p>
             </div>
             <div class="bg-white rounded-lg p-3 border border-gray-200">
-                <p class="text-xs text-gray-400 mb-1">Emergency Hotline</p>
+                <p class="text-xs text-gray-400 mb-1"><?php echo t('Emergency Hotline'); ?></p>
                 <p class="text-gray-700" id="previewHotline"><?php echo htmlspecialchars($emergency_hotline ?: 'Not set'); ?></p>
             </div>
             <div class="bg-white rounded-lg p-3 border border-gray-200">
-                <p class="text-xs text-gray-400 mb-1">Logo Status</p>
+                <p class="text-xs text-gray-400 mb-1"><?php echo t('Logo Status'); ?></p>
                 <p class="text-gray-700">
                     <?php if ($logo_url): ?>
-                        <span class="text-green-600"><i class="fas fa-check-circle mr-1"></i> Uploaded</span>
+                        <span class="text-green-600"><i class="fas fa-check-circle mr-1"></i> <?php echo t('Uploaded'); ?></span>
                     <?php else: ?>
-                        <span class="text-gray-400"><i class="fas fa-info-circle mr-1"></i> Not uploaded</span>
+                        <span class="text-gray-400"><i class="fas fa-info-circle mr-1"></i> <?php echo t('Not uploaded'); ?></span>
                     <?php endif; ?>
                 </p>
             </div>
         </div>
         <p class="text-xs text-gray-400 mt-3 text-center">
             <i class="fas fa-info-circle mr-1"></i>
-            Changes take effect immediately after saving. Preview updates in real-time.
+            <?php echo t('Changes take effect immediately after saving. Preview updates in real-time.'); ?>
         </p>
     </div>
     
@@ -145,10 +145,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- ============================================ -->
     <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
         <button type="button" onclick="resetForm()" class="btn-secondary flex items-center gap-2">
-            <i class="fas fa-undo"></i> Reset
+            <i class="fas fa-undo"></i> <?php echo t('Reset'); ?>
         </button>
         <button type="submit" class="btn-primary flex items-center gap-2">
-            <i class="fas fa-save"></i> Save Changes
+            <i class="fas fa-save"></i> <?php echo t('Save Changes'); ?>
         </button>
     </div>
 </form>
