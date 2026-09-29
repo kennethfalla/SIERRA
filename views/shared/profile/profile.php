@@ -254,7 +254,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             align-items: center;
             gap: 10px;
             padding: 9px 8px;
-            border-radius: 0.6rem;
+            border-radius: 0.5rem;
             color: #1f2937;
             text-decoration: none;
             font-weight: 500;
@@ -273,7 +273,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             width: 32px;
             height: 32px;
             flex-shrink: 0;
-            border-radius: 9px;
+            border-radius: 8px;
             background: #eef4f0;
             color: #10A37F;
             display: flex;
@@ -283,7 +283,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             transition: all 0.15s;
         }
         @media (min-width: 480px) {
-            .profile-menu-item .menu-icon { width: 36px; height: 36px; font-size: 0.9rem; border-radius: 10px; }
+            .profile-menu-item .menu-icon { width: 36px; height: 36px; font-size: 0.9rem; border-radius: 8px; }
         }
         @media (min-width: 640px) {
             .profile-menu-item .menu-icon { width: 40px; height: 40px; font-size: 1rem; border-radius: 12px; }
@@ -317,7 +317,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
         
         .boxed-field {
             border: 1.5px solid #e5ece8;
-            border-radius: 0.9rem;
+            border-radius: 1rem;
             padding: 0.5rem 0.9rem;
             background: #fff;
             transition: all 0.2s;

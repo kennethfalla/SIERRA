@@ -26,3 +26,46 @@ body {
         font-size: 16px;
     }
 }
+
+/* Keep this in the Tailwind source so rebuilding CSS preserves mobile KPI rows. */
+@media (max-width: 767px) {
+    body .stat-cards.stat-cards {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding-bottom: 6px;
+        scrollbar-width: thin;
+        overscroll-behavior-x: contain;
+    }
+    body .stat-cards.stat-cards::-webkit-scrollbar { display: block; height: 4px; }
+    body .stat-cards.stat-cards > * {
+        box-sizing: border-box;
+        flex: 0 0 165px;
+        width: 165px;
+        min-width: 0;
+        scroll-snap-align: start;
+    }
+    body .stat-cards.stat-cards:has(> :nth-child(1):last-child),
+    body .stat-cards.stat-cards:has(> :nth-child(2):last-child),
+    body .stat-cards.stat-cards:has(> :nth-child(3):last-child) {
+        display: grid;
+        overflow: visible;
+        padding-bottom: 0;
+        scroll-snap-type: none;
+    }
+    body .stat-cards.stat-cards:has(> :nth-child(1):last-child) { grid-template-columns: minmax(0, 1fr); }
+    body .stat-cards.stat-cards:has(> :nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body .stat-cards.stat-cards:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    body .stat-cards.stat-cards:has(> :nth-child(-n+3):last-child) > * {
+        width: 100%;
+        min-width: 0;
+    }
+    body .stat-cards.stat-cards:has(> :nth-child(3):last-child) > * { padding: 10px 8px; }
+    body .stat-cards.stat-cards:has(> :nth-child(3):last-child) .stat-icon { display: none; }
+}

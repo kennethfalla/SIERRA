@@ -319,7 +319,7 @@ if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
         .report-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 10px; border-bottom: 3px solid #10A37F; }
         .logo-box { width: 24mm; height: 24mm; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .logo-box img { max-width: 24mm; max-height: 24mm; object-fit: contain; }
-        .logo-placeholder { width: 24mm; height: 24mm; border: 1px dashed #d1d5db; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 8px; text-align: center; }
+        .logo-placeholder { width: 24mm; height: 24mm; border: 1px dashed #d1d5db; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 8px; text-align: center; }
         .org-block { flex: 1; text-align: center; padding: 0 6px; }
         .org-line1 { font-size: 10px; letter-spacing: 0.12em; color: #4b5563; text-transform: uppercase; }
         .org-name { font-size: 15px; font-weight: 800; color: #111827; margin-top: 2px; line-height: 1.25; }
@@ -339,7 +339,7 @@ if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
         .kpi-blue { border-top-color: #3B82F6; }
         .kpi-green { border-top-color: #10B981; }
         .section { margin-top: 12px; break-inside: avoid; }
-        .section-heading { font-size: 12px; font-weight: 800; color: #0D8568; text-transform: uppercase; letter-spacing: 0.03em; padding: 6px 10px; background: #f4faf7; border: 1px solid #dff0e9; border-left: 5px solid #10A37F; border-radius: 6px; margin-bottom: 8px; }
+        .section-heading { font-size: 12px; font-weight: 800; color: #0D8568; text-transform: uppercase; letter-spacing: 0.03em; padding: 6px 10px; background: #f4faf7; border: 1px solid #dff0e9; border-left: 5px solid #10A37F; border-radius: 8px; margin-bottom: 8px; }
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         table.data { width: 100%; border-collapse: collapse; }
         table.data th { background: #f4faf7; color: #374151; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; text-align: left; padding: 5px 7px; border: 1px solid #dff0e9; }
@@ -367,7 +367,7 @@ if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
         .page-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
         .filter-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid rgba(16,163,127,0.12); box-shadow: 2px 0 20px -8px rgba(16,163,127,0.18); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
         .sidebar-head { padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-        .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
+        .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
         .sidebar-head .head-title { font-size: 14px; font-weight: 800; color: #111827; }
         .sidebar-head .head-sub { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
         .sidebar-form { flex: 1; display: flex; flex-direction: column; min-height: 0; }
@@ -389,15 +389,15 @@ if ($dashPeriodDesc !== '')  $reportTitle .= ' - ' . $dashPeriodDesc;
         .sidebar-group-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
         .filter-field { display: flex; flex-direction: column; gap: 4px; }
         .filter-field label { font-size: 11px; font-weight: 600; color: #374151; }
-        .filter-field select, .filter-field input { width: 100%; padding: 9px 10px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 12.5px; font-family: inherit; background: #fff; color: #1f2937; }
+        .filter-field select, .filter-field input { width: 100%; padding: 9px 10px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 12.5px; font-family: inherit; background: #fff; color: #1f2937; }
         .filter-field select:focus, .filter-field input:focus { border-color: #10A37F; outline: none; box-shadow: 0 0 0 3px rgba(16,163,127,0.12); }
         .section-check-list { display: flex; flex-direction: column; gap: 2px; }
         .section-check { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 12px; color: #374151; font-weight: 500; }
         .section-check:hover { background: #F0FBF6; }
         .section-check input { accent-color: #10A37F; width: 15px; height: 15px; cursor: pointer; }
         .sidebar-footer { padding: 14px 16px; border-top: 1px solid #f3f4f6; background: #fff; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-        .btn-apply { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
-        .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; }
+        .btn-apply { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; }
         .btn-reset:hover { color: #EF4444; border-color: #EF4444; background: #FEF2F2; }
         .page-main { flex: 1; min-width: 0; padding: 16px; }
         .filter-summary-bar { max-width: 210mm; margin: 0 auto 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: #f4faf7; border: 1px solid #dff0e9; border-radius: 8px; padding: 6px 12px; }

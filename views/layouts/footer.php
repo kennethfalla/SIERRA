@@ -69,9 +69,9 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
             <div>
                 <h4 class="text-white font-semibold mb-4">Support</h4>
                 <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="text-gray-400 hover:text-emerald-400 transition">FAQ</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-emerald-400 transition">Privacy Policy</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-emerald-400 transition">Terms of Service</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php#faq" class="text-gray-400 hover:text-emerald-400 transition">FAQ</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php?page=privacy-policy" class="text-gray-400 hover:text-emerald-400 transition">Privacy Policy</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php?page=terms-of-service" class="text-gray-400 hover:text-emerald-400 transition">Terms of Service</a></li>
                     <li><a href="mailto:<?php echo htmlspecialchars($contact_email); ?>" class="text-gray-400 hover:text-emerald-400 transition">Contact Us</a></li>
                 </ul>
             </div>

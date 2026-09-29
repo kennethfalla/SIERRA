@@ -227,7 +227,7 @@ $placeholders = [
         font-size: 0.65rem;
         font-weight: 600;
         padding: 0.1rem 0.4rem;
-        border-radius: 0.25rem;
+        border-radius: 0.5rem;
         font-family: monospace;
         cursor: pointer;
         transition: all 0.2s;

@@ -377,7 +377,7 @@ if ($date_to != '') $active_filters++;
             width: 1.4rem;
             height: 1.4rem;
             background: #F5FBF6;
-            border-radius: 0.4rem;
+            border-radius: 0.5rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -582,7 +582,7 @@ if ($date_to != '') $active_filters++;
         .lightbox-nav:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); }
         .lightbox-nav.prev { left: 30px; }
         .lightbox-nav.next { right: 30px; }
-        .lightbox-counter { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 0.9rem; font-weight: 500; background: rgba(0,0,0,0.5); padding: 0.5rem 1.2rem; border-radius: 2rem; z-index: 100000; font-family: 'Manrope', sans-serif; }
+        .lightbox-counter { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 0.9rem; font-weight: 500; background: rgba(0,0,0,0.5); padding: 0.5rem 1.2rem; border-radius: 1.5rem; z-index: 100000; font-family: 'Manrope', sans-serif; }
 
         /* ===== MODAL ===== */
         .modal {
@@ -725,9 +725,9 @@ if ($date_to != '') $active_filters++;
             .fab-create { bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
         }
 
-        .btn-cancel { background: white; border: 1px solid #E5E7EB; padding: 0.625rem 1.5rem; border-radius: 2rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-cancel { background: white; border: 1px solid #E5E7EB; padding: 0.625rem 1.5rem; border-radius: 1.5rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .btn-cancel:hover { background: #f8fafc; border-color: #cbd5e1; }
-        .btn-submit { background: linear-gradient(135deg, #10A37F, #0D8568); color: white; padding: 0.625rem 1.5rem; border-radius: 2rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; }
+        .btn-submit { background: linear-gradient(135deg, #10A37F, #0D8568); color: white; padding: 0.625rem 1.5rem; border-radius: 1.5rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; }
         .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,163,127,0.3); }
         .radio-group-modern { display: flex; gap: 1rem; flex-wrap: wrap; }
         .radio-card { flex: 1; position: relative; cursor: pointer; }
@@ -748,7 +748,7 @@ if ($date_to != '') $active_filters++;
         .content-preview h2 { font-size: 1.2rem; }
         .content-preview h3 { font-size: 1.05rem; }
         .content-preview blockquote { border-left: 4px solid #10A37F; padding-left: 1rem; color: #4B5563; margin: 0.6rem 0; }
-        .content-preview code { background: #F3F4F6; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        .content-preview code { background: #F3F4F6; padding: 0.15rem 0.4rem; border-radius: 8px; font-family: monospace; font-size: 0.9em; }
         .content-preview pre { background: #1F2937; color: #F9FAFB; padding: 0.8rem; border-radius: 8px; overflow-x: auto; margin: 0.6rem 0; }
         .content-preview pre code { background: transparent; padding: 0; color: inherit; }
         .content-preview a { color: #10A37F; text-decoration: underline; }
@@ -889,7 +889,7 @@ if ($date_to != '') $active_filters++;
 
         <?php if ($is_admin || $is_barangay): ?>
         <!-- ===== STATISTICS CARDS ===== -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-6 stat-cards">
             <div class="stat-card">
                 <div class="flex justify-between items-start">
                     <div>

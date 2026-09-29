@@ -413,7 +413,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             height: 3px;
             background: #E5E7EB;
             z-index: 0;
-            border-radius: 2px;
+            border-radius: 8px;
         }
         .timeline-progress {
             position: absolute;
@@ -423,7 +423,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             background: #10A37F;
             z-index: 1;
             transition: width 0.6s ease;
-            border-radius: 2px;
+            border-radius: 8px;
             width: 0%;
         }
         .step-icon { 
@@ -626,7 +626,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .celebration-card {
             background: white;
-            border-radius: 2rem;
+            border-radius: 1.5rem;
             padding: 2rem;
             max-width: 500px;
             width: 90%;
@@ -672,7 +672,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             color: #374151;
             background: #F0FDF4;
             border: 1px solid #A7F3D0;
-            border-radius: 0.6rem;
+            border-radius: 0.5rem;
             padding: 0.45rem 0.6rem;
             line-height: 1.45;
             word-break: break-word;

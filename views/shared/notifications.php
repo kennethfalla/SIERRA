@@ -135,7 +135,7 @@ $has_notifications = count($notifications) > 0;
         }
         .nt-search input {
             width: 100%; padding: 8px 12px 8px 36px;
-            border: 1.5px solid #E5E7EB; border-radius: 10px;
+            border: 1.5px solid #E5E7EB; border-radius: 8px;
             font-size: 0.85rem; color: #1F2937; background: #F9FAFB;
             outline: none; transition: all 0.2s ease;
         }

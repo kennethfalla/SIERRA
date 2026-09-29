@@ -183,7 +183,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
             width: 100%;
             padding: 0.85rem 2.75rem 0.85rem 1rem;
             border: 1.5px solid #e2e2e2;
-            border-radius: 0.65rem;
+            border-radius: 0.75rem;
             font-size: 0.9rem;
             transition: all 0.2s ease;
             background: #ffffff;
@@ -243,7 +243,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
             font-weight: 600;
             font-size: 0.9rem;
             padding: 0.85rem 1rem;
-            border-radius: 0.7rem;
+            border-radius: 0.75rem;
             transition: all 0.2s ease;
         }
         .btn-primary:hover { background: #065f46; box-shadow: 0 8px 20px rgba(4,120,87,0.32); }

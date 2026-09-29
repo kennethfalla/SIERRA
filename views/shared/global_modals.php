@@ -73,7 +73,7 @@
     .gb-modal-actions .gb-btn { flex: 1; }
     .gb-btn {
         display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-        border: none; cursor: pointer; border-radius: 0.7rem;
+        border: none; cursor: pointer; border-radius: 0.75rem;
         padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: 600;
         transition: all 0.2s ease; font-family: inherit;
     }

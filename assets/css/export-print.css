@@ -246,6 +246,38 @@
 /* ============================================
    RESPONSIVE
    ============================================ */
+/* Screen preview only: keep the PDF/printed A4 layout intact. */
+@media screen and (max-width: 767px) {
+    body .report { width: 100%; max-width: 100%; min-height: 0; padding: 16px; }
+    body .report :is(.kpi-row, .summary-row) {
+        display: flex;
+        flex-wrap: nowrap;
+        min-width: 0;
+        max-width: 100%;
+        gap: 10px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding-bottom: 6px;
+    }
+    body .report :is(.kpi-row, .summary-row) > * {
+        box-sizing: border-box;
+        flex: 0 0 165px;
+        width: 165px;
+        min-width: 0;
+        scroll-snap-align: start;
+    }
+    body .report :is(.kpi-row, .summary-row):has(> :nth-child(-n+3):last-child) {
+        display: grid;
+        overflow: visible;
+        padding-bottom: 0;
+        scroll-snap-type: none;
+    }
+    body .report :is(.kpi-row, .summary-row):has(> :nth-child(1):last-child) { grid-template-columns: minmax(0, 1fr); }
+    body .report :is(.kpi-row, .summary-row):has(> :nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body .report :is(.kpi-row, .summary-row):has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    body .report :is(.kpi-row, .summary-row):has(> :nth-child(-n+3):last-child) > * { width: 100%; min-width: 0; }
+}
 @media (max-width: 640px) {
     .export-dropdown-menu {
         right: -40px;

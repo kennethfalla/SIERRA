@@ -159,7 +159,7 @@ function reporterLocationOf($r) {
         .tab-inactive:hover { color: #10A37F; border-bottom-color: #10A37F; }
         .tab-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 9999px; font-size: 0.6rem; font-weight: 700; background: #e5e7eb; color: #4b5563; }
         .tab-active .tab-badge { background: #10A37F; color: white; }
-        .reporter-card { background: white; border: 1px solid rgba(16,163,127,0.08); border-radius: 14px; transition: all 0.2s ease; cursor: pointer; }
+        .reporter-card { background: white; border: 1px solid rgba(16,163,127,0.08); border-radius: 12px; transition: all 0.2s ease; cursor: pointer; }
         .reporter-card:hover { transform: translateY(-2px); border-color: #10A37F; box-shadow: 0 8px 20px -8px rgba(16,163,127,0.15); }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 16px; }
         .modal-overlay.active { display: flex; }

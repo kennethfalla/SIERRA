@@ -130,8 +130,8 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     }
     .setting-row .setting-title { font-weight: 600; color: #1F2937; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
     .setting-row .setting-desc { font-size: 0.8rem; color: #6B7280; margin-top: 0.2rem; line-height: 1.5; }
-    .badge-active { background: #D1FAE5; color: #065F46; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.25rem; }
-    .badge-inactive { background: #F3F4F6; color: #6B7280; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.25rem; }
+    .badge-active { background: #D1FAE5; color: #065F46; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.5rem; }
+    .badge-inactive { background: #F3F4F6; color: #6B7280; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.5rem; }
     .code-block {
         font-family: monospace; font-size: 0.75rem; background: #1F2937; color: #A7F3D0;
         padding: 0.75rem 1rem; border-radius: 0.5rem; overflow-x: auto; margin-top: 0.5rem; word-break: break-all;
@@ -160,7 +160,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     .archive-table tbody tr:hover { background: #fafafa; }
     .archive-table tbody tr:last-child { border-bottom: none; }
     .archive-table tbody td { padding: 0.6rem 1rem; vertical-align: middle; }
-    .type-badge { font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.25rem; white-space: nowrap; }
+    .type-badge { font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.5rem; white-space: nowrap; }
     .type-report { background: #E0F2FE; color: #075985; }
     .type-announcement { background: #FEF3C7; color: #92400E; }
     .archive-search {
@@ -198,7 +198,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
             padding: 0;
         }
         .archive-modal {
-            border-radius: 1.25rem 1.25rem 0 0;
+            border-radius: 1rem 1rem 0 0;
             max-height: 88vh;
         }
     }

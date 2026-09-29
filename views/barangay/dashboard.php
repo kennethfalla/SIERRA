@@ -640,11 +640,11 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         }
         ::-webkit-scrollbar-track {
             background: #f1f5f9;
-            border-radius: 20px;
+            border-radius: 16px;
         }
         ::-webkit-scrollbar-thumb {
             background: linear-gradient(135deg, #10A37F, #0D8568);
-            border-radius: 20px;
+            border-radius: 16px;
         }
         * {
             scrollbar-width: thin;
@@ -652,13 +652,13 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         }
         
         /* ========== RADIUS SCALE SYSTEM ========== */
-        .radius-4 { border-radius: 4px; }
+        .radius-4 { border-radius: 8px; }
         .radius-8 { border-radius: 8px; }
         button:not(.radius-10):not(.radius-12):not(.radius-16):not(.radius-full) { border-radius: 8px; }
         input, select, textarea { border-radius: 8px !important; }
-        .radius-10 { border-radius: 10px; }
-        .stat-icon, .icon-container { border-radius: 10px; }
-        .btn-primary { border-radius: 10px; }
+        .radius-10 { border-radius: 8px; }
+        .stat-icon, .icon-container { border-radius: 8px; }
+        .btn-primary { border-radius: 8px; }
         .radius-12 { border-radius: 12px; }
         .stat-card, .resolution-card, .table-container { border-radius: 12px; }
         .radius-16 { border-radius: 16px; }
@@ -737,7 +737,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             font-size: 10px; 
             font-weight: bold; 
             padding: 2px 6px; 
-            border-radius: 20px;
+            border-radius: 16px;
             min-width: 18px; 
             text-align: center;
         }
@@ -767,7 +767,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .notification-icon { 
             width: 44px; 
             height: 44px; 
-            border-radius: 14px; 
+            border-radius: 12px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
@@ -876,14 +876,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .resolution-progress {
             height: 8px;
             background: #eef2f0;
-            border-radius: 4px;
+            border-radius: 8px;
             overflow: hidden;
         }
         
         .resolution-progress-bar {
             height: 100%;
             background: linear-gradient(90deg, #10A37F 0%, #0D8568 100%);
-            border-radius: 4px;
+            border-radius: 8px;
             transition: width 0.5s ease;
         }
         
@@ -894,8 +894,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         }
         
         .reports-table::-webkit-scrollbar { height: 6px; }
-        .reports-table::-webkit-scrollbar-track { background: #F3F4F6; border-radius: 10px; }
-        .reports-table::-webkit-scrollbar-thumb { background: #10A37F; border-radius: 10px; }
+        .reports-table::-webkit-scrollbar-track { background: #F3F4F6; border-radius: 8px; }
+        .reports-table::-webkit-scrollbar-thumb { background: #10A37F; border-radius: 8px; }
         
         /* ========== ALGORITHMIC KPI WIDGETS (top row) ========== */
         .kpi-card {
@@ -967,7 +967,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         /* ========== CENTERPIECE DECISION-SUPPORT MAP ========== */
         #map-container {
             background: white;
-            border-radius: 1.25rem;
+            border-radius: 1rem;
             border: 1px solid rgba(16, 163, 127, 0.08);
             padding: 1rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
@@ -1002,7 +1002,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             color: #0F3B2E;
             background: rgba(255,255,255,0.92);
             padding: 2px 6px;
-            border-radius: 6px;
+            border-radius: 8px;
             white-space: nowrap;
             max-width: 120px;
             overflow: hidden;
@@ -1014,7 +1014,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .map-toggle {
             display: flex;
             background: #f1f5f9;
-            border-radius: 2rem;
+            border-radius: 1.5rem;
             padding: 0.2rem;
             gap: 0.2rem;
         }
@@ -1251,7 +1251,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         }
         .greeting-badge {
             background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
-            border-radius: 1.25rem;
+            border-radius: 1rem;
             box-shadow: 0 12px 28px -8px rgba(16, 163, 127, 0.25);
         }
         
@@ -1259,24 +1259,93 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .map-head {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-between;
             align-items: center;
-            gap: 0.85rem 1.25rem;
+            gap: 0.75rem 1rem;
             margin-bottom: 0.9rem;
         }
         .map-title-wrap {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 0.9rem;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            width: 100%;
             min-width: 0;
         }
         .map-head-tools {
             display: flex;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: space-between;
             flex-wrap: wrap;
-            gap: 0.85rem 1rem;
+            gap: 0.75rem 1rem;
+            width: 100%;
+            min-width: 0;
+        }
+        /* Fullscreen toggle button (sits beside the map title) */
+        .map-fullscreen-btn {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+        .map-fullscreen-btn i { font-size: 0.8rem; }
+        .map-fullscreen-btn:hover {
+            color: #10A37F;
+            border-color: #10A37F;
+            background: #f0fdf9;
+        }
+        /* Map card in fullscreen mode */
+        #map-container.map-fullscreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        #map-container.map-fullscreen .map-head { flex-shrink: 0; }
+        #map-container.map-fullscreen #map { flex: 1 1 auto; height: auto; min-height: 0; }
+        #map-container.map-fullscreen .map-legend-inline,
+        #map-container.map-fullscreen > .flex,
+        #map-container.map-fullscreen > p { display: none; }
+        /* Desktop: keep the mode toggle and the timeframe picker on one row */
+        @media (min-width: 769px) {
+            .map-head-tools {
+                flex-wrap: nowrap;
+            }
+            #mapToggle {
+                flex-shrink: 0;
+            }
+            #mapToggle,
+            #timeframeToggle {
+                flex-wrap: nowrap;
+            }
+            #mapToggle button,
+            #timeframeToggle button {
+                white-space: nowrap;
+            }
+            #timeframeToggle {
+                min-width: 0;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            #timeframeToggle::-webkit-scrollbar { display: none; }
+            #customRangeBox {
+                width: 100%;
+                flex-wrap: wrap;
+            }
         }
 
         /* Floating legend + category filter overlay on the map canvas */
@@ -1353,6 +1422,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             /* Filters stack full-width */
             #customRangeBox { width: 100%; flex-wrap: wrap; }
             #customRangeBox input { flex: 1 1 40%; min-width: 0; }
+            /* Touch-friendly fullscreen button on mobile */
+            .map-fullscreen-btn { width: 44px; height: 44px; }
             /* Keep the map canvas unobstructed: legend moves below the map */
             .map-overlay { top: 0.5rem; right: 0.5rem; }
             .map-overlay .map-legend { display: none; }
@@ -1497,7 +1568,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <!-- ============================================================ -->
         <!-- 1. TOP ROW: ALGORITHMIC KPI WIDGETS (Local Health) -->
         <!-- ============================================================ -->
-        <div class="analytics-kpi-grid">
+        <div class="analytics-kpi-grid stat-cards">
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
                 <div>
                     <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Pending Acknowledgment</p>
@@ -1623,14 +1694,17 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
                         Environmental Hazard Map
                     </h2>
-                    <div class="map-toggle" id="mapToggle">
-                        <button class="active" data-mode="active">Active Hazards</button>
-                        <button data-mode="historical">Historical Trends</button>
-                    </div>
+                    <button type="button" id="mapFullscreenBtn" onclick="toggleMapFullscreen()" title="Toggle Fullscreen Map" aria-label="Toggle fullscreen map" class="map-fullscreen-btn">
+                        <i class="fas fa-expand" id="fullscreenIcon"></i>
+                    </button>
                 </div>
 
-                <!-- Timeframe Segmented Control + Custom Range (right side) -->
+                <!-- Mode toggle + Timeframe Segmented Control (same row) -->
                 <div class="map-head-tools">
+                    <div class="map-toggle" id="mapToggle">
+                        <button class="active" data-mode="active"><i class="fas fa-map-pin" aria-hidden="true"></i><span>Active Hazards</span></button>
+                        <button data-mode="historical"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>Historical Trends</span></button>
+                    </div>
                     <div class="map-toggle" id="timeframeToggle">
                         <button data-range="today">Today</button>
                         <button data-range="week">This Week</button>
@@ -1639,11 +1713,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <button data-range="custom">Custom</button>
                         <button class="active" data-range="all">All Time</button>
                     </div>
-                    <div id="customRangeBox" class="hidden items-center gap-2">
-                        <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
-                        <span class="text-xs text-gray-400">to</span>
-                        <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
-                    </div>
+                </div>
+
+                <div id="customRangeBox" class="hidden items-center gap-2">
+                    <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
+                    <span class="text-xs text-gray-400">to</span>
+                    <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
                 </div>
             </div>
 
@@ -1691,11 +1766,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $criticalBands['orange']; ?>-<?php echo $criticalBands['critical'] - 1; ?>)</span>
                 <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $criticalBands['critical']; ?>-20)</span>
             </div>
-            <p class="text-xs text-gray-400 mt-2" id="filterSummary"></p>
-            <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                <i class="fas fa-info-circle"></i>
-                Overlapping reports within 50m merge into clusters, colored by the 20-point Severity Score. Click a marker or cluster to analyze.
-            </p>
         </div>
 
         <!-- Drill-down panel -->
@@ -1813,7 +1883,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <p class="text-sm text-gray-400 py-6 text-center">No category data available yet.</p>
                 <?php else: ?>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                    <table class="w-full text-sm" style="min-width: 560px;">
                         <thead>
                             <tr class="text-left text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
                                 <th class="py-2 pr-2">Rank</th>
@@ -1890,7 +1960,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <div class="chart-canvas-container">
                         <canvas id="riskChart" style="max-height: 200px;" role="img" aria-label="Doughnut chart of reports by risk level"></canvas>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 mt-4">
+                    <div class="grid grid-cols-2 gap-2 mt-4 stat-cards">
                         <?php 
                         $risk_colors = [
                             'critical' => '#EF4444',
@@ -1992,7 +2062,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <div class="chart-canvas-container" style="height:160px;">
                     <canvas id="weeklyChart" role="img" aria-label="Bar chart of weekly new versus resolved reports"></canvas>
                 </div>
-                <div class="grid grid-cols-2 gap-3 mt-4">
+                <div class="grid grid-cols-2 gap-3 mt-4 stat-cards">
                     <div class="bg-emerald-50 rounded-xl p-3 text-center">
                         <p class="text-xs text-gray-500 font-bold">New Reports (7d)</p>
                         <p class="text-xl font-extrabold text-[#10A37F] tracking-tight"><?php echo array_sum(array_column($weekly_data, 'total')); ?></p>
@@ -2603,7 +2673,7 @@ function loadMapData(mode) {
         const tier = getSeverityTier(score);
         const isPending = report.status === 'pending';
         const popupAction = isPending
-            ? `<a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; text-decoration: none; display: inline-block;">Manage Report</a>`
+            ? `<a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 8px; padding: 4px 12px; font-size: 12px; text-decoration: none; display: inline-block;">Manage Report</a>`
             : '';
         const popupContent = `
             <div style="font-family: Manrope, sans-serif; min-width: 200px;">
@@ -2695,6 +2765,38 @@ document.getElementById('timeframeToggle').addEventListener('click', function(e)
     const btn = e.target.closest('button');
     if (!btn) return;
     selectRange(btn.dataset.range);
+});
+
+// ------------------------------------------------------------
+// MAP FULLSCREEN TOGGLE
+// ------------------------------------------------------------
+window.toggleMapFullscreen = function() {
+    const mapContainer = document.getElementById('map-container');
+    const fullscreenIcon = document.getElementById('fullscreenIcon');
+    if (!mapContainer) return;
+    const isFullscreen = mapContainer.classList.contains('map-fullscreen');
+
+    if (isFullscreen) {
+        mapContainer.classList.remove('map-fullscreen');
+        if (fullscreenIcon) fullscreenIcon.className = 'fas fa-expand';
+        document.body.style.overflow = '';
+    } else {
+        mapContainer.classList.add('map-fullscreen');
+        if (fullscreenIcon) fullscreenIcon.className = 'fas fa-compress';
+        document.body.style.overflow = 'hidden';
+    }
+
+    setTimeout(function() {
+        if (typeof map !== 'undefined' && map) map.invalidateSize();
+    }, 100);
+};
+
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    const mapContainer = document.getElementById('map-container');
+    if (mapContainer && mapContainer.classList.contains('map-fullscreen')) {
+        window.toggleMapFullscreen();
+    }
 });
 function applyCustomRange() {
     if (selectedRange !== 'custom') return;

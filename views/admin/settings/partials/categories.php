@@ -173,15 +173,15 @@ function categoryWeightLevelClass($weight) {
 
 <style>
     ::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 20px; }
-    ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #059669, #047857); border-radius: 20px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 16px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #059669, #047857); border-radius: 16px; }
     * { scrollbar-width: thin; scrollbar-color: #059669 #f1f5f9; }
 
     /* ===== BRANDING BUTTONS ===== */
     .btn-primary {
         background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
         transition: all 0.2s ease;
-        border-radius: 10px;
+        border-radius: 8px;
         color: white;
         border: none;
         font-weight: 600;
@@ -222,7 +222,7 @@ function categoryWeightLevelClass($weight) {
     /* ===== WEIGHT BADGES ===== */
     .weight-badge {
         display: inline-flex; align-items: center; justify-content: center;
-        width: 2.5rem; height: 2.5rem; border-radius: 10px;
+        width: 2.5rem; height: 2.5rem; border-radius: 8px;
         color: white; font-weight: 800; font-size: 1.05rem;
         cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
@@ -269,7 +269,7 @@ function categoryWeightLevelClass($weight) {
 
     /* ===== ACTION BUTTONS ===== */
     .action-btn {
-        padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600;
+        padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 600;
         transition: all 0.15s ease; border: none; cursor: pointer;
         display: inline-flex; align-items: center; gap: 4px;
     }
@@ -369,7 +369,7 @@ function categoryWeightLevelClass($weight) {
     </div>
 
     <!-- ===== STATISTICS CARDS ===== -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 stat-cards">
         <div class="stat-card">
             <div class="flex justify-between items-start">
                 <div>

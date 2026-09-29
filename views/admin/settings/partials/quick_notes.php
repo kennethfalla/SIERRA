@@ -183,7 +183,7 @@ $active_count = count(array_filter($templates, fn($t) => (int)$t['is_active'] ==
 
 <!-- ===== TOOLBAR ===== -->
 <div class="qnt-toolbar">
-    <div class="qnt-stats">
+    <div class="qnt-stats stat-cards">
         <span class="qnt-stat"><strong><?php echo $total; ?></strong> templates</span>
         <span class="qnt-stat"><strong><?php echo $active_count; ?></strong> active</span>
     </div>

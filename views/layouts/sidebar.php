@@ -205,18 +205,36 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
     <?php echo t('Skip to main content'); ?>
 </a>
 
-<!-- Minimal Non-Intrusive Burger Menu Button -->
-<button id="showSidebarBtn" 
-        class="fixed top-4 left-4 z-50 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg shadow-sm p-1.5 hover:bg-emerald-50 hover:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-all duration-300 group hidden"
-        style="display: none;"
-        aria-label="Open navigation menu"
-        aria-expanded="false"
-        title="Show Menu">
-    <svg class="w-4 h-4 text-gray-500 group-hover:text-emerald-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-    </svg>
-    <span class="sr-only">Open menu</span>
-</button>
+<!-- Mobile top bar: holds the sidebar toggle (not floating) -->
+<header class="app-mobile-header" role="banner">
+    <div class="app-mobile-brand-wrap">
+        <?php $mob_logo = SettingsHelper::get('lgu_logo'); ?>
+        <?php if ($mob_logo): ?>
+            <img src="<?php echo BASE_URL . $mob_logo; ?>" alt="<?php echo htmlspecialchars($system_name); ?> logo" class="app-mobile-logo">
+        <?php else: ?>
+            <div class="app-mobile-logo app-mobile-logo-fallback" aria-hidden="true"><i class="fas fa-leaf"></i></div>
+        <?php endif; ?>
+        <div class="app-mobile-titles">
+            <span class="app-mobile-brand"><?php echo htmlspecialchars($system_name); ?></span>
+            <span class="app-mobile-sub"><?php echo t('Environmental Reporting'); ?></span>
+        </div>
+    </div>
+    <button id="showSidebarBtn"
+            type="button"
+            class="app-mobile-menu-btn"
+            aria-label="Toggle navigation menu"
+            aria-expanded="false"
+            aria-controls="sidebar"
+            title="Toggle Menu">
+        <svg class="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+        <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <span class="sr-only">Toggle menu</span>
+    </button>
+</header>
 
 <aside id="sidebar" 
        class="fixed left-0 top-0 h-full bg-white shadow-2xl z-40 transition-all duration-300 flex flex-col"
@@ -246,7 +264,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
             <button id="hideSidebarBtn" 
-                    class="w-10 h-10 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
+                    class="w-10 h-10 rounded-lg bg-transparent hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
                     aria-label="Close sidebar menu"
                     title="Hide Sidebar">
             <svg class="w-4 h-4 text-gray-500 group-hover:text-red-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,32 +366,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <?php endif; ?>
             </a>
             <?php endif; ?>
-            
-            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
-                <?php if($current_page == 'announcements'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
-            <!-- Notifications -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
-                <?php if($current_page == 'notifications'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
+
             <?php if (PermissionHelper::userHasPermission('can_manage_reports')): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'verify-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -387,7 +380,19 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <?php endif; ?>
             </a>
             <?php endif; ?>
-
+            
+            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
+                <?php if($current_page == 'announcements'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
             <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=reporters-directory" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -401,6 +406,19 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <?php endif; ?>
             </a>
             <?php endif; ?>
+            
+            <!-- Notifications -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
+                <?php if($current_page == 'notifications'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
         </div>
         
         <?php elseif($user_role == 'admin'): ?>
@@ -421,6 +439,20 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <?php endif; ?>
             </a>
             <?php endif; ?>
+
+            <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
+            <a href="<?php echo BASE_URL; ?>index.php?page=all-reports" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'all-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'all-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-flag text-sm <?php echo $current_page == 'all-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('All Reports'); ?></span>
+                <?php if($current_page == 'all-reports'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
             
             <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -447,20 +479,6 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                 <?php endif; ?>
             </a>
             
-            <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
-            <a href="<?php echo BASE_URL; ?>index.php?page=all-reports" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'all-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'all-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-flag text-sm <?php echo $current_page == 'all-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('All Reports'); ?></span>
-                <?php if($current_page == 'all-reports'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            <?php endif; ?>
-
             <?php if (PermissionHelper::userHasAnyPermission(['can_manage_users', 'can_manage_staff'])): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=manage-users" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'manage-users' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -648,16 +666,141 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         transform: translateX(0) !important;
     }
     
-    #showSidebarBtn {
-        display: flex !important;
-        z-index: 51;
+    /* ---- Mobile top app bar (holds the sidebar toggle, not floating) ---- */
+    .app-mobile-header {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 56px;
+        padding: 0 14px;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        z-index: 45;
     }
+    .app-mobile-brand-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        margin-right: auto;
+    }
+    .app-mobile-logo {
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        object-fit: contain;
+        border-radius: 8px;
+    }
+    .app-mobile-logo-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #10A37F, #0D8568);
+        color: #fff;
+        font-size: 1rem;
+    }
+    .app-mobile-titles {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        line-height: 1.15;
+    }
+    .app-mobile-brand {
+        font-weight: 800;
+        font-size: 0.95rem;
+        letter-spacing: .01em;
+        color: #0d8568;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+    .app-mobile-sub {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+    /* Hero notification bell, relocated into the mobile header */
+    .app-mobile-header .sierra-hero-bell {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        border: none;
+        border-radius: 12px;
+        background: transparent;
+        color: #374151;
+        cursor: pointer;
+        transition: background-color .15s ease, color .15s ease;
+    }
+    .app-mobile-header .sierra-hero-bell:hover { background: #ecfdf5; color: #10A37F; }
+    .app-mobile-header .sierra-hero-bell .fa-bell { font-size: 1.05rem; }
+    .app-mobile-header .sierra-hero-bell:focus-visible { outline: 3px solid #0D8568; outline-offset: 2px; }
+    .app-mobile-header .notification-badge {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        background: #ef4444;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        border: 2px solid #fff;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #showSidebarBtn.app-mobile-menu-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        border: none;
+        border-radius: 12px;
+        background: transparent;
+        color: #374151;
+        cursor: pointer;
+        transition: background-color .15s ease, color .15s ease;
+    }
+    #showSidebarBtn.app-mobile-menu-btn svg {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 22px;
+        height: 22px;
+        margin: -11px 0 0 -11px;
+        transition: opacity .25s ease, transform .25s ease;
+    }
+    #showSidebarBtn.app-mobile-menu-btn .icon-close { opacity: 0; transform: rotate(-90deg) scale(.6); }
+    body.sidebar-open #showSidebarBtn.app-mobile-menu-btn .icon-menu { opacity: 0; transform: rotate(90deg) scale(.6); }
+    body.sidebar-open #showSidebarBtn.app-mobile-menu-btn .icon-close { opacity: 1; transform: rotate(0) scale(1); }
+    #showSidebarBtn.app-mobile-menu-btn:hover { background: #ecfdf5; color: #10A37F; }
+    #showSidebarBtn.app-mobile-menu-btn:focus-visible { outline: 3px solid #0D8568; outline-offset: 2px; }
     
     /* Hide the burger while the sidebar overlay is open (mobile only) */
     @media (max-width: 1023px) {
-        body.sidebar-open #showSidebarBtn {
-            display: none !important;
-        }
+        .app-mobile-header { display: flex; }
+        body { padding-top: 56px; }
+        /* Mobile: the header's menu button (X) closes the sidebar, so hide the sidebar's own close button. */
+        #hideSidebarBtn { display: none !important; }
     }
     
     /* Desktop: sidebar always visible */
@@ -665,9 +808,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         body:not(.sidebar-open) #sidebar {
             transform: translateX(0) !important;
         }
-        #showSidebarBtn {
-            display: none !important;
-        }
+        .app-mobile-header { display: none !important; }
     }
     
     #sidebar .flex-1 {
@@ -685,7 +826,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
     
     #sidebar .flex-1::-webkit-scrollbar-thumb {
         background: #10a37f;
-        border-radius: 4px;
+        border-radius: 8px;
     }
     
     /* Ensure sidebar avatar is round */
@@ -713,7 +854,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         font-size: 9px;
         font-weight: 700;
         padding: 2px 5px;
-        border-radius: 20px;
+        border-radius: 16px;
         min-width: 16px;
         text-align: center;
         line-height: 1.3;
@@ -934,7 +1075,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
 
         var toast = document.createElement('div');
         toast.setAttribute('role', 'alert');
-        toast.style.cssText = 'pointer-events:auto;display:flex;align-items:flex-start;gap:12px;background:#ffffff;border:1px solid #e2e8f0;border-left:4px solid ' + (latest.color || '#10A37F') + ';border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:14px 16px;font-family:inherit;cursor:pointer;opacity:0;transform:translateY(-16px);animation:rtToastIn .35s cubic-bezier(.16,1,.3,1) forwards;';
+        toast.style.cssText = 'pointer-events:auto;display:flex;align-items:flex-start;gap:12px;background:#ffffff;border:1px solid #e2e8f0;border-left:4px solid ' + (latest.color || '#10A37F') + ';border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:14px 16px;font-family:inherit;cursor:pointer;opacity:0;transform:translateY(-16px);animation:rtToastIn .35s cubic-bezier(.16,1,.3,1) forwards;';
 
         var icon = document.createElement('div');
         icon.style.cssText = 'width:38px;height:38px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (latest.color || '#10A37F') + '1f;';
@@ -1194,6 +1335,83 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
     to   { opacity: 1; transform: translateY(0); }
 }
 </style>
+
+<script>
+/* Relocate the dashboard hero's notification bell into the mobile header
+   (left of the menu button) on phones; restore it to the hero on desktop. */
+(function () {
+    'use strict';
+    var header = document.querySelector('.app-mobile-header');
+    var burger = document.getElementById('showSidebarBtn');
+    if (!header || !burger) return;
+
+    var mq = window.matchMedia('(max-width: 1023px)');
+    var homeParent = null, homeNext = null;
+
+    function findBell() {
+        return document.querySelector('.sierra-hero .sierra-hero-bell') ||
+               document.querySelector('.sierra-hero .notification-bell');
+    }
+    function toHeader() {
+        var b = findBell();
+        if (!b || b.parentNode === header) return;
+        homeParent = b.parentNode;
+        homeNext = b.nextSibling;
+        header.insertBefore(b, burger);
+    }
+    function toHero() {
+        var b = header.querySelector('.sierra-hero-bell, .notification-bell');
+        if (b && homeParent) homeParent.insertBefore(b, homeNext);
+    }
+    function sync() { if (mq.matches) toHeader(); else toHero(); }
+
+    if (mq.addEventListener) mq.addEventListener('change', sync);
+    else if (mq.addListener) mq.addListener(sync);
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sync);
+    else sync();
+})();
+</script>
+
+<script>
+/* Stats/KPI rows on mobile:
+   - 3 or fewer cards -> fit the screen (equal columns)
+   - more than 3      -> horizontal, swipeable row
+   Self-contained: this script injects its own CSS (so it works even if the
+   external stylesheet is cached/stale) and works on every mobile browser. */
+(function () {
+    'use strict';
+    var CSS = '@media(max-width:767px){' +
+        '.stat-cards{display:flex !important;flex-wrap:nowrap !important;gap:10px;min-width:0;max-width:100%;overflow-x:auto !important;overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding-bottom:6px;overscroll-behavior-x:contain;}' +
+        '.stat-cards>*{box-sizing:border-box;flex:0 0 165px !important;width:165px !important;min-width:0;scroll-snap-align:start;}' +
+        '.stat-cards.sf-fit{display:grid !important;overflow:visible !important;padding-bottom:0;scroll-snap-type:none;}' +
+        '.stat-cards.sf-fit>*{flex:1 1 auto !important;width:auto !important;min-width:0;}' +
+        '.stat-cards.sf-1{grid-template-columns:minmax(0,1fr) !important;}' +
+        '.stat-cards.sf-2{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}' +
+        '.stat-cards.sf-3{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}' +
+        '}';
+    function inject() {
+        if (document.getElementById('stat-cards-css')) return;
+        var s = document.createElement('style');
+        s.id = 'stat-cards-css';
+        s.appendChild(document.createTextNode(CSS));
+        (document.head || document.documentElement).appendChild(s);
+    }
+    function applyStatFit() {
+        inject();
+        var rows = document.querySelectorAll('.stat-cards');
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var n = row.children.length;
+            row.classList.remove('sf-fit', 'sf-1', 'sf-2', 'sf-3');
+            if (n >= 1 && n <= 3) { row.classList.add('sf-fit', 'sf-' + n); }
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyStatFit);
+    else applyStatFit();
+    window.addEventListener('resize', applyStatFit);
+})();
+</script>
 
 <?php include BASE_PATH . 'views/shared/global_modals.php'; ?>
 

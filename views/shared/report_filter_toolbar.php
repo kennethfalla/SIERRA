@@ -65,7 +65,7 @@ foreach ($ft_popover_fields as $pf) {
     .ft-toolbar .reports-toolbar {
         background: var(--ft-white);
         border: 1px solid var(--ft-border);
-        border-radius: 14px;
+        border-radius: 12px;
         padding: 10px 16px;
         margin-bottom: 1.5rem;
         display: flex;
@@ -95,7 +95,7 @@ foreach ($ft_popover_fields as $pf) {
         width: 100%;
         padding: 8px 12px 8px 36px;
         border: 1.5px solid var(--ft-border-light);
-        border-radius: 10px;
+        border-radius: 8px;
         font-size: 0.85rem;
         color: var(--ft-gray-800);
         background: var(--ft-gray-50);
@@ -114,7 +114,7 @@ foreach ($ft_popover_fields as $pf) {
         appearance: none;
         padding: 8px 32px 8px 12px;
         border: 1.5px solid var(--ft-border-light);
-        border-radius: 10px;
+        border-radius: 8px;
         font-size: 0.82rem;
         font-weight: 500;
         color: var(--ft-gray-700);
@@ -147,7 +147,7 @@ foreach ($ft_popover_fields as $pf) {
         gap: 6px;
         padding: 8px 14px;
         border: 1.5px solid var(--ft-border-light);
-        border-radius: 10px;
+        border-radius: 8px;
         font-size: 0.82rem;
         font-weight: 600;
         color: var(--ft-gray-700);
@@ -174,7 +174,7 @@ foreach ($ft_popover_fields as $pf) {
         min-width: 18px;
         height: 18px;
         padding: 0 5px;
-        border-radius: 9px;
+        border-radius: 8px;
         background: var(--ft-forest);
         color: var(--ft-white);
         font-size: 0.65rem;
@@ -369,7 +369,7 @@ foreach ($ft_popover_fields as $pf) {
     }
     .ft-toolbar .view-toggle {
         background: #f1f5f9;
-        border-radius: 2rem;
+        border-radius: 1.5rem;
         padding: 0.2rem;
         display: inline-flex;
         gap: 0.2rem;
@@ -407,7 +407,7 @@ foreach ($ft_popover_fields as $pf) {
         background: var(--ft-white);
         border: 1px solid var(--ft-border);
         border-top: none;
-        border-radius: 0 0 14px 14px;
+        border-radius: 0 0 12px 12px;
         margin-top: -1px;
         margin-bottom: 1.5rem;
     }
@@ -426,7 +426,7 @@ foreach ($ft_popover_fields as $pf) {
         padding: 4px 10px 4px 12px;
         background: var(--ft-forest-light);
         color: var(--ft-forest);
-        border-radius: 20px;
+        border-radius: 16px;
         font-size: 0.72rem;
         font-weight: 600;
         transition: all 0.15s ease;
@@ -526,7 +526,7 @@ foreach ($ft_popover_fields as $pf) {
             flex-shrink: 0;
             width: 38px;
             height: 38px;
-            border-radius: 10px;
+            border-radius: 8px;
             border: 1.5px solid var(--ft-border-light);
             background: var(--ft-gray-50);
             color: var(--ft-gray-700);
@@ -593,7 +593,7 @@ foreach ($ft_popover_fields as $pf) {
             z-index: 200;
             background: var(--ft-white);
             padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
-            border-radius: 20px 20px 0 0;
+            border-radius: 16px 16px 0 0;
             box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
             height: var(--ft-sheet-100);
             max-height: var(--ft-sheet-100);
@@ -711,7 +711,7 @@ foreach ($ft_popover_fields as $pf) {
 
 <div class="ft-toolbar">
     <div class="reports-toolbar<?php echo $ft_active_filters > 0 ? ' style-has-chips' : ''; ?>"
-         style="<?php echo $ft_active_filters > 0 ? 'border-radius: 14px 14px 0 0;' : ''; ?>">
+         style="<?php echo $ft_active_filters > 0 ? 'border-radius: 12px 12px 0 0;' : ''; ?>">
 
         <!-- Search (always visible, incl. mobile) -->
         <div class="toolbar-search">

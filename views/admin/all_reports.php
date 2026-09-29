@@ -393,7 +393,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
         .reports-toolbar {
             background: var(--lt-white);
             border: 1px solid var(--lt-border);
-            border-radius: 14px;
+            border-radius: 12px;
             padding: 10px 16px;
             margin-bottom: 0;
             display: flex;
@@ -421,7 +421,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             width: 100%;
             padding: 8px 12px 8px 36px;
             border: 1.5px solid var(--lt-border-light);
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 0.85rem;
             color: var(--lt-gray-800);
             background: var(--lt-gray-50);
@@ -441,7 +441,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             appearance: none;
             padding: 8px 32px 8px 12px;
             border: 1.5px solid var(--lt-border-light);
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 0.82rem;
             font-weight: 500;
             color: var(--lt-gray-700);
@@ -477,7 +477,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             gap: 6px;
             padding: 8px 14px;
             border: 1.5px solid var(--lt-border-light);
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 0.82rem;
             font-weight: 600;
             color: var(--lt-gray-700);
@@ -504,7 +504,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             min-width: 18px;
             height: 18px;
             padding: 0 5px;
-            border-radius: 9px;
+            border-radius: 8px;
             background: var(--lt-forest);
             color: var(--lt-white);
             font-size: 0.65rem;
@@ -656,7 +656,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             background: var(--lt-white);
             border: 1px solid var(--lt-border);
             border-top: none;
-            border-radius: 0 0 14px 14px;
+            border-radius: 0 0 12px 12px;
             margin-top: -1px;
             margin-bottom: 1.5rem;
         }
@@ -675,7 +675,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             padding: 4px 10px 4px 12px;
             background: var(--lt-forest-light);
             color: var(--lt-forest);
-            border-radius: 20px;
+            border-radius: 16px;
             font-size: 0.72rem;
             font-weight: 600;
             transition: all 0.15s ease;
@@ -735,7 +735,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             background: linear-gradient(90deg, #FFFBEB, #FFF7ED);
             border: 1px solid #FCD34D;
             padding: 0.75rem;
-            border-radius: 10px;
+            border-radius: 8px;
             margin-bottom: 1rem;
         }
         .escalated-item {
@@ -908,7 +908,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
         </div>
 
         <!-- ===== STATS SUMMARY CARDS ===== -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6 stat-cards">
             <!-- Total -->
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
                 <div>

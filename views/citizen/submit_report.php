@@ -303,7 +303,7 @@ if (is_dir($barangays_dir)) {
             list-style: none;
             background: #fff;
             border: 1px solid #e5ece8;
-            border-radius: 0.875rem;
+            border-radius: 0.75rem;
             box-shadow: 0 14px 34px rgba(15,23,42,.16), 0 2px 8px rgba(15,23,42,.07);
             animation: csIn .14s ease;
         }
@@ -314,7 +314,7 @@ if (is_dir($barangays_dir)) {
             justify-content: space-between;
             gap: 0.5rem;
             padding: 0.55rem 0.7rem;
-            border-radius: 0.6rem;
+            border-radius: 0.5rem;
             font-size: 0.9rem;
             color: #1f2937;
             cursor: pointer;
@@ -383,7 +383,7 @@ if (is_dir($barangays_dir)) {
         .impact-option .card {
             border: 1px solid #e5e7eb;
             transition: all 0.2s ease;
-            border-radius: 0.9rem;
+            border-radius: 1rem;
             padding: 0.8rem 0.5rem;
             text-align: center;
             height: 100%;
@@ -991,7 +991,7 @@ if (is_dir($barangays_dir)) {
             gap: 0.7rem;
             align-items: flex-start;
             border: 1.5px solid #edf2ef;
-            border-radius: 0.9rem;
+            border-radius: 1rem;
             padding: 0.7rem;
             margin-bottom: 0.6rem;
             background: #fff;
@@ -1068,7 +1068,7 @@ if (is_dir($barangays_dir)) {
         .dup-thumb {
             width: 46px;
             height: 46px;
-            border-radius: 0.65rem;
+            border-radius: 0.75rem;
             object-fit: cover;
             background: #f3f4f6;
             display: block;
@@ -1097,7 +1097,7 @@ if (is_dir($barangays_dir)) {
             #duplicateModal .modal-card {
                 width: 28rem;
                 max-width: 92vw;
-                border-radius: 1.25rem;
+                border-radius: 1rem;
                 transform: translateY(0) scale(0.95);
                 animation: dupPopIn 0.22s ease forwards;
             }
@@ -1202,7 +1202,7 @@ if (is_dir($barangays_dir)) {
             position: relative;
             width: 100%;
             max-width: 500px;
-            border-radius: 20px;
+            border-radius: 16px;
             overflow: hidden;
             background: #000;
             aspect-ratio: 4/3;
@@ -1219,7 +1219,7 @@ if (is_dir($barangays_dir)) {
             inset: 0;
             pointer-events: none;
             border: 2px solid rgba(255,255,255,0.15);
-            border-radius: 20px;
+            border-radius: 16px;
             box-shadow: inset 0 0 0 2px rgba(255,255,255,0.05);
         }
         .camera-modal .viewfinder::before {
@@ -1453,7 +1453,7 @@ if (is_dir($barangays_dir)) {
             -webkit-backdrop-filter: blur(8px);
             color: white;
             padding: 10px 18px;
-            border-radius: 30px;
+            border-radius: 24px;
             font-size: 0.75rem;
             text-align: center;
             max-width: 90%;

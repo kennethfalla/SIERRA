@@ -439,7 +439,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             padding: 10px 16px;
             background: var(--lt-white);
             border: 1px solid var(--lt-border);
-            border-radius: 14px;
+            border-radius: 12px;
             margin: 0 0 1.5rem;
         }
         .status-chip-label {
@@ -509,7 +509,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         .reports-toolbar {
             background: var(--lt-white);
             border: 1px solid var(--lt-border);
-            border-radius: 14px;
+            border-radius: 12px;
             padding: 10px 16px;
             margin-bottom: 0;
             display: flex;
@@ -537,7 +537,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             width: 100%;
             padding: 8px 12px 8px 36px;
             border: 1.5px solid var(--lt-border-light);
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 0.85rem;
             color: var(--lt-gray-800);
             background: var(--lt-gray-50);
@@ -557,7 +557,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             appearance: none;
             padding: 8px 32px 8px 12px;
             border: 1.5px solid var(--lt-border-light);
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 0.82rem;
             font-weight: 500;
             color: var(--lt-gray-700);
@@ -593,7 +593,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             gap: 6px;
             padding: 8px 14px;
             border: 1.5px solid var(--lt-border-light);
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 0.82rem;
             font-weight: 600;
             color: var(--lt-gray-700);
@@ -620,7 +620,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             min-width: 18px;
             height: 18px;
             padding: 0 5px;
-            border-radius: 9px;
+            border-radius: 8px;
             background: var(--lt-forest);
             color: var(--lt-white);
             font-size: 0.65rem;
@@ -772,7 +772,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             background: var(--lt-white);
             border: 1px solid var(--lt-border);
             border-top: none;
-            border-radius: 0 0 14px 14px;
+            border-radius: 0 0 12px 12px;
             margin-top: -1px;
             margin-bottom: 1.5rem;
         }
@@ -791,7 +791,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             padding: 4px 10px 4px 12px;
             background: var(--lt-forest-light);
             color: var(--lt-forest);
-            border-radius: 20px;
+            border-radius: 16px;
             font-size: 0.72rem;
             font-weight: 600;
             transition: all 0.15s ease;
@@ -875,7 +875,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             width: 1.4rem;
             height: 1.4rem;
             background: #F5FBF6;
-            border-radius: 0.4rem;
+            border-radius: 0.5rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -993,7 +993,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             width: 1.4rem;
             height: 1.4rem;
             background: #F5FBF6;
-            border-radius: 0.4rem;
+            border-radius: 0.5rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -1035,7 +1035,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         /* View Toggle */
         .view-toggle {
             background: #f1f5f9;
-            border-radius: 2rem;
+            border-radius: 1.5rem;
             padding: 0.2rem;
             display: inline-flex;
             gap: 0.2rem;
@@ -1346,7 +1346,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         <?php endif; ?>
         
         <!-- ===== STATISTICS CARDS (matches all_reports.php design) ===== -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6 stat-cards">
             <?php
             // Define stats array (stat-card style like admin all_reports)
             $stats_metrics = [

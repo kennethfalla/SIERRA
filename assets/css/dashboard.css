@@ -33,22 +33,24 @@ body.dashboard-page { background: #f4f8f5; color: #203b31; }
 }
 .dashboard-page .dashboard-toolbar-row .btn-export-trigger {
     box-sizing: border-box; flex: 1 1 auto; align-self: stretch; justify-content: center;
-    padding: 10px 16px; min-height: 62px; border-radius: 14px;
+    padding: 10px 16px; min-height: 62px; border-radius: 12px;
     font-family: 'Manrope', sans-serif; font-size: .82rem; font-weight: 600;
 }
 .dashboard-hero #menroNotifBell { width: 48px; height: 48px; border-radius: 12px; background: #ffffff33; color: white; }
 .dashboard-page .analytics-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 28px; }
-.dashboard-page .analytics-kpi-box { padding: 22px; border: 1px solid #dce8e1; border-radius: 18px; box-shadow: 0 3px 12px #173b2c04; min-width: 0; }
+.dashboard-page .analytics-kpi-box { padding: 22px; border: 1px solid #dce8e1; border-radius: 16px; box-shadow: 0 3px 12px #173b2c04; min-width: 0; }
 .dashboard-page .analytics-kpi-box:hover { border-color: #80baa3; box-shadow: 0 6px 20px #173b2c0a; }
 .dashboard-page .analytics-kpi-box .uppercase { color: #52685e; font-size: 11px; line-height: 1.5; letter-spacing: .065em; }
 .dashboard-page .analytics-kpi-box .text-2xl { font-size: 32px; line-height: 1.3; margin-top: 8px; font-variant-numeric: tabular-nums; }
 .dashboard-page .analytics-kpi-box [class~="mt-1"],
 .dashboard-page .analytics-kpi-box [class~="mt-1.5"] { color: #63746b; font-size: 12px; line-height: 1.5; }
 .dashboard-page .chart-card,
-.dashboard-page #map-container { border: 1px solid #dce8e1; border-radius: 20px; box-shadow: 0 3px 12px #173b2c04; padding: 22px; min-width: 0; }
+.dashboard-page #map-container { border: 1px solid #dce8e1; border-radius: 16px; box-shadow: 0 3px 12px #173b2c04; padding: 22px; min-width: 0; }
 .dashboard-page .chart-card .chart-title { color: #244c3d; font-size: 15px; line-height: 1.5; }
 .dashboard-page .chart-card .text-gray-400 { color: #63746b; }
-.dashboard-page #map { border: 1px solid #e0e9e3; border-radius: 14px; }
+.dashboard-page #map { border: 1px solid #e0e9e3; border-radius: 12px; }
+.dashboard-page .map-toggle button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.dashboard-page .map-toggle button i { font-size: .85em; }
 .dashboard-page :is(button, a, input, select):focus-visible { outline: 3px solid #10a37f; outline-offset: 4px; }
 .dashboard-page .dashboard-hero :is(button, a):focus-visible { outline-color: #fff; }
 .dashboard-page .notification-bell { border: 1px solid #ffffff40; cursor: pointer; }
@@ -56,7 +58,7 @@ body.dashboard-page { background: #f4f8f5; color: #203b31; }
     .dashboard-page .analytics-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
-    .dashboard-page .dashboard-hero { padding: 22px 18px; border-radius: 18px; }
+    .dashboard-page .dashboard-hero { padding: 22px 18px; border-radius: 16px; }
     .dashboard-page .analytics-kpi-grid { gap: 12px; }
     .dashboard-page .analytics-kpi-box { padding: 16px; }
     .dashboard-page .analytics-kpi-box .text-2xl { font-size: 28px; }
@@ -68,4 +70,86 @@ body.dashboard-page { background: #f4f8f5; color: #203b31; }
 }
 @media (prefers-reduced-motion: reduce) {
     .dashboard-page *, .dashboard-page *::before, .dashboard-page *::after { animation: none !important; transition: none !important; }
+}
+
+/* Mobile: top layout mirrors the citizen dashboard — the hero sits at the top and
+   the menu button floats over it (no reserved strip, no extra hero padding). */
+@media (max-width: 1023px) {
+    .dashboard-page #main-content [id] { scroll-margin-top: 76px; }
+    .dashboard-page .main-container { padding: 16px; }
+}
+@media (max-width: 767px) {
+    .dashboard-page .main-container { padding: 12px 12px max(24px, env(safe-area-inset-bottom)); }
+    .dashboard-page .sierra-hero { margin-bottom: 16px; }
+    .dashboard-page .sierra-hero-row { flex-wrap: nowrap; gap: 12px; }
+    .dashboard-page .sierra-hero-row > div { min-width: 0; }
+    .dashboard-page .sierra-hero-name { overflow-wrap: anywhere; }
+    .dashboard-page .sierra-hero .sierra-hero-bell { width: 44px; height: 44px; }
+    .dashboard-page .analytics-kpi-grid { display: flex; flex-wrap: nowrap; gap: 10px; min-width: 0; margin-bottom: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; padding-bottom: 6px; scrollbar-width: none; }
+    .dashboard-page .analytics-kpi-grid::-webkit-scrollbar { display: none; }
+    .dashboard-page .analytics-kpi-box { flex: 0 0 auto; width: 170px; padding: 14px 12px; border-radius: 16px; min-height: 132px; scroll-snap-align: start; }
+    .dashboard-page .analytics-kpi-box .uppercase { font-size: 10px; line-height: 1.5; letter-spacing: .025em; }
+    .dashboard-page .analytics-kpi-box .text-2xl { font-size: 27px; margin-top: 6px; }
+    .dashboard-page .analytics-kpi-box .w-10 { display: none; }
+    .dashboard-page .analytics-kpi-box [class~="mt-1"], .dashboard-page .analytics-kpi-box [class~="mt-1.5"] { font-size: 11px; }
+    .dashboard-page .main-container > .grid { grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 16px; }
+    .dashboard-page .chart-card, .dashboard-page #map-container { padding: 14px; border-radius: 16px; margin-bottom: 16px; }
+    .dashboard-page .grid > .chart-card { margin-bottom: 0; }
+    .dashboard-page .chart-head { align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+    .dashboard-page .chart-title { min-width: 0; overflow-wrap: anywhere; }
+    .dashboard-page .chart-card canvas { max-width: 100%; }
+    .dashboard-page .chart-card select { max-width: 100%; min-height: 44px; }
+    .dashboard-page .chart-card > .flex { flex-wrap: wrap; gap: 10px; }
+    .dashboard-page .chart-card .overflow-x-auto { max-width: 100%; overscroll-behavior-x: contain; }
+    .dashboard-page .dashboard-toolbar-row { gap: 6px; margin-bottom: 14px; align-items: center; }
+    .dashboard-page .dashboard-toolbar-row .reports-toolbar { padding: 4px; min-height: 0; border-radius: 13px; gap: 4px; }
+    .dashboard-page .dashboard-toolbar-row .toolbar-search { min-width: 0; }
+    .dashboard-page .dashboard-toolbar-row .toolbar-search input { min-height: 40px; height: 40px; font-size: 15px; border-radius: 9px; border-color: #E7EEEA; background: #FBFDFC; }
+    .dashboard-page .dashboard-toolbar-row .toolbar-search input:focus { background: #fff; }
+    .dashboard-page .dashboard-toolbar-row .ft-more-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 9px; border-color: #E7EEEA; background: #FBFDFC; }
+    .dashboard-page .dashboard-toolbar-row .btn-export-trigger { align-self: center; min-height: 40px; padding: 0 12px; gap: 6px; font-size: 12px; border-radius: 12px; }
+    /* --- Map card: neat stacked layout (overrides per-dashboard inline CSS) --- */
+    .dashboard-page .map-head { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; margin-bottom: 12px; }
+    /* Flatten the header wrappers so the controls become grid items */
+    .dashboard-page .map-head > .map-title-wrap,
+    .dashboard-page .map-head > .map-head-tools { display: contents; }
+    .dashboard-page .map-head h2 { grid-column: 1; grid-row: 1; font-size: 15px; line-height: 1.35; min-width: 0; }
+    .dashboard-page .map-head .map-fullscreen-btn { grid-column: 2; grid-row: 1; justify-self: end; width: 42px; height: 42px; min-width: 42px; }
+    .dashboard-page .map-head #mapToggle { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; overflow: visible; }
+    .dashboard-page .map-head #mapToggle button { min-width: 0; min-height: 42px; padding: 8px 6px; font-size: 12px; }
+    .dashboard-page .map-head #timeframeToggle { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; width: 100%; overflow: visible; }
+    .dashboard-page .map-head #timeframeToggle button { min-width: 0; min-height: 30px; padding: 5px 0; font-size: 8.5px; letter-spacing: -0.02em; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dashboard-page .map-head #customRangeBox { grid-column: 1 / -1; grid-row: 4; width: 100%; }
+    .dashboard-page .map-head #customRangeBox:not(.hidden) { display: flex; flex-wrap: wrap; gap: 8px; }
+    .dashboard-page .map-head #customRangeBox input { flex: 1 1 100%; min-width: 0; min-height: 42px; font-size: 16px; }
+    .dashboard-page .map-head #customRangeBox button { flex: 1 1 100%; min-height: 42px; }
+
+    /* Map canvas */
+    .dashboard-page #map { height: 320px; border-radius: 12px; }
+    .dashboard-page #map-container.map-fullscreen #map { height: auto; }
+
+    /* Floating overlay: legend moves below the map; keep the category filter compact */
+    .dashboard-page .map-overlay { top: 10px; right: 10px; max-width: calc(100% - 20px); align-items: flex-end; }
+    .dashboard-page .map-overlay .map-legend { display: none; }
+    .dashboard-page #categoryFilterWrap { max-width: none; }
+    .dashboard-page #categoryFilterBtn { min-height: 40px; font-size: 12px; padding: 8px 12px; }
+    .dashboard-page #categoryFilterMenu { width: min(280px, calc(100vw - 44px)); right: 0; left: auto; }
+
+    /* Legend below the map: one compact horizontal row */
+    .dashboard-page .map-legend-inline {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
+        width: 100%;
+        margin-top: 10px;
+        padding: 8px 10px;
+        justify-content: initial;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #fff;
+        font-size: 9px;
+    }
+    .dashboard-page .map-legend-inline > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; justify-content: center; }
+    .dashboard-page #drillPanel { max-width: 100vw; }
+    .dashboard-page .export-dropdown-menu { max-width: calc(100vw - 24px); }
 }

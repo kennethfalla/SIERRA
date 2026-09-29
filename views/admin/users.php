@@ -513,15 +513,15 @@ function getRoleBadge($user_type, $job_title = '') {
 
 <style>
     ::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 20px; }
-    ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #059669, #047857); border-radius: 20px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 16px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #059669, #047857); border-radius: 16px; }
     * { scrollbar-width: thin; scrollbar-color: #059669 #f1f5f9; }
 
     /* ===== BRANDING BUTTONS ===== */
     .btn-primary {
         background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
         transition: all 0.2s ease;
-        border-radius: 10px;
+        border-radius: 8px;
         color: white;
         border: none;
         font-weight: 600;
@@ -626,7 +626,7 @@ function getRoleBadge($user_type, $job_title = '') {
 
     /* ===== ACTION BUTTONS ===== */
     .action-btn {
-        padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600;
+        padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 600;
         transition: all 0.15s ease; border: none; cursor: pointer;
         display: inline-flex; align-items: center; gap: 4px;
     }
@@ -655,7 +655,7 @@ function getRoleBadge($user_type, $job_title = '') {
             display: block;
             background: #fff;
             border: 1px solid rgba(16, 163, 127, 0.08);
-            border-radius: 14px;
+            border-radius: 12px;
             box-shadow: 0 2px 10px rgba(16, 163, 127, 0.05);
             margin-bottom: 12px;
             overflow: hidden;
@@ -697,7 +697,7 @@ function getRoleBadge($user_type, $job_title = '') {
             flex: 1 1 auto;
             justify-content: center;
             padding: 9px 12px;
-            border-radius: 10px;
+            border-radius: 8px;
         }
         .table-container tbody td.mobile-actions .action-btn-disabled { flex: 0 0 auto; }
         .table-container tbody tr.empty-row {
@@ -752,7 +752,7 @@ function getRoleBadge($user_type, $job_title = '') {
     <?php endif; ?>
 
     <!-- ===== STATISTICS CARDS ===== -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 stat-cards">
         <div class="stat-card">
             <div class="flex justify-between items-start">
                 <div>

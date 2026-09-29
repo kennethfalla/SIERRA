@@ -63,11 +63,11 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
         }
         ::-webkit-scrollbar-track {
             background: var(--soft-mint);
-            border-radius: 4px;
+            border-radius: 8px;
         }
         ::-webkit-scrollbar-thumb {
             background: var(--veridian-green);
-            border-radius: 4px;
+            border-radius: 8px;
         }
         ::-webkit-scrollbar-thumb:hover {
             background: var(--veridian-dark);
@@ -167,7 +167,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
             width: 0%;
             background: linear-gradient(90deg, #10A37F, #34d399, #10A37F);
             background-size: 200% 100%;
-            border-radius: 0 2px 2px 0;
+            border-radius: 0 8px 8px 0;
             transition: width 0.4s ease;
             animation: shimmer-bar 1.6s linear infinite;
             z-index: 100000;
@@ -179,7 +179,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
         /* Spinner card */
         .loader-card {
             background: white;
-            border-radius: 20px;
+            border-radius: 16px;
             padding: 2rem 2.5rem;
             box-shadow: 0 25px 50px -12px rgba(16,163,127,0.18),
                         0 0 0 1px rgba(16,163,127,0.08);

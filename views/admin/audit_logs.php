@@ -193,8 +193,8 @@ $top_actions = $db->query("
         body { background: #F7FBF9; }
         
         ::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 20px; }
-        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #10A37F, #0D8568); border-radius: 20px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 16px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #10A37F, #0D8568); border-radius: 16px; }
         * { scrollbar-width: thin; scrollbar-color: #10A37F #f1f5f9; }
         
         h1, h2, h3, h4, h5, h6 { font-weight: 700; letter-spacing: -0.02em; }
@@ -241,7 +241,7 @@ $top_actions = $db->query("
         
         .btn-primary {
             background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
-            border-radius: 10px;
+            border-radius: 8px;
             transition: all 0.2s ease;
         }
         .btn-primary:hover {
@@ -372,7 +372,7 @@ $top_actions = $db->query("
         <?php endif; ?>
         
         <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 stat-cards">
             <div class="stat-card bg-white p-5">
                 <div class="flex justify-between items-start">
                     <div>

@@ -142,7 +142,7 @@ $permissionRisk = [
     align-items: flex-start;
     gap: 0.7rem;
     border: 1.5px solid #eef2ef;
-    border-radius: 0.8rem;
+    border-radius: 0.75rem;
     padding: 0.75rem 0.9rem;
     cursor: pointer;
     transition: all 0.18s;
@@ -254,7 +254,7 @@ $permissionRisk = [
 .role-item-icon {
     width: 42px;
     height: 42px;
-    border-radius: 0.7rem;
+    border-radius: 0.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -300,7 +300,7 @@ $permissionRisk = [
 .role-action-btn {
     width: 32px;
     height: 32px;
-    border-radius: 0.55rem;
+    border-radius: 0.5rem;
     border: none;
     background: #f3f4f6;
     color: #6b7280;
@@ -375,7 +375,7 @@ $permissionRisk = [
 .perm-icon-wrap {
     width: 36px;
     height: 36px;
-    border-radius: 0.6rem;
+    border-radius: 0.5rem;
     background: #f3f4f6;
     display: flex;
     align-items: center;
@@ -499,7 +499,7 @@ $permissionRisk = [
     padding: 0.9rem 1.1rem;
     background: #f0f9ff;
     border: 1px solid #bfdbfe;
-    border-radius: 0.9rem;
+    border-radius: 1rem;
     margin-top: 1rem;
 }
 .perm-info-notice i { color: #3b82f6; margin-top: 0.15rem; }

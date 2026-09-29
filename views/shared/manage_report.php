@@ -106,7 +106,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             color: #374151;
             background: #F0FDF4;
             border: 1px solid #A7F3D0;
-            border-radius: 0.6rem;
+            border-radius: 0.5rem;
             padding: 0.45rem 0.6rem;
             line-height: 1.45;
             word-break: break-word;
@@ -152,7 +152,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             position: relative;
             background: linear-gradient(180deg, #FBFDFC 0%, #F6FCF9 100%);
             border: 1px solid rgba(16, 163, 127, 0.14);
-            border-radius: 14px;
+            border-radius: 12px;
             padding: 12px;
             margin-bottom: 12px;
             box-shadow: 0 1px 3px rgba(16, 163, 127, 0.05);
@@ -162,7 +162,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             position: absolute;
             top: 0; left: 18px; right: 18px;
             height: 3px;
-            border-radius: 0 0 4px 4px;
+            border-radius: 0 0 8px 8px;
             background: linear-gradient(90deg, #10A37F, #34D399, #A7F3D0);
             opacity: 0.55;
         }
@@ -237,7 +237,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .note-template-chip .chip-bolt {
             width: 28px;
             height: 28px;
-            border-radius: 9px;
+            border-radius: 8px;
             background: linear-gradient(135deg, #10A37F, #0D8568);
             color: #fff;
             display: flex;
@@ -322,6 +322,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             /* Hide non-printable elements */
             #sidebar,
             #showSidebarBtn,
+            .app-mobile-header,
             .print-dropdown,
             .action-panel,
             .action-modal-overlay,
@@ -363,7 +364,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             /* Compact cards */
             .card {
                 border: 1px solid #e5e7eb !important;
-                border-radius: 6px !important;
+                border-radius: 8px!important;
                 padding: 8px 10px !important;
                 margin-bottom: 6px !important;
                 box-shadow: none !important;
@@ -379,7 +380,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             /* Gradient header card - print-friendly */
             .bg-gradient-to-r {
                 background: #10A37F !important;
-                border-radius: 6px !important;
+                border-radius: 8px!important;
                 padding: 8px 12px !important;
                 margin-bottom: 6px !important;
             }
@@ -425,13 +426,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             .photo-grid img,
             .photo-grid video {
                 height: 60px !important;
-                border-radius: 4px !important;
+                border-radius: 8px!important;
             }
 
             /* Map */
             #map {
                 height: 120px !important;
-                border-radius: 4px !important;
+                border-radius: 8px!important;
             }
 
             /* Notes */
@@ -439,7 +440,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 padding: 4px 6px !important;
                 margin-bottom: 3px !important;
                 font-size: 7pt !important;
-                border-radius: 3px !important;
+                border-radius: 8px!important;
             }
 
             /* Badges */
@@ -511,7 +512,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         /* ===== FOCUS ACCESSIBILITY ===== */
         a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
-            outline: 2px solid #10A37F; outline-offset: 2px; border-radius: 4px;
+            outline: 2px solid #10A37F; outline-offset: 2px; border-radius: 8px;
         }
 
         /* ===== PAGE ENTRANCE ===== */
@@ -596,7 +597,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
            regardless of how many steps (4 default, 6 when escalated, 2 when terminal). */
         .timeline-container { display: flex; flex-wrap: nowrap; position: relative; padding: 0 0.5rem; }
         .timeline-step { position: relative; flex: 1 1 0; text-align: center; z-index: 2; min-width: 0; }
-        .timeline-container::before { content: ''; position: absolute; top: 28px; left: var(--track-left, 12.5%); width: var(--track-width, 75%); height: 3px; background: #E5E7EB; z-index: 0; border-radius: 2px; }
+        .timeline-container::before { content: ''; position: absolute; top: 28px; left: var(--track-left, 12.5%); width: var(--track-width, 75%); height: 3px; background: #E5E7EB; z-index: 0; border-radius: 8px; }
         .timeline-progress { position: absolute; top: 26px; left: var(--track-left, 12.5%); height: 6px; background: linear-gradient(90deg, #10A37F, #0D8568); z-index: 1; transition: width 0.6s ease; border-radius: 9999px; box-shadow: 0 1px 4px rgba(16,163,127,0.35); width: var(--progress-width, 0%); }
         .step-icon { position: relative; z-index: 2; width: 56px; height: 56px; margin: 0 auto 12px; background: white; border: 2px solid #E5E7EB; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
         .step-icon i { color: #9CA3AF; font-size: 1.25rem; }
@@ -661,7 +662,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .action-card-btn--escalate { background: linear-gradient(135deg, #D97706, #B45309); }
         .action-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,20,0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 1rem; animation: fadeIn .15s ease; }
         .action-modal-overlay.open { display: flex; }
-        .action-modal-card { background: #fff; border-radius: 1.25rem; width: 100%; max-width: 460px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.28); animation: fadeUp .2s ease; }
+        .action-modal-card { background: #fff; border-radius: 1rem; width: 100%; max-width: 460px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.28); animation: fadeUp .2s ease; }
         .action-modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #F3F4F6; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; }
         .action-modal-header .action-icon { width: 42px; height: 42px; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; }
         .action-modal-close { width: 34px; height: 34px; border-radius: 9999px; background: #F3F4F6; border: none; color: #6B7280; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all .15s ease; touch-action: manipulation; }
@@ -670,13 +671,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .action-modal-body form { display: flex; flex-direction: column; gap: 0.9rem; }
         .action-modal-body .modal-submit { width: 100%; min-height: 46px; justify-content: center; }
         @media (max-width: 480px) {
-            .action-modal-card { max-width: none; border-radius: 1.1rem; }
+            .action-modal-card { max-width: none; border-radius: 1rem; }
             .action-modal-header { padding: 0.9rem 1rem; }
             .action-modal-body { padding: 1rem; }
         }
 
         /* Context Callouts */
-        .action-callout { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 0.9rem; font-size: 0.82rem; }
+        .action-callout { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 1rem; font-size: 0.82rem; }
         .action-callout.info { background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; }
         .action-callout.warning { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; }
         .action-callout.success { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; }
@@ -691,9 +692,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         .camera-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 16px; flex-direction: column; }
         .camera-modal.active { display: flex; }
-        .camera-modal .camera-wrapper { position: relative; width: 100%; max-width: 500px; border-radius: 20px; overflow: hidden; background: #000; aspect-ratio: 4/3; box-shadow: 0 25px 60px rgba(0,0,0,0.8); }
+        .camera-modal .camera-wrapper { position: relative; width: 100%; max-width: 500px; border-radius: 16px; overflow: hidden; background: #000; aspect-ratio: 4/3; box-shadow: 0 25px 60px rgba(0,0,0,0.8); }
         .camera-modal .camera-wrapper video { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .camera-modal .viewfinder { position: absolute; inset: 0; pointer-events: none; border: 2px solid rgba(255,255,255,0.15); border-radius: 20px; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.05); }
+        .camera-modal .viewfinder { position: absolute; inset: 0; pointer-events: none; border: 2px solid rgba(255,255,255,0.15); border-radius: 16px; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.05); }
         .camera-modal .viewfinder::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 80%; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
         .camera-modal .viewfinder .crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
         .camera-modal .viewfinder .crosshair::before, .camera-modal .viewfinder .crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.3); }
@@ -735,7 +736,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .camera-controls .ctrl-btn.capture.recording { background: #EF4444; color: white; box-shadow: 0 0 0 6px rgba(239,68,68,0.3); animation: recBtnPulse 1.2s infinite; }
         @keyframes recBtnPulse { 0%, 100% { box-shadow: 0 0 0 4px rgba(239,68,68,0.3); } 50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } }
 
-        .camera-tips-overlay { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: white; padding: 10px 18px; border-radius: 30px; font-size: 0.75rem; text-align: center; max-width: 90%; z-index: 10; border: 1px solid rgba(255,255,255,0.08); pointer-events: none; transition: opacity 0.3s ease; white-space: nowrap; }
+        .camera-tips-overlay { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: white; padding: 10px 18px; border-radius: 24px; font-size: 0.75rem; text-align: center; max-width: 90%; z-index: 10; border: 1px solid rgba(255,255,255,0.08); pointer-events: none; transition: opacity 0.3s ease; white-space: nowrap; }
         .camera-tips-overlay .tip-emoji { margin-right: 6px; }
         .camera-tips-overlay .tip-text strong { color: #10A37F; }
         .camera-tips-overlay .tip-dismiss { position: absolute; top: -8px; right: -6px; background: rgba(255,255,255,0.15); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; font-size: 10px; color: #aaa; transition: all 0.2s; }
@@ -2029,7 +2030,7 @@ function handleDownloadPDF() {
     // 6. Apply compact styles to cloned elements
     // Cards
     clone.querySelectorAll('.card').forEach(c => {
-        c.style.cssText = 'background:white; border:1px solid #e5e7eb; border-radius:6px; padding:7px 9px; margin-bottom:5px; box-shadow:none;';
+        c.style.cssText = 'background:white; border:1px solid #e5e7eb; border-radius:8px; padding:7px 9px; margin-bottom:5px; box-shadow:none;';
     });
     clone.querySelectorAll('.card-header').forEach(h => {
         h.style.cssText = 'font-weight:700; font-size:8pt; color:#4b5563; border-bottom:1px solid #e5e7eb; padding-bottom:3px; margin-bottom:5px; display:flex; align-items:center; gap:5px;';
@@ -2049,23 +2050,23 @@ function handleDownloadPDF() {
         pg.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(65px,1fr)); gap:3px;';
     });
     clone.querySelectorAll('.photo-grid img').forEach(img => {
-        img.style.cssText = 'width:100%; height:50px; object-fit:cover; border-radius:3px; border:1px solid #e5e7eb;';
+        img.style.cssText = 'width:100%; height:50px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;';
     });
     clone.querySelectorAll('.photo-grid video').forEach(vid => {
         vid.removeAttribute('controls');
         vid.muted = true;
-        vid.style.cssText = 'width:100%; height:50px; object-fit:cover; border-radius:3px; border:1px solid #e5e7eb;';
+        vid.style.cssText = 'width:100%; height:50px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;';
     });
     // Map - replace with static text
     const mapEl = clone.querySelector('#map');
     if (mapEl) {
         mapEl.id = 'map-pdf-placeholder';
-        mapEl.style.cssText = 'height:80px; border-radius:4px; border:1px solid #e5e7eb; background:#f0f4f0; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:7pt;';
+        mapEl.style.cssText = 'height:80px; border-radius:8px; border:1px solid #e5e7eb; background:#f0f4f0; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:7pt;';
         mapEl.innerHTML = `<div style="text-align:center;"><i class="fas fa-map-marker-alt" style="color:#10A37F; font-size:14px; display:block; margin-bottom:2px;"></i>GPS: <?php echo number_format($report['latitude'], 6); ?>, <?php echo number_format($report['longitude'], 6); ?><?php if (!empty($report['location_address'])): ?><br><span style="font-size:6pt;"><?php echo htmlspecialchars($report['location_address']); ?></span><?php endif; ?></div>`;
     }
     // Notes
     clone.querySelectorAll('.note-item').forEach(n => {
-        n.style.cssText = 'background:#F5FBF6; padding:3px 5px; border-radius:3px; margin-bottom:2px; border-left:2px solid #10A37F; font-size:7pt;';
+        n.style.cssText = 'background:#F5FBF6; padding:3px 5px; border-radius:8px; margin-bottom:2px; border-left:2px solid #10A37F; font-size:7pt;';
     });
     clone.querySelectorAll('.max-h-60').forEach(el => { el.style.maxHeight = 'none'; el.style.overflow = 'visible'; });
     // Badges
@@ -2075,11 +2076,11 @@ function handleDownloadPDF() {
     // Gradient header card
     const gradientCard = clone.querySelector('.bg-gradient-to-r');
     if (gradientCard) {
-        gradientCard.style.cssText = 'background:linear-gradient(135deg,#10A37F,#0D8568); border-radius:6px; padding:7px 10px; margin-bottom:5px; color:white; overflow:hidden;';
+        gradientCard.style.cssText = 'background:linear-gradient(135deg,#10A37F,#0D8568); border-radius:8px; padding:7px 10px; margin-bottom:5px; color:white; overflow:hidden;';
         const h2 = gradientCard.querySelector('h2');
         if (h2) h2.style.fontSize = '11pt';
         gradientCard.querySelectorAll('.bg-white\\/20').forEach(el => {
-            el.style.cssText = 'display:inline-flex; align-items:center; gap:3px; padding:1px 5px; background:rgba(255,255,255,0.2); border-radius:4px; color:white; font-size:6.5pt;';
+            el.style.cssText = 'display:inline-flex; align-items:center; gap:3px; padding:1px 5px; background:rgba(255,255,255,0.2); border-radius:8px; color:white; font-size:6.5pt;';
         });
     }
     // Page header area
@@ -2198,7 +2199,7 @@ function handleDownloadPDF() {
         if (typeof window.showToast === 'function') { window.showToast(message, type); return; }
         // Minimal fallback toast if the page doesn't already define one
         const toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:' + (type === 'error' ? '#EF4444' : type === 'success' ? '#10A37F' : '#374151') + ';color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:100000;box-shadow:0 8px 24px rgba(0,0,0,0.25);';
+        toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:' + (type === 'error' ? '#EF4444' : type === 'success' ? '#10A37F' : '#374151') + ';color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:100000;box-shadow:0 8px 24px rgba(0,0,0,0.25);';
         toast.textContent = message;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);

@@ -353,7 +353,7 @@ if (is_dir($barangays_dir)) {
         
         .greeting-badge {
             background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
-            border-radius: 1.25rem;
+            border-radius: 1rem;
             padding: 1.5rem 1.25rem;
             position: relative;
             overflow: hidden;
@@ -566,7 +566,7 @@ if (is_dir($barangays_dir)) {
             background: #10A37F;
             color: white;
             border: none;
-            border-radius: 2rem;
+            border-radius: 1.5rem;
             padding: 6px 14px;
             font-weight: 500;
             font-size: 0.75rem;
@@ -595,7 +595,7 @@ if (is_dir($barangays_dir)) {
         .report-issue-card {
             background: linear-gradient(145deg, #e8f5ee 0%, #d1e8df 100%);
             border: 2px solid #10A37F;
-            border-radius: 1.25rem;
+            border-radius: 1rem;
             padding: 1.5rem 1.25rem;
             transition: all 0.3s ease;
             position: relative;
@@ -715,6 +715,12 @@ if (is_dir($barangays_dir)) {
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
+        /* Let grid/flex children shrink so they never force horizontal overflow
+           (e.g. the horizontally-scrolling stats row) */
+        .two-col > *,
+        .right-col,
+        .right-col > *,
+        .stats-grid { min-width: 0; }
         @media (min-width: 768px) {
             .two-col {
                 grid-template-columns: 1.6fr 1fr;
@@ -733,6 +739,24 @@ if (is_dir($barangays_dir)) {
                 gap: 1rem;
             }
         }
+        @media (max-width: 639px) {
+            .stats-grid {
+                display: flex;
+                flex-wrap: nowrap;
+                gap: 0.6rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scroll-snap-type: x proximity;
+                padding-bottom: 6px;
+                scrollbar-width: none;
+            }
+            .stats-grid::-webkit-scrollbar { display: none; }
+            .stats-grid .stat-card {
+                flex: 0 0 auto;
+                width: 165px;
+                scroll-snap-align: start;
+            }
+        }
 
         /* ===== RIGHT COLUMN (ecological CTA above stats) ===== */
         .right-col {
@@ -749,7 +773,7 @@ if (is_dir($barangays_dir)) {
         /* ===== COMMUNITY REPORTS MAP (admin-style) ===== */
         #map-container {
             background: white;
-            border-radius: 1.25rem;
+            border-radius: 1rem;
             border: 1px solid rgba(16, 163, 127, 0.08);
             padding: 1rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
@@ -769,7 +793,7 @@ if (is_dir($barangays_dir)) {
             display: flex;
             flex-wrap: wrap;
             background: #f1f5f9;
-            border-radius: 2rem;
+            border-radius: 1.5rem;
             padding: 0.2rem;
             gap: 0.2rem;
         }
@@ -904,7 +928,7 @@ if (is_dir($barangays_dir)) {
             width: 40px;
             height: 4px;
             background: #d1d5db;
-            border-radius: 9px;
+            border-radius: 8px;
             margin: 0.75rem auto 1rem;
         }
         .rdm-close {
@@ -945,7 +969,7 @@ if (is_dir($barangays_dir)) {
             width: 100%;
             aspect-ratio: 1;
             object-fit: cover;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
             transition: transform 0.2s;
             border: 2px solid #e5e7eb;
@@ -1035,7 +1059,7 @@ if (is_dir($barangays_dir)) {
         .rdm-panel {
             background: #fff;
             border: 1px solid #e2e8f0;
-            border-radius: 14px;
+            border-radius: 12px;
             padding: 10px;
         }
 
@@ -1102,7 +1126,7 @@ if (is_dir($barangays_dir)) {
             color: #0F3B2E;
             background: rgba(255,255,255,0.92);
             padding: 2px 6px;
-            border-radius: 6px;
+            border-radius: 8px;
             white-space: nowrap;
             max-width: 130px;
             overflow: hidden;
@@ -1133,7 +1157,7 @@ if (is_dir($barangays_dir)) {
             font-size: 9px; 
             font-weight: 700; 
             padding: 2px 5px; 
-            border-radius: 20px;
+            border-radius: 16px;
             min-width: 16px; 
             text-align: center;
         }
@@ -1229,7 +1253,7 @@ if (is_dir($barangays_dir)) {
             .notification-icon {
                 width: 44px;
                 height: 44px;
-                border-radius: 14px;
+                border-radius: 12px;
             }
         }
         .notification-content { 
@@ -1514,7 +1538,7 @@ if (is_dir($barangays_dir)) {
             font-size: 0.75rem;
             transition: color 0.2s;
             padding: 4px 8px;
-            border-radius: 6px;
+            border-radius: 8px;
             background: rgba(16, 163, 127, 0.06);
         }
         .desktop-table .action-cell a:hover {
@@ -1756,7 +1780,7 @@ text-decoration: underline;
             .announce-card {
                 padding: 0.75rem 0.9rem !important;
                 gap: 8px 10px !important;
-                border-radius: 0.85rem !important;
+                border-radius: 0.75rem!important;
             }
             .announce-icon { width: 34px !important; height: 34px !important; font-size: 1rem !important; }
             .announce-label { font-size: 0.58rem !important; }
@@ -1771,7 +1795,8 @@ text-decoration: underline;
                 border-radius: 1rem !important;
             }
             .report-issue-card .issue-icon-large { width: 40px !important; height: 40px !important; font-size: 1.15rem !important; }
-            .report-issue-card .issue-title       { font-size: 0.95rem !important; }
+            .report-issue-card .issue-title       { font-size: 0.95rem !important; white-space: normal; overflow-wrap: anywhere; }
+            .report-issue-card .flex, .report-issue-card .flex > div { min-width: 0; }
             .report-issue-card .issue-description { font-size: 0.75rem !important; margin-bottom: 0.75rem !important; }
             .btn-report { padding: 9px 14px !important; font-size: 0.78rem !important; gap: 7px !important; }
 
@@ -1977,7 +2002,7 @@ text-decoration: underline;
             <div class="right-col">
 
             <!-- STATISTICS -->
-            <div class="stats-grid">
+            <div class="stats-grid stat-cards">
                 <div class="stat-card">
                     <div class="flex justify-between items-start">
                         <div>

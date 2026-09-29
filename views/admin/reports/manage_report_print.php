@@ -128,7 +128,7 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
         .logo-box { width: 22mm; height: 22mm; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .logo-box img { max-width: 22mm; max-height: 22mm; object-fit: contain; }
         .logo-placeholder {
-            width: 22mm; height: 22mm; border: 1px dashed #d1d5db; border-radius: 6px;
+            width: 22mm; height: 22mm; border: 1px dashed #d1d5db; border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
             color: #9ca3af; font-size: 8px; text-align: center;
         }
@@ -168,7 +168,7 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
             background: #f4faf7;
             border: 1px solid #dff0e9;
             border-left: 5px solid #10A37F;
-            border-radius: 6px;
+            border-radius: 8px;
             margin-bottom: 6px;
             display: flex;
             align-items: center;
@@ -210,7 +210,7 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
         }
         .photo-grid .photo-cell {
             border: 1px solid #e5e7eb;
-            border-radius: 6px;
+            border-radius: 8px;
             overflow: hidden;
             background: #fafcfb;
         }
@@ -226,7 +226,7 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
         .note-item {
             border: 1px solid #dff0e9;
             border-left: 3px solid #10A37F;
-            border-radius: 6px;
+            border-radius: 8px;
             background: #fafcfb;
             padding: 6px 9px;
             margin-bottom: 6px;
@@ -266,7 +266,7 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
         .page-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
         .filter-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid rgba(16,163,127,0.12); box-shadow: 2px 0 20px -8px rgba(16,163,127,0.18); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
         .sidebar-head { padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-        .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
+        .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
         .sidebar-head .head-title { font-size: 14px; font-weight: 800; color: #111827; }
         .sidebar-head .head-sub { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
         .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
@@ -277,11 +277,11 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
         .sidebar-summary .ss-label { color: #6b7280; font-weight: 600; }
         .sidebar-summary .ss-value { color: #111827; font-weight: 700; text-align: right; }
         .sidebar-footer { padding: 14px 16px; border-top: 1px solid #f3f4f6; background: #fff; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-        .btn-apply { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
+        .btn-apply { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
         .btn-apply:hover { box-shadow: 0 6px 16px rgba(16,163,127,0.35); transform: translateY(-1px); }
         .btn-apply.secondary { background: #fff; color: #374151; border: 1.5px solid #e5e7eb; }
         .btn-apply.secondary:hover { border-color: #10A37F; color: #10A37F; box-shadow: none; transform: none; }
-        .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
+        .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
         .btn-reset:hover { color: #EF4444; border-color: #EF4444; background: #FEF2F2; }
         .page-main { flex: 1; min-width: 0; padding: 16px; }
         @media (max-width: 900px) { .page-wrap { flex-direction: column; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }

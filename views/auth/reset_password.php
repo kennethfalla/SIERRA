@@ -382,14 +382,14 @@ try {
         .strength-meter {
             height: 4px;
             background: #e2e8f0;
-            border-radius: 2px;
+            border-radius: 8px;
             margin-top: 0.5rem;
             overflow: hidden;
         }
         
         .strength-meter-fill {
             height: 100%;
-            border-radius: 2px;
+            border-radius: 8px;
             transition: width 0.3s ease, background 0.3s ease;
             width: 0%;
         }

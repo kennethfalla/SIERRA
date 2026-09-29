@@ -595,7 +595,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
         .sd-btn {
             padding: 0.45rem 0.9rem;
-            border-radius: 0.6rem;
+            border-radius: 0.5rem;
             font-size: 0.78rem;
             font-weight: 600;
             border: 1px solid transparent;

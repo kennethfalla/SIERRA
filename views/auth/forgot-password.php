@@ -231,13 +231,13 @@ $reqList[] = 'No spaces allowed';
         .strength-meter {
             height: 4px;
             background: #e2e8f0;
-            border-radius: 2px;
+            border-radius: 8px;
             margin-top: 4px;
             overflow: hidden;
         }
         .strength-meter-fill {
             height: 100%;
-            border-radius: 2px;
+            border-radius: 8px;
             transition: all 0.3s ease;
             width: 0%;
         }

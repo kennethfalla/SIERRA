@@ -221,7 +221,7 @@ if ($isLoggedIn && $is_staff) {
             width: 80px;
             height: 4px;
             background: linear-gradient(135deg, #059669, #047857);
-            border-radius: 2px;
+            border-radius: 8px;
             margin: 0 auto 1rem;
         }
         
@@ -330,6 +330,9 @@ if ($isLoggedIn && $is_staff) {
             gap: 1rem;
             padding: 1.1rem 1.25rem;
             font-weight: 600;
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
             color: #1f2937;
         }
         .faq-q::-webkit-details-marker { display: none; }
@@ -342,8 +345,9 @@ if ($isLoggedIn && $is_staff) {
         .faq-a {
             padding: 0 1.25rem 1.25rem;
             color: #6b7280;
-            font-size: 0.9rem;
-            line-height: 1.7;
+            font-family: 'Manrope', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
         }
         .faq-a strong { color: #047857; }
 
@@ -358,6 +362,7 @@ if ($isLoggedIn && $is_staff) {
             border-bottom: 1px solid #f3f4f6;
         }
         .nav-landing.shadow-md { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
+        main section[id] { scroll-margin-top: 4.5rem; }
 
         .nav-link {
             color: #4b5563;
@@ -375,8 +380,28 @@ if ($isLoggedIn && $is_staff) {
         @media (min-width: 1024px) { .nav-links { display: flex; } }
         @media (min-width: 1280px) { .nav-links { gap: 1.5rem; } }
 
-        .nav-actions { display: flex; align-items: center; gap: 0.6rem; }
+        .landing-brand { min-width: 0; }
+        .landing-brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nav-actions { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
         @media (min-width: 640px) { .nav-actions { gap: 0.75rem; } }
+
+        .nav-mobile-auth { display: flex; align-items: center; gap: 0.4rem; }
+        .nav-mobile-auth a { font-size: 0.76rem; font-weight: 700; white-space: nowrap; }
+        .nav-mobile-auth .nav-register { padding: 0.55rem 0.7rem; border-radius: 0.65rem; }
+        @media (min-width: 768px) { .nav-mobile-auth { display: none; } }
+        @media (max-width: 1023px) { .nav-desktop-lang { display: none; } }
+        @media (max-width: 767px) {
+            .landing-brand-name { max-width: clamp(64px, 23vw, 125px); }
+            .nav-landing .brand-logo { max-width: 40px; object-fit: contain; }
+            .nav-landing .nav-actions { gap: 0.35rem; }
+            .nav-hamburger { width: 40px; height: 40px; flex-shrink: 0; }
+        }
+        @media (max-width: 360px) {
+            .nav-landing .max-w-6xl { padding-left: 10px; padding-right: 10px; }
+            .landing-brand { gap: 5px; }
+            .landing-brand-name { max-width: 72px; font-size: 0.85rem; }
+            .nav-mobile-auth .nav-register { padding: 0.5rem 0.55rem; }
+        }
 
         .nav-auth { display: none; align-items: center; gap: 0.75rem; }
         @media (min-width: 768px) { .nav-auth { display: flex; } }
@@ -393,6 +418,11 @@ if ($isLoggedIn && $is_staff) {
             transition: background 0.2s ease, color 0.2s ease;
         }
         .nav-mobile-link:hover { background: #ecfdf5; color: #047857; }
+        .nav-mobile-lang { padding: 0.75rem; border-top: 1px solid #e5e7eb; }
+        .nav-mobile-lang .lang-toggle-btn { width: 100%; justify-content: center; min-height: 42px; }
+        .nav-mobile-lang .lang-menu { display: none; position: static; width: 100%; margin-top: 0.5rem; transform: none; }
+        .nav-mobile-lang .lang-dropdown.open .lang-menu { display: block; opacity: 1; visibility: visible; transform: none; }
+        @media (min-width: 1024px) { .nav-mobile-lang { display: none; } }
 
         .nav-menu-cta { display: flex; flex-direction: column; gap: 0.5rem; }
         @media (min-width: 640px) { .nav-menu-cta { flex-direction: row; } }
@@ -535,44 +565,54 @@ if ($isLoggedIn && $is_staff) {
         @media (max-width: 639px) {
 
             /* ── Nav ── */
-            nav .text-xl { font-size: 1rem; }
+            .nav-landing .landing-brand-name { font-size: 0.95rem; }
 
             /* ── Hero ── */
             #home {
                 min-height: 100svh;
                 border-radius: 0 0 1.5rem 1.5rem;
+                padding: 0 !important;
+                background-position: 54% center;
             }
             #home > .relative.z-10 {
-                padding-top: 4.5rem;
-                padding-bottom: 3rem;
+                padding-top: 6rem;
+                padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
                 gap: 1.5rem;
             }
             .hero-eyebrow {
-                font-size: 0.68rem !important;
-                padding: 0.35rem 0.75rem;
-                margin-bottom: 0.9rem !important;
-                line-height: 1.4;
+                max-width: 100%;
+                font-size: 0.73rem !important;
+                padding: 0.55rem 0.8rem;
+                margin-bottom: 1.1rem !important;
+                line-height: 1.5;
             }
             .hero-heading {
-                font-size: 2rem !important;
-                line-height: 1.1;
-                margin-bottom: 0.75rem !important;
+                font-size: clamp(2.1rem, 8.8vw, 3rem) !important;
+                line-height: 1.08;
+                letter-spacing: -0.025em;
+                text-transform: none;
+                text-wrap: balance;
+                margin-bottom: 1rem !important;
             }
-            #home p.text-white\/85 {
-                font-size: 0.82rem !important;
-                line-height: 1.55;
-                margin-bottom: 1.1rem !important;
+            .hero-headline-second br { display: none; }
+            #home .hero-subtitle {
+                max-width: 35rem;
+                font-size: 0.95rem !important;
+                line-height: 1.65;
+                margin-bottom: 1.5rem !important;
             }
-            /* CTA buttons — stack nicely */
-            #home .flex.flex-wrap.gap-3 a {
-                padding: 0.55rem 1.1rem;
-                font-size: 0.8rem;
-                border-radius: 0.65rem;
+            .hero-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+            #home .hero-actions a {
+                min-height: 44px;
+                justify-content: center;
+                padding: 0.75rem 1rem;
+                font-size: 0.88rem;
+                border-radius: 0.75rem;
             }
             /* Stats glass card — compact */
             .glass-card {
                 padding: 1rem 1.1rem !important;
-                border-radius: 1.25rem !important;
+                border-radius: 1rem!important;
             }
             .glass-card .text-2xl { font-size: 1.35rem; }
             .glass-card > .flex.items-center.gap-3 { margin-bottom: 0.85rem !important; }
@@ -632,7 +672,7 @@ if ($isLoggedIn && $is_staff) {
             #about .absolute.-bottom-8 { display: none; }
             /* Core Values grid */
             #about .grid.grid-cols-2.md\:grid-cols-4 { gap: 0.6rem; }
-            #about .group.bg-white { padding: 0.85rem 0.6rem !important; border-radius: 0.85rem !important; }
+            #about .group.bg-white { padding: 0.85rem 0.6rem !important; border-radius: 0.75rem!important; }
             #about .group .w-16 { width: 2.5rem; height: 2.5rem; margin-bottom: 0.6rem !important; }
             #about .group .text-2xl { font-size: 1rem; }
             #about .group h4 { font-size: 0.72rem !important; }
@@ -653,7 +693,7 @@ if ($isLoggedIn && $is_staff) {
 
         /* ── Slightly above mobile (480–639) — loosen up slightly ── */
         @media (min-width: 480px) and (max-width: 639px) {
-            .hero-heading { font-size: 2.35rem !important; }
+            .hero-heading { font-size: clamp(2.5rem, 7vw, 3rem) !important; }
             .feature-card { padding: 1.5rem !important; }
             .feature-card h3.text-xl { font-size: 1.05rem !important; }
             .stat-card .text-3xl { font-size: 1.5rem !important; }
@@ -696,7 +736,7 @@ if ($isLoggedIn && $is_staff) {
 <nav class="fixed w-full z-50 nav-landing">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
-            <div class="flex items-center gap-2">
+            <div class="landing-brand flex items-center gap-2">
                 <?php if ($logo_url): ?>
                     <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="<?php echo htmlspecialchars($system_name); ?> Logo" class="brand-logo">
                 <?php else: ?>
@@ -704,7 +744,7 @@ if ($isLoggedIn && $is_staff) {
                         <i class="fas fa-leaf text-white text-sm"></i>
                     </div>
                 <?php endif; ?>
-                <span class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($system_name); ?></span>
+                <span class="landing-brand-name text-xl font-bold text-gray-800"><?php echo htmlspecialchars($system_name); ?></span>
                 <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full hidden sm:inline-block">San Isidro</span>
             </div>
             
@@ -718,7 +758,15 @@ if ($isLoggedIn && $is_staff) {
             </div>
             
             <div class="nav-actions">
-                <?php echo lang_toggle_widget(); ?>
+                <div class="nav-desktop-lang"><?php echo lang_toggle_widget(); ?></div>
+                <div class="nav-mobile-auth">
+                    <?php if($isLoggedIn): ?>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-link"><?php echo t('Dashboard'); ?></a>
+                    <?php else: ?>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-link"><?php echo t('Sign In'); ?></a>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white"><?php echo t('Register'); ?></a>
+                    <?php endif; ?>
+                </div>
                 <div class="nav-auth">
                 <?php if($isLoggedIn): ?>
                     <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium whitespace-nowrap">
@@ -727,11 +775,11 @@ if ($isLoggedIn && $is_staff) {
                 <?php else: ?>
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-link"><?php echo t('Sign In'); ?></a>
                     <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium whitespace-nowrap">
-                        <i class="fas fa-user-plus mr-2"></i><?php echo t('Join Now'); ?>
+                        <i class="fas fa-user-plus mr-2"></i><?php echo t('Register'); ?>
                     </a>
                 <?php endif; ?>
                 </div>
-                <button type="button" id="navToggle" class="nav-hamburger w-11 h-11 rounded-xl border border-gray-200 text-gray-600 items-center justify-center transition" aria-label="Toggle navigation menu" aria-expanded="false">
+                <button type="button" id="navToggle" class="nav-hamburger w-11 h-11 rounded-xl border border-gray-200 text-gray-600 items-center justify-center transition" aria-label="Toggle navigation menu" aria-controls="mobileNavMenu" aria-expanded="false">
                     <i class="fas fa-bars"></i>
                 </button>
             </div>
@@ -747,20 +795,16 @@ if ($isLoggedIn && $is_staff) {
             <a href="#stats" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('Stats'); ?></a>
             <a href="#about" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('About LGU'); ?></a>
             <a href="#faq" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('FAQ'); ?></a>
+            <div class="nav-mobile-lang">
+                <?php echo lang_toggle_widget(); ?>
+            </div>
+            <?php if($isLoggedIn): ?>
             <div class="border-t border-gray-100 mt-3 pt-3 nav-menu-cta">
-                <?php if($isLoggedIn): ?>
                     <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary px-4 py-2.5 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
                         <i class="fas fa-tachometer-alt"></i><?php echo t('Dashboard'); ?>
                     </a>
-                <?php else: ?>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-primary px-4 py-2.5 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                        <i class="fas fa-user-plus"></i><?php echo t('Create Free Account'); ?>
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-mobile-link block px-3 py-2.5 rounded-xl border border-emerald-600 text-emerald-700 text-sm font-medium text-center">
-                        <i class="fas fa-sign-in-alt"></i> <?php echo t('Sign In'); ?>
-                    </a>
-                <?php endif; ?>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 </nav>
@@ -794,15 +838,15 @@ if ($isLoggedIn && $is_staff) {
                         <span class="text-white"><?php echo htmlspecialchars($user_name); ?>!</span>
                     <?php else: ?>
                         <?php echo htmlspecialchars($lp('lp_hero_headline_1', 'Sama-sama nating')); ?><br>
-                        <?php echo nl2br(htmlspecialchars($lp('lp_hero_headline_2', "pangalagaan ang\nSan Isidro."))); ?>
+                        <span class="hero-headline-second"><?php echo str_replace(['<br />', 'San Isidro'], ['<br /> ', 'San&nbsp;Isidro'], nl2br(htmlspecialchars($lp('lp_hero_headline_2', "pangalagaan ang\nSan Isidro.")))); ?></span>
                     <?php endif; ?>
                 </h1>
 
-                <p class="text-white/85 text-base sm:text-lg leading-relaxed mb-8">
-                    <?php echo nl2br(htmlspecialchars($hero_subtitle)); ?>
+                <p class="hero-subtitle text-white/85 text-base sm:text-lg leading-relaxed mb-8">
+                    <?php echo str_replace('<br />', '<br /> ', nl2br(htmlspecialchars($hero_subtitle))); ?>
                 </p>
 
-                <div class="flex flex-wrap gap-3 animate-fade-up delay-2">
+                <div class="hero-actions flex flex-wrap gap-3 animate-fade-up delay-2">
                     <?php if($isLoggedIn && ($user_role === 'barangay_official' || $user_role === 'admin')): ?>
                         <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" class="btn-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
                             <i class="fas fa-check-double"></i> <?php echo t('Manage Reports'); ?>
@@ -954,7 +998,7 @@ if ($isLoggedIn && $is_staff) {
             <p class="text-gray-500 mt-2 max-w-2xl mx-auto"><?php echo htmlspecialchars($lp('lp_stats_intro', "Together, we're making a difference in our community.")); ?></p>
         </div>
         
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 stat-cards">
             <div class="stat-card bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 text-center">
                 <div class="text-3xl font-bold text-emerald-600"><?php echo number_format($san_isidro_stats['barangays']); ?></div>
                 <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_barangays_label', 'Barangays')); ?></p>
@@ -1254,20 +1298,20 @@ if ($isLoggedIn && $is_staff) {
             <div>
                 <h4 class="font-semibold mb-4">Quick Links</h4>
                 <ul class="space-y-2 text-sm text-gray-400">
-                    <li><a href="#home" class="hover:text-emerald-400 transition">Home</a></li>
-                    <li><a href="#features" class="hover:text-emerald-400 transition">How It Works</a></li>
-                    <li><a href="#map-section" class="hover:text-emerald-400 transition">Live Map</a></li>
-                    <li><a href="#stats" class="hover:text-emerald-400 transition">Stats</a></li>
-                    <li><a href="#about" class="hover:text-emerald-400 transition">About LGU</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php#home" class="hover:text-emerald-400 transition">Home</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php#features" class="hover:text-emerald-400 transition">How It Works</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php#map-section" class="hover:text-emerald-400 transition">Live Map</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php#stats" class="hover:text-emerald-400 transition">Stats</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php#about" class="hover:text-emerald-400 transition">About LGU</a></li>
                 </ul>
             </div>
             <div>
                 <h4 class="font-semibold mb-4">Support</h4>
                 <ul class="space-y-2 text-sm text-gray-400">
-                    <li><a href="#" class="hover:text-emerald-400 transition">FAQ</a></li>
-                    <li><a href="#" class="hover:text-emerald-400 transition">Privacy Policy</a></li>
-                    <li><a href="#" class="hover:text-emerald-400 transition">Terms of Service</a></li>
-                    <li><a href="#" class="hover:text-emerald-400 transition">Contact Us</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php#faq" class="hover:text-emerald-400 transition">FAQ</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php?page=privacy-policy" class="hover:text-emerald-400 transition">Privacy Policy</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>index.php?page=terms-of-service" class="hover:text-emerald-400 transition">Terms of Service</a></li>
+                    <li><a href="mailto:<?php echo htmlspecialchars($contact_email); ?>" class="hover:text-emerald-400 transition">Contact Us</a></li>
                 </ul>
             </div>
             <div>
@@ -1313,15 +1357,18 @@ if ($isLoggedIn && $is_staff) {
     }
     btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        var open = menu.classList.toggle('hidden');
-        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        btn.innerHTML = '<i class="fas ' + (open ? 'fa-times' : 'fa-bars') + '"></i>';
+        var isOpen = !menu.classList.toggle('hidden');
+        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        btn.innerHTML = '<i class="fas ' + (isOpen ? 'fa-times' : 'fa-bars') + '"></i>';
     });
     menu.querySelectorAll('a').forEach(function (a) {
         a.addEventListener('click', close);
     });
     document.addEventListener('click', function (e) {
         if (!btn.contains(e.target) && !menu.contains(e.target)) close();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') close();
     });
 })();
 
@@ -1418,7 +1465,7 @@ function initMap() {
                     <span style="font-size: 12px; color: #64748b;">Risk: ${risk.charAt(0).toUpperCase() + risk.slice(1)}</span><br>
                     <span style="font-size: 12px; color: #64748b;">Status: ${statusDisplay}</span><br>
                     <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=${report.token}" 
-                       style="display: inline-block; margin-top: 8px; padding: 4px 12px; background: #059669; color: white; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: 500;">
+                       style="display: inline-block; margin-top: 8px; padding: 4px 12px; background: #059669; color: white; border-radius: 8px; font-size: 12px; text-decoration: none; font-weight: 500;">
                         View Details
                     </a>
                 </div>
@@ -1430,11 +1477,11 @@ function initMap() {
                     <p style="font-size: 14px; font-weight: 600; color: #1e293b;">Login to view details</p>
                     <p style="font-size: 12px; color: #64748b; margin: 4px 0 8px;">Sign in to see full report information</p>
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" 
-                       style="display: inline-block; padding: 6px 16px; background: #059669; color: white; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: 500;">
+                       style="display: inline-block; padding: 6px 16px; background: #059669; color: white; border-radius: 8px; font-size: 12px; text-decoration: none; font-weight: 500;">
                         Login
                     </a>
                     <a href="<?php echo BASE_URL; ?>index.php?page=register" 
-                       style="display: inline-block; padding: 6px 16px; margin-left: 4px; background: transparent; color: #059669; border: 1px solid #059669; border-radius: 6px; font-size: 12px; text-decoration: none; font-weight: 500;">
+                       style="display: inline-block; padding: 6px 16px; margin-left: 4px; background: transparent; color: #059669; border: 1px solid #059669; border-radius: 8px; font-size: 12px; text-decoration: none; font-weight: 500;">
                         Register
                     </a>
                 </div>
@@ -1625,6 +1672,42 @@ if (resolutionBar) {
 
 <script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
+<script>
+/* Stats rows: 3 or fewer cards fit the screen; more than 3 scroll horizontally.
+   Self-contained (injects its own CSS) so a cached stylesheet can't break it. */
+(function () {
+    'use strict';
+    var CSS = '@media(max-width:767px){' +
+        '.stat-cards{display:flex !important;flex-wrap:nowrap !important;gap:10px;min-width:0;max-width:100%;overflow-x:auto !important;overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding-bottom:6px;overscroll-behavior-x:contain;}' +
+        '.stat-cards>*{box-sizing:border-box;flex:0 0 165px !important;width:165px !important;min-width:0;scroll-snap-align:start;}' +
+        '.stat-cards.sf-fit{display:grid !important;overflow:visible !important;padding-bottom:0;scroll-snap-type:none;}' +
+        '.stat-cards.sf-fit>*{flex:1 1 auto !important;width:auto !important;min-width:0;}' +
+        '.stat-cards.sf-1{grid-template-columns:minmax(0,1fr) !important;}' +
+        '.stat-cards.sf-2{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}' +
+        '.stat-cards.sf-3{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}' +
+        '}';
+    function inject() {
+        if (document.getElementById('stat-cards-css')) return;
+        var s = document.createElement('style');
+        s.id = 'stat-cards-css';
+        s.appendChild(document.createTextNode(CSS));
+        (document.head || document.documentElement).appendChild(s);
+    }
+    function applyStatFit() {
+        inject();
+        var rows = document.querySelectorAll('.stat-cards');
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var n = row.children.length;
+            row.classList.remove('sf-fit', 'sf-1', 'sf-2', 'sf-3');
+            if (n >= 1 && n <= 3) { row.classList.add('sf-fit', 'sf-' + n); }
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyStatFit);
+    else applyStatFit();
+    window.addEventListener('resize', applyStatFit);
+})();
+</script>
 <?php echo lang_apply_js(); ?>
 </body>
 </html>

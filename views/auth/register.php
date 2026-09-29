@@ -152,7 +152,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Create Account - <?php echo htmlspecialchars($system_name); ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Select2 CSS -->
@@ -518,14 +518,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         .strength-meter {
             height: 4px;
             background: #e2e8f0;
-            border-radius: 2px;
+            border-radius: 8px;
             margin-top: 4px;
             overflow: hidden;
         }
         
         .strength-meter-fill {
             height: 100%;
-            border-radius: 2px;
+            border-radius: 8px;
             transition: all 0.3s ease;
             width: 0%;
         }
@@ -590,8 +590,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         
         /* SCROLLBAR */
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #10A37F; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #10A37F; border-radius: 8px; }
         ::-webkit-scrollbar-thumb:hover { background: #0D8568; }
         ::-webkit-scrollbar:horizontal { display: none; }
         
@@ -2459,48 +2459,7 @@ function maskEmail(email) {
             </div>
 
             <div class="terms-content px-6 py-5 overflow-y-auto text-sm text-gray-600 leading-relaxed space-y-4">
-                <p>Welcome to SIERRA (Web-Based Environmental Reporting Application). By registering an account and using this platform, you agree to comply with and be bound by the following Terms of Service. If you do not agree to these terms, please do not use the application.</p>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">1. Description of Service</h4>
-                    <p>SIERRA is a civic technology platform designed to facilitate the reporting, tracking, and management of environmental hazards within the Municipality of San Isidro. The system allows users to submit geotagged reports and photographic evidence to the relevant Barangay and the Municipal Environment and Natural Resources Office (MENRO) for appropriate action.</p>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">2. User Accounts and Security</h4>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li><strong>Eligibility:</strong> You must be at least 18 years old to register. The platform is open to both residents and non-residents of San Isidro.</li>
-                        <li><strong>Verification:</strong> Upon registration, you are required to verify your identity via a One-Time Password (OTP) sent to your registered mobile number.</li>
-                        <li><strong>Accountability:</strong> You are entirely responsible for maintaining the confidentiality of your login credentials. You agree to notify the administrators immediately of any unauthorized use of your account.</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">3. Acceptable Use and User Conduct</h4>
-                    <p>By using SIERRA, you agree that you will NOT:</p>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li>Submit false, misleading, or malicious environmental reports.</li>
-                        <li>Upload photos or content that are unlawful, defamatory, obscene, or completely unrelated to environmental hazards.</li>
-                        <li>Attempt to bypass system security, manipulate GPS coordinates (location spoofing), or disrupt the normal operations of the platform.</li>
-                        <li>Use the application for any commercial or non-civic purposes.</li>
-                    </ul>
-                    <p class="mt-2">The administrators reserve the right to suspend or permanently ban accounts found to be submitting spam, fraudulent reports, or violating any of these terms.</p>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">4. Content Ownership and Licensing</h4>
-                    <p>By uploading photographic evidence and submitting text descriptions to SIERRA, you grant the Municipality of San Isidro, the respective Barangays, and MENRO a perpetual, non-exclusive, royalty-free license to use, reproduce, and distribute the content for the purpose of environmental monitoring, investigation, analytics, and public records.</p>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">5. Limitation of Liability</h4>
-                    <p>The SIERRA platform is provided "as is." While the system ensures that reports are routed to the proper local government authorities, the developers and the Municipality of San Isidro do not guarantee immediate physical resolution of every submitted report. The system is not a substitute for emergency services (such as 911 or the local fire department) in the event of immediate threats to life or property.</p>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">6. Governing Law</h4>
-                    <p>These Terms shall be governed by and construed in accordance with the laws of the Republic of the Philippines.</p>
-                </div>
+                <?php require BASE_PATH . 'views/shared/legal/terms.php'; ?>
             </div>
 
             <div class="px-6 py-4 border-t border-gray-200 flex items-center gap-3">
@@ -2528,61 +2487,7 @@ function maskEmail(email) {
             </div>
 
             <div class="privacy-content px-6 py-5 overflow-y-auto text-sm text-gray-600 leading-relaxed space-y-4">
-                <p><strong>Effective Date:</strong> [Insert Date]</p>
-                <p>Your privacy is critically important to us. This Privacy Policy outlines how the SIERRA Platform collects, uses, protects, and shares your personal information in strict compliance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).</p>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">1. Information We Collect</h4>
-                    <p>To provide a secure and functional reporting environment, we collect the following data:</p>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li><strong>Personal Identification Data:</strong> Full name, email address, and mobile number (collected during registration).</li>
-                        <li><strong>Geospatial Data:</strong> Exact GPS coordinates (latitude and longitude) captured via your device when submitting an environmental report.</li>
-                        <li><strong>Multimedia Data:</strong> Photographic evidence uploaded to support your environmental report.</li>
-                        <li><strong>System Data:</strong> IP addresses, browser types, and timestamp logs for audit and security purposes.</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">2. How We Use Your Information</h4>
-                    <p>We use your data exclusively for civic and administrative purposes, specifically to:</p>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li>Verify your identity and secure your account using mobile OTP.</li>
-                        <li>Process, validate, and route your environmental reports to the designated Barangay and MENRO officials.</li>
-                        <li>Communicate with you regarding the status of your reports (via email notifications) or system announcements.</li>
-                        <li>Generate municipal-level analytics, trend statistics, and spatial heatmaps (Note: Personal names are stripped from datasets used for municipal analytics to ensure reporter anonymity in public reports).</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">3. How We Share Your Information</h4>
-                    <p>Your data is treated with strict confidentiality. We do not sell or rent your personal information. We only share data with:</p>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li><strong>Authorized LGU Personnel:</strong> Barangay officials and MENRO administrators handling your specific report.</li>
-                        <li><strong>Third-Party Service Providers:</strong> We utilize secure APIs to maintain system functionality. Your mobile number is processed by our SMS gateway provider solely for OTP delivery, and your email address is processed by our email service provider strictly for routing automated system notifications.</li>
-                        <li><strong>Legal Compliance:</strong> We may disclose information if mandated by Philippine law or a valid court order.</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">4. Data Security and Retention</h4>
-                    <p>SIERRA implements industry-standard security measures, including encrypted passwords and secure database architecture, to protect your data against unauthorized access. Personal data will be retained only for as long as necessary to fulfill the purposes outlined in this policy or to comply with LGU archival regulations, after which it will be securely anonymized or deleted.</p>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">5. Your Rights as a Data Subject</h4>
-                    <p>Under R.A. 10173, you have the right to:</p>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li>Be informed about how your data is processed.</li>
-                        <li>Access the personal information you have provided to us.</li>
-                        <li>Update or correct inaccuracies in your profile.</li>
-                        <li>Request the suspension, withdrawal, or removal of your personal data from our active databases, subject to LGU record-keeping laws.</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-1">6. Contact Us</h4>
-                    <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact the SIERRA System Administrator or the designated Data Protection Officer (DPO) of the Municipality of San Isidro.</p>
-                </div>
+                <?php require BASE_PATH . 'views/shared/legal/privacy.php'; ?>
             </div>
 
             <div class="px-6 py-4 border-t border-gray-200 flex items-center gap-3">

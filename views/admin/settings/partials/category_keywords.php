@@ -201,7 +201,7 @@ $categories_covered = count(array_unique(array_map(fn($k) => (int)$k['category_i
 
 <!-- ===== TOOLBAR ===== -->
 <div class="ckw-toolbar">
-    <div class="ckw-stats">
+    <div class="ckw-stats stat-cards">
         <span class="ckw-stat"><strong><?php echo $total; ?></strong> <?php echo t('keywords'); ?></span>
         <span class="ckw-stat"><strong><?php echo $active_count; ?></strong> <?php echo t('active'); ?></span>
         <span class="ckw-stat"><strong><?php echo $categories_covered; ?></strong> <?php echo t('categories covered'); ?></span>

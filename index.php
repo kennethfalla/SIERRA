@@ -38,7 +38,7 @@ if (SettingsHelper::get('maintenance_mode', 0) == 1) {
         forceLogout('Maintenance mode is active. You have been signed out; staff may log in below.');
     }
 
-    $allowed_during_maintenance = in_array($page, ['login', 'reset-password', 'forgot-password']);
+    $allowed_during_maintenance = in_array($page, ['login', 'reset-password', 'forgot-password', 'privacy-policy', 'terms-of-service'], true);
     if (!$is_admin_session && !$allowed_during_maintenance) {
         require_once 'views/maintenance.php';
         exit();
@@ -55,6 +55,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 // ============================================
 if($page === 'home') {
     require_once 'views/index.php';
+    exit();
+}
+
+// Public policy pages use the same content shown during registration.
+if (in_array($page, ['privacy-policy', 'terms-of-service'], true)) {
+    require_once 'views/public/legal.php';
     exit();
 }
 

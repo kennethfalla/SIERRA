@@ -834,7 +834,7 @@ function getDecisionBadge($classification) {
         /* Map container */
         #map-container {
             background: white;
-            border-radius: 1.25rem;
+            border-radius: 1rem;
             border: 1px solid rgba(16, 163, 127, 0.08);
             padding: 1rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
@@ -870,7 +870,7 @@ function getDecisionBadge($classification) {
             color: #0F3B2E;
             background: rgba(255,255,255,0.92);
             padding: 2px 6px;
-            border-radius: 6px;
+            border-radius: 8px;
             white-space: nowrap;
             max-width: 120px;
             overflow: hidden;
@@ -883,7 +883,7 @@ function getDecisionBadge($classification) {
         .map-toggle {
             display: flex;
             background: #f1f5f9;
-            border-radius: 2rem;
+            border-radius: 1.5rem;
             padding: 0.2rem;
             gap: 0.2rem;
         }
@@ -1137,24 +1137,55 @@ function getDecisionBadge($classification) {
         .map-head {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-between;
             align-items: center;
-            gap: 0.85rem 1.25rem;
+            gap: 0.75rem 1rem;
             margin-bottom: 0.9rem;
         }
         .map-title-wrap {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 0.9rem;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            width: 100%;
             min-width: 0;
         }
         .map-head-tools {
             display: flex;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: space-between;
             flex-wrap: wrap;
-            gap: 0.85rem 1rem;
+            gap: 0.75rem 1rem;
+            width: 100%;
+            min-width: 0;
+        }
+        /* Desktop: keep the mode toggle and the timeframe picker on one row */
+        @media (min-width: 769px) {
+            .map-head-tools {
+                flex-wrap: nowrap;
+            }
+            #mapToggle {
+                flex-shrink: 0;
+            }
+            #mapToggle,
+            #timeframeToggle {
+                flex-wrap: nowrap;
+            }
+            #mapToggle button,
+            #timeframeToggle button {
+                white-space: nowrap;
+            }
+            #timeframeToggle {
+                min-width: 0;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            #timeframeToggle::-webkit-scrollbar { display: none; }
+            #customRangeBox {
+                width: 100%;
+                flex-wrap: wrap;
+            }
         }
 
         /* Floating legend + category filter overlay on the map canvas */
@@ -1285,6 +1316,28 @@ function getDecisionBadge($classification) {
         }
         /* Leaderboard table -> horizontal swipe on tablet, stacked cards on phones */
         .leaderboard-scroll { -webkit-overflow-scrolling: touch; }
+        /* Mobile: show only the top 3 rows until "View all" is tapped */
+        .lb-view-all { display: none; }
+        @media (max-width: 767px) {
+            body .leaderboard-scroll:not(.lb-open) .lb-extra { display: none; }
+            body .lb-view-all {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                width: 100%;
+                margin-top: 10px;
+                padding: 10px 12px;
+                background: #F0FDF9;
+                color: #0D8568;
+                border: 1px solid rgba(16, 163, 127, 0.2);
+                border-radius: 12px;
+                font-size: 0.8rem;
+                font-weight: 700;
+                cursor: pointer;
+            }
+            body .lb-view-all i { transition: transform .2s ease; }
+        }
         @media (max-width: 560px) {
             .leaderboard-scroll { overflow: visible; }
             .leaderboard-table thead { display: none; }
@@ -1370,7 +1423,7 @@ function getDecisionBadge($classification) {
         <!-- ============================================================ -->
         <!-- 1. ALGORITHMIC KPI WIDGETS -->
         <!-- ============================================================ -->
-        <div class="analytics-kpi-grid">
+        <div class="analytics-kpi-grid stat-cards">
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
                 <div class="min-w-0">
                     <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold"><?php echo t('Active Hotspots'); ?></p>
@@ -1507,14 +1560,17 @@ function getDecisionBadge($classification) {
                         <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
                         <?php echo t('Environmental Hazard Map'); ?>
                     </h2>
-                    <div class="map-toggle" id="mapToggle">
-                        <button class="active" data-mode="active"><?php echo t('Active Hazards'); ?></button>
-                        <button data-mode="historical"><?php echo t('Historical Trends'); ?></button>
-                    </div>
+                    <button type="button" id="mapFullscreenBtn" onclick="toggleMapFullscreen()" title="<?php echo t('Toggle Fullscreen Map'); ?>" aria-label="<?php echo t('Toggle fullscreen map'); ?>" class="map-fullscreen-btn">
+                        <i class="fas fa-expand" id="fullscreenIcon"></i>
+                    </button>
                 </div>
 
-                <!-- Timeframe Segmented Control + Custom Range (right side) -->
+                <!-- Mode toggle + Timeframe Segmented Control (same row) -->
                 <div class="map-head-tools">
+                    <div class="map-toggle" id="mapToggle">
+                        <button class="active" data-mode="active"><i class="fas fa-map-pin" aria-hidden="true"></i><span><?php echo t('Active Hazards'); ?></span></button>
+                        <button data-mode="historical"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span><?php echo t('Historical Trends'); ?></span></button>
+                    </div>
                     <div class="map-toggle" id="timeframeToggle">
                         <button data-range="today"><?php echo t('Today'); ?></button>
                         <button data-range="week"><?php echo t('This Week'); ?></button>
@@ -1523,16 +1579,14 @@ function getDecisionBadge($classification) {
                         <button data-range="custom"><?php echo t('Custom'); ?></button>
                         <button class="active" data-range="all"><?php echo t('All Time'); ?></button>
                     </div>
-                    <div id="customRangeBox" class="hidden items-center gap-2">
-                        <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="<?php echo t('Start date'); ?>">
-                        <span class="text-xs text-gray-400"><?php echo t('to'); ?></span>
-                        <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="<?php echo t('End date'); ?>">
-                        <button onclick="applyAnalyticsDateFilter()" class="bg-[#10A37F] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#0D8568] transition flex items-center gap-1" title="<?php echo t('Reload page with selected date range to update all KPIs and charts'); ?>">
-                            <i class="fas fa-sync-alt"></i> <?php echo t('Apply to Analytics'); ?>
-                        </button>
-                    </div>
-                    <button type="button" id="mapFullscreenBtn" onclick="toggleMapFullscreen()" title="<?php echo t('Toggle Fullscreen Map'); ?>" aria-label="<?php echo t('Toggle fullscreen map'); ?>" class="map-fullscreen-btn">
-                        <i class="fas fa-expand" id="fullscreenIcon"></i>
+                </div>
+
+                <div id="customRangeBox" class="hidden items-center gap-2">
+                    <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="<?php echo t('Start date'); ?>">
+                    <span class="text-xs text-gray-400"><?php echo t('to'); ?></span>
+                    <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="<?php echo t('End date'); ?>">
+                    <button onclick="applyAnalyticsDateFilter()" class="bg-[#10A37F] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#0D8568] transition flex items-center gap-1" title="<?php echo t('Reload page with selected date range to update all KPIs and charts'); ?>">
+                        <i class="fas fa-sync-alt"></i> <?php echo t('Apply to Analytics'); ?>
                     </button>
                 </div>
             </div>
@@ -1582,18 +1636,12 @@ function getDecisionBadge($classification) {
                 <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $severityBands['critical']; ?>-20)</span>
             </div>
             <div class="flex flex-wrap items-center gap-2 mt-2">
-                <p class="text-xs text-gray-400" id="filterSummary"></p>
                 <span id="barangayFilterChip" class="hidden items-center gap-1 px-2 py-0.5 rounded-full bg-[#10A37F]/10 border border-[#10A37F]/30 text-xs font-semibold text-[#0D8568]">
                     <i class="fas fa-map-pin"></i>
                     <span id="barangayFilterLabel"></span>
                     <button type="button" onclick="clearBarangayFilter()" class="ml-1 hover:text-red-600" aria-label="<?php echo t('Clear barangay filter'); ?>"><i class="fas fa-times"></i></button>
                 </span>
             </div>
-            <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                <i class="fas fa-info-circle"></i>
-                <?php echo t('Clusters are formed by reports within 50m radius. Color indicates severity score.'); ?>
-                <?php echo t('Click a cluster or marker to view detailed analysis. Click a barangay on the map to filter its reports.'); ?>
-            </p>
         </div>
 
         <!-- ============================================================ -->
@@ -1725,7 +1773,7 @@ function getDecisionBadge($classification) {
                             $barColor = $rate >= 75 ? '#10B981' : ($rate >= 50 ? '#F59E0B' : '#EF4444');
                             $rowFlag = $rate < 50 ? 'bg-red-50/50' : '';
                         ?>
-                        <tr class="border-b border-gray-50 <?php echo $rowFlag; ?>">
+                        <tr class="border-b border-gray-50 <?php echo $rowFlag; ?><?php echo $i >= 3 ? ' lb-extra' : ''; ?>">
                             <td class="py-2 pr-2 font-bold text-gray-500" data-label="Rank">
                                 <?php if ($rank === 1): ?><i class="fas fa-medal text-yellow-400"></i>
                                 <?php elseif ($rank === 2): ?><i class="fas fa-medal text-gray-400"></i>
@@ -1748,6 +1796,21 @@ function getDecisionBadge($classification) {
                     </tbody>
                 </table>
             </div>
+            <button type="button" class="lb-view-all" onclick="toggleLeaderboard(this)">
+                <span><?php echo t('View all barangays'); ?></span> <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <script>
+            window.toggleLeaderboard = function (btn) {
+                var card = btn.closest('.chart-card');
+                var wrap = card ? card.querySelector('.leaderboard-scroll') : null;
+                if (!wrap) return;
+                var open = wrap.classList.toggle('lb-open');
+                var span = btn.querySelector('span');
+                if (span) span.textContent = open ? <?php echo json_encode(t('Show less')); ?> : <?php echo json_encode(t('View all barangays')); ?>;
+                var icon = btn.querySelector('i');
+                if (icon) icon.style.transform = open ? 'rotate(180deg)' : '';
+            };
+            </script>
             <?php
                 $below_target = array_filter($barangayLeaderboard, function($b) use ($kpi_resolution_rate_target) {
                     return $b['resolution_rate'] < $kpi_resolution_rate_target;
@@ -1936,12 +1999,6 @@ function getDecisionBadge($classification) {
                 </div><!-- /rec-stack -->
                 <?php endif; ?>
             </div>
-        </div>
-
-        <!-- Footer note -->
-        <div class="text-xs text-gray-400 border-t border-gray-200 pt-4 mt-2 flex justify-between">
-            <span>All scores are calculated using the 20‑point algorithm (Base Weight + Impact Modifier + Spatial Density).</span>
-            <span>Last updated: <?php echo date('h:i A'); ?></span>
         </div>
 
     </div>

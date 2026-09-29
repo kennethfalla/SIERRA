@@ -263,7 +263,7 @@ $al_action_default = ['icon' => 'fa-circle', 'bg' => '#E8F5F0', 'color' => '#10A
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-3 gap-3 mb-5">
+    <div class="grid grid-cols-3 gap-3 mb-5 stat-cards">
         <div class="bg-white rounded-lg border border-gray-100 p-3 sm:p-4">
             <p class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1"><?php echo t('Total Activities'); ?></p>
             <p class="text-lg sm:text-xl font-extrabold text-gray-800 tracking-tight"><?php echo number_format($al_total_rows); ?></p>
@@ -295,7 +295,7 @@ $al_action_default = ['icon' => 'fa-circle', 'bg' => '#E8F5F0', 'color' => '#10A
                         <p class="text-sm font-semibold text-gray-800">
                             <?php echo htmlspecialchars($al_act['action']); ?>
                             <?php if ($al_bad): ?>
-                            <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold text-red-600 bg-red-100 uppercase tracking-wide"><?php echo htmlspecialchars($al_act['status']); ?></span>
+                            <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-lg text-[9px] font-bold text-red-600 bg-red-100 uppercase tracking-wide"><?php echo htmlspecialchars($al_act['status']); ?></span>
                             <?php endif; ?>
                         </p>
                         <span class="text-xs text-gray-400" title="<?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($al_act['created_at']))); ?>">
