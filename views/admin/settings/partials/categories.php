@@ -41,7 +41,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     if($action === 'create') {
         $name = InputSanitizer::sanitizeString($_POST['name'] ?? '');
         $description = InputSanitizer::sanitizeString($_POST['description'] ?? '');
-        $icon_class = InputSanitizer::sanitizeString($_POST['icon_class'] ?? 'fa-tag');
+        $icon_class = InputSanitizer::sanitizeString($_POST['icon_class'] ?? 'ms-sell');
         $base_weight = isset($_POST['base_weight']) ? (int)$_POST['base_weight'] : 1;
         if ($base_weight < 1 || $base_weight > 10) { $base_weight = 1; }
 
@@ -61,7 +61,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)($_POST['category_id'] ?? 0);
         $name = InputSanitizer::sanitizeString($_POST['name'] ?? '');
         $description = InputSanitizer::sanitizeString($_POST['description'] ?? '');
-        $icon_class = InputSanitizer::sanitizeString($_POST['icon_class'] ?? 'fa-tag');
+        $icon_class = InputSanitizer::sanitizeString($_POST['icon_class'] ?? 'ms-sell');
         $is_active = isset($_POST['is_active']) ? 1 : 0;
         $base_weight = isset($_POST['base_weight']) ? (int)$_POST['base_weight'] : 1;
         if ($base_weight < 1 || $base_weight > 10) { $base_weight = 1; }
@@ -576,10 +576,10 @@ function categoryWeightLevelClass($weight) {
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-2" for="catIcon"><?php echo t('Icon Class (Font Awesome)'); ?></label>
-                    <input type="text" name="icon_class" id="catIcon" placeholder="fa-trash"
+                    <label class="block text-sm font-bold text-gray-700 mb-2" for="catIcon"><?php echo t('Category icon (Material Symbols)'); ?></label>
+                    <input type="text" name="icon_class" id="catIcon" placeholder="ms-delete"
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm">
-                    <p class="text-xs text-gray-400 mt-1 font-medium"><?php echo t('Use Font Awesome 6: fa-trash, fa-water, fa-smog, fa-tree, fa-recycle, etc.'); ?></p>
+                    <p class="text-xs text-gray-400 mt-1 font-medium"><?php echo t('Use ms-delete, ms-water_drop, ms-foggy, ms-park, ms-recycling, or ms-eco.'); ?></p>
                 </div>
 
                 <div class="mb-4">
@@ -725,7 +725,7 @@ function openAddCategoryModal() {
     document.getElementById('categoryId').value = '';
     document.getElementById('catName').value = '';
     document.getElementById('catDescription').value = '';
-    document.getElementById('catIcon').value = 'fa-tag';
+    document.getElementById('catIcon').value = 'ms-sell';
     document.getElementById('catActive').checked = true;
     document.getElementById('baseWeight').value = '1';
     document.getElementById('weightWarning').classList.add('hidden');

@@ -11,6 +11,57 @@
 }
 .sierra-hero:hover { transform: translateY(-3px); box-shadow: 0 25px 40px -15px #00000040; }
 .sierra-hero-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
+.sierra-hero-extra { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .6rem; margin-left: auto; min-width: 0; }
+/* MENRO filters sit directly in the app header, before the notification bell. */
+.dashboard-page .app-mobile-header .dash-header-extras {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-left: auto;
+}
+.dashboard-page .app-mobile-header .dash-header-extras .dashboard-toolbar-row,
+.dashboard-page .app-mobile-header .dash-header-extras .dashboard-toolbar-filters,
+.dashboard-page .app-mobile-header .dash-header-extras .ft-toolbar {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    margin: 0;
+}
+.dashboard-page .app-mobile-header .dash-header-extras .ft-toolbar .reports-toolbar {
+    flex: 0 0 auto;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    gap: .4rem;
+}
+.dashboard-page .app-mobile-header .dash-header-extras .toolbar-select {
+    min-height: 34px;
+    background-color: #f4f7f5;
+    border-color: transparent;
+}
+.dashboard-page .app-mobile-header .dash-header-extras .toolbar-select:hover,
+.dashboard-page .app-mobile-header .dash-header-extras .toolbar-select:focus { border-color: #cde3d7; background-color: #ffffff; }
+.dashboard-page .app-mobile-header .dash-header-extras .toolbar-divider { display: none; }
+@media (max-width: 1199px) {
+    .dashboard-page .app-mobile-header .dash-header-extras .ft-more-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+        background: #f4f7f5;
+        border-color: transparent;
+    }
+}
+.sierra-hero-extra .dashboard-toolbar-row { margin-bottom: 0; gap: .5rem; }
+.sierra-hero-extra .dashboard-toolbar-row .reports-toolbar,
+.sierra-hero-extra .btn-export-trigger { background: rgba(255,255,255,.96); border-color: transparent; min-height: 44px; }
+.sierra-hero-extra .dash-date { color: #eafff6; font-weight: 600; font-size: .78rem; display: inline-flex; align-items: center; gap: .4rem; }
 .sierra-hero-greeting { display: flex; align-items: center; gap: .5rem; margin-bottom: .25rem; color: #ffffffcc; font-size: .875rem; font-weight: 500; }
 .sierra-hero-greeting i { font-size: 1.125rem; }
 .sierra-hero-greeting .fa-sun { color: #fef08a; }
@@ -23,6 +74,59 @@
 .sierra-hero .sierra-hero-bell .fa-bell { font-size: 1.125rem; }
 .sierra-hero .notification-badge { position: absolute; top: -4px; right: -4px; background: #ef4444; color: white; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 4px; border: 2px solid white; border-radius: 9999px; display: flex; align-items: center; justify-content: center; }
 .sierra-hero .sierra-hero-bell:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+
+/* MENRO welcome banner */
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero {
+    display: flex;
+    align-items: center;
+    min-height: 178px;
+    padding: 2rem 2.25rem;
+    background: radial-gradient(circle at 80% 24%, rgba(177, 246, 202, .28), transparent 30%),
+                linear-gradient(120deg, #075746 0%, #0a8969 57%, #28ad82 100%);
+    border: 1px solid rgba(255, 255, 255, .2);
+    box-shadow: 0 18px 35px -22px rgba(4, 82, 58, .65);
+}
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero::before {
+    content: "";
+    position: absolute;
+    width: 370px;
+    height: 370px;
+    top: -190px;
+    right: -55px;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 50%;
+    box-shadow: 0 0 0 50px rgba(255, 255, 255, .065), 0 0 0 105px rgba(255, 255, 255, .035);
+    pointer-events: none;
+}
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero::after {
+    content: "";
+    position: absolute;
+    width: 260px;
+    height: 110px;
+    right: 10%;
+    bottom: -75px;
+    border-radius: 50%;
+    background: rgba(160, 247, 198, .18);
+    filter: blur(28px);
+    pointer-events: none;
+}
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-row { position: relative; z-index: 1; align-items: center; width: 100%; }
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-greeting {
+    display: inline-flex;
+    width: fit-content;
+    padding: .32rem .68rem;
+    margin-bottom: .7rem;
+    border: 1px solid rgba(255, 255, 255, .27);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .12);
+    color: #e7fff1;
+    font-size: .76rem;
+    font-weight: 700;
+}
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-name { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 800; line-height: 1.14; letter-spacing: -.035em; }
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-subtitle { color: #e3f8eb; font-size: .86rem; font-weight: 500; margin-top: .5rem; }
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero .sierra-hero-bell { background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .28); }
+
 @keyframes sierraTextShine { from { background-position: 0% 50%; } to { background-position: 200% 50%; } }
 @media (min-width: 640px) { .sierra-hero { padding: 2rem; border-radius: 1.5rem; } .sierra-hero-name { font-size: 1.75rem; } }
 @media (max-width: 639px) {
@@ -33,5 +137,10 @@
     .sierra-hero-subtitle { font-size: .65rem; }
     .sierra-hero .sierra-hero-bell { width: 2.1rem; height: 2.1rem; }
     .sierra-hero .sierra-hero-bell .fa-bell { font-size: .9rem; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero { min-height: 148px; padding: 1.2rem 1.3rem; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero::before { width: 250px; height: 250px; top: -125px; right: -120px; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-greeting { font-size: .68rem; margin-bottom: .55rem; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-name { font-size: 1.5rem; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-subtitle { font-size: .72rem; line-height: 1.35; }
 }
 @media (prefers-reduced-motion: reduce) { .sierra-hero, .sierra-hero * { animation: none; transition: none; } .sierra-hero:hover { transform: none; } }

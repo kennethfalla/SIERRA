@@ -21,6 +21,7 @@ $reports_stmt = $report->getReportsByUser($user_id);
 $reports = $reports_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $total_reports = $report->getTotalCount(null, $user_id);
+$in_progress_count = count(array_filter($reports, static function ($row) { return $row['status'] === 'in_progress'; }));
 $pending_count = $report->getReportsByStatus('pending', null, $user_id);
 
 $resolved_count = $report->getReportsByStatus('resolved', null, $user_id);
@@ -197,7 +198,7 @@ if (is_dir($barangays_dir)) {
     <title><?php echo t('Citizen Dashboard - EnviroTrack'); ?></title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
     <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
@@ -1823,16 +1824,24 @@ text-decoration: underline;
             .new-report-fab { width: 50px !important; height: 50px !important; font-size: 1.15rem !important; right: 14px !important; }
         }
     </style>
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-hero.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-analytics.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-analytics.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/citizen-dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/citizen-dashboard.css'); ?>">
 </head>
-<body class="bg-[#F5FBF6]">
+<body class="dashboard-page citizen-dashboard-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
         
-        <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
+        <?php $hero_subtitle = t('Your reports, your community, a cleaner environment.'); include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
+        <div class="dash-head">
+            <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
+            <a class="citizen-primary-action" href="<?php echo BASE_URL; ?>index.php?page=submit-report"><i class="fas fa-plus-circle" aria-hidden="true"></i><span><?php echo t('Report an Issue'); ?></span></a>
+        </div>
+
         
         <!-- ===== NOTIFICATION DROPDOWN ===== -->
         <div id="notificationDropdown" class="notification-dropdown" style="display: none;">
@@ -1953,13 +1962,23 @@ text-decoration: underline;
                 </a>
             </div>
         </div>
-        <!-- ===== TWO COLUMN: COMMUNITY MAP (LEFT) | ECO CTA + STATS (RIGHT) ===== -->
-        <div class="two-col">
-            <!-- LEFT: Community Reports Map (admin design, citizen data) -->
-            <div id="map-container">
+
+        <div class="bento citizen-overview">
+            <section class="chart-card hero-kpi">
+                <div class="chart-head"><h2 class="chart-title"><i class="fas fa-flag" aria-hidden="true"></i><?php echo t('My Reports'); ?></h2></div>
+                <div class="hotspot-summary"><div class="hero-num"><?php echo $total_reports; ?></div><p class="hero-sub"><?php echo t('Reports you have submitted'); ?></p></div>
+                <div class="hero-list-head"><?php echo t('Key Indicators'); ?></div>
+                <dl class="indicator-list">
+                    <div class="indicator-row"><dt><i class="fas fa-check-circle" aria-hidden="true"></i><?php echo t('Resolved'); ?></dt><dd><?php echo $total_resolved_count; ?><small><?php echo t('Including closed reports'); ?></small></dd></div>
+                    <div class="indicator-row"><dt><i class="fas fa-hourglass-half" aria-hidden="true"></i><?php echo t('Pending Action'); ?></dt><dd><?php echo $pending_count; ?><small><?php echo t('Awaiting review'); ?></small></dd></div>
+                    <div class="indicator-row"><dt><i class="fas fa-clock" aria-hidden="true"></i><?php echo t('In Progress'); ?></dt><dd><?php echo $in_progress_count; ?><small><?php echo t('Being addressed'); ?></small></dd></div>
+                    <div class="indicator-row"><dt><i class="fas fa-shield-alt" aria-hidden="true"></i><?php echo t('Escalated'); ?></dt><dd><?php echo $escalated_count; ?><small><?php echo t('Referred to MENRO'); ?></small></dd></div>
+                </dl>
+            </section>
+<div id="map-container" class="b-wide">
                 <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
                     <div class="flex flex-wrap items-center gap-3">
-                        <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+                        <h2 class="chart-title">
                             <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
                             <?php echo t('Community Reports'); ?>
                         </h2>
@@ -1981,7 +2000,17 @@ text-decoration: underline;
                 </p>
 
         <!-- ===== REPORT DETAIL MODAL ===== -->
-        <div id="reportDetailModal" role="dialog" aria-modal="true" aria-label="<?php echo t('Report Details'); ?>">
+
+        <!-- Lightbox -->
+
+            </div>
+</div>
+
+        <section class="citizen-track-card">
+            <div><h2><i class="fas fa-list-alt" aria-hidden="true"></i><?php echo t('Follow your reports'); ?></h2><p><?php echo t('Check updates and follow the progress of concerns you have reported.'); ?></p></div>
+            <a href="<?php echo BASE_URL; ?>index.php?page=my-reports"><?php echo t('View My Reports'); ?><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        </section>
+<div id="reportDetailModal" role="dialog" aria-modal="true" aria-label="<?php echo t('Report Details'); ?>">
             <div class="rdm-backdrop" onclick="closeReportDetail()"></div>
             <div class="rdm-sheet" id="rdmSheet">
                 <div class="rdm-handle"></div>
@@ -1991,79 +2020,10 @@ text-decoration: underline;
                 </div>
             </div>
         </div>
-        <!-- Lightbox -->
-        <div id="rdmLightbox" data-modal="1" role="dialog" aria-modal="true" aria-label="<?php echo t('Report photo viewer'); ?>">
+<div id="rdmLightbox" data-modal="1" role="dialog" aria-modal="true" aria-label="<?php echo t('Report photo viewer'); ?>">
             <button id="rdmLightboxClose" onclick="document.getElementById('rdmLightbox').classList.remove('open')" aria-label="<?php echo t('Close image'); ?>"><i class="fas fa-times"></i></button>
             <img id="rdmLightboxImg" src="" alt="<?php echo t('Report photo'); ?>">
         </div>
-            </div>
-
-            <!-- RIGHT: Ecological CTA on top, statistics below -->
-            <div class="right-col">
-
-            <!-- STATISTICS -->
-            <div class="stats-grid stat-cards">
-                <div class="stat-card">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="stat-value"><?php echo $total_reports; ?></div>
-                            <div class="stat-label"><?php echo t('Total Reports'); ?></div>
-                        </div>
-                        <div class="stat-icon bg-emerald-100">
-                            <i class="fas fa-flag text-[#10A37F] text-base md:text-lg"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="stat-value text-green-600"><?php echo $total_resolved_count; ?></div>
-                            <div class="stat-label"><?php echo t('Resolved'); ?></div>
-                            <?php if($closed_count > 0): ?>
-                            <span class="text-[10px] text-gray-400">(<?php echo $closed_count; ?> closed)</span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="stat-icon bg-green-50">
-                            <i class="fas fa-check-circle text-[#10A37F] text-base md:text-lg"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="stat-value text-yellow-600"><?php echo $pending_count; ?></div>
-                            <div class="stat-label"><?php echo t('Pending Action'); ?></div>
-                        </div>
-                        <div class="stat-icon bg-yellow-50">
-                            <i class="fas fa-hourglass-half text-yellow-500 text-base md:text-lg"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ECOLOGICAL CTA -->
-            <div class="report-issue-card">
-                <div class="flex items-start gap-3 md:gap-4">
-                    <div class="issue-icon-large"><i class="fas fa-tree"></i></div>
-                    <div>
-                        <div class="issue-title"><i class="fas fa-leaf"></i> <?php echo t('Have you spotted an ecological concern?'); ?></div>
-                    </div>
-                </div>
-                <div class="issue-description">
-                    <?php echo t('Rapid reporting helps local authorities address illegal dumping, pollution, and wildlife concerns before they escalate.'); ?>
-                </div>
-                <div class="issue-action">
-                    <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-report">
-                        <span><?php echo t('Report an Issue Now'); ?></span>
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-            </div>
-            </div>
-        </div>
-        
         <!-- ===== ENHANCED RECENT REPORTS ===== -->
         <div class="table-container">
             <div class="table-header">

@@ -148,7 +148,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <title><?php echo t('Settings'); ?> - <?php echo htmlspecialchars($system_name); ?></title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <!-- Leaflet Map (required by the Map settings tab preview) -->
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
@@ -214,13 +214,29 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border: 1px solid rgba(16, 163, 127, 0.08);
             padding: 0.75rem;
             height: fit-content;
-            position: sticky;
-            top: 1.5rem;
-            max-height: calc(100vh - 3rem);
-            overflow-y: auto;
-            scrollbar-width: none;
         }
-        .settings-sidebar::-webkit-scrollbar { display: none; }
+
+        /* ===== APP SHELL (desktop): the tab list and the content pane each
+           scroll on their own; the page itself does not scroll. ===== */
+        @media (min-width: 1024px) {
+            #main-content { height: 100vh; min-height: 0; overflow: hidden; }
+            #main-content .main-container { height: 100%; display: flex; flex-direction: column; }
+            #main-content .settings-layout { flex: 1 1 auto; min-height: 0; }
+            #main-content .settings-sidebar {
+                height: 100%;
+                max-height: 100%;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                scrollbar-width: thin;
+                padding-right: 0.5rem;
+            }
+            #main-content .settings-content {
+                height: 100%;
+                max-height: 100%;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+            }
+        }
         @media (max-width: 768px) {
             .settings-sidebar {
                 position: static;

@@ -425,6 +425,20 @@ $activeMapQuery = $db->prepare("
 $activeMapQuery->execute($fC_params);
 $activeReports = $activeMapQuery->fetchAll(PDO::FETCH_ASSOC);
 
+// Local hotspot summary, using the MENRO location/density counting convention.
+$localHotspotKeys = [];
+$localRiskScores = [];
+foreach ($activeReports as $localReport) {
+    $localKey = (int)$localReport['spatial_density_count'] > 0
+        ? 'location:' . $localReport['latitude'] . ',' . $localReport['longitude']
+        : 'report:' . $localReport['id'];
+    $localHotspotKeys[$localKey] = true;
+    if ($localReport['severity_score'] !== null) $localRiskScores[] = (float)$localReport['severity_score'];
+}
+$localActiveHotspots = count($localHotspotKeys);
+$localAverageRisk = $localRiskScores ? round(array_sum($localRiskScores) / count($localRiskScores), 1) : 0;
+
+
 // Attach opaque tokens so dashboard drill links never expose raw report IDs
 foreach ($activeReports as &$drill_row) {
     $drill_row['token'] = IdGuard::enc((int)$drill_row['id']);
@@ -614,16 +628,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <title>Barangay Dashboard - Sierra</title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
+    <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
     <!-- Leaflet.markercluster for algorithm-driven clustering (same as MENRO map) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet-markercluster/css/MarkerCluster.css" />
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet-markercluster/css/MarkerCluster.Default.css" />
+    <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet-markercluster/js/leaflet.markercluster.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/vendor/chart/chart.umd.min.js"></script>
     <script>if (window.Chart && Chart.defaults) Chart.defaults.font.family = 'Manrope, sans-serif';</script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -1473,16 +1487,86 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard.css'); ?>">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-hero.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-analytics.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-analytics.css'); ?>">
 </head>
-<body class="dashboard-page">
+<body class="dashboard-page barangay-dashboard-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container">
         
+        <?php
+        $analytics_date_from = isset($_GET['date_from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_from']) ? $_GET['date_from'] : null;
+        $analytics_date_to   = isset($_GET['date_to'])   && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_to'])   ? $_GET['date_to']   : null;
+
+        $dash_status_options = [
+            'all' => 'All Statuses', 'pending' => 'Pending', 'under_review' => 'Under Review',
+            'verified' => 'Verified', 'in_progress' => 'In Progress',
+            'escalated_pending' => 'Escalated Pending', 'escalated' => 'Escalated',
+            'resolved' => 'Resolved', 'rejected' => 'Rejected', 'cancelled' => 'Cancelled'
+        ];
+        $dash_risk_options = ['all' => 'All Risk Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
+        $dash_date_preset = in_array($_GET['date_preset'] ?? '', ['today', 'week', 'month', 'year'], true) ? $_GET['date_preset'] : '';
+        $dash_date_preset_options = ['' => 'All Dates', 'today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'];
+
+        $ft = [
+            'search_id'          => 'barangaySearchInput',
+            'search_value'       => $f_search,
+            'search_placeholder' => 'Search reports by title or description...',
+            'show_search' => false,
+            'show_active_row' => false,
+            'compact_breakpoint' => 1199,
+            'more_icon' => 'fa-sliders-h',
+            'inline_selects'     => [
+                ['id' => 'barangayStatusFilter', 'value' => $f_status, 'min_width' => '150px', 'options' => $dash_status_options],
+                ['id' => 'barangayRiskFilter', 'value' => $f_risk, 'min_width' => '150px', 'options' => $dash_risk_options],
+            ],
+            'filter_by'          => ['active' => false, 'count' => 0],
+            'popover_fields' => [],
+            'date_range' => [
+                'button_label' => 'Date Range',
+                'active' => (bool)($dash_date_preset || $analytics_date_from || $analytics_date_to),
+                'count' => (int)(($dash_date_preset ? 1 : 0) + ($analytics_date_from ? 1 : 0) + ($analytics_date_to ? 1 : 0)),
+                'presets' => $dash_date_preset_options,
+                'preset' => $dash_date_preset ?: (($analytics_date_from || $analytics_date_to) ? '__custom__' : ''),
+                'from' => $analytics_date_from,
+                'to' => $analytics_date_to,
+            ],
+            'active_filters'     => (int)(($f_status !== 'all' ? 1 : 0) + ($f_risk !== 'all' ? 1 : 0) + ($f_search !== '' ? 1 : 0) + ($analytics_date_from ? 1 : 0) + ($analytics_date_to ? 1 : 0) + ($dash_date_preset !== '' ? 1 : 0)),
+            'chips'              => [],
+            'chips_clear_all'    => false,
+            'callback'           => 'applyDashboardFilters',
+        ];
+        ?>
+        <div id="dashHeaderExtras" class="dash-header-extras">
+            <div class="dashboard-toolbar-row dash-topbar"><div class="dashboard-toolbar-filters">
+                <?php include BASE_PATH . 'views/shared/report_filter_toolbar.php'; ?>
+            </div></div>
+        </div>
         <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
+        <div class="dash-head">
+            <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
+            <div class="dash-head-actions"><div class="export-dropdown">
+                <button onclick="toggleExportMenu()" class="btn-export-trigger radius-12" type="button">
+                    <i class="fas fa-file-export"></i>
+                    <span>Export</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div id="exportMenu" class="export-dropdown-menu">
+                    <button class="export-dropdown-item" onclick="exportDashboardPdf()" type="button">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Export as PDF</span>
+                    </button>
+                    <button class="export-dropdown-item" onclick="exportDashboardCsv()" type="button">
+                        <i class="fas fa-file-csv"></i>
+                        <span>Export as CSV</span>
+                    </button>
+                </div>
+            </div></div>
+        </div>
+
         
         <!-- NOTIFICATION DROPDOWN -->
         <div id="notificationDropdown" class="notification-dropdown" style="display: none;">
@@ -1565,129 +1649,77 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             </div>
         <?php endif; ?>
 
-        <!-- ============================================================ -->
-        <!-- 1. TOP ROW: ALGORITHMIC KPI WIDGETS (Local Health) -->
-        <!-- ============================================================ -->
-        <div class="analytics-kpi-grid stat-cards">
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Pending Acknowledgment</p>
-                    <p class="text-2xl font-extrabold text-red-600 tracking-tight"><?php echo $pending_count; ?></p>
-                    <p class="text-xs text-gray-400 mt-1.5">Submitted reports awaiting review</p>
+
+        <div class="bento">
+            <section class="chart-card b-hero hero-kpi">
+                <div class="chart-head"><div class="chart-title"><i class="fas fa-map-pin" aria-hidden="true"></i>Active Hotspots</div></div>
+                <div class="hotspot-summary">
+                    <div class="hero-num"><?php echo $localActiveHotspots; ?></div>
+                    <p class="hero-sub">Active hazard locations in <?php echo htmlspecialchars($barangay_info['name']); ?></p>
                 </div>
-                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-inbox text-red-600"></i>
+                <div class="hero-list-head">Key Indicators</div>
+                <dl class="indicator-list">
+                    <div class="indicator-row"><dt><i class="fas fa-chart-line" aria-hidden="true"></i>Avg Hotspot Risk</dt><dd><?php echo $localAverageRisk; ?><small>Out of 20 severity score</small></dd></div>
+                    <div class="indicator-row<?php echo $criticalHotspotsCount > 0 ? ' indicator-row--critical' : ''; ?>"><dt><i class="fas fa-exclamation-triangle" aria-hidden="true"></i>Critical Hotspots</dt><dd><?php echo $criticalHotspotsCount; ?><small>Require immediate action</small></dd></div>
+                    <div class="indicator-row"><dt><i class="fas fa-check-circle" aria-hidden="true"></i>Resolved Reports</dt><dd><?php echo $resolved_count; ?><small>Within selected dates and risk</small></dd></div>
+                    <div class="indicator-row"><dt><i class="fas fa-list-alt" aria-hidden="true"></i>Active Reports</dt><dd><?php echo count($activeReports); ?><small>Open reports on the map</small></dd></div>
+                </dl>
+            </section>
+            <section class="chart-card kpi-sm">
+                <div class="chart-head"><div class="chart-title"><i class="fas fa-inbox" aria-hidden="true"></i>Pending Acknowledgment</div><button type="button" class="rec-info-btn" data-rec="rec-pending" aria-label="Show pending report guidance"><i class="fas fa-info" aria-hidden="true"></i></button></div>
+                <div class="kpi-num"><?php echo $pending_count; ?></div>
+                <div class="kpi-foot">Submitted reports awaiting review</div>
+                <div class="rec-stack" data-rec="rec-pending"><div class="rec-box <?php echo $pending_count ? 'rec-medium' : 'rec-low'; ?>"><?php echo $pending_count ? 'Review incoming reports and acknowledge those awaiting action.' : 'All incoming reports have been acknowledged. Continue checking for new submissions.'; ?></div></div>
+            </section>
+            <section class="chart-card kpi-sm">
+                <div class="chart-head"><div class="chart-title"><i class="fas fa-stopwatch" aria-hidden="true"></i>Avg Resolution Time</div><button type="button" class="rec-info-btn" data-rec="rec-response" aria-label="Show response time guidance"><i class="fas fa-info" aria-hidden="true"></i></button></div>
+                <div class="kpi-num"><?php echo $avgResolutionDaysAllTime; ?><small>days</small></div>
+                <div class="kpi-foot">
+                    <?php if ($resolutionSpeedTrend === 'stable'): ?><span class="chip chip-flat"><i class="fas fa-equals" aria-hidden="true"></i>Stable</span>
+                    <?php else: ?><span class="chip <?php echo $resolutionSpeedTrend === 'worse' ? 'chip-bad' : 'chip-good'; ?>"><i class="fas fa-arrow-<?php echo $resolutionSpeedTrend === 'worse' ? 'up' : 'down'; ?>" aria-hidden="true"></i><?php echo abs($resolutionSpeedDelta); ?> days</span><?php endif; ?>
+                    <span>vs last month</span>
                 </div>
-            </div>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Critical Local Hotspots</p>
-                    <p class="text-2xl font-extrabold text-amber-600 tracking-tight"><?php echo $criticalHotspotsCount; ?></p>
-                    <p class="text-xs text-gray-400 mt-1.5">Clusters scoring 16+ / 20</p>
+                <div class="rec-stack" data-rec="rec-response"><div class="rec-box <?php echo $resolutionSpeedTrend === 'worse' ? 'rec-medium' : 'rec-low'; ?>"><?php echo $resolutionSpeedTrend === 'worse' ? 'Resolution is taking longer this month. Review aging reports and follow up with assigned teams.' : 'Keep monitoring the time from submission to resolution and follow up on older open reports.'; ?></div></div>
+            </section>
+            <section class="chart-card kpi-sm">
+                <div class="chart-head"><div class="chart-title"><i class="fas fa-check-circle" aria-hidden="true"></i>Resolution Rate</div><button type="button" class="rec-info-btn" data-rec="rec-resolution" aria-label="Show resolution rate guidance"><i class="fas fa-info" aria-hidden="true"></i></button></div>
+                <div class="kpi-num"><?php echo $resolutionRateThisMonth; ?><small>%</small></div>
+                <div class="kpi-foot"><?php echo $resolvedThisMonth; ?> of <?php echo $assignedThisMonth; ?> assigned this month</div>
+                <div class="rec-stack" data-rec="rec-resolution"><div class="rec-box rec-low">Track unresolved assignments alongside newly submitted reports to keep local response moving.</div></div>
+            </section>
+
+<div class="chart-card kpi-sm">
+                <div class="chart-head">
+                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-users text-[#10A37F] mr-2" aria-hidden="true"></i>User Demographics</div>
+                    <button type="button" class="rec-info-btn" data-rec="rec-demo" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-demo-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
                 </div>
-                <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-map-pin text-amber-600"></i>
+                <?php if (!$demographicsAvailable || $demographicsTotal === 0): ?>
+                    <p class="text-sm text-gray-400 py-10 text-center">Demographic data not available yet.</p>
+                <?php else: ?>
+                <div class="chart-container demo-chart">
+                    <canvas id="demographicsChart" role="img" aria-label="Doughnut chart of reports by resident vs non-resident reporters"></canvas>
                 </div>
-            </div>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Avg Resolution Speed</p>
-                    <p class="text-2xl font-extrabold text-blue-600 tracking-tight"><?php echo $avgResolutionDaysAllTime; ?><span class="text-base font-bold">d</span></p>
-                    <p class="text-xs mt-1.5">
-                        <?php if ($resolutionSpeedTrend === 'worse'): ?>
-                            <span class="text-red-500 font-semibold"><i class="fas fa-arrow-up"></i> <?php echo abs($resolutionSpeedDelta); ?>d slower vs last month</span>
-                        <?php elseif ($resolutionSpeedTrend === 'better'): ?>
-                            <span class="text-emerald-500 font-semibold"><i class="fas fa-arrow-down"></i> <?php echo abs($resolutionSpeedDelta); ?>d faster vs last month</span>
+                <div class="flex flex-wrap justify-center gap-2 text-xs mt-2">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10A37F;" aria-hidden="true"></span> Resident (<?php echo $residentPct; ?>%)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;" aria-hidden="true"></span> Non-Resident (<?php echo $nonResidentPct; ?>%)</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-3 text-center">
+                    Split of reports submitted in your barangay by residents vs. non-residents.
+                </p>
+                <div class="rec-stack" id="rec-demo-stack" data-rec="rec-demo" role="region" aria-live="polite">
+                    <div class="rec-box <?php echo $residentPct < 50 ? 'rec-medium' : 'rec-low'; ?>">
+                        <i class="fas fa-lightbulb mr-2" aria-hidden="true"></i>
+                        <strong>Recommendation:</strong>
+                        <?php if ($residentPct < 50): ?>
+                            Most reports come from non-residents (<?php echo $nonResidentPct; ?>%). Encourage your residents to report local hazards too — run an information drive in your barangay.
                         <?php else: ?>
-                            <span class="text-gray-400">Stable vs last month</span>
+                            Most reports come from your own residents (<?php echo $residentPct; ?>%) — strong local engagement. Keep it up.
                         <?php endif; ?>
-                    </p>
+                    </div>
                 </div>
-                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-stopwatch text-blue-600"></i>
-                </div>
+                <?php endif; ?>
             </div>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold">Resolution Rate (This Month)</p>
-                    <p class="text-2xl font-extrabold text-emerald-600 tracking-tight"><?php echo $resolutionRateThisMonth; ?>%</p>
-                    <p class="text-xs text-gray-400 mt-1.5"><?php echo $resolvedThisMonth; ?> of <?php echo $assignedThisMonth; ?> assigned this month</p>
-                </div>
-                <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-chart-line text-emerald-600"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- REPORT FILTER TOOLBAR (shared partial with Filter By popover) -->
-        <!-- ============================================================ -->
-        <?php
-        $analytics_date_from = isset($_GET['date_from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_from']) ? $_GET['date_from'] : null;
-        $analytics_date_to   = isset($_GET['date_to'])   && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date_to'])   ? $_GET['date_to']   : null;
-
-        $dash_status_options = [
-            'all' => 'All Statuses', 'pending' => 'Pending', 'under_review' => 'Under Review',
-            'verified' => 'Verified', 'in_progress' => 'In Progress',
-            'escalated_pending' => 'Escalated Pending', 'escalated' => 'Escalated',
-            'resolved' => 'Resolved', 'rejected' => 'Rejected', 'cancelled' => 'Cancelled'
-        ];
-        $dash_risk_options = ['all' => 'All Risk Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical'];
-        $dash_date_preset = in_array($_GET['date_preset'] ?? '', ['today', 'week', 'month', 'year'], true) ? $_GET['date_preset'] : '';
-        $dash_date_preset_options = ['' => 'All Dates', 'today' => 'Today', 'week' => 'This Week', 'month' => 'This Month', 'year' => 'This Year'];
-
-        $ft = [
-            'search_id'          => 'barangaySearchInput',
-            'search_value'       => $f_search,
-            'search_placeholder' => 'Search reports by title or description...',
-            'inline_selects'     => [
-                ['id' => 'barangayStatusFilter', 'value' => $f_status, 'min_width' => '150px', 'options' => $dash_status_options],
-                ['id' => 'barangayRiskFilter', 'value' => $f_risk, 'min_width' => '150px', 'options' => $dash_risk_options],
-            ],
-            'filter_by'          => ['active' => false, 'count' => 0],
-            'popover_fields'     => [
-                ['kind' => 'date', 'id' => 'popoverDateFrom', 'label' => 'Date From', 'value' => $dash_date_preset ? '' : $f_date_from, 'default' => ''],
-                ['kind' => 'date', 'id' => 'popoverDateTo',   'label' => 'Date To',   'value' => $dash_date_preset ? '' : $f_date_to,   'default' => ''],
-            ],
-            'active_filters'     => (int)(($f_status !== 'all' ? 1 : 0) + ($f_risk !== 'all' ? 1 : 0) + ($f_search !== '' ? 1 : 0) + ($analytics_date_from ? 1 : 0) + ($analytics_date_to ? 1 : 0) + ($dash_date_preset !== '' ? 1 : 0)),
-            'chips'              => [],
-            'chips_clear_all'    => false,
-            'trailing_select'    => [
-                'id' => 'dashDatePreset', 'value' => $dash_date_preset, 'min_width' => '150px',
-                'options' => $dash_date_preset_options,
-            ],
-            'callback'           => 'applyDashboardFilters',
-        ];
-        ?>
-        <div class="dashboard-toolbar-row">
-            <div class="dashboard-toolbar-filters">
-                <?php include BASE_PATH . 'views/shared/report_filter_toolbar.php'; ?>
-            </div>
-            <div class="export-dropdown">
-                <button onclick="toggleExportMenu()" class="btn-export-trigger radius-12" type="button">
-                    <i class="fas fa-file-export"></i>
-                    <span>Export</span>
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div id="exportMenu" class="export-dropdown-menu">
-                    <button class="export-dropdown-item" onclick="exportDashboardPdf()" type="button">
-                        <i class="fas fa-file-pdf"></i>
-                        <span>Export as PDF</span>
-                    </button>
-                    <button class="export-dropdown-item" onclick="exportDashboardCsv()" type="button">
-                        <i class="fas fa-file-csv"></i>
-                        <span>Export as CSV</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- 2. CENTERPIECE: DECISION-SUPPORT LOCAL MAP -->
-        <!-- Strictly WHERE barangay_id = ? · same 50m clustering + -->
-        <!-- 20-point severity algorithm as the MENRO map, scaled to the LGU -->
-        <!-- ============================================================ -->
-        <div id="map-container" class="mb-6">
+<div id="map-container" class="b-wide">
             <div class="map-head">
                 <div class="map-title-wrap">
                     <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
@@ -1767,52 +1799,142 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $criticalBands['critical']; ?>-20)</span>
             </div>
         </div>
-
-        <!-- Drill-down panel -->
-        <div id="drillPanel">
-            <button class="close-btn" onclick="closeDrillPanel()"><i class="fas fa-times"></i></button>
-            <div id="drillContent" class="drill-body"></div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- 3. BOTTOM LEFT: LOCAL DEMOGRAPHICS & TRENDS -->
-        <!-- ============================================================ -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-            <!-- User Demographics -->
-            <div class="chart-card">
-                <div class="chart-head">
-                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-users text-[#10A37F] mr-2" aria-hidden="true"></i>User Demographics</div>
-                    <button type="button" class="rec-info-btn" data-rec="rec-demo" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-demo-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
+<div class="chart-card b-narrow">
+                <div class="chart-head mb-3">
+                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-exclamation-triangle text-[#10A37F] mr-2" aria-hidden="true"></i>Risk Distribution</div>
+                    <div class="flex items-center gap-2">
+                        <p class="text-xs text-gray-400 font-medium mb-0"><?php echo $risk_total; ?> total</p>
+                        <button type="button" class="rec-info-btn" data-rec="rec-risk" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-risk-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
+                    </div>
                 </div>
-                <?php if (!$demographicsAvailable || $demographicsTotal === 0): ?>
-                    <p class="text-sm text-gray-400 py-10 text-center">Demographic data not available yet.</p>
+                <?php if(!empty($risk_data) && $risk_total > 0): ?>
+                    <div class="chart-canvas-container">
+                        <canvas id="riskChart" style="max-height: 200px;" role="img" aria-label="Doughnut chart of reports by risk level"></canvas>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-4 stat-cards">
+                        <?php 
+                        $risk_colors = [
+                            'critical' => '#EF4444',
+                            'high' => '#F97316',
+                            'medium' => '#F59E0B',
+                            'low' => '#10B981'
+                        ];
+                        foreach($risk_data as $risk): 
+                            $percentage = round(($risk['count'] / $risk_total) * 100);
+                        ?>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full" style="background-color: <?php echo $risk_colors[$risk['risk_level']] ?? '#10B981'; ?>"></div>
+                                <span class="text-xs font-extrabold text-gray-700"><?php echo ucfirst($risk['risk_level']); ?></span>
+                            </div>
+                            <p class="text-xl font-extrabold mt-1 tracking-tight"><?php echo $risk['count']; ?></p>
+                            <p class="text-xs text-gray-500 font-medium"><?php echo $percentage; ?>% of total</p>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="rec-stack" id="rec-risk-stack" data-rec="rec-risk" role="region" aria-live="polite">
+                        <?php
+                            $domRisk = null;
+                            foreach ($risk_data as $rr) { if ($domRisk === null || $rr['count'] > $domRisk['count']) $domRisk = $rr; }
+                            $domLevel = $domRisk['risk_level'] ?? 'low';
+                            $domPct = $risk_total > 0 ? round(($domRisk['count'] / $risk_total) * 100) : 0;
+                            $domClass = in_array($domLevel, ['critical', 'high'], true) ? 'rec-critical' : ($domLevel === 'medium' ? 'rec-medium' : 'rec-low');
+                        ?>
+                        <div class="rec-box <?php echo $domClass; ?>">
+                            <i class="fas fa-lightbulb mr-2" aria-hidden="true"></i>
+                            <strong>Recommendation:</strong>
+                            Most reports in your barangay are <strong><?php echo htmlspecialchars(ucfirst($domLevel)); ?></strong>-severity (<?php echo $domPct; ?>%). <?php echo in_array($domLevel, ['critical', 'high'], true) ? 'Prioritize these for immediate field action.' : 'Keep routine monitoring in place.'; ?>
+                        </div>
+                    </div>
                 <?php else: ?>
-                <div class="chart-container" style="height:180px;">
-                    <canvas id="demographicsChart" role="img" aria-label="Doughnut chart of reports by resident vs non-resident reporters"></canvas>
+                    <div class="h-48 flex items-center justify-center">
+                        <p class="text-gray-400 text-center text-sm font-medium">No risk data available</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+<div class="chart-card">
+                <div class="chart-head mb-3">
+                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-chart-pie text-[#10A37F] mr-2" aria-hidden="true"></i>Issues by Category</div>
+                    <div class="flex items-center gap-2">
+                        <p class="text-xs text-gray-400 font-medium mb-0"><?php echo count($category_data); ?> categories</p>
+                        <button type="button" class="rec-info-btn" data-rec="rec-cat" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-cat-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
+                    </div>
                 </div>
-                <div class="flex justify-center gap-6 text-xs mt-2">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10A37F;" aria-hidden="true"></span> Resident (<?php echo $residentPct; ?>%)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;" aria-hidden="true"></span> Non-Resident (<?php echo $nonResidentPct; ?>%)</span>
+                <?php if(!empty($category_data)): ?>
+                    <div class="chart-canvas-container" style="height:160px;">
+                        <canvas id="categoryPieChart" role="img" aria-label="Pie chart of reports by category"></canvas>
+                    </div>
+                    <div class="space-y-1 mt-2">
+                        <?php 
+                        $colors = ['#10A37F', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'];
+                        $total_category = array_sum(array_column($category_data, 'count'));
+                        foreach(array_slice($category_data, 0, 4) as $index => $cat): 
+                            $percentage = round(($cat['count'] / $total_category) * 100);
+                        ?>
+                        <div class="flex items-center justify-between px-1 py-1">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2.5 h-2.5 rounded-full" style="background-color: <?php echo $colors[$index % count($colors)]; ?>"></div>
+                                <span class="text-xs font-semibold text-gray-700 truncate max-w-[100px]"><?php echo htmlspecialchars($cat['name']); ?></span>
+                            </div>
+                            <span class="text-xs font-bold text-gray-800"><?php echo $percentage; ?>%</span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="rec-stack" id="rec-cat-stack" data-rec="rec-cat" role="region" aria-live="polite">
+                        <?php
+                            $topCat = $category_data[0] ?? null;
+                            $topCatPct = ($topCat && $total_category > 0) ? round(($topCat['count'] / $total_category) * 100) : 0;
+                        ?>
+                        <div class="rec-box <?php echo ($topCatPct >= 50) ? 'rec-medium' : 'rec-low'; ?>">
+                            <i class="fas fa-lightbulb mr-2" aria-hidden="true"></i>
+                            <strong>Recommendation:</strong>
+                            <?php if ($topCat): ?>
+                                <strong><?php echo htmlspecialchars($topCat['name']); ?></strong> is your barangay's most-reported issue (<?php echo $topCatPct; ?>%). Target prevention and clean-up drives at this category first.
+                            <?php else: ?>
+                                Not enough category data yet to identify a priority issue.
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="h-48 flex items-center justify-center">
+                        <p class="text-gray-400 text-center text-sm font-medium">No category data available</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+<div class="chart-card">
+                <div class="chart-head mb-3">
+                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-chart-bar text-[#10A37F] mr-2" aria-hidden="true"></i>Weekly Resolution Trends</div>
+                    <button type="button" class="rec-info-btn" data-rec="rec-weekly" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-weekly-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
                 </div>
-                <p class="text-xs text-gray-400 mt-3 text-center">
-                    Split of reports submitted in your barangay by residents vs. non-residents.
-                </p>
-                <div class="rec-stack" id="rec-demo-stack" data-rec="rec-demo" role="region" aria-live="polite">
-                    <div class="rec-box <?php echo $residentPct < 50 ? 'rec-medium' : 'rec-low'; ?>">
+                <div class="chart-canvas-container" style="height:160px;">
+                    <canvas id="weeklyChart" role="img" aria-label="Bar chart of weekly new versus resolved reports"></canvas>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-4 stat-cards">
+                    <div class="bg-emerald-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-gray-500 font-bold">New Reports (7d)</p>
+                        <p class="text-xl font-extrabold text-[#10A37F] tracking-tight"><?php echo array_sum(array_column($weekly_data, 'total')); ?></p>
+                    </div>
+                    <div class="bg-amber-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-gray-500 font-bold">Resolved (7d)</p>
+                        <p class="text-xl font-extrabold text-amber-600 tracking-tight"><?php echo array_sum(array_column($weekly_data, 'resolved')); ?></p>
+                    </div>
+                </div>
+                <?php $weekly_new = array_sum(array_column($weekly_data, 'total')); $weekly_res = array_sum(array_column($weekly_data, 'resolved')); ?>
+                <div class="rec-stack" id="rec-weekly-stack" data-rec="rec-weekly" role="region" aria-live="polite">
+                    <div class="rec-box <?php echo $weekly_res < $weekly_new ? 'rec-critical' : 'rec-low'; ?>">
                         <i class="fas fa-lightbulb mr-2" aria-hidden="true"></i>
                         <strong>Recommendation:</strong>
-                        <?php if ($residentPct < 50): ?>
-                            Most reports come from non-residents (<?php echo $nonResidentPct; ?>%). Encourage your residents to report local hazards too — run an information drive in your barangay.
+                        <?php if ($weekly_new === 0): ?>
+                            No reports were filed in the last 7 days. Encourage your residents to keep reporting hazards.
+                        <?php elseif ($weekly_res < $weekly_new): ?>
+                            Your barangay resolved <?php echo $weekly_res; ?> of <?php echo $weekly_new; ?> new reports in the last 7 days &mdash; a backlog is building. Assign more field follow-up.
                         <?php else: ?>
-                            Most reports come from your own residents (<?php echo $residentPct; ?>%) — strong local engagement. Keep it up.
+                            Your barangay resolved <?php echo $weekly_res; ?> of <?php echo $weekly_new; ?> new reports in the last 7 days &mdash; you are keeping pace. Keep it up.
                         <?php endif; ?>
                     </div>
                 </div>
-                <?php endif; ?>
             </div>
-
-            <!-- Peak Reporting Times -->
-            <div class="chart-card">
+<div class="chart-card">
                 <div class="chart-head">
                     <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-clock text-[#10A37F] mr-2" aria-hidden="true"></i>Peak Reporting Times</div>
                     <button type="button" class="rec-info-btn" data-rec="rec-peak" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-peak-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
@@ -1831,14 +1953,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- 4. DECISION SUPPORT: REPEAT-OFFENDER HOTSPOTS + LOCAL PERFORMANCE -->
-        <!-- ============================================================ -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-            <!-- Top 5 Repeat Offender Locations -->
-            <div class="chart-card">
+<div class="chart-card b-narrow">
                 <div class="chart-head">
                     <div class="chart-title mb-0"><i class="fas fa-map-marker-alt text-[#10A37F] mr-2"></i>Top 5 "Repeat Offender" Locations</div>
                     <button type="button" class="rec-info-btn" data-rec="rec-repeat" title="Show recommendation" aria-label="Show recommendation"><i class="fas fa-info"></i></button>
@@ -1871,9 +1986,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </div>
                 <?php endif; ?>
             </div>
-
-            <!-- Local Category Performance -->
-            <div class="chart-card">
+<div class="chart-card b-wide">
                 <div class="chart-head">
                     <div class="chart-title mb-0"><i class="fas fa-trophy text-[#10A37F] mr-2"></i>Local Category Performance</div>
                     <button type="button" class="rec-info-btn" data-rec="rec-perf" title="Show recommendation" aria-label="Show recommendation"><i class="fas fa-info"></i></button>
@@ -1943,154 +2056,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </div>
                 <?php endif; ?>
             </div>
-        </div>
-
-        <!-- Risk Distribution + Issues by Category + Weekly Trends (kept from previous version) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-            <!-- Risk Level Distribution -->
-            <div class="chart-card">
-                <div class="chart-head mb-3">
-                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-exclamation-triangle text-[#10A37F] mr-2" aria-hidden="true"></i>Risk Distribution</div>
-                    <div class="flex items-center gap-2">
-                        <p class="text-xs text-gray-400 font-medium mb-0"><?php echo $risk_total; ?> total</p>
-                        <button type="button" class="rec-info-btn" data-rec="rec-risk" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-risk-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
-                    </div>
-                </div>
-                <?php if(!empty($risk_data) && $risk_total > 0): ?>
-                    <div class="chart-canvas-container">
-                        <canvas id="riskChart" style="max-height: 200px;" role="img" aria-label="Doughnut chart of reports by risk level"></canvas>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 mt-4 stat-cards">
-                        <?php 
-                        $risk_colors = [
-                            'critical' => '#EF4444',
-                            'high' => '#F97316',
-                            'medium' => '#F59E0B',
-                            'low' => '#10B981'
-                        ];
-                        foreach($risk_data as $risk): 
-                            $percentage = round(($risk['count'] / $risk_total) * 100);
-                        ?>
-                        <div class="bg-gray-50 rounded-xl p-3">
-                            <div class="flex items-center gap-2">
-                                <div class="w-3 h-3 rounded-full" style="background-color: <?php echo $risk_colors[$risk['risk_level']] ?? '#10B981'; ?>"></div>
-                                <span class="text-xs font-extrabold text-gray-700"><?php echo ucfirst($risk['risk_level']); ?></span>
-                            </div>
-                            <p class="text-xl font-extrabold mt-1 tracking-tight"><?php echo $risk['count']; ?></p>
-                            <p class="text-xs text-gray-500 font-medium"><?php echo $percentage; ?>% of total</p>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <div class="rec-stack" id="rec-risk-stack" data-rec="rec-risk" role="region" aria-live="polite">
-                        <?php
-                            $domRisk = null;
-                            foreach ($risk_data as $rr) { if ($domRisk === null || $rr['count'] > $domRisk['count']) $domRisk = $rr; }
-                            $domLevel = $domRisk['risk_level'] ?? 'low';
-                            $domPct = $risk_total > 0 ? round(($domRisk['count'] / $risk_total) * 100) : 0;
-                            $domClass = in_array($domLevel, ['critical', 'high'], true) ? 'rec-critical' : ($domLevel === 'medium' ? 'rec-medium' : 'rec-low');
-                        ?>
-                        <div class="rec-box <?php echo $domClass; ?>">
-                            <i class="fas fa-lightbulb mr-2" aria-hidden="true"></i>
-                            <strong>Recommendation:</strong>
-                            Most reports in your barangay are <strong><?php echo htmlspecialchars(ucfirst($domLevel)); ?></strong>-severity (<?php echo $domPct; ?>%). <?php echo in_array($domLevel, ['critical', 'high'], true) ? 'Prioritize these for immediate field action.' : 'Keep routine monitoring in place.'; ?>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <div class="h-48 flex items-center justify-center">
-                        <p class="text-gray-400 text-center text-sm font-medium">No risk data available</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- Issues by Category -->
-            <div class="chart-card">
-                <div class="chart-head mb-3">
-                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-chart-pie text-[#10A37F] mr-2" aria-hidden="true"></i>Issues by Category</div>
-                    <div class="flex items-center gap-2">
-                        <p class="text-xs text-gray-400 font-medium mb-0"><?php echo count($category_data); ?> categories</p>
-                        <button type="button" class="rec-info-btn" data-rec="rec-cat" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-cat-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
-                    </div>
-                </div>
-                <?php if(!empty($category_data)): ?>
-                    <div class="chart-canvas-container" style="height:160px;">
-                        <canvas id="categoryPieChart" role="img" aria-label="Pie chart of reports by category"></canvas>
-                    </div>
-                    <div class="space-y-1 mt-2">
-                        <?php 
-                        $colors = ['#10A37F', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'];
-                        $total_category = array_sum(array_column($category_data, 'count'));
-                        foreach(array_slice($category_data, 0, 4) as $index => $cat): 
-                            $percentage = round(($cat['count'] / $total_category) * 100);
-                        ?>
-                        <div class="flex items-center justify-between px-1 py-1">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2.5 h-2.5 rounded-full" style="background-color: <?php echo $colors[$index % count($colors)]; ?>"></div>
-                                <span class="text-xs font-semibold text-gray-700 truncate max-w-[100px]"><?php echo htmlspecialchars($cat['name']); ?></span>
-                            </div>
-                            <span class="text-xs font-bold text-gray-800"><?php echo $percentage; ?>%</span>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <div class="rec-stack" id="rec-cat-stack" data-rec="rec-cat" role="region" aria-live="polite">
-                        <?php
-                            $topCat = $category_data[0] ?? null;
-                            $topCatPct = ($topCat && $total_category > 0) ? round(($topCat['count'] / $total_category) * 100) : 0;
-                        ?>
-                        <div class="rec-box <?php echo ($topCatPct >= 50) ? 'rec-medium' : 'rec-low'; ?>">
-                            <i class="fas fa-lightbulb mr-2" aria-hidden="true"></i>
-                            <strong>Recommendation:</strong>
-                            <?php if ($topCat): ?>
-                                <strong><?php echo htmlspecialchars($topCat['name']); ?></strong> is your barangay's most-reported issue (<?php echo $topCatPct; ?>%). Target prevention and clean-up drives at this category first.
-                            <?php else: ?>
-                                Not enough category data yet to identify a priority issue.
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <div class="h-48 flex items-center justify-center">
-                        <p class="text-gray-400 text-center text-sm font-medium">No category data available</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- Weekly Resolution Statistics -->
-            <div class="chart-card">
-                <div class="chart-head mb-3">
-                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-chart-bar text-[#10A37F] mr-2" aria-hidden="true"></i>Weekly Resolution Trends</div>
-                    <button type="button" class="rec-info-btn" data-rec="rec-weekly" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-weekly-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
-                </div>
-                <div class="chart-canvas-container" style="height:160px;">
-                    <canvas id="weeklyChart" role="img" aria-label="Bar chart of weekly new versus resolved reports"></canvas>
-                </div>
-                <div class="grid grid-cols-2 gap-3 mt-4 stat-cards">
-                    <div class="bg-emerald-50 rounded-xl p-3 text-center">
-                        <p class="text-xs text-gray-500 font-bold">New Reports (7d)</p>
-                        <p class="text-xl font-extrabold text-[#10A37F] tracking-tight"><?php echo array_sum(array_column($weekly_data, 'total')); ?></p>
-                    </div>
-                    <div class="bg-amber-50 rounded-xl p-3 text-center">
-                        <p class="text-xs text-gray-500 font-bold">Resolved (7d)</p>
-                        <p class="text-xl font-extrabold text-amber-600 tracking-tight"><?php echo array_sum(array_column($weekly_data, 'resolved')); ?></p>
-                    </div>
-                </div>
-                <?php $weekly_new = array_sum(array_column($weekly_data, 'total')); $weekly_res = array_sum(array_column($weekly_data, 'resolved')); ?>
-                <div class="rec-stack" id="rec-weekly-stack" data-rec="rec-weekly" role="region" aria-live="polite">
-                    <div class="rec-box <?php echo $weekly_res < $weekly_new ? 'rec-critical' : 'rec-low'; ?>">
-                        <i class="fas fa-lightbulb mr-2" aria-hidden="true"></i>
-                        <strong>Recommendation:</strong>
-                        <?php if ($weekly_new === 0): ?>
-                            No reports were filed in the last 7 days. Encourage your residents to keep reporting hazards.
-                        <?php elseif ($weekly_res < $weekly_new): ?>
-                            Your barangay resolved <?php echo $weekly_res; ?> of <?php echo $weekly_new; ?> new reports in the last 7 days &mdash; a backlog is building. Assign more field follow-up.
-                        <?php else: ?>
-                            Your barangay resolved <?php echo $weekly_res; ?> of <?php echo $weekly_new; ?> new reports in the last 7 days &mdash; you are keeping pace. Keep it up.
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Reports Table -->
-        <div class="chart-card">
+<div class="chart-card b-full">
             <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
                     <div class="chart-title mb-0"><i class="fas fa-list text-[#10A37F] mr-2"></i>Recent Reports</div>
                 <span class="text-xs text-gray-400">Latest reports submitted in your barangay</span>
@@ -2216,6 +2182,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <?php endif; ?>
             </div>
         </div>
+</div>
+<div id="drillPanel">
+            <button class="close-btn" onclick="closeDrillPanel()"><i class="fas fa-times"></i></button>
+            <div id="drillContent" class="drill-body"></div>
+        </div>
+<?php include BASE_PATH . 'views/shared/decision_support_popover.php'; ?>
         
     </div>
 </div>
@@ -2817,7 +2789,7 @@ const barangayStatusFilter = document.getElementById('barangayStatusFilter');
 const barangayRiskFilter = document.getElementById('barangayRiskFilter');
 
 let searchTimer = null;
-barangaySearchInput.addEventListener('input', function() {
+barangaySearchInput?.addEventListener('input', function() {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(function() { searchQuery = barangaySearchInput.value; loadMapData(currentMode); }, 350);
 });
@@ -3098,9 +3070,9 @@ function _buildAnalyticsUrl() {
     var url = new URL(window.location.href);
     var sEl = document.getElementById('barangayStatusFilter');
     var rkEl = document.getElementById('barangayRiskFilter');
-    var from = document.getElementById('popoverDateFrom');
-    var to   = document.getElementById('popoverDateTo');
-    var presetEl = document.getElementById('dashDatePreset');
+    var from = document.getElementById('ftRangeFrom');
+    var to   = document.getElementById('ftRangeTo');
+    var presetEl = document.getElementById('ftRangePreset');
     var searchInput = document.getElementById('barangaySearchInput');
     var status = sEl ? sEl.value : 'all';
     var risk   = rkEl ? rkEl.value : 'all';
@@ -3120,7 +3092,7 @@ function _buildAnalyticsUrl() {
         else if (preset === 'year') { pf = new Date(today.getFullYear(), 0, 1); }
         f = ymd(pf); t = ymd(pt);
     }
-    var q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+    var q = searchInput ? searchInput.value.trim() : (url.searchParams.get('search') || '');
     if (f) url.searchParams.set('date_from', f); else url.searchParams.delete('date_from');
     if (t) url.searchParams.set('date_to', t);   else url.searchParams.delete('date_to');
     if (preset) url.searchParams.set('date_preset', preset); else url.searchParams.delete('date_preset');
@@ -3144,11 +3116,11 @@ new Chart(riskCtx, {
         labels: [<?php foreach($risk_data as $r) echo "'" . ucfirst($r['risk_level']) . "',"; ?>],
         datasets: [{
             data: [<?php foreach($risk_data as $r) echo $r['count'] . ","; ?>],
-            backgroundColor: ['#EF4444', '#F97316', '#F59E0B', '#10B981'],
+            backgroundColor: <?php echo json_encode(array_map(static function ($risk) { return ['critical' => '#EF4444', 'high' => '#F97316', 'medium' => '#F59E0B', 'low' => '#10B981'][$risk['risk_level']] ?? '#94A3B8'; }, $risk_data)); ?>,
             borderWidth: 0
         }]
     },
-    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, cutout: '60%' }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '60%' }
 });
 <?php endif; ?>
 
@@ -3164,7 +3136,7 @@ new Chart(categoryCtx, {
             borderWidth: 0
         }]
     },
-    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, cutout: '60%' }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '60%' }
 });
 <?php endif; ?>
 
@@ -3179,7 +3151,7 @@ new Chart(weeklyCtx, {
         ]
     },
     options: {
-        responsive: true, maintainAspectRatio: true,
+        responsive: true, maintainAspectRatio: false,
         scales: { y: { beginAtZero: true, grid: { color: '#E5E7EB' }, ticks: { font: { size: 9 } } }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } },
         plugins: { legend: { position: 'top', labels: { font: { size: 10, family: 'Manrope', weight: '600' }, boxWidth: 10 } } }
     }
@@ -3220,7 +3192,7 @@ new Chart(peakDayCtx, {
             y: { beginAtZero: true, grid: { color: '#e5e7eb' }, ticks: { font: { size: 10 }, precision: 0 } },
             x: { grid: { display: false }, ticks: { font: { size: 10 } } }
         },
-        responsive: true, maintainAspectRatio: true
+        responsive: true, maintainAspectRatio: false
     }
 });
 
@@ -3228,57 +3200,7 @@ new Chart(peakDayCtx, {
 document.addEventListener('DOMContentLoaded', initMap);
 
 // ============================================================
-// RECOMMENDATION CAROUSEL (Decision Support — mirrors the MENRO dashboard)
-// Auto-shows one recommendation at a time; the "i" button pins one open.
-// ============================================================
-(function recCarousel() {
-    var stacks = Array.prototype.filter.call(document.querySelectorAll('.rec-stack'), function (s) {
-        return s.querySelector('.rec-box') !== null;
-    });
-    stacks.forEach(function (s) { s.classList.remove('open'); });
 
-    document.querySelectorAll('.rec-info-btn').forEach(function (btn) {
-        var idx = stacks.indexOf(document.querySelector('.rec-stack[data-rec="' + btn.dataset.rec + '"]'));
-        if (idx === -1) { btn.style.display = 'none'; }
-    });
-
-    if (stacks.length === 0) return;
-
-    var current = -1, pinned = false, paused = false, timer = null;
-
-    function show(i) {
-        stacks.forEach(function (s, k) { s.classList.toggle('open', k === i); });
-        document.querySelectorAll('.rec-info-btn').forEach(function (btn) {
-            var idx = stacks.indexOf(document.querySelector('.rec-stack[data-rec="' + btn.dataset.rec + '"]'));
-            btn.classList.toggle('active', idx === i);
-            btn.setAttribute('aria-expanded', idx === i ? 'true' : 'false');
-        });
-        current = i;
-    }
-    function next() { if (!pinned && !paused && stacks.length) show((current + 1) % stacks.length); }
-    function start() { if (timer) clearInterval(timer); timer = setInterval(next, 10000); }
-    function stop() { if (timer) { clearInterval(timer); timer = null; } }
-
-    document.querySelectorAll('.chart-card').forEach(function (card) {
-        card.addEventListener('mouseenter', function () { paused = true; stop(); });
-        card.addEventListener('mouseleave', function () { paused = false; start(); });
-        card.addEventListener('focusin', function () { paused = true; stop(); });
-        card.addEventListener('focusout', function () { paused = false; start(); });
-    });
-
-    document.querySelectorAll('.rec-info-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            if (btn.style.display === 'none') return;
-            var idx = stacks.indexOf(document.querySelector('.rec-stack[data-rec="' + btn.dataset.rec + '"]'));
-            if (idx === -1) return;
-            if (current === idx && pinned) { pinned = false; start(); }
-            else { pinned = true; stop(); show(idx); }
-        });
-    });
-
-    show(0);
-    start();
-})();
 </script>
 
 <!-- Mobile FAB: quick access to Verify Reports (mobile only) -->
@@ -3297,5 +3219,6 @@ document.addEventListener('DOMContentLoaded', initMap);
     <i class="fas fa-clipboard-check"></i>
 </a>
 
+<script src="<?php echo BASE_URL; ?>assets/js/decision-support.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/decision-support.js'); ?>"></script>
 </body>
 </html>

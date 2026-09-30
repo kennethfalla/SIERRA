@@ -342,7 +342,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
     <title><?php echo t('All Reports - Sierra'); ?></title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -1088,10 +1088,22 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
         ?>
 
         <!-- Results Table -->
+        <style>
+            /* Mobile: keep Title / Status / Date / Action; hide the rest so the
+               table fits without horizontal scrolling. */
+            @media (max-width: 767px) {
+                .all-reports-table th:nth-child(1), .all-reports-table td:nth-child(1),
+                .all-reports-table th:nth-child(3), .all-reports-table td:nth-child(3),
+                .all-reports-table th:nth-child(4), .all-reports-table td:nth-child(4),
+                .all-reports-table th:nth-child(5), .all-reports-table td:nth-child(5),
+                .all-reports-table th:nth-child(6), .all-reports-table td:nth-child(6) { display: none; }
+                .all-reports-table th, .all-reports-table td { padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
+            }
+        </style>
         <div id="reportsGrid">
             <div class="table-container">
                 <div class="overflow-x-auto">
-                    <table class="w-full">
+                    <table class="w-full all-reports-table">
                         <thead>
                             <tr class="border-b" style="background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%);">
                                 <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('ID'); ?></th>

@@ -186,7 +186,7 @@ $top_actions = $db->query("
     <title><?php echo t('Audit Logs - Sierra'); ?></title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -511,9 +511,21 @@ $top_actions = $db->query("
         ?>
         
         <!-- Logs Table -->
+        <style>
+            /* Mobile: keep Timestamp / User / Action / Status; hide the rest so
+               the table fits without horizontal scrolling. */
+            @media (max-width: 767px) {
+                .audit-logs-table th:nth-child(3), .audit-logs-table td:nth-child(3),
+                .audit-logs-table th:nth-child(5), .audit-logs-table td:nth-child(5),
+                .audit-logs-table th:nth-child(7), .audit-logs-table td:nth-child(7),
+                .audit-logs-table th:nth-child(8), .audit-logs-table td:nth-child(8),
+                .audit-logs-table th:nth-child(9), .audit-logs-table td:nth-child(9) { display: none; }
+                .audit-logs-table th, .audit-logs-table td { padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
+            }
+        </style>
         <div class="table-container mb-6 animate-slide-up">
             <div class="overflow-x-auto">
-                <table class="w-full">
+                <table class="w-full audit-logs-table">
                     <thead>
                         <tr class="border-b" style="background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%);">
                             <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Timestamp'); ?></th>

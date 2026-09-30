@@ -637,7 +637,7 @@ if ($format === 'csv') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $isBarangay ? 'Barangay' : 'MENRO'; ?> Analytics Report - Sierra</title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <script src="<?php echo BASE_URL; ?>assets/vendor/chart/chart.umd.min.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/chart-stub.js"></script>

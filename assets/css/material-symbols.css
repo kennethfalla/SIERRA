@@ -1,0 +1,436 @@
+/* Material Symbols used throughout the application.
+   Existing fa-* aliases support stored category/notification icons and JS controls;
+   no Font Awesome font or stylesheet is required. License is beside the font. */
+@font-face {
+    font-family: 'App Material Symbols';
+    src: url('../fonts/material-symbols/system-outlined.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+}
+:is(.fas, .far, .fa, .fab, .fa-solid, .fa-regular, .material-symbols) {
+    display: inline-block;
+    font-style: normal;
+    line-height: 1;
+    text-rendering: auto;
+}
+:is(.fas, .far, .fa, .fab, .fa-solid, .fa-regular, .material-symbols)::before,
+#showSidebarBtn::before,
+.leaflet-control-layers-toggle::before,
+.leaflet-control-zoom-in::before,
+.leaflet-control-zoom-out::before {
+    font-family: 'App Material Symbols' !important;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 1.25em;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    vertical-align: -.125em;
+    -webkit-font-smoothing: antialiased;
+}
+:is(.fas, .far, .fa, .fab, .fa-solid, .fa-regular, .material-symbols)::before {
+    content: var(--app-icon, "\e88e");
+}
+.fa-address-book { --app-icon: "\e0ba"; }
+.fa-archive { --app-icon: "\e149"; }
+.fa-arrow-up { --app-icon: "\e5d8"; }
+.fa-arrow-down { --app-icon: "\e5db"; }
+.fa-ban { --app-icon: "\f08c"; }
+.fa-bell { --app-icon: "\e7f5"; }
+.fa-bell-slash { --app-icon: "\e7f6"; }
+.fa-building { --app-icon: "\ea40"; }
+.fa-bullhorn { --app-icon: "\ef49"; }
+.fa-calendar { --app-icon: "\ebcc"; }
+.fa-calendar-alt { --app-icon: "\ebcc"; }
+.fa-calendar-check { --app-icon: "\e614"; }
+.fa-chart-line { --app-icon: "\e6e1"; }
+.fa-chart-pie { --app-icon: "\f0da"; }
+.fa-check { --app-icon: "\e668"; }
+.fa-check-circle { --app-icon: "\f0be"; }
+.fa-check-double { --app-icon: "\e877"; }
+.fa-chevron-down { --app-icon: "\e5cf"; }
+.fa-chevron-right { --app-icon: "\e5cc"; }
+.fa-circle { --app-icon: "\ef4a"; }
+.fa-clock { --app-icon: "\efd6"; }
+.fa-clock-rotate-left { --app-icon: "\e8b3"; }
+.fa-cloud { --app-icon: "\f15c"; }
+.fa-cog { --app-icon: "\e8b8"; }
+.fa-compress { --app-icon: "\f1cf"; }
+.fa-ellipsis-vertical { --app-icon: "\e5d4"; }
+.fa-equals { --app-icon: "\f77b"; }
+.fa-exclamation-triangle { --app-icon: "\f083"; }
+.fa-expand { --app-icon: "\f1ce"; }
+.fa-external-link-alt { --app-icon: "\e89e"; }
+.fa-file-csv { --app-icon: "\e6cf"; }
+.fa-file-export { --app-icon: "\f090"; }
+.fa-file-pdf { --app-icon: "\e415"; }
+.fa-filter { --app-icon: "\ef4f"; }
+.fa-fire { --app-icon: "\ef55"; }
+.fa-flag { --app-icon: "\f0c6"; }
+.fa-history { --app-icon: "\e8b3"; }
+.fa-home { --app-icon: "\e9b2"; }
+.fa-hourglass-half { --app-icon: "\ea5b"; }
+.fa-image { --app-icon: "\e3f4"; }
+.fa-info { --app-icon: "\e88e"; }
+.fa-leaf { --app-icon: "\ea35"; }
+.fa-lightbulb { --app-icon: "\e90f"; }
+.fa-list { --app-icon: "\e896"; }
+.fa-list-alt { --app-icon: "\e85d"; }
+.fa-map-marked-alt { --app-icon: "\e55b"; }
+.fa-map-marker-alt { --app-icon: "\f1db"; }
+.fa-map-pin { --app-icon: "\f1db"; }
+.fa-medal { --app-icon: "\e7af"; }
+.fa-moon { --app-icon: "\e51c"; }
+.fa-paper-plane { --app-icon: "\e163"; }
+.fa-plus-circle { --app-icon: "\e990"; }
+.fa-search { --app-icon: "\ef7a"; }
+.fa-seedling { --app-icon: "\e123"; }
+.fa-shield-alt { --app-icon: "\e9e0"; }
+.fa-sign-out-alt { --app-icon: "\e9ba"; }
+.fa-skull-crossbones { --app-icon: "\f89a"; }
+.fa-sliders-h { --app-icon: "\e429"; }
+.fa-spinner { --app-icon: "\e9d0"; }
+.fa-stopwatch { --app-icon: "\e425"; }
+.fa-sun { --app-icon: "\e518"; }
+.fa-sync-alt { --app-icon: "\e627"; }
+.fa-th { --app-icon: "\e9b0"; }
+.fa-times { --app-icon: "\e5cd"; }
+.fa-times-circle { --app-icon: "\e888"; }
+.fa-trash-alt { --app-icon: "\e92e"; }
+.fa-trophy { --app-icon: "\ea23"; }
+.fa-undo { --app-icon: "\e166"; }
+.fa-user { --app-icon: "\f0d3"; }
+.fa-users { --app-icon: "\ea21"; }
+.fa-users-cog { --app-icon: "\f02e"; }
+.fa-address-card { --app-icon: "\f22e"; }
+.fa-align-left { --app-icon: "\e236"; }
+.fa-arrow-left { --app-icon: "\e5c4"; }
+.fa-arrow-pointer { --app-icon: "\f82f"; }
+.fa-arrow-right { --app-icon: "\e5c8"; }
+.fa-arrow-up-right-dots { --app-icon: "\e8e5"; }
+.fa-arrow-up-right-from-square { --app-icon: "\e89e"; }
+.fa-arrows-alt-h { --app-icon: "\e8d4"; }
+.fa-at { --app-icon: "\e0e6"; }
+.fa-badge-check { --app-icon: "\ef76"; }
+.fa-bars { --app-icon: "\e5d2"; }
+.fa-binoculars { --app-icon: "\e2db"; }
+.fa-bolt { --app-icon: "\ea0b"; }
+.fa-box-archive { --app-icon: "\e149"; }
+.fa-building-columns { --app-icon: "\e84f"; }
+.fa-building-shield { --app-icon: "\ef4c"; }
+.fa-bullseye { --app-icon: "\e55c"; }
+.fa-calculator { --app-icon: "\ea5f"; }
+.fa-calendar-day { --app-icon: "\e8df"; }
+.fa-camera { --app-icon: "\e412"; }
+.fa-chart-bar { --app-icon: "\e26b"; }
+.fa-chevron-left { --app-icon: "\e5cb"; }
+.fa-chevron-up { --app-icon: "\e5ce"; }
+.fa-circle-check { --app-icon: "\f0be"; }
+.fa-circle-exclamation { --app-icon: "\f8b6"; }
+.fa-circle-info { --app-icon: "\e88e"; }
+.fa-circle-question { --app-icon: "\e8fd"; }
+.fa-circle-xmark { --app-icon: "\e888"; }
+.fa-city { --app-icon: "\e7f1"; }
+.fa-clipboard-check { --app-icon: "\f0c5"; }
+.fa-clipboard-list { --app-icon: "\e6b1"; }
+.fa-cloud-arrow-up { --app-icon: "\e2c3"; }
+.fa-cloud-upload-alt { --app-icon: "\e2c3"; }
+.fa-cogs { --app-icon: "\e726"; }
+.fa-comment-dots { --app-icon: "\e0c9"; }
+.fa-compress-arrows-alt { --app-icon: "\f1cf"; }
+.fa-copy { --app-icon: "\e14d"; }
+.fa-crop-alt { --app-icon: "\e3be"; }
+.fa-crown { --app-icon: "\ecb3"; }
+.fa-download { --app-icon: "\f090"; }
+.fa-edit { --app-icon: "\f097"; }
+.fa-envelope { --app-icon: "\e159"; }
+.fa-envelope-check { --app-icon: "\f18c"; }
+.fa-envelope-open-text { --app-icon: "\e151"; }
+.fa-eraser { --app-icon: "\e6d0"; }
+.fa-exclamation-circle { --app-icon: "\f8b6"; }
+.fa-expand-alt { --app-icon: "\f1ce"; }
+.fa-expand-arrows-alt { --app-icon: "\f1ce"; }
+.fa-eye { --app-icon: "\e8f4"; }
+.fa-eye-slash { --app-icon: "\e8f5"; }
+.fa-facebook-f { --app-icon: "\e80b"; }
+.fa-file-alt { --app-icon: "\e873"; }
+.fa-file-contract { --app-icon: "\f5a0"; }
+.fa-flag-checkered { --app-icon: "\f06e"; }
+.fa-flask { --app-icon: "\ea4b"; }
+.fa-gauge-high { --app-icon: "\e9e4"; }
+.fa-globe { --app-icon: "\e80b"; }
+.fa-globe-americas { --app-icon: "\e80b"; }
+.fa-hand-holding-heart { --app-icon: "\ea70"; }
+.fa-hand-peace { --app-icon: "\e766"; }
+.fa-hand-pointer { --app-icon: "\e913"; }
+.fa-headset { --app-icon: "\f0e2"; }
+.fa-heart { --app-icon: "\e87e"; }
+.fa-hourglass-start { --app-icon: "\ea5b"; }
+.fa-id-badge { --app-icon: "\ea67"; }
+.fa-id-card { --app-icon: "\f4ca"; }
+.fa-images { --app-icon: "\e413"; }
+.fa-inbox { --app-icon: "\e156"; }
+.fa-info-circle { --app-icon: "\e88e"; }
+.fa-instagram { --app-icon: "\e412"; }
+.fa-key { --app-icon: "\e73c"; }
+.fa-keyboard { --app-icon: "\e312"; }
+.fa-landmark { --app-icon: "\e84f"; }
+.fa-layer-group { --app-icon: "\e53b"; }
+.fa-list-ul { --app-icon: "\e241"; }
+.fa-location-dot { --app-icon: "\f1db"; }
+.fa-lock { --app-icon: "\e899"; }
+.fa-lock-open { --app-icon: "\e898"; }
+.fa-magic { --app-icon: "\e663"; }
+.fa-map { --app-icon: "\e55b"; }
+.fa-map-location-dot { --app-icon: "\e55b"; }
+.fa-mobile-alt { --app-icon: "\e7ba"; }
+.fa-mouse-pointer { --app-icon: "\f82f"; }
+.fa-newspaper { --app-icon: "\eb81"; }
+.fa-pen { --app-icon: "\f097"; }
+.fa-phone { --app-icon: "\f0d4"; }
+.fa-phone-alt { --app-icon: "\f0d4"; }
+.fa-play { --app-icon: "\e037"; }
+.fa-plus { --app-icon: "\e145"; }
+.fa-power-off { --app-icon: "\f8c7"; }
+.fa-print { --app-icon: "\e8ad"; }
+.fa-question-circle { --app-icon: "\e8fd"; }
+.fa-recycle { --app-icon: "\e760"; }
+.fa-redo { --app-icon: "\e15a"; }
+.fa-road { --app-icon: "\f472"; }
+.fa-rotate { --app-icon: "\e41a"; }
+.fa-rotate-left { --app-icon: "\e419"; }
+.fa-satellite-dish { --app-icon: "\eb3a"; }
+.fa-save { --app-icon: "\e161"; }
+.fa-search-plus { --app-icon: "\e8ff"; }
+.fa-share { --app-icon: "\e80d"; }
+.fa-share-alt { --app-icon: "\e80d"; }
+.fa-shield-halved { --app-icon: "\e9e0"; }
+.fa-sign-in-alt { --app-icon: "\ea77"; }
+.fa-signature { --app-icon: "\f74c"; }
+.fa-smog { --app-icon: "\e818"; }
+.fa-sms { --app-icon: "\e625"; }
+.fa-star { --app-icon: "\f09a"; }
+.fa-sticky-note { --app-icon: "\f1fc"; }
+.fa-stop { --app-icon: "\e047"; }
+.fa-tachometer-alt { --app-icon: "\e9e4"; }
+.fa-tag { --app-icon: "\f05b"; }
+.fa-tags { --app-icon: "\f05b"; }
+.fa-th-large { --app-icon: "\e9b0"; }
+.fa-thumbs-up { --app-icon: "\f577"; }
+.fa-toggle-off { --app-icon: "\e9f5"; }
+.fa-toggle-on { --app-icon: "\e9f6"; }
+.fa-tools { --app-icon: "\ea3c"; }
+.fa-trash { --app-icon: "\e92e"; }
+.fa-tree { --app-icon: "\ea63"; }
+.fa-triangle-exclamation { --app-icon: "\f083"; }
+.fa-twitter { --app-icon: "\e0c9"; }
+.fa-unlock-alt { --app-icon: "\e898"; }
+.fa-upload { --app-icon: "\f09b"; }
+.fa-user-check { --app-icon: "\f565"; }
+.fa-user-circle { --app-icon: "\f20b"; }
+.fa-user-cog { --app-icon: "\f02e"; }
+.fa-user-friends { --app-icon: "\ea21"; }
+.fa-user-lock { --app-icon: "\f8f3"; }
+.fa-user-plus { --app-icon: "\ea4d"; }
+.fa-user-shield { --app-icon: "\ef3d"; }
+.fa-user-slash { --app-icon: "\e510"; }
+.fa-user-tie { --app-icon: "\ea67"; }
+.fa-users-slash { --app-icon: "\e747"; }
+.fa-vial { --app-icon: "\e686"; }
+.fa-video { --app-icon: "\e04b"; }
+.fa-wand-magic-sparkles { --app-icon: "\e663"; }
+.fa-water { --app-icon: "\e798"; }
+.fa-wrench { --app-icon: "\f8cd"; }
+.fa-xmark { --app-icon: "\e5cd"; }
+.fa-youtube { --app-icon: "\f06a"; }
+.ms-account_balance { --app-icon: "\e84f"; }
+.ms-account_circle { --app-icon: "\f20b"; }
+.ms-add { --app-icon: "\e145"; }
+.ms-add_circle { --app-icon: "\e990"; }
+.ms-admin_panel_settings { --app-icon: "\ef3d"; }
+.ms-alternate_email { --app-icon: "\e0e6"; }
+.ms-apartment { --app-icon: "\ea40"; }
+.ms-archive { --app-icon: "\e149"; }
+.ms-arrow_back { --app-icon: "\e5c4"; }
+.ms-arrow_downward { --app-icon: "\e5db"; }
+.ms-arrow_forward { --app-icon: "\e5c8"; }
+.ms-arrow_selector_tool { --app-icon: "\f82f"; }
+.ms-arrow_upward { --app-icon: "\e5d8"; }
+.ms-assignment { --app-icon: "\e85d"; }
+.ms-auto_fix_high { --app-icon: "\e663"; }
+.ms-badge { --app-icon: "\ea67"; }
+.ms-bar_chart { --app-icon: "\e26b"; }
+.ms-block { --app-icon: "\f08c"; }
+.ms-bolt { --app-icon: "\ea0b"; }
+.ms-build { --app-icon: "\f8cd"; }
+.ms-calculate { --app-icon: "\ea5f"; }
+.ms-calendar_month { --app-icon: "\ebcc"; }
+.ms-call { --app-icon: "\f0d4"; }
+.ms-campaign { --app-icon: "\ef49"; }
+.ms-cancel { --app-icon: "\e888"; }
+.ms-chat { --app-icon: "\e0c9"; }
+.ms-check { --app-icon: "\e668"; }
+.ms-check_circle { --app-icon: "\f0be"; }
+.ms-checklist { --app-icon: "\e6b1"; }
+.ms-chevron_left { --app-icon: "\e5cb"; }
+.ms-chevron_right { --app-icon: "\e5cc"; }
+.ms-circle { --app-icon: "\ef4a"; }
+.ms-close { --app-icon: "\e5cd"; }
+.ms-close_fullscreen { --app-icon: "\f1cf"; }
+.ms-cloud { --app-icon: "\f15c"; }
+.ms-cloud_upload { --app-icon: "\e2c3"; }
+.ms-construction { --app-icon: "\ea3c"; }
+.ms-contact_page { --app-icon: "\f22e"; }
+.ms-contacts { --app-icon: "\e0ba"; }
+.ms-content_copy { --app-icon: "\e14d"; }
+.ms-contract { --app-icon: "\f5a0"; }
+.ms-crop { --app-icon: "\e3be"; }
+.ms-crown { --app-icon: "\ecb3"; }
+.ms-csv { --app-icon: "\e6cf"; }
+.ms-dark_mode { --app-icon: "\e51c"; }
+.ms-delete { --app-icon: "\e92e"; }
+.ms-description { --app-icon: "\e873"; }
+.ms-domain_verification { --app-icon: "\ef4c"; }
+.ms-done_all { --app-icon: "\e877"; }
+.ms-download { --app-icon: "\f090"; }
+.ms-drafts { --app-icon: "\e151"; }
+.ms-eco { --app-icon: "\ea35"; }
+.ms-edit { --app-icon: "\f097"; }
+.ms-emoji_events { --app-icon: "\ea23"; }
+.ms-equal { --app-icon: "\f77b"; }
+.ms-error { --app-icon: "\f8b6"; }
+.ms-event_available { --app-icon: "\e614"; }
+.ms-expand_less { --app-icon: "\e5ce"; }
+.ms-expand_more { --app-icon: "\e5cf"; }
+.ms-experiment { --app-icon: "\e686"; }
+.ms-fact_check { --app-icon: "\f0c5"; }
+.ms-favorite { --app-icon: "\e87e"; }
+.ms-filter_alt { --app-icon: "\ef4f"; }
+.ms-flag { --app-icon: "\f0c6"; }
+.ms-foggy { --app-icon: "\e818"; }
+.ms-format_align_left { --app-icon: "\e236"; }
+.ms-format_list_bulleted { --app-icon: "\e241"; }
+.ms-grid_view { --app-icon: "\e9b0"; }
+.ms-group { --app-icon: "\ea21"; }
+.ms-group_off { --app-icon: "\e747"; }
+.ms-help { --app-icon: "\e8fd"; }
+.ms-history { --app-icon: "\e8b3"; }
+.ms-home { --app-icon: "\e9b2"; }
+.ms-hourglass_top { --app-icon: "\ea5b"; }
+.ms-id_card { --app-icon: "\f4ca"; }
+.ms-image { --app-icon: "\e3f4"; }
+.ms-inbox { --app-icon: "\e156"; }
+.ms-info { --app-icon: "\e88e"; }
+.ms-ink_eraser { --app-icon: "\e6d0"; }
+.ms-key { --app-icon: "\e73c"; }
+.ms-keyboard { --app-icon: "\e312"; }
+.ms-layers { --app-icon: "\e53b"; }
+.ms-light_mode { --app-icon: "\e518"; }
+.ms-lightbulb { --app-icon: "\e90f"; }
+.ms-list { --app-icon: "\e896"; }
+.ms-local_fire_department { --app-icon: "\ef55"; }
+.ms-location_city { --app-icon: "\e7f1"; }
+.ms-location_on { --app-icon: "\f1db"; }
+.ms-lock { --app-icon: "\e899"; }
+.ms-lock_open { --app-icon: "\e898"; }
+.ms-lock_person { --app-icon: "\f8f3"; }
+.ms-login { --app-icon: "\ea77"; }
+.ms-logout { --app-icon: "\e9ba"; }
+.ms-mail { --app-icon: "\e159"; }
+.ms-manage_accounts { --app-icon: "\f02e"; }
+.ms-manufacturing { --app-icon: "\e726"; }
+.ms-map { --app-icon: "\e55b"; }
+.ms-mark_email_read { --app-icon: "\f18c"; }
+.ms-menu { --app-icon: "\e5d2"; }
+.ms-more_vert { --app-icon: "\e5d4"; }
+.ms-my_location { --app-icon: "\e55c"; }
+.ms-newspaper { --app-icon: "\eb81"; }
+.ms-notifications { --app-icon: "\e7f5"; }
+.ms-notifications_off { --app-icon: "\e7f6"; }
+.ms-open_in_full { --app-icon: "\f1ce"; }
+.ms-open_in_new { --app-icon: "\e89e"; }
+.ms-park { --app-icon: "\ea63"; }
+.ms-person { --app-icon: "\f0d3"; }
+.ms-person_add { --app-icon: "\ea4d"; }
+.ms-person_check { --app-icon: "\f565"; }
+.ms-person_off { --app-icon: "\e510"; }
+.ms-photo_camera { --app-icon: "\e412"; }
+.ms-photo_library { --app-icon: "\e413"; }
+.ms-picture_as_pdf { --app-icon: "\e415"; }
+.ms-pie_chart { --app-icon: "\f0da"; }
+.ms-play_arrow { --app-icon: "\e037"; }
+.ms-power_settings_new { --app-icon: "\f8c7"; }
+.ms-print { --app-icon: "\e8ad"; }
+.ms-progress_activity { --app-icon: "\e9d0"; }
+.ms-psychiatry { --app-icon: "\e123"; }
+.ms-public { --app-icon: "\e80b"; }
+.ms-recycling { --app-icon: "\e760"; }
+.ms-redo { --app-icon: "\e15a"; }
+.ms-remove { --app-icon: "\e15b"; }
+.ms-road { --app-icon: "\f472"; }
+.ms-rotate_left { --app-icon: "\e419"; }
+.ms-rotate_right { --app-icon: "\e41a"; }
+.ms-satellite_alt { --app-icon: "\eb3a"; }
+.ms-save { --app-icon: "\e161"; }
+.ms-schedule { --app-icon: "\efd6"; }
+.ms-science { --app-icon: "\ea4b"; }
+.ms-search { --app-icon: "\ef7a"; }
+.ms-sell { --app-icon: "\f05b"; }
+.ms-send { --app-icon: "\e163"; }
+.ms-settings { --app-icon: "\e8b8"; }
+.ms-share { --app-icon: "\e80d"; }
+.ms-shield { --app-icon: "\e9e0"; }
+.ms-show_chart { --app-icon: "\e6e1"; }
+.ms-signature { --app-icon: "\f74c"; }
+.ms-skull { --app-icon: "\f89a"; }
+.ms-smart_display { --app-icon: "\f06a"; }
+.ms-smartphone { --app-icon: "\e7ba"; }
+.ms-sms { --app-icon: "\e625"; }
+.ms-speed { --app-icon: "\e9e4"; }
+.ms-sports_score { --app-icon: "\f06e"; }
+.ms-star { --app-icon: "\f09a"; }
+.ms-sticky_note_2 { --app-icon: "\f1fc"; }
+.ms-stop { --app-icon: "\e047"; }
+.ms-support_agent { --app-icon: "\f0e2"; }
+.ms-swap_horiz { --app-icon: "\e8d4"; }
+.ms-sync { --app-icon: "\e627"; }
+.ms-thumb_up { --app-icon: "\f577"; }
+.ms-timer { --app-icon: "\e425"; }
+.ms-today { --app-icon: "\e8df"; }
+.ms-toggle_off { --app-icon: "\e9f5"; }
+.ms-toggle_on { --app-icon: "\e9f6"; }
+.ms-touch_app { --app-icon: "\e913"; }
+.ms-travel_explore { --app-icon: "\e2db"; }
+.ms-trending_up { --app-icon: "\e8e5"; }
+.ms-tune { --app-icon: "\e429"; }
+.ms-undo { --app-icon: "\e166"; }
+.ms-upload { --app-icon: "\f09b"; }
+.ms-verified { --app-icon: "\ef76"; }
+.ms-videocam { --app-icon: "\e04b"; }
+.ms-visibility { --app-icon: "\e8f4"; }
+.ms-visibility_off { --app-icon: "\e8f5"; }
+.ms-volunteer_activism { --app-icon: "\ea70"; }
+.ms-warning { --app-icon: "\f083"; }
+.ms-water_drop { --app-icon: "\e798"; }
+.ms-waving_hand { --app-icon: "\e766"; }
+.ms-workspace_premium { --app-icon: "\e7af"; }
+.ms-zoom_in { --app-icon: "\e8ff"; }
+
+#showSidebarBtn.app-mobile-menu-btn svg { display: none; }
+#showSidebarBtn::before { content: "\e5d2"; font-size: 24px; }
+body.sidebar-open #showSidebarBtn::before { content: "\e5cd"; }
+.leaflet-control-layers-toggle { background-image:none !important; display:flex; align-items:center; justify-content:center; }
+.leaflet-control-layers-toggle::before { content:"\e53b"; font-size:24px; color:#475467; }
+.leaflet-control-zoom-in, .leaflet-control-zoom-out { font-size:0 !important; }
+.leaflet-control-zoom-in > span, .leaflet-control-zoom-out > span { display:none; }
+.leaflet-control-zoom-in::before { content:"\e145"; font-size:20px; vertical-align:middle; }
+.leaflet-control-zoom-out::before { content:"\e15b"; font-size:20px; vertical-align:middle; }
+.fa-spin { animation: app-icon-spin 2s linear infinite; }
+.fa-pulse { animation: app-icon-spin 1s steps(8) infinite; }
+.fa-2xs { font-size: .625em; }
+.fa-fw { width: 1.25em; text-align: center; }
+@keyframes app-icon-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .fa-spin, .fa-pulse { animation: none; } }
+

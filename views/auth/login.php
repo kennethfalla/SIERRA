@@ -45,7 +45,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
     <title>Sign In - <?php echo htmlspecialchars($system_name); ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         html, body { height: 100%; }
@@ -401,10 +401,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                     <button type="submit" id="submitBtn" class="btn-primary" aria-label="Sign in button">
                         <span id="submitText">Sign in</span>
                         <span id="submitSpinner" class="hidden" role="status">
-                            <svg class="animate-spin h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                            <i class="material-symbols ms-progress_activity fa-spin" aria-hidden="true"></i>
                             Signing in...
                         </span>
                     </button>

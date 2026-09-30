@@ -23,8 +23,8 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <!-- Material Symbols -->
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     
     <!-- Leaflet Map -->
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />

@@ -719,7 +719,7 @@ function getDecisionBadge($classification) {
     <title><?php echo t('MENRO Analytics Dashboard - Sierra'); ?></title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
     <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
@@ -1066,18 +1066,7 @@ function getDecisionBadge($classification) {
         }
         .rec-info-btn:hover { background: #10A37F; color: #fff; }
         .rec-info-btn.active { background: #10A37F; color: #fff; }
-        .rec-stack {
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
-            transform: translateY(-6px);
-            transition: max-height 0.45s ease, opacity 0.4s ease, transform 0.4s ease;
-        }
-        .rec-stack.open {
-            max-height: 700px;
-            opacity: 1;
-            transform: translateY(0);
-        }
+        .rec-stack { display: none; }
 
         /* Chart containers */
         .chart-card {
@@ -1388,87 +1377,19 @@ function getDecisionBadge($classification) {
         .status-resolved { background: #D1FAE5; color: #10A37F; }
         .status-rejected { background: #FEE2E2; color: #DC2626; }
         .status-cancelled { background: #F3F4F6; color: #4B5563; }
+
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard.css'); ?>">
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-hero.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-analytics.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-analytics.css'); ?>">
 </head>
-<body class="dashboard-page">
+<body class="dashboard-page menro-dashboard-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
 
-        <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
-
-        <!-- Active Analytics Date Filter Banner -->
-        <?php if ($analytics_date_from || $analytics_date_to): ?>
-        <div class="mb-4 flex items-center gap-3 bg-[#10A37F]/8 border border-[#10A37F]/25 rounded-xl px-4 py-2.5 text-sm text-[#0D8568] font-medium">
-            <i class="fas fa-calendar-check text-[#10A37F]"></i>
-            <span><?php echo t('Analytics filtered:'); ?>
-                <?php if ($analytics_date_from && $analytics_date_to): ?>
-                    <strong><?php echo htmlspecialchars($analytics_date_from); ?></strong> to <strong><?php echo htmlspecialchars($analytics_date_to); ?></strong>
-                <?php elseif ($analytics_date_from): ?>
-                    from <strong><?php echo htmlspecialchars($analytics_date_from); ?></strong>
-                <?php else: ?>
-                    up to <strong><?php echo htmlspecialchars($analytics_date_to); ?></strong>
-                <?php endif; ?>
-            </span>
-            <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition">
-                <i class="fas fa-times"></i> <?php echo t('Clear Filter'); ?>
-            </a>
-        </div>
-        <?php endif; ?>
-
-        <!-- ============================================================ -->
-        <!-- 1. ALGORITHMIC KPI WIDGETS -->
-        <!-- ============================================================ -->
-        <div class="analytics-kpi-grid stat-cards">
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div class="min-w-0">
-                    <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold"><?php echo t('Active Hotspots'); ?></p>
-                    <p class="text-2xl font-extrabold text-amber-600 tracking-tight"><?php echo $activeHotspots; ?></p>
-                    <p class="text-xs text-gray-400 mt-1"><?php echo t('Unique clusters with density > 0'); ?></p>
-                </div>
-                <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-map-pin text-amber-600"></i>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div class="min-w-0">
-                    <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold"><?php echo t('Avg Municipal Risk'); ?></p>
-                    <p class="text-2xl font-extrabold text-blue-600 tracking-tight"><?php echo $avgRisk; ?></p>
-                    <p class="text-xs text-gray-400 mt-1"><?php echo t('out of 20 severity score'); ?></p>
-                </div>
-                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-chart-line text-blue-600"></i>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div class="min-w-0">
-                    <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold"><?php echo t('Critical Escalations'); ?></p>
-                    <p class="text-2xl font-extrabold text-red-600 tracking-tight"><?php echo $criticalCount; ?></p>
-                    <p class="text-xs text-gray-400 mt-1">Score <?php echo $severityBands['critical']; ?>-20 · require immediate action</p>
-                </div>
-                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-red-600"></i>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm analytics-kpi-box flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div class="min-w-0">
-                    <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold"><?php echo t('Resolved Hotspots'); ?></p>
-                    <p class="text-2xl font-extrabold text-emerald-600 tracking-tight"><?php echo $resolvedHotspots; ?></p>
-                    <p class="text-xs text-gray-400 mt-1"><?php echo t('Clusters resolved this year'); ?></p>
-                </div>
-                <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-check-circle text-emerald-600"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- REPORT FILTER TOOLBAR (filters the heatmap + exports) -->
-        <!-- ============================================================ -->
         <?php
         $dash_status_options = [
             'all' => 'All Statuses', 'pending' => 'Pending', 'under_review' => 'Under Review',
@@ -1494,6 +1415,10 @@ function getDecisionBadge($classification) {
             'search_id'          => 'dashSearchInput',
             'search_value'       => $f_search,
             'search_placeholder' => 'Search reports by title or description...',
+            'show_search'        => false,
+            'show_active_row'    => false,
+            'compact_breakpoint' => 1199,
+            'more_icon'          => 'fa-sliders-h',
             'inline_selects'     => [
                 ['id' => 'dashStatusFilter', 'value' => $f_status, 'min_width' => '150px', 'options' => $dash_status_options],
                 ['id' => 'dashRiskFilter', 'value' => $f_risk, 'min_width' => '150px', 'options' => $dash_risk_options],
@@ -1516,11 +1441,18 @@ function getDecisionBadge($classification) {
             'callback'           => 'applyDashboardFilters',
         ];
         ?>
-        <div class="dashboard-toolbar-row">
-            <div class="dashboard-toolbar-filters">
-                <?php include BASE_PATH . 'views/shared/report_filter_toolbar.php'; ?>
+        <div id="dashHeaderExtras" class="dash-header-extras">
+            <div class="dashboard-toolbar-row dash-topbar">
+                <div class="dashboard-toolbar-filters">
+                    <?php include BASE_PATH . 'views/shared/report_filter_toolbar.php'; ?>
+                </div>
             </div>
-                <!-- Export Analytics -->
+        </div>
+        <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
+
+        <div class="dash-head">
+            <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
+            <div class="dash-head-actions">
                 <div class="export-dropdown" id="exportDropdownWrap">
                     <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
                         <i class="fas fa-file-export"></i>
@@ -1548,12 +1480,116 @@ function getDecisionBadge($classification) {
                         </button>
                     </div>
                 </div>
+            </div>
         </div>
 
-        <!-- ============================================================ -->
-        <!-- 2. DECISION-SUPPORT HEATMAP WITH TOGGLE -->
-        <!-- ============================================================ -->
-        <div id="map-container" class="mb-6">
+        <!-- Active Analytics Date Filter Banner -->
+        <?php if ($analytics_date_from || $analytics_date_to): ?>
+        <div class="mb-4 flex items-center gap-3 bg-[#10A37F]/8 border border-[#10A37F]/25 rounded-xl px-4 py-2.5 text-sm text-[#0D8568] font-medium">
+            <i class="fas fa-calendar-check text-[#10A37F]"></i>
+            <span><?php echo t('Analytics filtered:'); ?>
+                <?php if ($analytics_date_from && $analytics_date_to): ?>
+                    <strong><?php echo htmlspecialchars($analytics_date_from); ?></strong> to <strong><?php echo htmlspecialchars($analytics_date_to); ?></strong>
+                <?php elseif ($analytics_date_from): ?>
+                    from <strong><?php echo htmlspecialchars($analytics_date_from); ?></strong>
+                <?php else: ?>
+                    up to <strong><?php echo htmlspecialchars($analytics_date_to); ?></strong>
+                <?php endif; ?>
+            </span>
+            <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition">
+                <i class="fas fa-times"></i> <?php echo t('Clear Filter'); ?>
+            </a>
+        </div>
+        <?php endif; ?>
+
+        <div class="bento">
+            <section class="chart-card b-hero hero-kpi">
+                <div class="chart-head"><div class="chart-title"><i class="fas fa-map-pin"></i><?php echo t('Active Hotspots'); ?></div></div>
+                <div class="hotspot-summary">
+                    <div class="hero-num"><?php echo $activeHotspots; ?></div>
+                    <p class="hero-sub"><?php echo t('Unique clusters with density > 0'); ?></p>
+                </div>
+                <div class="hero-list-head"><?php echo t('Key Indicators'); ?></div>
+                <dl class="indicator-list">
+                    <div class="indicator-row">
+                        <dt><i class="fas fa-chart-line" aria-hidden="true"></i><?php echo t('Avg Municipal Risk'); ?></dt>
+                        <dd><?php echo $avgRisk; ?><small><?php echo t('Out of 20 severity score'); ?></small></dd>
+                    </div>
+                    <div class="indicator-row<?php echo $criticalCount > 0 ? ' indicator-row--critical' : ''; ?>">
+                        <dt><i class="fas fa-exclamation-triangle" aria-hidden="true"></i><?php echo t('Critical Escalations'); ?></dt>
+                        <dd><?php echo $criticalCount; ?><small><?php echo t('Require immediate action'); ?></small></dd>
+                    </div>
+                    <div class="indicator-row">
+                        <dt><i class="fas fa-check-circle" aria-hidden="true"></i><?php echo t('Resolved Hotspots'); ?></dt>
+                        <dd><?php echo $resolvedHotspots; ?><small><?php echo t('Clusters resolved this year'); ?></small></dd>
+                    </div>
+                    <div class="indicator-row">
+                        <dt><i class="fas fa-list-alt" aria-hidden="true"></i><?php echo t('Active Reports'); ?></dt>
+                        <dd><?php echo count($activeReports); ?><small><?php echo t('Open reports on the map'); ?></small></dd>
+                    </div>
+                </dl>
+            </section>
+            <section class="chart-card kpi-sm">
+                <div class="chart-head" style="margin-bottom:.5rem;">
+                    <div class="chart-title"><i class="fas fa-stopwatch"></i><?php echo t('Avg Response Time'); ?></div>
+                    <button type="button" class="rec-info-btn" data-rec="rec-response" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
+                </div>
+                <div>
+                    <div class="kpi-num"><?php echo $avgResolutionDaysAllTime; ?><small><?php echo t('days'); ?></small></div>
+                    <div class="kpi-foot">
+                        <?php if ($resolutionTrend === 'stable'): ?>
+                            <span class="chip chip-flat"><i class="fas fa-equals"></i><?php echo t('Stable'); ?></span>
+                        <?php else: $rt_worse = ($resolutionTrend === 'worse'); ?>
+                            <span class="chip <?php echo $rt_worse ? 'chip-bad' : 'chip-good'; ?>"><i class="fas fa-arrow-<?php echo $rt_worse ? 'up' : 'down'; ?>"></i><?php echo abs($resolutionDelta); ?> <?php echo t('days'); ?></span>
+                        <?php endif; ?>
+                        <span><?php echo t('from last month'); ?></span>
+                    </div>
+                </div>
+                <?php
+                    $sla_breached = $avgResolutionHoursThisMonth > (float)$kpi_sla_response_hours;
+                    if ($sla_breached) {
+                        $rc_class = 'rec-critical';
+                        $rc_msg = 'The municipality is behind schedule on clearing hazard reports' . ($slowestBarangay ? ', with the slowest response in Brgy. ' . htmlspecialchars($slowestBarangay['barangay_name']) : '') . '. Send additional cleanup crews or equipment to that area.';
+                    } elseif ($resolutionTrend === 'worse') {
+                        $rc_class = 'rec-critical';
+                        $rc_msg = t('Response times currently meet the target standard, but response has been slowing lately. Keep an eye on crew levels before a backlog builds up.');
+                    } else {
+                        $rc_class = 'rec-low';
+                        $rc_msg = t('Municipal response times comply with the target standard. Keep current crews and monitoring in place.');
+                    }
+                ?>
+                <div class="rec-stack" data-rec="rec-response">
+                    <div class="rec-box <?php echo $rc_class; ?>"><i class="fas fa-lightbulb mr-2"></i><strong><?php echo t('Recommendation:'); ?></strong> <?php echo $rc_msg; ?></div>
+                </div>
+            </section>
+            <section class="chart-card kpi-sm">
+                <div class="chart-head" style="margin-bottom:.5rem;">
+                    <div class="chart-title"><i class="fas fa-users"></i><?php echo t('Reporter Demographics'); ?></div>
+                    <button type="button" class="rec-info-btn" data-rec="rec-demographics" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
+                </div>
+                <?php if (!$demographicsAvailable || $demographicsTotal === 0): ?>
+                    <p class="text-sm text-gray-400 py-4"><?php echo t('Demographic data not available yet.'); ?></p>
+                <?php else: ?>
+                <div class="demo-row">
+                    <div>
+                        <div class="kpi-num"><?php echo $residentPct; ?>%<small><?php echo t('Resident'); ?></small></div>
+                        <div class="kpi-foot"><span class="chip chip-warn"><?php echo $nonResidentPct; ?>%</span><span><?php echo t('Non-Resident'); ?></span></div>
+                    </div>
+                    <div class="demo-donut"><canvas id="demographicsChart"></canvas></div>
+                </div>
+                <?php
+                    $lowGroup = null; $lowGroupPct = null;
+                    if ($residentPct < (float)$kpi_demographic_threshold) { $lowGroup = 'Residents'; $lowGroupPct = $residentPct; }
+                    if ($nonResidentPct < (float)$kpi_demographic_threshold && $nonResidentPct <= $residentPct) { $lowGroup = 'Non-Residents'; $lowGroupPct = $nonResidentPct; }
+                ?>
+                <?php if ($lowGroup): ?>
+                <div class="rec-stack" data-rec="rec-demographics">
+                    <div class="rec-box rec-medium"><i class="fas fa-lightbulb mr-2"></i><strong><?php echo t('Recommendation:'); ?></strong> Only <?php echo $lowGroupPct; ?>% of reports come from <?php echo $lowGroup; ?>. Run an info drive to encourage them to report.</div>
+                </div>
+                <?php endif; ?>
+                <?php endif; ?>
+            </section>
+        <div id="map-container" class="b-wide">
             <div class="map-head">
                 <div class="map-title-wrap">
                     <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
@@ -1643,13 +1679,8 @@ function getDecisionBadge($classification) {
                 </span>
             </div>
         </div>
-
-        <!-- ============================================================ -->
-        <!-- 3. BOTTOM CHARTS -->
-        <!-- ============================================================ -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             <!-- Severity Distribution -->
-            <div class="chart-card">
+            <div class="chart-card b-narrow">
                 <div class="chart-head">
                     <div class="chart-title"><i class="fas fa-chart-pie text-[#10A37F] mr-2"></i><?php echo t('Severity Distribution'); ?></div>
                     <button type="button" class="rec-info-btn" data-rec="rec-severity" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
@@ -1707,44 +1738,7 @@ function getDecisionBadge($classification) {
                 </div>
                 </div><!-- /rec-stack -->
             </div>
-            <!-- Seasonal Hazard Analytics -->
-            <div class="chart-card">
-                <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
-                    <div class="chart-title"><i class="fas fa-chart-line text-[#10A37F] mr-2"></i><?php echo t('Seasonal Hazard Trends'); ?></div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button type="button" class="rec-info-btn" data-rec="rec-seasonal" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
-                        <select id="seasonalSeveritySelect" class="text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#10A37F]">
-                            <option value="all"><?php echo t('All Severities'); ?></option>
-                            <option value="low"><?php echo t('Low'); ?></option>
-                            <option value="medium"><?php echo t('Medium'); ?></option>
-                            <option value="high"><?php echo t('High'); ?></option>
-                            <option value="critical"><?php echo t('Critical'); ?></option>
-                        </select>
-                        <select id="seasonalPeriodSelect" class="text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#10A37F]">
-                            <option value="3"><?php echo t('Last 3 Months'); ?></option>
-                            <option value="6"><?php echo t('Last 6 Months'); ?></option>
-                            <option value="12" selected><?php echo t('Last 12 Months'); ?></option>
-                        </select>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="seasonalChart"></canvas>
-                </div>
-                <div class="rec-stack" data-rec="rec-seasonal">
-                <?php if ($surgeAlert): ?>
-                <div class="rec-box rec-critical mt-4">
-                    <i class="fas fa-lightbulb mr-2"></i>
-                    <strong><?php echo t('Recommendation:'); ?></strong> <?php echo htmlspecialchars($surgeAlert['category']); ?> reports jumped by <?php echo $surgeAlert['pct']; ?>% this month (from <?php echo $surgeAlert['previous']; ?> to <?php echo $surgeAlert['current']; ?>). Put more resources into <?php echo htmlspecialchars($surgeAlert['category']); ?>.
-                </div>
-                <?php endif; ?>
-                </div><!-- /rec-stack -->
-            </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- 4. BARANGAY PERFORMANCE LEADERBOARD -->
-        <!-- ============================================================ -->
-        <div class="chart-card mb-6">
+        <div class="chart-card b-wide">
             <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
                 <div class="chart-title mb-0"><i class="fas fa-trophy text-[#10A37F] mr-2"></i><?php echo t('Barangay Performance Leaderboard'); ?></div>
                 <span class="flex items-center gap-2 text-xs text-gray-400">
@@ -1834,106 +1828,8 @@ function getDecisionBadge($classification) {
             <?php endif; ?>
             <?php endif; ?>
         </div>
-
-        <!-- ============================================================ -->
-        <!-- 5. AVERAGE RESOLUTION TIME + USER DEMOGRAPHICS -->
-        <!-- ============================================================ -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-            <!-- Average Municipal Response Time -->
-            <div class="chart-card flex flex-col justify-between">
-                <div class="chart-head">
-                    <div class="chart-title"><i class="fas fa-stopwatch text-[#10A37F] mr-2"></i><?php echo t('Average Municipal Response Time'); ?></div>
-                    <button type="button" class="rec-info-btn" data-rec="rec-response" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
-                </div>
-                <div class="flex items-center gap-4 py-2">
-                    <div class="text-4xl md:text-5xl font-extrabold text-gray-800"><?php echo $avgResolutionDaysAllTime; ?> <span class="text-xl font-semibold text-gray-400"><?php echo t('days'); ?></span></div>
-                    <?php if ($resolutionTrend !== 'stable'): ?>
-                        <div class="flex items-center gap-1 text-sm font-semibold <?php echo $resolutionTrend === 'worse' ? 'text-red-500' : 'text-emerald-500'; ?>">
-                            <i class="fas fa-arrow-<?php echo $resolutionTrend === 'worse' ? 'up' : 'down'; ?>"></i>
-                            <?php echo abs($resolutionDelta); ?> days vs last month
-                        </div>
-                    <?php else: ?>
-                        <div class="flex items-center gap-1 text-sm font-semibold text-gray-400">
-                            <i class="fas fa-equals"></i> <?php echo t('Stable vs last month'); ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <div class="text-xs text-gray-400 mb-3">This month: <?php echo $avgResolutionDaysThisMonth; ?> days &nbsp;·&nbsp; Last month: <?php echo $avgResolutionDaysLastMonth; ?> days</div>
-                <?php
-                    // Municipal SLA check: warn when the average response time
-                    // exceeds the target configured in System Settings → KPI & Insights.
-                    $sla_hours = (float)$kpi_sla_response_hours;
-                    $sla_breached = $avgResolutionHoursThisMonth > $sla_hours;
-                ?>
-                <?php if ($sla_breached): ?>
-                <div class="rec-stack" data-rec="rec-response">
-                <div class="rec-box rec-critical">
-                    <i class="fas fa-lightbulb mr-2"></i>
-                    <strong><?php echo t('Recommendation:'); ?></strong> The municipality is behind schedule on clearing hazard reports<?php if ($slowestBarangay): ?>, with the slowest response in Brgy. <?php echo htmlspecialchars($slowestBarangay['barangay_name']); ?><?php endif; ?>. Send additional cleanup crews or equipment to that area.
-                </div>
-                </div><!-- /rec-stack -->
-                <?php elseif ($resolutionTrend === 'worse'): ?>
-                <div class="rec-stack" data-rec="rec-response">
-                <div class="rec-box rec-critical">
-                    <i class="fas fa-lightbulb mr-2"></i>
-                    <strong><?php echo t('Recommendation:'); ?></strong> <?php echo t('Response times currently meet the target standard, but response has been slowing lately. Keep an eye on crew levels before a backlog builds up.'); ?>
-                </div>
-                </div><!-- /rec-stack -->
-                <?php else: ?>
-                <div class="rec-stack" data-rec="rec-response">
-                <div class="rec-box rec-low">
-                    <i class="fas fa-lightbulb mr-2"></i>
-                    <strong><?php echo t('Recommendation:'); ?></strong> <?php echo t('Municipal response times comply with the target standard. Keep current crews and monitoring in place.'); ?>
-                </div>
-                </div><!-- /rec-stack -->
-                <?php endif; ?>
-            </div>
-
-            <!-- User Demographics -->
-            <div class="chart-card">
-                <div class="chart-head">
-                    <div class="chart-title"><i class="fas fa-users text-[#10A37F] mr-2"></i><?php echo t('Reporter Demographics'); ?></div>
-                    <button type="button" class="rec-info-btn" data-rec="rec-demographics" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
-                </div>
-                <?php if (!$demographicsAvailable || $demographicsTotal === 0): ?>
-                    <p class="text-sm text-gray-400 py-10 text-center"><?php echo t('Demographic data not available yet.'); ?></p>
-                <?php else: ?>
-                <div class="chart-container" style="height:180px;">
-                    <canvas id="demographicsChart"></canvas>
-                </div>
-                <div class="flex justify-center gap-6 text-xs mt-2">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10A37F;"></span> Resident (<?php echo $residentPct; ?>%)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Non-Resident (<?php echo $nonResidentPct; ?>%)</span>
-                </div>
-                <p class="text-xs text-gray-400 mt-3 text-center">
-                    <?php echo $nonResidentPct; ?>% of reports come from non-residents — a sign the app is catching hazards municipality-wide, not just within local subdivisions.
-                </p>
-                <?php
-                    $lowGroup = null;
-                    $lowGroupPct = null;
-                    if ($demographicsTotal > 0) {
-                        if ($residentPct < (float)$kpi_demographic_threshold) { $lowGroup = 'Residents'; $lowGroupPct = $residentPct; }
-                        if ($nonResidentPct < (float)$kpi_demographic_threshold && $nonResidentPct <= $residentPct) { $lowGroup = 'Non-Residents'; $lowGroupPct = $nonResidentPct; }
-                    }
-                ?>
-                <?php if ($lowGroup): ?>
-                <div class="rec-stack" data-rec="rec-demographics">
-                <div class="rec-box rec-medium mt-4">
-                    <i class="fas fa-lightbulb mr-2"></i>
-                    <strong><?php echo t('Recommendation:'); ?></strong> Only <?php echo $lowGroupPct; ?>% of reports come from <?php echo $lowGroup; ?>. Run an info drive to encourage them to report.
-                </div>
-                </div><!-- /rec-stack -->
-                <?php endif; ?>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- 6. PEAK REPORTING HOURS/DAYS + TOP 5 REPEAT OFFENDER LOCATIONS -->
-        <!-- ============================================================ -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             <!-- Peak Reporting Hours & Days -->
-            <div class="chart-card">
+            <div class="chart-card b-narrow">
                 <div class="chart-head">
                     <div class="chart-title"><i class="fas fa-clock text-[#10A37F] mr-2"></i><?php echo t('Peak Reporting Hours &amp; Days'); ?></div>
                     <button type="button" class="rec-info-btn" data-rec="rec-peak" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
@@ -1952,9 +1848,40 @@ function getDecisionBadge($classification) {
                 </div>
                 </div><!-- /rec-stack -->
             </div>
-
+            <!-- Seasonal Hazard Analytics -->
+            <div class="chart-card b-wide">
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+                    <div class="chart-title"><i class="fas fa-chart-line text-[#10A37F] mr-2"></i><?php echo t('Seasonal Hazard Trends'); ?></div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" class="rec-info-btn" data-rec="rec-seasonal" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
+                        <select id="seasonalSeveritySelect" class="text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#10A37F]">
+                            <option value="all"><?php echo t('All Severities'); ?></option>
+                            <option value="low"><?php echo t('Low'); ?></option>
+                            <option value="medium"><?php echo t('Medium'); ?></option>
+                            <option value="high"><?php echo t('High'); ?></option>
+                            <option value="critical"><?php echo t('Critical'); ?></option>
+                        </select>
+                        <select id="seasonalPeriodSelect" class="text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#10A37F]">
+                            <option value="3"><?php echo t('Last 3 Months'); ?></option>
+                            <option value="6"><?php echo t('Last 6 Months'); ?></option>
+                            <option value="12" selected><?php echo t('Last 12 Months'); ?></option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="seasonalChart"></canvas>
+                </div>
+                <div class="rec-stack" data-rec="rec-seasonal">
+                <?php if ($surgeAlert): ?>
+                <div class="rec-box rec-critical mt-4">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    <strong><?php echo t('Recommendation:'); ?></strong> <?php echo htmlspecialchars($surgeAlert['category']); ?> reports jumped by <?php echo $surgeAlert['pct']; ?>% this month (from <?php echo $surgeAlert['previous']; ?> to <?php echo $surgeAlert['current']; ?>). Put more resources into <?php echo htmlspecialchars($surgeAlert['category']); ?>.
+                </div>
+                <?php endif; ?>
+                </div><!-- /rec-stack -->
+            </div>
             <!-- Top 5 Repeat Offender Locations -->
-            <div class="chart-card">
+            <div class="chart-card b-full">
                 <div class="chart-head">
                     <div class="chart-title"><i class="fas fa-map-marker-alt text-[#10A37F] mr-2"></i>Top 5 "Repeat Offender" Locations</div>
                     <button type="button" class="rec-info-btn" data-rec="rec-repeat" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
@@ -2001,8 +1928,12 @@ function getDecisionBadge($classification) {
             </div>
         </div>
 
+        </div>
+
     </div>
 </div>
+
+<?php include BASE_PATH . 'views/shared/decision_support_popover.php'; ?>
 
 <!-- ============================================================ -->
 <!-- ENHANCED DRILL-DOWN PANEL -->
@@ -2899,22 +2830,26 @@ function renderSeasonalChart() {
                 data: data,
                 borderColor: meta.color,
                 backgroundColor: meta.bg,
-                tension: 0.3,
+                tension: 0.35,
                 fill: true,
+                borderWidth: 2.5,
                 pointBackgroundColor: meta.color,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
-                pointRadius: 4
+                pointRadius: 2.5,
+                pointHoverRadius: 5,
+                pointHitRadius: 12
             }]
         },
         options: {
-            plugins: { legend: { display: false } },
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#173f2e', padding: 10, cornerRadius: 8, displayColors: false } },
             scales: {
-                y: { beginAtZero: true, grid: { color: '#e5e7eb' }, ticks: { font: { size: 10 } } },
-                x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                y: { beginAtZero: true, border: { display: false }, grid: { color: '#eaf1eb' }, ticks: { color: '#718579', font: { size: 10 }, precision: 0 } },
+                x: { border: { display: false }, grid: { display: false }, ticks: { color: '#718579', font: { size: 10 } } }
             },
             responsive: true,
-            maintainAspectRatio: true
+            maintainAspectRatio: false
         }
     });
 }
@@ -2953,13 +2888,16 @@ function initCharts() {
             datasets: [{
                 data: severityData,
                 backgroundColor: ['#10B981', '#F59E0B', '#F97316', '#EF4444'],
-                borderWidth: 0
+                borderColor: '#fff',
+                borderWidth: 3,
+                hoverOffset: 6
             }]
         },
         options: {
             cutout: '65%',
             plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11, family: 'Manrope' } } }
+                legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', padding: 14, color: '#536b5c', font: { size: 11, family: 'Manrope' } } },
+                tooltip: { backgroundColor: '#173f2e', padding: 10, cornerRadius: 8 }
             },
             responsive: true,
             maintainAspectRatio: false
@@ -2979,12 +2917,14 @@ function initCharts() {
                 datasets: [{
                     data: demographicsData,
                     backgroundColor: ['#10A37F', '#F59E0B'],
-                    borderWidth: 0
+                    borderColor: '#fff',
+                    borderWidth: 3,
+                    hoverOffset: 4
                 }]
             },
             options: {
                 cutout: '65%',
-                plugins: { legend: { display: false } },
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: '#173f2e', padding: 9, cornerRadius: 8 } },
                 responsive: true,
                 maintainAspectRatio: false
             }
@@ -3000,19 +2940,20 @@ function initCharts() {
             datasets: [{
                 label: 'Reports by Day',
                 data: dayCounts,
-                backgroundColor: '#10A37F',
-                borderRadius: 4,
+                backgroundColor: '#38ad88',
+                hoverBackgroundColor: '#0d8568',
+                borderRadius: 7,
                 maxBarThickness: 32
             }]
         },
         options: {
-            plugins: { legend: { display: false } },
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#173f2e', padding: 10, cornerRadius: 8, displayColors: false } },
             scales: {
-                y: { beginAtZero: true, grid: { color: '#e5e7eb' }, ticks: { font: { size: 10 }, precision: 0 } },
-                x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                y: { beginAtZero: true, border: { display: false }, grid: { color: '#eaf1eb' }, ticks: { color: '#718579', font: { size: 10 }, precision: 0 } },
+                x: { border: { display: false }, grid: { display: false }, ticks: { color: '#718579', font: { size: 10 } } }
             },
             responsive: true,
-            maintainAspectRatio: true
+            maintainAspectRatio: false
         }
     });
 }
@@ -3082,78 +3023,14 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ------------------------------------------------------------
-// RECOMMENDATION CAROUSEL (YouTube-style "i" info)
-// Auto-shows one recommendation at a time every 10s; clicking
-// the chart's "i" button pins it open. Click again to close.
+// Decision support popover for the chart info buttons.
+// It floats over the dashboard so opening it never changes the grid layout.
 // ------------------------------------------------------------
-(function recCarousel() {
-    const stacks = Array.from(document.querySelectorAll('.rec-stack'))
-        .filter(function (s) { return s.querySelector('.rec-box') !== null; });
 
-    stacks.forEach(function (s) { s.classList.remove('open'); });
-
-    document.querySelectorAll('.rec-info-btn').forEach(function (btn) {
-        const idx = stacks.indexOf(document.querySelector('.rec-stack[data-rec="' + btn.dataset.rec + '"]'));
-        if (idx === -1) { btn.style.display = 'none'; }
-    });
-
-    if (stacks.length === 0) return;
-
-    let current = -1;
-    let pinned = false;
-    let paused = false;
-    let timer = null;
-
-    function show(i) {
-        stacks.forEach(function (s, k) { s.classList.toggle('open', k === i); });
-        document.querySelectorAll('.rec-info-btn').forEach(function (btn) {
-            const idx = stacks.indexOf(document.querySelector('.rec-stack[data-rec="' + btn.dataset.rec + '"]'));
-            btn.classList.toggle('active', idx === i);
-        });
-        current = i;
-    }
-
-    function next() { if (!pinned && !paused && stacks.length) show((current + 1) % stacks.length); }
-
-    function start() {
-        if (timer) clearInterval(timer);
-        timer = setInterval(next, 10000);
-    }
-
-    function stop() { if (timer) { clearInterval(timer); timer = null; } }
-
-    // Pause auto-rotation while the user is reading / interacting with a chart.
-    function pauseRotation() { paused = true; stop(); }
-    function resumeRotation() { paused = false; start(); }
-    document.querySelectorAll('.chart-card').forEach(function (card) {
-        card.addEventListener('mouseenter', pauseRotation);
-        card.addEventListener('mouseleave', resumeRotation);
-        card.addEventListener('focusin', pauseRotation);
-        card.addEventListener('focusout', resumeRotation);
-    });
-
-    document.querySelectorAll('.rec-info-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            if (btn.style.display === 'none') return;
-            const idx = stacks.indexOf(document.querySelector('.rec-stack[data-rec="' + btn.dataset.rec + '"]'));
-            if (idx === -1) return;
-            if (current === idx && pinned) {
-                pinned = false;
-                start();
-            } else {
-                pinned = true;
-                stop();
-                show(idx);
-            }
-        });
-    });
-
-    show(0);
-    start();
-})();
 </script>
 
 <script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/decision-support.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/decision-support.js'); ?>"></script>
 </body>
 </html>

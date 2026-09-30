@@ -131,7 +131,7 @@ if ($isLoggedIn && $is_staff) {
     <title><?php echo htmlspecialchars($system_name); ?> - San Isidro Environmental Reporting System</title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
     <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
@@ -373,59 +373,91 @@ if ($isLoggedIn && $is_staff) {
         }
         .nav-link:hover { color: #059669; }
 
-        .nav-links { display: none; align-items: center; gap: 1.25rem; }
-        @media (min-width: 768px) and (max-width: 1023px) {
-            .nav-links { gap: 1rem; }
-        }
-        @media (min-width: 1024px) { .nav-links { display: flex; } }
-        @media (min-width: 1280px) { .nav-links { gap: 1.5rem; } }
+.nav-links { display: none; align-items: center; justify-content: center; gap: 1rem; flex: 1 1 auto; min-width: 0; }
+@media (min-width: 1280px) { .nav-links { display: flex; gap: 1.35rem; } }
 
-        .landing-brand { min-width: 0; }
-        .landing-brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.landing-brand { min-width: 0; flex-shrink: 0; flex-wrap: nowrap; }
+.landing-brand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.landing-brand-badge { white-space: nowrap; }
         .nav-actions { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
         @media (min-width: 640px) { .nav-actions { gap: 0.75rem; } }
 
-        .nav-mobile-auth { display: flex; align-items: center; gap: 0.4rem; }
-        .nav-mobile-auth a { font-size: 0.76rem; font-weight: 700; white-space: nowrap; }
-        .nav-mobile-auth .nav-register { padding: 0.55rem 0.7rem; border-radius: 0.65rem; }
+        /* Sign In / Register buttons (navbar) */
+        .nav-login-btn,
+        .nav-register {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+            font-weight: 700; white-space: nowrap; text-decoration: none; line-height: 1;
+            border-radius: 0.7rem; min-height: 2.5rem; padding: 0.5rem 1.05rem; font-size: 0.84rem;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        .nav-login-btn {
+            color: #047857; background: #ffffff; border: 1.5px solid #cde3d7;
+        }
+        .nav-login-btn:hover { border-color: #10a37f; background: #f0fdf7; color: #065f46; }
+        .nav-login-btn i { font-size: 0.78rem; }
+        .nav-register { border: 1.5px solid transparent; box-shadow: 0 6px 16px -8px rgba(5,150,105,0.6); }
+        .nav-register i { font-size: 0.78rem; }
+        .nav-register:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -8px rgba(5,150,105,0.8); }
+
+        .nav-mobile-auth { display: flex; align-items: center; gap: 0.35rem; }
         @media (min-width: 768px) { .nav-mobile-auth { display: none; } }
-        @media (max-width: 1023px) { .nav-desktop-lang { display: none; } }
+        @media (max-width: 1279px) { .nav-desktop-lang { display: none; } }
         @media (max-width: 767px) {
             .landing-brand-name { max-width: clamp(64px, 23vw, 125px); }
             .nav-landing .brand-logo { max-width: 40px; object-fit: contain; }
             .nav-landing .nav-actions { gap: 0.35rem; }
             .nav-hamburger { width: 40px; height: 40px; flex-shrink: 0; }
+            .nav-mobile-auth .nav-login-btn { padding: 0.42rem 0.6rem; font-size: 0.74rem; }
+            .nav-mobile-auth .nav-register { padding: 0.42rem 0.72rem; font-size: 0.74rem; }
         }
         @media (max-width: 360px) {
-            .nav-landing .max-w-6xl { padding-left: 10px; padding-right: 10px; }
+            .nav-landing .max-w-7xl { padding-left: 10px; padding-right: 10px; }
             .landing-brand { gap: 5px; }
             .landing-brand-name { max-width: 72px; font-size: 0.85rem; }
-            .nav-mobile-auth .nav-register { padding: 0.5rem 0.55rem; }
+            .nav-mobile-auth .nav-login-btn,
+            .nav-mobile-auth .nav-register { padding: 0.4rem 0.5rem; font-size: 0.7rem; }
         }
 
-        .nav-auth { display: none; align-items: center; gap: 0.75rem; }
+        .nav-auth { display: none; align-items: center; gap: 0.6rem; }
         @media (min-width: 768px) { .nav-auth { display: flex; } }
 
-        .nav-hamburger { display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
-        .nav-hamburger:hover { background: #f9fafb; color: #059669; }
-        @media (min-width: 1024px) { .nav-hamburger { display: none !important; } }
+        .nav-hamburger {
+            display: inline-flex; align-items: center; justify-content: center;
+            color: #374151; background: #ffffff; transition: all 0.2s ease;
+        }
+        .nav-hamburger:hover { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+        .nav-hamburger i { font-size: 1rem; }
+        @media (min-width: 1280px) { .nav-hamburger { display: none !important; } }
 
-        .nav-mobile-menu { max-height: calc(100vh - 4rem); overflow-y: auto; }
-        @media (min-width: 1024px) { .nav-mobile-menu { display: none !important; } }
+        .nav-mobile-menu {
+            max-height: calc(100vh - 4rem); overflow-y: auto;
+            border-top: 1px solid #eef2f1;
+            box-shadow: 0 24px 48px -20px rgba(2, 44, 34, 0.35);
+        }
+        @media (min-width: 1280px) { .nav-mobile-menu { display: none !important; } }
 
         .nav-mobile-link {
-            padding: 0.55rem 0.75rem;
-            transition: background 0.2s ease, color 0.2s ease;
+            display: flex; align-items: center; gap: 0.7rem;
+            padding: 0.7rem 0.85rem; border-radius: 0.75rem;
+            color: #374151; font-weight: 600; font-size: 0.9rem;
+            transition: background 0.18s ease, color 0.18s ease;
         }
-        .nav-mobile-link:hover { background: #ecfdf5; color: #047857; }
-        .nav-mobile-lang { padding: 0.75rem; border-top: 1px solid #e5e7eb; }
-        .nav-mobile-lang .lang-toggle-btn { width: 100%; justify-content: center; min-height: 42px; }
-        .nav-mobile-lang .lang-menu { display: none; position: static; width: 100%; margin-top: 0.5rem; transform: none; }
-        .nav-mobile-lang .lang-dropdown.open .lang-menu { display: block; opacity: 1; visibility: visible; transform: none; }
-        @media (min-width: 1024px) { .nav-mobile-lang { display: none; } }
+        .nav-mobile-link i { width: 1.1rem; text-align: center; color: #10a37f; font-size: 0.85rem; }
+        .nav-mobile-link:hover, .nav-mobile-link:active { background: #ecfdf5; color: #047857; }
 
-        .nav-menu-cta { display: flex; flex-direction: column; gap: 0.5rem; }
-        @media (min-width: 640px) { .nav-menu-cta { flex-direction: row; } }
+        .nav-mobile-lang {
+            display: flex; flex-direction: column; gap: 0.55rem;
+            padding: 0.9rem 0.55rem 0.4rem; margin-top: 0.35rem; border-top: 1px solid #eef2f1;
+        }
+        .nav-mobile-lang-label {
+            font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #9aa7a1;
+            white-space: nowrap;
+        }
+        @media (min-width: 1280px) { .nav-mobile-lang { display: none; } }
+
+        .nav-menu-cta { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.85rem 0.55rem; border-top: 1px solid #eef2f1; margin-top: 0.35rem; }
+        .nav-menu-cta a { justify-content: center; min-height: 46px; padding: 0.7rem 1rem; font-size: 0.9rem; border-radius: 0.8rem; }
+        @media (min-width: 640px) { .nav-menu-cta { flex-direction: row; } .nav-menu-cta a { flex: 1 1 0; } }
 
         <?php echo lang_toggle_css(); ?>
 
@@ -567,12 +599,24 @@ if ($isLoggedIn && $is_staff) {
             /* ── Nav ── */
             .nav-landing .landing-brand-name { font-size: 0.95rem; }
 
-            /* ── Hero ── */
+            /* ── Hero ──
+               Bottom corners stay square while the hero is at rest (matching
+               desktop) and round once the page is scrolled. Position/layout is
+               unchanged — only the visuals are enhanced. */
             #home {
                 min-height: 100svh;
-                border-radius: 0 0 1.5rem 1.5rem;
+                border-radius: 0;
                 padding: 0 !important;
                 background-position: 54% center;
+            }
+            body.is-scrolled-landing #home {
+                border-bottom-left-radius: 1.5rem;
+                border-bottom-right-radius: 1.5rem;
+            }
+            /* Stronger bottom shading so the hero copy stays readable over the
+               busy photo/video on small screens. */
+            #home .hero-bg-overlay {
+                background: linear-gradient(180deg, rgba(4,40,31,0.30) 0%, rgba(6,78,59,0.30) 38%, rgba(3,22,15,0.78) 100%);
             }
             #home > .relative.z-10 {
                 padding-top: 6rem;
@@ -734,7 +778,7 @@ if ($isLoggedIn && $is_staff) {
 <!-- NAVIGATION -->
 <!-- ============================================ -->
 <nav class="fixed w-full z-50 nav-landing">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
             <div class="landing-brand flex items-center gap-2">
                 <?php if ($logo_url): ?>
@@ -745,7 +789,7 @@ if ($isLoggedIn && $is_staff) {
                     </div>
                 <?php endif; ?>
                 <span class="landing-brand-name text-xl font-bold text-gray-800"><?php echo htmlspecialchars($system_name); ?></span>
-                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full hidden sm:inline-block">San Isidro</span>
+                <span class="landing-brand-badge text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full hidden sm:inline-block">San Isidro</span>
             </div>
             
             <div class="nav-links">
@@ -758,12 +802,12 @@ if ($isLoggedIn && $is_staff) {
             </div>
             
             <div class="nav-actions">
-                <div class="nav-desktop-lang"><?php echo lang_toggle_widget(); ?></div>
+                <div class="nav-desktop-lang"><?php echo lang_icon_widget(); ?></div>
                 <div class="nav-mobile-auth">
                     <?php if($isLoggedIn): ?>
                         <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-link"><?php echo t('Dashboard'); ?></a>
                     <?php else: ?>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-link"><?php echo t('Sign In'); ?></a>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><?php echo t('Sign In'); ?></a>
                         <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white"><?php echo t('Register'); ?></a>
                     <?php endif; ?>
                 </div>
@@ -773,9 +817,9 @@ if ($isLoggedIn && $is_staff) {
                         <i class="fas fa-tachometer-alt mr-2"></i><?php echo t('Dashboard'); ?>
                     </a>
                 <?php else: ?>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-link"><?php echo t('Sign In'); ?></a>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium whitespace-nowrap">
-                        <i class="fas fa-user-plus mr-2"></i><?php echo t('Register'); ?>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><i class="fas fa-sign-in-alt"></i><?php echo t('Sign In'); ?></a>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white">
+                        <i class="fas fa-user-plus"></i><?php echo t('Register'); ?>
                     </a>
                 <?php endif; ?>
                 </div>
@@ -788,23 +832,31 @@ if ($isLoggedIn && $is_staff) {
 
     <!-- Mobile navigation menu (below lg) -->
     <div id="mobileNavMenu" class="nav-mobile-menu hidden bg-white border-t border-gray-100 shadow-xl">
-        <div class="px-4 sm:px-6 py-3 space-y-1">
-            <a href="#home" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('Home'); ?></a>
-            <a href="#features" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('How It Works'); ?></a>
-            <a href="#map-section" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('Map'); ?></a>
-            <a href="#stats" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('Stats'); ?></a>
-            <a href="#about" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('About LGU'); ?></a>
-            <a href="#faq" class="nav-mobile-link block px-3 py-2.5 rounded-xl text-gray-700 font-medium"><?php echo t('FAQ'); ?></a>
-            <div class="nav-mobile-lang">
-                <?php echo lang_toggle_widget(); ?>
+        <div class="px-3 sm:px-5 py-3">
+            <div class="space-y-1">
+                <a href="#home" class="nav-mobile-link"><i class="fas fa-home"></i><?php echo t('Home'); ?></a>
+                <a href="#features" class="nav-mobile-link"><i class="fas fa-cogs"></i><?php echo t('How It Works'); ?></a>
+                <a href="#map-section" class="nav-mobile-link"><i class="fas fa-map-marked-alt"></i><?php echo t('Map'); ?></a>
+                <a href="#stats" class="nav-mobile-link"><i class="fas fa-chart-bar"></i><?php echo t('Stats'); ?></a>
+                <a href="#about" class="nav-mobile-link"><i class="fas fa-landmark"></i><?php echo t('About LGU'); ?></a>
+                <a href="#faq" class="nav-mobile-link"><i class="fas fa-question-circle"></i><?php echo t('FAQ'); ?></a>
             </div>
-            <?php if($isLoggedIn): ?>
-            <div class="border-t border-gray-100 mt-3 pt-3 nav-menu-cta">
-                    <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary px-4 py-2.5 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+
+            <div class="nav-mobile-lang">
+                <span class="nav-mobile-lang-label"><?php echo t('Language'); ?></span>
+                <?php echo lang_segmented_widget(); ?>
+            </div>
+
+            <div class="nav-menu-cta">
+                <?php if($isLoggedIn): ?>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary text-white font-semibold flex items-center gap-2">
                         <i class="fas fa-tachometer-alt"></i><?php echo t('Dashboard'); ?>
                     </a>
+                <?php else: ?>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><i class="fas fa-sign-in-alt"></i><?php echo t('Sign In'); ?></a>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white"><i class="fas fa-user-plus"></i><?php echo t('Register'); ?></a>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
         </div>
     </div>
 </nav>
@@ -838,7 +890,11 @@ if ($isLoggedIn && $is_staff) {
                         <span class="text-white"><?php echo htmlspecialchars($user_name); ?>!</span>
                     <?php else: ?>
                         <?php echo htmlspecialchars($lp('lp_hero_headline_1', 'Sama-sama nating')); ?><br>
-                        <span class="hero-headline-second"><?php echo str_replace(['<br />', 'San Isidro'], ['<br /> ', 'San&nbsp;Isidro'], nl2br(htmlspecialchars($lp('lp_hero_headline_2', "pangalagaan ang\nSan Isidro.")))); ?></span>
+                        <span class="hero-headline-second"><?php
+    $hero_line2 = nl2br(htmlspecialchars($lp('lp_hero_headline_2', "pangalagaan ang\nSan Isidro.")));
+    $hero_line2 = str_ireplace('san isidro', 'San Isidro', $hero_line2);
+    echo str_replace(['<br />', 'San Isidro'], ['<br /> ', 'San&nbsp;Isidro'], $hero_line2);
+?></span>
                     <?php endif; ?>
                 </h1>
 
@@ -1316,15 +1372,15 @@ if ($isLoggedIn && $is_staff) {
             </div>
             <div>
                 <h4 class="font-semibold mb-4">Connect</h4>
-                <div class="flex gap-3">
-                    <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition">
-                        <i class="fab fa-facebook-f"></i>
+                <div class="flex flex-wrap gap-3">
+                    <a href="#" class="px-3 h-10 gap-2 text-sm bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition">
+                        <i class="material-symbols ms-public" aria-hidden="true"></i><span>Facebook</span>
                     </a>
-                    <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition">
-                        <i class="fab fa-twitter"></i>
+                    <a href="#" class="px-3 h-10 gap-2 text-sm bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition">
+                        <i class="material-symbols ms-chat" aria-hidden="true"></i><span>Twitter</span>
                     </a>
-                    <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition">
-                        <i class="fab fa-instagram"></i>
+                    <a href="#" class="px-3 h-10 gap-2 text-sm bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition">
+                        <i class="material-symbols ms-photo_camera" aria-hidden="true"></i><span>Instagram</span>
                     </a>
                 </div>
                 <p class="text-sm text-gray-400 mt-4">
@@ -1532,20 +1588,37 @@ window.addEventListener('scroll', function() {
 });
 
 // ============================================
-// ANIMATION ON SCROLL
+// ANIMATION ON SCROLL — each section eases in as it enters the viewport.
+// Content is never pre-hidden (motion is applied on enter), so a missed
+// trigger can never leave a section or card invisible.
 // ============================================
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('animate-fade-up');
-        }
-    });
-}, { threshold: 0.1 });
+(function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !window.gsap || !window.IntersectionObserver) return;
 
-document.querySelectorAll('.stat-card, .feature-card').forEach(el => {
-    el.style.opacity = '0';
-    observer.observe(el);
-});
+    var targets = document.querySelectorAll(
+        '#features .text-center, #features .feature-card, ' +
+        '#map-section .text-center, #map-section .bg-white.rounded-2xl, ' +
+        '#stats .text-center, #stats .stat-card, #stats .mt-8, ' +
+        '#about .text-center, #about .grid > *, ' +
+        '#faq .text-center, #faq details.faq-item, ' +
+        'footer .grid > *'
+    );
+    if (!targets.length) return;
+
+    var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            io.unobserve(entry.target);
+            gsap.fromTo(entry.target,
+                { opacity: 0, y: 40 },
+                { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', overwrite: true, clearProps: 'transform' }
+            );
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -8% 0px' });
+
+    Array.prototype.forEach.call(targets, function (el) { io.observe(el); });
+})();
 
 // ============================================
 // RESOLUTION RATE ANIMATION

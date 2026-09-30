@@ -79,18 +79,18 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
             <!-- Connect -->
             <div>
                 <h4 class="text-white font-semibold mb-4">Connect</h4>
-                <div class="flex gap-3">
-                    <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors">
-                        <i class="fab fa-facebook-f text-gray-400 hover:text-white transition-colors"></i>
+                <div class="flex flex-wrap gap-3">
+                    <a href="#" class="px-3 h-10 gap-2 text-sm bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors">
+                        <i class="material-symbols ms-public" aria-hidden="true"></i><span>Facebook</span>
                     </a>
-                    <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors">
-                        <i class="fab fa-twitter text-gray-400 hover:text-white transition-colors"></i>
+                    <a href="#" class="px-3 h-10 gap-2 text-sm bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors">
+                        <i class="material-symbols ms-chat" aria-hidden="true"></i><span>Twitter</span>
                     </a>
-                    <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors">
-                        <i class="fab fa-instagram text-gray-400 hover:text-white transition-colors"></i>
+                    <a href="#" class="px-3 h-10 gap-2 text-sm bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors">
+                        <i class="material-symbols ms-photo_camera" aria-hidden="true"></i><span>Instagram</span>
                     </a>
-                    <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors">
-                        <i class="fab fa-youtube text-gray-400 hover:text-white transition-colors"></i>
+                    <a href="#" class="px-3 h-10 gap-2 text-sm bg-gray-800 rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors">
+                        <i class="material-symbols ms-smart_display" aria-hidden="true"></i><span>YouTube</span>
                     </a>
                 </div>
                 <div class="mt-4">

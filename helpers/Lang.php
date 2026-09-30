@@ -769,6 +769,39 @@ function lang_toggle_css(): string
     transition: all 0.2s ease;
 }
 .lang-list-option.active .lang-radio { background: #059669; color: #ffffff; }
+
+/* Icon-only language button */
+.lang-icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.5rem; height: 2.5rem; flex-shrink: 0;
+    background: #f0fdf4; color: #047857;
+    border: 1px solid #a7f3d0; border-radius: 0.7rem;
+    cursor: pointer; transition: background 0.18s ease, border-color 0.18s ease;
+}
+.lang-icon-btn:hover { background: #d1fae5; border-color: #6ee7b7; }
+.lang-icon-btn i { font-size: 0.95rem; }
+
+/* Segmented language switch (no dropdown) */
+.lang-seg {
+    display: inline-flex; align-items: center; gap: 2px;
+    background: #eaf2ee; border: 1px solid #d7e5de; border-radius: 999px; padding: 3px;
+}
+.lang-seg button {
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; background: transparent; cursor: pointer;
+    padding: 0.32rem 0.72rem; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 700; color: #5b6b64;
+    font-family: inherit; transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    line-height: 1;
+}
+.lang-seg button:hover { color: #047857; }
+.lang-seg button.active {
+    background: #ffffff; color: #047857;
+    box-shadow: 0 1px 3px rgba(2, 44, 34, 0.18);
+}
+.lang-seg button:focus-visible { outline: 2px solid #10a37f; outline-offset: 2px; }
+.nav-mobile-lang .lang-seg { width: 100%; }
+.nav-mobile-lang .lang-seg button { flex: 1 1 0; padding: 0.6rem 0; font-size: 0.82rem; }
 CSS;
 }
 
@@ -787,4 +820,35 @@ function lang_toggle_widget(): string
         '<button type="button" role="menuitem" data-lang-opt="en" class="' . $en_act . '"><span class="no-translate">English</span><span class="lang-code">EN</span></button>' .
         '<button type="button" role="menuitem" data-lang-opt="fil" class="' . $fil_act . '"><span class="no-translate">Filipino</span><span class="lang-code">FIL</span></button>' .
         '</div></div>';
+}
+
+// Render a compact icon-only language button (globe) that opens the same
+// language menu — for the landing navbar.
+function lang_icon_widget(): string
+{
+    $current = app_lang();
+    $en_act  = $current === 'en' ? 'active' : '';
+    $fil_act = $current === 'fil' ? 'active' : '';
+    $label   = $current === 'fil' ? 'Filipino' : 'English';
+    return '<div class="lang-dropdown" data-lang-root>' .
+        '<button type="button" class="lang-icon-btn" data-lang-btn aria-haspopup="true" aria-expanded="false" aria-label="Language: ' . htmlspecialchars($label) . '" title="' . htmlspecialchars($label) . '">' .
+        '<i class="fas fa-globe" aria-hidden="true"></i></button>' .
+        '<div class="lang-menu" data-lang-menu role="menu">' .
+        '<button type="button" role="menuitem" data-lang-opt="en" class="' . $en_act . '"><span class="no-translate">English</span><span class="lang-code">EN</span></button>' .
+        '<button type="button" role="menuitem" data-lang-opt="fil" class="' . $fil_act . '"><span class="no-translate">Filipino</span><span class="lang-code">FIL</span></button>' .
+        '</div></div>';
+}
+
+// Render a segmented language switch (no dropdown) for compact surfaces like
+// the landing navbar and the mobile burger menu. Relies on the same
+// [data-lang-opt] click handler emitted by lang_toggle_js().
+function lang_segmented_widget(): string
+{
+    $current = app_lang();
+    $en_act  = $current === 'en' ? ' active' : '';
+    $fil_act = $current === 'fil' ? ' active' : '';
+    return '<div class="lang-seg no-translate" role="group" aria-label="Language">' .
+        '<button type="button" data-lang-opt="en" class="no-translate' . $en_act . '" aria-pressed="' . ($current === 'en' ? 'true' : 'false') . '">English</button>' .
+        '<button type="button" data-lang-opt="fil" class="no-translate' . $fil_act . '" aria-pressed="' . ($current === 'fil' ? 'true' : 'false') . '">Filipino</button>' .
+        '</div>';
 }

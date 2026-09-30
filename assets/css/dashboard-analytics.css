@@ -1,0 +1,118 @@
+/* Shared MENRO and barangay analytics layout. */
+/* MENRO dashboard actions and cards */
+        .dashboard-page .main-container > .sierra-hero { margin-bottom:1.35rem; }
+        .dash-head { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:0 0 1.1rem; padding:.1rem .2rem .85rem; border-bottom:1px solid #dce9e1; }
+        .dash-head-actions { display:flex; align-items:center; justify-content:flex-end; margin-left:auto; }
+        .dash-date { display:inline-flex; align-items:center; gap:.5rem; color:#496657; font-size:.8rem; font-weight:700; white-space:nowrap; }
+        .dash-date i { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:.65rem; background:#e8f5ed; color:#0d8568; }
+        .dash-head .btn-export-trigger { min-height:40px; padding:.6rem .95rem; border-color:#0d8568; background:#0d8568; color:#fff; box-shadow:0 4px 10px rgba(13,133,104,.16); }
+        .dash-head .btn-export-trigger:hover, .dash-head .btn-export-trigger.active { border-color:#086e57; background:#086e57; color:#fff; }
+        .dash-topbar { margin-bottom:.25rem; }
+
+        .bento { display:grid; grid-template-columns:1.28fr 1fr 1fr; gap:1rem; margin-bottom:1rem; align-items:stretch; }
+        .bento > * { min-width:0; margin-bottom:0 !important; }
+        .bento .b-hero { grid-row:span 2; }
+        .bento .b-wide { grid-column:span 2; }
+        .bento .b-full { grid-column:1 / -1; }
+        .dashboard-page .bento .chart-card, .dashboard-page .bento #map-container { background:#fff; border:1px solid #e0ebe4; border-radius:1.15rem; padding:1.3rem; box-shadow:0 3px 14px rgba(21,65,43,.045); transition:border-color .2s ease, box-shadow .2s ease; }
+        .dashboard-page .bento .chart-card:hover, .dashboard-page .bento #map-container:hover { border-color:#bddac9; box-shadow:0 9px 25px rgba(21,65,43,.09); }
+        .dashboard-page .bento .chart-card:focus-within, .dashboard-page .bento #map-container:focus-within { border-color:#86bea5; }
+        .dashboard-page .bento #map-container.map-fullscreen { border-radius:0; }
+        .bento .chart-head, .bento .chart-card > .flex:first-child, .bento #map-container .map-head { margin-bottom:1rem; padding-bottom:.85rem; border-bottom:1px solid #edf2ee; }
+        .dashboard-page .bento .chart-card .chart-title, .bento .map-title-wrap h2 { display:flex; align-items:center; color:#244c3d; font-size:.95rem; font-weight:800; line-height:1.35; margin-bottom:0; }
+        .bento .chart-title > i:first-child,
+        .bento .map-title-wrap h2 > i:first-child { display:inline-flex; align-items:center; justify-content:center; width:2.25rem; height:2.25rem; margin-right:.65rem !important; border-radius:.7rem; background:#eaf6ef; border:1px solid #d5eadd; color:#0d8568; font-size:.9rem; flex-shrink:0; }
+        .bento .rec-info-btn { background:#eef8f1; color:#0d8568; }
+        .bento .rec-info-btn:hover, .bento .rec-info-btn.active { background:#0d8568; color:#fff; }
+        .bento .chart-container { height:240px; }
+        .bento .chart-card select { border-color:#dce9e1; border-radius:.65rem; background-color:#f8fbf9; }
+        .bento .chart-card select:focus { border-color:#0d8568; box-shadow:0 0 0 3px rgba(13,133,104,.12); }
+        .bento .leaderboard-table tbody tr { transition:background-color .18s ease; }
+        .bento .leaderboard-table tbody tr:hover { background:#f4faf6; }
+        .bento .leaderboard-table thead th { color:#5d7668; font-weight:800; }
+        .bento .b-full .space-y-2 > div { border:1px solid #e8eee9; transition:border-color .18s ease, background-color .18s ease; }
+        .bento .b-full .space-y-2 > div:hover { border-color:#c7dfcf; background:#f7fbf8; }
+
+        /* Active Hotspots: one clear total and four compact metric cards. */
+        .dashboard-page .bento .hero-kpi { display:flex; flex-direction:column; background:#fff; border-color:#dfe6e9; }
+        .dashboard-page .bento .hero-kpi:hover { border-color:#cbd7df; box-shadow:0 6px 18px rgba(32,53,72,.06); }
+        .dashboard-page .bento .hero-kpi .chart-title { color:#344054; }
+        .dashboard-page .bento .hero-kpi .chart-title > i:first-child { background:#f2f4f7; border-color:#e4e7ec; color:#667085; }
+        .hotspot-summary { padding:.2rem 0 .1rem; }
+        .hero-num { color:#1d2939; font-size:clamp(3.1rem, 5vw, 4rem); font-weight:750; letter-spacing:-.055em; line-height:1; font-variant-numeric:tabular-nums; }
+        .hero-sub { color:#667085; font-size:.78rem; line-height:1.5; margin:.5rem 0 0; }
+        .hero-list-head { margin:1.5rem 0 .35rem; padding-top:1rem; border-top:1px solid #eaecf0; color:#475467; font-size:.78rem; font-weight:700; }
+        .indicator-list { display:grid; flex:1; grid-template-columns:repeat(2, minmax(0, 1fr)); grid-auto-rows:1fr; gap:.75rem; margin:.35rem 0 0; }
+        .indicator-row { display:flex; flex-direction:column; justify-content:space-between; min-width:0; gap:1rem; padding:1rem; border:1px solid #e4e7ec; border-radius:.75rem; background:#fff; }
+        .indicator-row dt { display:flex; align-items:flex-start; gap:.45rem; min-width:0; color:#475467; font-size:.76rem; font-weight:650; line-height:1.4; }
+        .indicator-row dt i { flex:none; margin-top:.1rem; color:#667085; }
+        .indicator-row dd { margin:0; color:#1d2939; font-size:1.65rem; font-weight:750; line-height:1.1; font-variant-numeric:tabular-nums; }
+        .indicator-row dd small { display:block; margin-top:.4rem; color:#667085; font-size:.68rem; font-weight:400; line-height:1.4; }
+        .indicator-row--critical dd { color:#b42318; }
+
+        /* Small KPI cards (top right) */
+        .kpi-sm { position:relative; overflow:visible !important; display:flex; flex-direction:column; justify-content:space-between; }
+        .kpi-num { font-size:2.15rem; font-weight:800; letter-spacing:-.045em; color:#19372c; line-height:1.1; font-variant-numeric:tabular-nums; }
+        .kpi-num small { font-size:.85rem; font-weight:600; color:#9ca3af; margin-left:.25rem; }
+        .kpi-foot { display:flex; align-items:center; flex-wrap:wrap; gap:.4rem; font-size:.75rem; color:#6b7280; margin-top:.55rem; }
+        .chip { display:inline-flex; align-items:center; gap:.25rem; padding:.15rem .5rem; border-radius:.4rem; font-size:.7rem; font-weight:700; }
+        .chip-good { background:#D1FAE5; color:#065F46; } .chip-bad { background:#FEE2E2; color:#991B1B; }
+        .chip-flat { background:#F3F4F6; color:#4B5563; } .chip-warn { background:#FEF3C7; color:#92400E; }
+        .demo-row { display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+        .demo-donut { width:72px; height:72px; position:relative; flex:none; }
+        .rec-popover { position:fixed; z-index:5000; width:min(360px, calc(100vw - 24px)); max-height:min(420px, calc(100vh - 24px)); max-height:min(420px, calc(100dvh - 24px)); overflow-y:auto; padding:.9rem; border:1px solid #d9e9de; border-radius:1rem; background:#fff; box-shadow:0 18px 45px rgba(16,53,34,.22); }
+        .rec-popover[hidden] { display:none; }
+        .rec-popover-head { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:0 .1rem .65rem; margin-bottom:.7rem; border-bottom:1px solid #edf2ee; }
+        .rec-popover-title { display:inline-flex; align-items:center; gap:.5rem; color:#244c3d; font-size:.82rem; font-weight:800; }
+        .rec-popover-title i { display:inline-flex; align-items:center; justify-content:center; width:25px; height:25px; border-radius:.5rem; background:#e8f5ed; color:#0d8568; }
+        .rec-popover-close { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border:0; border-radius:.5rem; background:#f2f6f3; color:#52685e; cursor:pointer; }
+        .rec-popover-close:hover { background:#e4eee7; color:#173f2e; }
+        .rec-popover .rec-box { margin:0; max-width:100%; padding:.75rem .85rem; font-size:.78rem; line-height:1.55; overflow-wrap:anywhere; }
+        .rec-popover .rec-box + .rec-box { margin-top:.65rem; }
+
+        /* Table + list cards */
+        @media (min-width:768px) {
+            .bento .leaderboard-scroll { max-height:300px; overflow-y:auto; }
+            .bento .leaderboard-table thead th { position:sticky; top:0; background:#F7FAF8; z-index:1; }
+            .bento .leaderboard-table thead th:first-child { border-radius:.6rem 0 0 .6rem; padding-left:.6rem; }
+            .bento .leaderboard-table thead th:last-child { border-radius:0 .6rem .6rem 0; }
+        }
+        @media (min-width:769px) { .bento #map { height:380px; } }
+        .bento .b-full .space-y-2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:.75rem; }
+        .bento .b-full .space-y-2 > * { margin-top:0 !important; }
+
+        @media (max-width:1100px) {
+            .bento { grid-template-columns:1fr 1fr; }
+            .bento .b-hero, .bento .b-wide, .bento .b-narrow { grid-column:1 / -1; grid-row:auto; }
+        }
+        @media (max-width:700px) {
+            .bento { grid-template-columns:1fr; }
+            .bento .kpi-sm { grid-column:1 / -1; }
+            .dash-head { margin-bottom:1rem; }
+            .dashboard-page .bento .chart-card, .dashboard-page .bento #map-container { padding:1rem; }
+        }
+        @media (max-width:390px) {
+            .indicator-list { gap:.6rem; }
+            .indicator-row { padding:.75rem; }
+            .dash-date { font-size:.72rem; }
+            .dash-head .btn-export-trigger { padding:.55rem .7rem; }
+        }
+
+.dashboard-page .rec-stack { display:none !important; }
+
+body.barangay-dashboard-page .bento .chart-canvas-container { height:240px; max-width:100%; }
+body.barangay-dashboard-page .bento .kpi-sm .chart-canvas-container { height:120px; }
+body.barangay-dashboard-page .bento .kpi-sm .chart-title { font-size:.85rem; }
+body.barangay-dashboard-page .bento .chart-card { overflow:visible; }
+body.barangay-dashboard-page .bento .chart-card > .overflow-x-auto { max-width:100%; }
+body.barangay-dashboard-page .bento .b-full table thead { background:#f7faf8; }
+body.barangay-dashboard-page .bento .b-full table tbody tr:hover { background:#f4faf6; }
+body.barangay-dashboard-page .kpi-foot a { color:#0d8568; font-weight:700; }
+@media (max-width:700px) {
+    body.barangay-dashboard-page .bento .chart-canvas-container { height:220px; }
+    body.barangay-dashboard-page .bento .kpi-sm .chart-canvas-container { height:120px; }
+}
+
+body.barangay-dashboard-page .bento .demo-chart { height:110px; }
+body.barangay-dashboard-page .bento .map-head-tools { flex-wrap:wrap; }
+body.barangay-dashboard-page .bento #timeframeToggle { flex:1 1 auto; }

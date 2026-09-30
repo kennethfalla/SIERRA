@@ -33,6 +33,10 @@ $ft_chip_clear_map     = $ft['chip_clear_map'] ?? [];
 $ft_callback           = $ft['callback'] ?? 'applyFilters';
 $ft_filter_count       = (int)($ft_filter_by['count'] ?? 0);
 $ft_date_range         = $ft['date_range'] ?? null;
+$ft_show_search        = $ft['show_search'] ?? true;
+$ft_show_active_row    = $ft['show_active_row'] ?? true;
+$ft_compact_breakpoint = max(640, min(1600, (int)($ft['compact_breakpoint'] ?? 640)));
+$ft_more_icon          = $ft['more_icon'] ?? 'fa-ellipsis-vertical';
 
 // Fallback chip-clearing map (used when the host page does not provide chip_clear_map):
 //   'search' -> search input, 'category' -> first inline select that has an "all" option,
@@ -464,13 +468,13 @@ foreach ($ft_popover_fields as $pf) {
     .ft-toolbar .chips-clear-all:hover {
         color: #c53030;
     }
-    @media (max-width: 640px) {
+    @media (max-width: <?php echo $ft_compact_breakpoint; ?>px) {
         .ft-toolbar .toolbar-search { min-width: 100%; }
         .ft-toolbar .toolbar-results { width: 100%; justify-content: space-between; }
     }
 
     /* Active filter chips stay on ONE line on mobile: horizontally scrollable */
-    @media (max-width: 640px) {
+    @media (max-width: <?php echo $ft_compact_breakpoint; ?>px) {
         .ft-toolbar .active-filters-row {
             flex-wrap: nowrap;
             overflow-x: auto;
@@ -498,7 +502,7 @@ foreach ($ft_popover_fields as $pf) {
     .ft-toolbar .ft-more-backdrop {
         display: none;
     }
-    @media (max-width: 640px) {
+    @media (max-width: <?php echo $ft_compact_breakpoint; ?>px) {
         .ft-toolbar .reports-toolbar {
             flex-direction: row;
             flex-wrap: nowrap;
@@ -714,16 +718,18 @@ foreach ($ft_popover_fields as $pf) {
          style="<?php echo $ft_active_filters > 0 ? 'border-radius: 12px 12px 0 0;' : ''; ?>">
 
         <!-- Search (always visible, incl. mobile) -->
+        <?php if ($ft_show_search): ?>
         <div class="toolbar-search">
             <i class="fas fa-search"></i>
             <input type="text" id="<?php echo htmlspecialchars($ft_search_id); ?>"
                    value="<?php echo htmlspecialchars($ft_search_value); ?>"
                    placeholder="<?php echo htmlspecialchars($ft_search_placeholder); ?>">
         </div>
+        <?php endif; ?>
 
         <!-- Mobile-only "more filters" trigger (3 dots) -->
         <button type="button" class="ft-more-btn" id="ftMoreBtn" aria-label="More filters" aria-expanded="false">
-            <i class="fas fa-ellipsis-vertical"></i>
+            <i class="fas <?php echo htmlspecialchars($ft_more_icon, ENT_QUOTES); ?>"></i>
             <?php if ($ft_active_filters > 0): ?>
                 <span class="ft-more-badge"><?php echo (int)$ft_active_filters; ?></span>
             <?php endif; ?>
@@ -893,7 +899,7 @@ foreach ($ft_popover_fields as $pf) {
     <!-- Backdrop for the mobile "more filters" sheet -->
     <div class="ft-more-backdrop" id="ftMoreBackdrop"></div>
 
-    <?php if ($ft_active_filters > 0): ?>
+    <?php if ($ft_show_active_row && $ft_active_filters > 0): ?>
     <div class="active-filters-row">
         <span class="active-filters-label">Active:</span>
         <?php foreach ($ft_chips as $chip): ?>
@@ -921,9 +927,10 @@ foreach ($ft_popover_fields as $pf) {
             $ft_sort_select ? [['id' => $ft_sort_select['id'] ?? '', 'default' => $ft_sort_select['default'] ?? '']] : []
         )); ?>
     };
-    if (!document.getElementById(FT.searchId)) return;
+    if (!document.querySelector('.ft-toolbar .reports-toolbar')) return;
 
     var searchInput = document.getElementById(FT.searchId);
+    if (!searchInput) { searchInput = { value: '', addEventListener: function () {}, focus: function () {} }; }
     var filterBtn = document.getElementById('filterByBtn');
     var filterPopover = document.getElementById('filterPopover');
     var searchTimer = null;
@@ -933,7 +940,7 @@ foreach ($ft_popover_fields as $pf) {
     var moreControls = document.getElementById('ftMoreControls');
     var moreBackdrop = document.getElementById('ftMoreBackdrop');
     var moreClose = document.getElementById('ftMoreClose');
-    var mobileQuery = window.matchMedia('(max-width: 640px)');
+    var mobileQuery = window.matchMedia('(max-width: <?php echo $ft_compact_breakpoint; ?>px)');
 
     function clearSheetHold() {
         if (!moreControls) return;

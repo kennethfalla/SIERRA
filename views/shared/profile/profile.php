@@ -58,7 +58,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
     <title><?php echo $section ? ucwords(str_replace('-', ' ', $section)) : 'My Profile'; ?> - <?php echo htmlspecialchars($system_name); ?></title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/cropperjs/cropper.min.css">
     <script src="<?php echo BASE_URL; ?>assets/vendor/cropperjs/cropper.min.js"></script>
     <style>

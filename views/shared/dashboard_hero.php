@@ -14,8 +14,11 @@ $hero_unread = (int)($hero_admin ? $menu_unread : $unread_count);
                 <span><?php echo $hero_greeting; ?></span>
             </div>
             <h1 class="sierra-hero-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></h1>
-            <p class="sierra-hero-subtitle"><?php echo $hero_admin ? t('Municipal Environment & Natural Resources Office') : htmlspecialchars($current_date, ENT_QUOTES, 'UTF-8'); ?></p>
+            <p class="sierra-hero-subtitle"><?php echo $hero_admin ? t('Municipal Environment & Natural Resources Office') : htmlspecialchars(($_SESSION['user_role'] ?? '') === 'barangay_official' ? 'Barangay ' . ($barangay_info['name'] ?? '') . ' · Environmental response' : ($hero_subtitle ?? $current_date), ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
+        <?php if (!empty($hero_extra)): ?>
+        <div class="sierra-hero-extra"><?php echo $hero_extra; ?></div>
+        <?php endif; ?>
         <button type="button" id="<?php echo $hero_admin ? 'menroNotifBell' : 'notifBellBtn'; ?>"
                 class="notification-bell sierra-hero-bell radius-12"
                 onclick="<?php echo $hero_admin ? 'menroToggleNotifs(event)' : 'toggleNotifications()'; ?>"

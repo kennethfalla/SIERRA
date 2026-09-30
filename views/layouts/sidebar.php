@@ -267,9 +267,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
                     class="w-10 h-10 rounded-lg bg-transparent hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
                     aria-label="Close sidebar menu"
                     title="Hide Sidebar">
-            <svg class="w-4 h-4 text-gray-500 group-hover:text-red-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+            <i class="material-symbols ms-close text-gray-500 group-hover:text-red-500 transition" aria-hidden="true"></i>
             <span class="sr-only">Close sidebar</span>
             </button>
             </div>
@@ -666,9 +664,9 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
         transform: translateX(0) !important;
     }
     
-    /* ---- Mobile top app bar (holds the sidebar toggle, not floating) ---- */
+    /* ---- Top app bar (shown on every screen size; holds the bell) ---- */
     .app-mobile-header {
-        display: none;
+        display: flex;
         align-items: center;
         gap: 8px;
         position: fixed;
@@ -795,20 +793,20 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
     #showSidebarBtn.app-mobile-menu-btn:hover { background: #ecfdf5; color: #10A37F; }
     #showSidebarBtn.app-mobile-menu-btn:focus-visible { outline: 3px solid #0D8568; outline-offset: 2px; }
     
-    /* Hide the burger while the sidebar overlay is open (mobile only) */
+    /* Unified top app header: shown on every screen size. */
+    body { padding-top: 56px; }
     @media (max-width: 1023px) {
-        .app-mobile-header { display: flex; }
-        body { padding-top: 56px; }
         /* Mobile: the header's menu button (X) closes the sidebar, so hide the sidebar's own close button. */
         #hideSidebarBtn { display: none !important; }
     }
-    
-    /* Desktop: sidebar always visible */
+
+    /* Desktop: sidebar always visible, header sits beside it, no burger. */
     @media (min-width: 1024px) {
         body:not(.sidebar-open) #sidebar {
             transform: translateX(0) !important;
         }
-        .app-mobile-header { display: none !important; }
+        .app-mobile-header { left: 280px; }
+        #showSidebarBtn { display: none !important; }
     }
     
     #sidebar .flex-1 {
@@ -1354,16 +1352,22 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
     }
     function toHeader() {
         var b = findBell();
-        if (!b || b.parentNode === header) return;
-        homeParent = b.parentNode;
-        homeNext = b.nextSibling;
-        header.insertBefore(b, burger);
+        if (b && b.parentNode !== header) {
+            homeParent = b.parentNode;
+            homeNext = b.nextSibling;
+            header.insertBefore(b, burger);
+        }
+        var extras = document.getElementById('dashHeaderExtras');
+        if (extras && extras.parentNode !== header) {
+            var ref = header.querySelector('.sierra-hero-bell, .notification-bell, .menro-header-bell') || burger;
+            header.insertBefore(extras, ref);
+        }
     }
     function toHero() {
         var b = header.querySelector('.sierra-hero-bell, .notification-bell');
         if (b && homeParent) homeParent.insertBefore(b, homeNext);
     }
-    function sync() { if (mq.matches) toHeader(); else toHero(); }
+    function sync() { toHeader(); }
 
     if (mq.addEventListener) mq.addEventListener('change', sync);
     else if (mq.addListener) mq.addListener(sync);
