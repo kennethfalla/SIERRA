@@ -17,21 +17,17 @@ $barangay_id = $_SESSION['barangay_id'] ?? null;
 // have no barangay_id. Defaults to resident when the flag is missing for safety.
 $is_resident = (int)($_SESSION['is_resident'] ?? (($barangay_id !== null) ? 1 : 0));
 
-$reports_stmt = $report->getReportsByUser($user_id);
+$reports_stmt = $report->getReportsByUser($user_id, 5);
 $reports = $reports_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$total_reports = $report->getTotalCount(null, $user_id);
-$in_progress_count = count(array_filter($reports, static function ($row) { return $row['status'] === 'in_progress'; }));
-$pending_count = $report->getReportsByStatus('pending', null, $user_id);
-
-$resolved_count = $report->getReportsByStatus('resolved', null, $user_id);
-$closed_count = $report->getReportsByStatus('closed', null, $user_id);
+$status_counts = $report->getUserStatusCounts($user_id);
+$total_reports = array_sum($status_counts) - ($status_counts['cancelled'] ?? 0);
+$in_progress_count = $status_counts['in_progress'] ?? 0;
+$pending_count = $status_counts['pending'] ?? 0;
+$resolved_count = $status_counts['resolved'] ?? 0;
+$closed_count = $status_counts['closed'] ?? 0;
 $total_resolved_count = $resolved_count + $closed_count;
-
-$stmt = $db->prepare("SELECT COUNT(*) as count FROM reports WHERE user_id = :user_id AND status IN ('escalated_pending', 'escalated')");
-$stmt->bindParam(':user_id', $user_id);
-$stmt->execute();
-$escalated_count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+$escalated_count = ($status_counts['escalated_pending'] ?? 0) + ($status_counts['escalated'] ?? 0);
 
 date_default_timezone_set('Asia/Manila');
 $current_hour = date('H');
@@ -1828,6 +1824,7 @@ text-decoration: underline;
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-hero.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-analytics.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-analytics.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/citizen-dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/citizen-dashboard.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="dashboard-page citizen-dashboard-page">
 
@@ -1837,9 +1834,13 @@ text-decoration: underline;
     <div class="main-container max-w-7xl mx-auto">
         
         <?php $hero_subtitle = t('Your reports, your community, a cleaner environment.'); include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
-        <div class="dash-head">
-            <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
-            <a class="citizen-primary-action" href="<?php echo BASE_URL; ?>index.php?page=submit-report"><i class="fas fa-plus-circle" aria-hidden="true"></i><span><?php echo t('Report an Issue'); ?></span></a>
+
+        <div class="dash-head dash-title-row">
+            
+            <div class="dash-title-actions">
+                <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
+                <a class="btn-add-report" href="<?php echo BASE_URL; ?>index.php?page=submit-report"><i class="fas fa-plus" aria-hidden="true"></i> <?php echo t('New Report'); ?></a>
+            </div>
         </div>
 
         

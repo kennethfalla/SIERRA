@@ -745,8 +745,22 @@ if ($isLoggedIn && $is_staff) {
             #about .relative.w-full.h-\[320px\] { height: 220px !important; }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/landing-interactions.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/landing-interactions.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/custom-cursor.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/custom-cursor.css'); ?>">
+    <script defer src="<?php echo BASE_URL; ?>assets/js/landing-reveal.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/landing-reveal.js'); ?>"></script>
+    <script defer src="<?php echo BASE_URL; ?>assets/js/custom-cursor.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/custom-cursor.js'); ?>"></script>
 </head>
 <body class="bg-[#F5FBF6] splash-lock">
+
+<div class="brand-cursor" aria-hidden="true">
+    <div class="brand-cursor-dot"></div>
+    <div class="brand-cursor-ringwrap">
+        <div class="brand-cursor-ring">
+            <span class="brand-cursor-leaf"></span>
+        </div>
+    </div>
+</div>
 
 <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-emerald-600 focus:text-white focus:rounded-lg">Skip to main content</a>
 
@@ -805,16 +819,16 @@ if ($isLoggedIn && $is_staff) {
                 <div class="nav-desktop-lang"><?php echo lang_icon_widget(); ?></div>
                 <div class="nav-mobile-auth">
                     <?php if($isLoggedIn): ?>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-link"><?php echo t('Dashboard'); ?></a>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-dashboard-btn"><i class="fas fa-tachometer-alt" aria-hidden="true"></i><?php echo t('Dashboard'); ?></a>
                     <?php else: ?>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><?php echo t('Sign In'); ?></a>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white"><?php echo t('Register'); ?></a>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><i class="fas fa-sign-in-alt" aria-hidden="true"></i><?php echo t('Sign In'); ?></a>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white"><i class="fas fa-user-plus" aria-hidden="true"></i><?php echo t('Register'); ?></a>
                     <?php endif; ?>
                 </div>
                 <div class="nav-auth">
                 <?php if($isLoggedIn): ?>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary px-4 py-2 text-white rounded-lg text-sm font-medium whitespace-nowrap">
-                        <i class="fas fa-tachometer-alt mr-2"></i><?php echo t('Dashboard'); ?>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-dashboard-btn">
+                        <i class="fas fa-tachometer-alt" aria-hidden="true"></i><?php echo t('Dashboard'); ?>
                     </a>
                 <?php else: ?>
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><i class="fas fa-sign-in-alt"></i><?php echo t('Sign In'); ?></a>
@@ -849,8 +863,8 @@ if ($isLoggedIn && $is_staff) {
 
             <div class="nav-menu-cta">
                 <?php if($isLoggedIn): ?>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary text-white font-semibold flex items-center gap-2">
-                        <i class="fas fa-tachometer-alt"></i><?php echo t('Dashboard'); ?>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-dashboard-btn">
+                        <i class="fas fa-tachometer-alt" aria-hidden="true"></i><?php echo t('Dashboard'); ?>
                     </a>
                 <?php else: ?>
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><i class="fas fa-sign-in-alt"></i><?php echo t('Sign In'); ?></a>
@@ -941,50 +955,79 @@ if ($isLoggedIn && $is_staff) {
 <!-- ============================================ -->
 <section id="features" class="py-20 bg-white">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
+        <div class="text-center lp-steps-head-wrap">
             <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_how_kicker', 'How It Works')); ?></span>
             <div class="section-divider"></div>
-            <h2 class="text-3xl font-bold text-gray-800 mt-2"><?php echo htmlspecialchars($lp('lp_how_heading', 'Three simple steps')); ?></h2>
-            <p class="text-gray-500 mt-2 max-w-2xl mx-auto"><?php echo htmlspecialchars($lp('lp_how_intro', "You don't need to be an expert. Anyone can report an environmental issue in their neighborhood.")); ?></p>
+            <h2 class="lp-steps-head">
+                <?php echo htmlspecialchars($lp('lp_how_heading', 'Three simple steps')); ?>
+                <em><?php echo htmlspecialchars($lp('lp_how_heading_accent', 'that need no introduction')); ?></em>
+            </h2>
+            <div class="lp-steps-pill">
+                <i class="fas fa-seedling"></i>
+                <?php echo htmlspecialchars($lp('lp_how_pill', 'See how a simple report turns into real action for your community')); ?>
+            </div>
         </div>
         
-        <div class="grid md:grid-cols-3 gap-8">
-            <div class="feature-card bg-white rounded-2xl p-8 text-center">
-                <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                    <span class="text-3xl font-bold text-emerald-600">1</span>
+        <div class="lp-steps-track">
+            <div class="lp-step">
+                <span class="lp-step-num">01</span>
+                <span class="lp-step-icon"><i class="fas fa-user-plus"></i></span>
+                <h3 class="lp-step-title"><?php echo htmlspecialchars($lp('lp_how_step1_title', 'Join the Community')); ?></h3>
+                <p class="lp-step-desc"><?php echo nl2br(htmlspecialchars($lp('lp_how_step1_desc'))); ?></p>
+                <div class="lp-step-media">
+                    <div class="lp-mock">
+                        <div class="lp-mock-top"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                        <div class="lp-mock-row">
+                            <span class="lp-mock-ava"></span>
+                            <div class="lp-mock-col"><span class="lp-mock-line w80 solid"></span><span class="lp-mock-line w45"></span></div>
+                        </div>
+                        <div class="lp-mock-row">
+                            <span class="lp-mock-ava alt"></span>
+                            <div class="lp-mock-col"><span class="lp-mock-line w70 solid"></span><span class="lp-mock-line w50"></span></div>
+                        </div>
+                        <div class="lp-mock-cta">Create account</div>
+                    </div>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-3"><?php echo htmlspecialchars($lp('lp_how_step1_title', 'Join the Community')); ?></h3>
-                <p class="text-gray-500 text-sm leading-relaxed"><?php echo nl2br(htmlspecialchars($lp('lp_how_step1_desc'))); ?></p>
                 <?php if(!$isLoggedIn): ?>
-                <div class="mt-4">
-                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="text-emerald-600 font-medium hover:underline text-sm">Sign up now →</a>
-                </div>
+                <a href="<?php echo BASE_URL; ?>index.php?page=register" class="lp-step-link">Sign up now <i class="fas fa-arrow-right"></i></a>
                 <?php endif; ?>
             </div>
             
-            <div class="feature-card bg-white rounded-2xl p-8 text-center">
-                <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                    <span class="text-3xl font-bold text-emerald-600">2</span>
+            <div class="lp-step">
+                <span class="lp-step-num">02</span>
+                <span class="lp-step-icon"><i class="fas fa-map-location-dot"></i></span>
+                <h3 class="lp-step-title"><?php echo htmlspecialchars($lp('lp_how_step2_title', 'Report the Problem')); ?></h3>
+                <p class="lp-step-desc"><?php echo nl2br(htmlspecialchars($lp('lp_how_step2_desc'))); ?></p>
+                <div class="lp-step-media">
+                    <div class="lp-mock">
+                        <div class="lp-mock-map"><span class="lp-mock-pin"><i class="fas fa-map-marker-alt"></i></span></div>
+                        <div class="lp-mock-field">Garbage pile near the creek</div>
+                        <div class="lp-mock-cta">Submit report</div>
+                    </div>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-3"><?php echo htmlspecialchars($lp('lp_how_step2_title', 'Report the Problem')); ?></h3>
-                <p class="text-gray-500 text-sm leading-relaxed"><?php echo nl2br(htmlspecialchars($lp('lp_how_step2_desc'))); ?></p>
                 <?php if(!$isLoggedIn): ?>
-                <div class="mt-4">
-                    <a href="<?php echo BASE_URL; ?>index.php?page=login" class="text-emerald-600 font-medium hover:underline text-sm">Login to report →</a>
-                </div>
+                <a href="<?php echo BASE_URL; ?>index.php?page=login" class="lp-step-link">Login to report <i class="fas fa-arrow-right"></i></a>
                 <?php endif; ?>
             </div>
             
-            <div class="feature-card bg-white rounded-2xl p-8 text-center">
-                <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                    <span class="text-3xl font-bold text-emerald-600">3</span>
+            <div class="lp-step">
+                <span class="lp-step-num">03</span>
+                <span class="lp-step-icon"><i class="fas fa-road"></i></span>
+                <h3 class="lp-step-title"><?php echo htmlspecialchars($lp('lp_how_step3_title', 'Track the Action')); ?></h3>
+                <p class="lp-step-desc"><?php echo nl2br(htmlspecialchars($lp('lp_how_step3_desc'))); ?></p>
+                <div class="lp-step-media">
+                    <div class="lp-mock">
+                        <div class="lp-mock-row"><div class="lp-mock-col"><span class="lp-mock-line w60 solid"></span></div></div>
+                        <div class="lp-mock-track"><span style="width:66%"></span></div>
+                        <ul class="lp-mock-timeline">
+                            <li class="done">Submitted</li>
+                            <li class="done">Verified by barangay</li>
+                            <li>Resolved</li>
+                        </ul>
+                    </div>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-3"><?php echo htmlspecialchars($lp('lp_how_step3_title', 'Track the Action')); ?></h3>
-                <p class="text-gray-500 text-sm leading-relaxed"><?php echo nl2br(htmlspecialchars($lp('lp_how_step3_desc'))); ?></p>
                 <?php if(!$isLoggedIn): ?>
-                <div class="mt-4">
-                    <a href="<?php echo BASE_URL; ?>index.php?page=login" class="text-emerald-600 font-medium hover:underline text-sm">Login to track →</a>
-                </div>
+                <a href="<?php echo BASE_URL; ?>index.php?page=login" class="lp-step-link">Login to track <i class="fas fa-arrow-right"></i></a>
                 <?php endif; ?>
             </div>
         </div>
@@ -1014,10 +1057,13 @@ if ($isLoggedIn && $is_staff) {
 <!-- ============================================ -->
 <section id="map-section" class="py-20 bg-[#F5FBF6]">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
+        <div class="text-center lp-section-head-wrap">
             <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_map_kicker', 'Live Map')); ?></span>
             <div class="section-divider"></div>
-            <h2 class="text-3xl font-bold text-gray-800 mt-2"><?php echo htmlspecialchars($lp('lp_map_heading', 'Environmental Reports Map')); ?></h2>
+            <h2 class="lp-section-head">
+                <?php echo htmlspecialchars($lp('lp_map_heading', 'Environmental Reports Map')); ?>
+                <em><?php echo htmlspecialchars($lp('lp_map_heading_accent', 'see every concern in one place')); ?></em>
+            </h2>
             <p class="text-gray-500 mt-2 max-w-2xl mx-auto"><?php echo htmlspecialchars($lp('lp_map_intro', 'See where environmental issues are being reported across San Isidro.')); ?></p>
             <?php if(!$isLoggedIn): ?>
             <p class="text-xs text-gray-400 mt-2">
@@ -1047,10 +1093,13 @@ if ($isLoggedIn && $is_staff) {
 <!-- ============================================ -->
 <section id="stats" class="py-20 bg-white">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
+        <div class="text-center lp-section-head-wrap">
             <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_stats_kicker', 'Community Impact')); ?></span>
             <div class="section-divider"></div>
-            <h2 class="text-3xl font-bold text-gray-800 mt-2"><?php echo htmlspecialchars($lp('lp_stats_heading', 'San Isidro Statistics')); ?></h2>
+            <h2 class="lp-section-head">
+                <?php echo htmlspecialchars($lp('lp_stats_heading', 'San Isidro Statistics')); ?>
+                <em><?php echo htmlspecialchars($lp('lp_stats_heading_accent', 'one community, one mission')); ?></em>
+            </h2>
             <p class="text-gray-500 mt-2 max-w-2xl mx-auto"><?php echo htmlspecialchars($lp('lp_stats_intro', "Together, we're making a difference in our community.")); ?></p>
         </div>
         
@@ -1089,13 +1138,14 @@ if ($isLoggedIn && $is_staff) {
     
     <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div class="text-center mb-14">
+        <div class="text-center mb-14 lp-section-head-wrap">
             <div class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-4 py-1.5 rounded-full mb-4">
                 <i class="fas fa-building text-emerald-600 text-xs"></i>
                 <span class="text-emerald-700 text-xs font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_about_kicker', 'About LGU')); ?></span>
             </div>
-            <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+            <h2 class="lp-section-head">
                 <?php echo htmlspecialchars($lp('lp_about_heading', 'Municipal Environment & Natural Resources Office')); ?>
+                <em><?php echo htmlspecialchars($lp('lp_about_heading_accent', 'working for a greener San Isidro')); ?></em>
             </h2>
             <p class="text-gray-500 max-w-2xl mx-auto">
                 <?php echo htmlspecialchars($lp('lp_about_subtitle', "Committed to protecting and preserving San Isidro's environment for future generations.")); ?>
@@ -1104,7 +1154,7 @@ if ($isLoggedIn && $is_staff) {
         </div>
         
         <!-- Our Mission -->
-        <div class="grid md:grid-cols-2 gap-10 lg:gap-16 items-center mb-24">
+        <div class="grid md:grid-cols-2 gap-10 lg:gap-16 items-center mb-24 lp-mission-split">
 
             <!-- Mission Imagery -->
             <div class="relative order-2 md:order-1">
@@ -1267,10 +1317,13 @@ if ($isLoggedIn && $is_staff) {
 <!-- ============================================ -->
 <section id="faq" class="py-20 bg-[#F5FBF6]">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
+        <div class="text-center lp-section-head-wrap">
             <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider">FAQ</span>
             <div class="section-divider"></div>
-            <h2 class="text-3xl font-bold text-gray-800 mt-2">Frequently Asked Questions</h2>
+            <h2 class="lp-section-head">
+                Frequently Asked Questions
+                <em><?php echo htmlspecialchars($lp('lp_faq_heading_accent', 'answers before you report')); ?></em>
+            </h2>
             <p class="text-gray-500 mt-2 max-w-2xl mx-auto">Everything you need to know about reporting environmental issues in San Isidro.</p>
         </div>
 
@@ -1588,46 +1641,14 @@ window.addEventListener('scroll', function() {
 });
 
 // ============================================
-// ANIMATION ON SCROLL — each section eases in as it enters the viewport.
-// Content is never pre-hidden (motion is applied on enter), so a missed
-// trigger can never leave a section or card invisible.
-// ============================================
-(function () {
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce || !window.gsap || !window.IntersectionObserver) return;
-
-    var targets = document.querySelectorAll(
-        '#features .text-center, #features .feature-card, ' +
-        '#map-section .text-center, #map-section .bg-white.rounded-2xl, ' +
-        '#stats .text-center, #stats .stat-card, #stats .mt-8, ' +
-        '#about .text-center, #about .grid > *, ' +
-        '#faq .text-center, #faq details.faq-item, ' +
-        'footer .grid > *'
-    );
-    if (!targets.length) return;
-
-    var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-            if (!entry.isIntersecting) return;
-            io.unobserve(entry.target);
-            gsap.fromTo(entry.target,
-                { opacity: 0, y: 40 },
-                { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', overwrite: true, clearProps: 'transform' }
-            );
-        });
-    }, { threshold: 0.1, rootMargin: '0px 0px -8% 0px' });
-
-    Array.prototype.forEach.call(targets, function (el) { io.observe(el); });
-})();
-
-// ============================================
 // RESOLUTION RATE ANIMATION
 // ============================================
 const resolutionBar = document.querySelector('.h-full.bg-gradient-to-r');
-if (resolutionBar) {
+if (resolutionBar && window.IntersectionObserver && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
+                observer.unobserve(entry.target);
                 const width = resolutionBar.style.width;
                 resolutionBar.style.width = '0%';
                 setTimeout(() => {

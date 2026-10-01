@@ -764,6 +764,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             .card form.flex.gap-2 button { width: 100%; }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
 
@@ -793,17 +794,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         <!-- ===== BRANDED HEADER ===== -->
         <div class="mb-6 md:mb-8">
-            <div class="flex items-center space-x-2 mb-2">
-                <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-clipboard-check text-[#10A37F] text-xs md:text-sm"></i>
-                </div>
-                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Report Management</span>
-            </div>
+            
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                <div>
-                    <h1 class="text-xl md:text-2xl lg:text-3xl font-bold text-gray-800">Manage Report</h1>
-                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Review, verify, and manage environmental report details</p>
-                </div>
+                
                 <div class="flex gap-2 flex-wrap">
                     <div class="export-dropdown">
                         <button onclick="togglePrintMenu()" class="btn-export-trigger" id="printDropdownTrigger">

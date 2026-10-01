@@ -1,0 +1,112 @@
+/* Sierra Eco — branded interactive cursor (landing page only).
+   Dot snaps to the pointer; a green leaf-ring trails it and leans toward
+   the direction of travel. Ring blooms on hover, shrinks on click.
+
+   Positioning split:
+   - .brand-cursor-ringwrap is moved by JS (translate3d, anchors at 0,0)
+   - .brand-cursor-ring is scaled/colored by CSS inside the wrapper,
+     so hover/click transforms can never fight the JS position. */
+
+@media (hover: hover) and (pointer: fine) {
+    html.brand-cursor-active,
+    html.brand-cursor-active * { cursor: none !important; }
+}
+
+.brand-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2147483000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .3s ease;
+}
+.brand-cursor.is-visible { opacity: 1; }
+
+/* --- Dot (snaps to the pointer) --- */
+.brand-cursor-dot {
+    position: fixed;
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    border-radius: 50%;
+    background: #10A37F;
+    box-shadow: 0 0 10px rgba(16, 163, 127, .55);
+    transition: width .15s ease, height .15s ease, margin .15s ease, opacity .25s ease, transform .1s ease;
+    will-change: transform;
+}
+
+/* --- Ring wrapper: fixes the point the ring hangs on (JS moves it) --- */
+.brand-cursor-ringwrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    will-change: transform;
+}
+
+/* --- Ring: centered on the wrapper; scale/color via CSS --- */
+.brand-cursor-ring {
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(16, 163, 127, .5);
+    box-shadow: 0 0 0 5px rgba(16, 163, 127, .045);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: scale(1);
+    transition: transform .18s cubic-bezier(.4, 0, .2, 1), border-color .2s ease,
+                background .2s ease, opacity .22s ease, box-shadow .2s ease;
+}
+
+.brand-cursor-leaf {
+    width: 9px;
+    height: 9px;
+    background: linear-gradient(135deg, #2ED8A4, #0E9F7A);
+    border-radius: 100% 0 100% 0;
+    margin-left: -1px;
+    opacity: .7;
+    box-shadow: 0 0 6px rgba(46, 216, 164, .5);
+    transition: width .2s ease, height .2s ease, box-shadow .2s ease;
+}
+
+/* --- Hover: bloom over interactive elements --- */
+.brand-cursor.is-hover .brand-cursor-dot { opacity: .3; }
+.brand-cursor.is-hover .brand-cursor-ring {
+    transform: scale(1.62);
+    border-color: rgba(16, 163, 127, .9);
+    background: rgba(16, 163, 127, .1);
+    box-shadow: 0 0 0 10px rgba(16, 163, 127, .06);
+}
+.brand-cursor.is-hover .brand-cursor-leaf {
+    width: 13px;
+    height: 13px;
+    box-shadow: 0 0 12px rgba(46, 216, 164, .55);
+}
+
+/* --- Text fields: settle into a steady caret feel --- */
+.brand-cursor.is-input .brand-cursor-ring {
+    transform: scale(.55);
+    border-color: rgba(11, 114, 133, .5);
+    background: rgba(11, 114, 133, .08);
+    box-shadow: none;
+}
+.brand-cursor.is-input .brand-cursor-leaf { opacity: .3; }
+
+/* --- Map: only the dot, so panning is unobstructed --- */
+.brand-cursor.is-map .brand-cursor-ring { opacity: 0; transform: scale(.4); }
+.brand-cursor.is-map .brand-cursor-dot {
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    background: #1B7F63;
+}
+
+/* --- Click --- */
+.brand-cursor.is-down .brand-cursor-ring { transform: scale(.62); }
+.brand-cursor.is-down .brand-cursor-dot { transform: scale(1.7); }

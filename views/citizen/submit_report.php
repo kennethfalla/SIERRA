@@ -1539,6 +1539,7 @@ if (is_dir($barangays_dir)) {
             100% { transform: rotate(360deg); }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="bg-[#F5FBF6]">
 
@@ -1580,17 +1581,7 @@ if (is_dir($barangays_dir)) {
         <?php endif; ?>
 
         <!-- Header -->
-        <div class="mb-6">
-            <div class="flex items-center space-x-2 mb-2">
-                <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-plus-circle text-[#10A37F] text-sm"></i>
-                </div>
-                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('New Report'); ?></span>
-            </div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800"><?php echo t('Submit Environmental Report'); ?></h1>
-            <p class="text-gray-500 text-sm mt-1"><?php echo t('Document and report environmental concerns in your community'); ?></p>
-            
-        </div>
+        
 
         <!-- Form Card -->
         <div class="form-card">

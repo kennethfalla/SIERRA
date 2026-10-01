@@ -119,32 +119,18 @@ $has_notifications = count($notifications) > 0;
         .btn-action.danger:hover { border-color: #EF4444; color: #EF4444; }
         .btn-action:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* ---- Search + filter chips toolbar ---- */
+        /* ---- Filter chips toolbar ---- */
         .notif-toolbar {
             padding: 0.875rem 1rem;
             border-bottom: 1px solid #F3F4F6;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            align-items: center;
             gap: 0.65rem;
+            flex-wrap: wrap;
         }
-        .nt-search { position: relative; }
-        .nt-search i {
-            position: absolute; left: 12px; top: 50%;
-            transform: translateY(-50%);
-            color: #9CA3AF; font-size: 0.8rem; pointer-events: none;
-        }
-        .nt-search input {
-            width: 100%; padding: 8px 12px 8px 36px;
-            border: 1.5px solid #E5E7EB; border-radius: 8px;
-            font-size: 0.85rem; color: #1F2937; background: #F9FAFB;
-            outline: none; transition: all 0.2s ease;
-        }
-        .nt-search input:focus {
-            border-color: #10A37F; background: #FFFFFF;
-            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.10);
-        }
-        .nt-search input::placeholder { color: #9CA3AF; }
         .nt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .nt-toolbar-clear { margin-left: auto; flex-shrink: 0; }
         .nt-chip {
             display: inline-flex; align-items: center; gap: 5px;
             padding: 5px 14px; border-radius: 9999px;
@@ -164,37 +150,21 @@ $has_notifications = count($notifications) > 0;
         }
         .nt-chip:not(.active) .nt-chip-count { background: #E5E7EB; color: #6B7280; }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-4xl mx-auto">
 
         <div class="page-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <div>
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-bell text-[#10A37F] text-xs md:text-sm"></i>
-                    </div>
-                    <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Notifications</span>
-                </div>
-                <h1 class="page-title font-bold text-gray-800">All Notifications</h1>
-                <p class="text-sm text-gray-500 mt-1">
-                    <?php echo $unread_count > 0 ? $unread_count . ' unread' : 'You are all caught up'; ?>
-                    &middot; <?php echo count($notifications); ?> total
-                </p>
-            </div>
+            
             <div class="flex flex-wrap gap-2">
                 <?php if ($unread_count > 0): ?>
                 <button type="button" class="btn-action" id="markAllBtn" onclick="markAllAsRead()">
                     <i class="fas fa-check-double"></i> Mark all as read
-                </button>
-                <?php endif; ?>
-                <?php if (count($notifications) > 0): ?>
-                <button type="button" class="btn-action danger" id="clearAllBtn" onclick="clearAllNotifications()">
-                    <i class="fas fa-trash-alt"></i> Clear all
                 </button>
                 <?php endif; ?>
             </div>
@@ -202,16 +172,17 @@ $has_notifications = count($notifications) > 0;
 
         <div class="notif-card" id="notifCard">
             <div class="notif-toolbar">
-                <div class="nt-search">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="ntSearch" placeholder="Search notifications..." autocomplete="off">
-                </div>
                 <div class="nt-chips" id="ntChips">
                     <button type="button" class="nt-chip active" data-filter="all">All</button>
                     <button type="button" class="nt-chip" data-filter="unread">Unread<?php if ($unread_count > 0): ?> <span class="nt-chip-count"><?php echo $unread_count; ?></span><?php endif; ?></button>
                     <button type="button" class="nt-chip" data-filter="reports">Reports<?php if ($reports_count > 0): ?> <span class="nt-chip-count"><?php echo $reports_count; ?></span><?php endif; ?></button>
                     <button type="button" class="nt-chip" data-filter="announcements">Announcements<?php if ($announcements_count > 0): ?> <span class="nt-chip-count"><?php echo $announcements_count; ?></span><?php endif; ?></button>
                 </div>
+                <?php if (count($notifications) > 0): ?>
+                <button type="button" class="btn-action danger nt-toolbar-clear" id="clearAllBtn" onclick="clearAllNotifications()">
+                    <i class="fas fa-trash-alt"></i> Clear all
+                </button>
+                <?php endif; ?>
             </div>
             <div id="notifList">
                 <?php if ($has_notifications): ?>
@@ -359,14 +330,12 @@ $has_notifications = count($notifications) > 0;
         }
     }
 
-    // ===== Search + pill filter chips =====
-    var ntSearch = document.getElementById('ntSearch');
+    // ===== Pill filter chips =====
     var ntList = document.getElementById('notifList');
     var ntChips = Array.prototype.slice.call(document.querySelectorAll('.nt-chip'));
     var activeFilter = 'all';
 
     function ntApply() {
-        var q = (ntSearch ? ntSearch.value : '').toLowerCase().trim();
         var items = ntList ? ntList.querySelectorAll('.notif-item') : [];
         var visible = 0;
         Array.prototype.forEach.call(items, function (item) {
@@ -374,9 +343,6 @@ $has_notifications = count($notifications) > 0;
             if (activeFilter === 'unread' && !item.classList.contains('unread')) show = false;
             else if (activeFilter === 'reports' && item.getAttribute('data-type') !== 'report') show = false;
             else if (activeFilter === 'announcements' && item.getAttribute('data-type') !== 'announcement') show = false;
-            if (show && q !== '') {
-                show = (item.textContent || '').toLowerCase().indexOf(q) !== -1;
-            }
             item.style.display = show ? '' : 'none';
             if (show) visible++;
         });
@@ -392,7 +358,6 @@ $has_notifications = count($notifications) > 0;
             ntApply();
         });
     });
-    ntSearch && ntSearch.addEventListener('input', ntApply);
     window.addEventListener('load', ntApply);
 
     // Click a notification -> mark read + follow link

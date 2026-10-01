@@ -35,7 +35,7 @@ $f_know_risk   = ['low','medium','high','critical'];
 $f_status   = (isset($_GET['status']) && in_array($_GET['status'], $f_know_status, true)) ? $_GET['status'] : 'all';
 $f_risk     = (isset($_GET['risk'])   && in_array($_GET['risk'],   $f_know_risk,   true)) ? $_GET['risk']   : 'all';
 $f_barangay = isset($_GET['barangay']) ? trim((string)$_GET['barangay']) : '';
-$f_search   = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
+$f_search = ''; // Dashboard filtering uses the visible status, risk and date controls.
 
 function _build_af($alias, $date_col, $with_date, $f_status, $f_risk, $f_barangay, $f_search) {
     $clause = '';
@@ -234,6 +234,10 @@ while ($row = $tierQuery->fetch(PDO::FETCH_ASSOC)) {
     $severityTiers[$level]['count']++;
 }
 $severityTotal = array_sum(array_column($severityTiers, 'count'));
+foreach ($severityTiers as &$severityTier) {
+    $severityTier['percentage'] = $severityTotal > 0 ? round(($severityTier['count'] / $severityTotal) * 100, 1) : 0;
+}
+unset($severityTier);
 $criticalSharePct = $severityTotal > 0 ? round(($severityTiers['critical']['count'] / $severityTotal) * 100, 1) : 0;
 $criticalAlert = $severityTotal > 0 && $criticalSharePct > (float)$kpi_critical_reports_pct;
 
@@ -1382,6 +1386,7 @@ function getDecisionBadge($classification) {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-hero.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-analytics.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-analytics.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="dashboard-page menro-dashboard-page">
 
@@ -1448,11 +1453,12 @@ function getDecisionBadge($classification) {
                 </div>
             </div>
         </div>
+
         <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
 
-        <div class="dash-head">
-            <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
-            <div class="dash-head-actions">
+        <div class="dash-head dash-title-row">
+            <div class="dash-title-actions">
+                <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
                 <div class="export-dropdown" id="exportDropdownWrap">
                     <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
                         <i class="fas fa-file-export"></i>
@@ -1685,8 +1691,20 @@ function getDecisionBadge($classification) {
                     <div class="chart-title"><i class="fas fa-chart-pie text-[#10A37F] mr-2"></i><?php echo t('Severity Distribution'); ?></div>
                     <button type="button" class="rec-info-btn" data-rec="rec-severity" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
                 </div>
-                <div class="chart-container" style="height:180px;">
-                    <canvas id="severityChart"></canvas>
+                <div class="severity-layout">
+                    <div class="severity-chart-wrap">
+                        <canvas id="severityChart" role="img" aria-label="<?php echo t('Active reports grouped by severity'); ?>"></canvas>
+                        <div class="severity-chart-total" aria-hidden="true"><strong><?php echo $severityTotal; ?></strong><span><?php echo t('Active reports'); ?></span></div>
+                    </div>
+                    <div class="severity-breakdown" aria-label="<?php echo t('Severity percentages'); ?>">
+                        <?php foreach ($severityTiers as $severityKey => $severityTier): ?>
+                        <div class="severity-stat severity-<?php echo htmlspecialchars($severityKey, ENT_QUOTES, 'UTF-8'); ?>">
+                            <span class="severity-dot" aria-hidden="true"></span>
+                            <span class="severity-stat-name" title="<?php echo htmlspecialchars($severityTier['label'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($severityTier['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            <span class="severity-stat-value"><?php echo $severityTier['count']; ?> · <?php echo number_format($severityTier['percentage'], 1); ?>%</span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
                 <div class="rec-stack" data-rec="rec-severity">
                 <?php if ($criticalAlert): ?>
@@ -1742,8 +1760,8 @@ function getDecisionBadge($classification) {
             <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
                 <div class="chart-title mb-0"><i class="fas fa-trophy text-[#10A37F] mr-2"></i><?php echo t('Barangay Performance Leaderboard'); ?></div>
                 <span class="flex items-center gap-2 text-xs text-gray-400">
-                    <button type="button" class="rec-info-btn" data-rec="rec-leaderboard" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
                     <?php echo t('Ranked by resolution rate · accountability &amp; follow-up tool'); ?>
+                    <button type="button" class="rec-info-btn" data-rec="rec-leaderboard" title="<?php echo t('Show recommendation'); ?>" aria-label="<?php echo t('Show recommendation'); ?>"><i class="fas fa-info"></i></button>
                 </span>
             </div>
             <?php if (empty($barangayLeaderboard)): ?>
@@ -2226,59 +2244,59 @@ function updateFilterSummary(mode, count) {
     }
 }
 
-// ------------------------------------------------------------
-// REPORT FILTER TOOLBAR — client-side filter callback
-// (shared report_filter_toolbar.php calls this via FT.callback)
-// ------------------------------------------------------------
-// ===== ANALYTICS DATE FILTER (reloads page with GET params for PHP chart/KPI refresh) =====
+// Map custom-range control uses the same server-rendered analytics scope.
 function applyAnalyticsDateFilter() {
-    var from = document.getElementById('rangeFrom') ? document.getElementById('rangeFrom').value : '';
-    var to   = document.getElementById('rangeTo')   ? document.getElementById('rangeTo').value   : '';
-    var url = new URL(window.location.href);
-    if (from) url.searchParams.set('date_from', from); else url.searchParams.delete('date_from');
-    if (to)   url.searchParams.set('date_to',   to);   else url.searchParams.delete('date_to');
+    const from = document.getElementById('rangeFrom');
+    const to = document.getElementById('rangeTo');
+    const url = new URL(window.location.href);
+    if (from && from.value) url.searchParams.set('date_from', from.value);
+    else url.searchParams.delete('date_from');
+    if (to && to.value) url.searchParams.set('date_to', to.value);
+    else url.searchParams.delete('date_to');
     url.searchParams.delete('date_preset');
     window.location.href = url.toString();
 }
 
+// Shared header filter callback. Reloading keeps every server-rendered KPI,
+// chart, map, and export on the same filter scope.
 function applyDashboardFilters() {
-    const s = document.getElementById('dashSearchInput');
-    const st = document.getElementById('dashStatusFilter');
-    const rk = document.getElementById('dashRiskFilter');
-    const brgy = document.getElementById('dashBarangayFilter');
+    const search = document.getElementById('dashSearchInput');
+    const status = document.getElementById('dashStatusFilter');
+    const risk = document.getElementById('dashRiskFilter');
+    const barangay = document.getElementById('dashBarangayFilter');
     const dateFrom = document.getElementById('ftRangeFrom');
-    const dateTo   = document.getElementById('ftRangeTo');
-    const presetEl = document.getElementById('ftRangePreset');
-
+    const dateTo = document.getElementById('ftRangeTo');
+    const presetElement = document.getElementById('ftRangePreset');
     const url = new URL(window.location.href);
-    const set = (k, v) => {
-        if (v && v !== 'all' && v !== '') url.searchParams.set(k, String(v).trim());
-        else url.searchParams.delete(k);
+    const set = function (key, value) {
+        if (value && value !== 'all') url.searchParams.set(key, String(value).trim());
+        else url.searchParams.delete(key);
     };
-    set('search', s ? s.value : '');
-    set('status', st ? st.value : 'all');
-    set('risk', rk ? rk.value : 'all');
-    set('barangay', brgy ? brgy.value : '');
 
-    let df = dateFrom ? dateFrom.value : '';
-    let dt = dateTo ? dateTo.value : '';
-    let preset = presetEl ? presetEl.value : '';
-    if (df || dt) {
-        preset = '';
-        if (presetEl) presetEl.value = '';
-    }
+    set('search', search ? search.value : '');
+    set('status', status ? status.value : 'all');
+    set('risk', risk ? risk.value : 'all');
+    set('barangay', barangay ? barangay.value : '');
+
+    let from = dateFrom ? dateFrom.value : '';
+    let to = dateTo ? dateTo.value : '';
+    let preset = presetElement ? presetElement.value : '';
+    if (from || to) preset = '';
     if (preset) {
         const today = new Date();
-        const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-        let f = today, t = today;
-        if (preset === 'week') { f = new Date(today); f.setDate(today.getDate() - 6); }
-        else if (preset === 'month') { f = new Date(today.getFullYear(), today.getMonth(), 1); }
-        else if (preset === 'year') { f = new Date(today.getFullYear(), 0, 1); }
-        df = ymd(f); dt = ymd(t);
+        const formatDate = function (date) {
+            return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+        };
+        let first = new Date(today);
+        if (preset === 'week') first.setDate(today.getDate() - 6);
+        else if (preset === 'month') first = new Date(today.getFullYear(), today.getMonth(), 1);
+        else if (preset === 'year') first = new Date(today.getFullYear(), 0, 1);
+        from = formatDate(first);
+        to = formatDate(today);
     }
     set('date_preset', preset);
-    set('date_from', df);
-    set('date_to', dt);
+    set('date_from', from);
+    set('date_to', to);
     window.location.href = url.toString();
 }
 
@@ -2894,10 +2912,19 @@ function initCharts() {
             }]
         },
         options: {
-            cutout: '65%',
+            cutout: '70%',
             plugins: {
-                legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', padding: 14, color: '#536b5c', font: { size: 11, family: 'Manrope' } } },
-                tooltip: { backgroundColor: '#173f2e', padding: 10, cornerRadius: 8 }
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#173f2e', padding: 10, cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((sum, value) => sum + Number(value || 0), 0);
+                            const pct = total > 0 ? ((Number(context.raw || 0) / total) * 100).toFixed(1) : '0.0';
+                            return ' ' + context.label + ': ' + context.raw + ' (' + pct + '%)';
+                        }
+                    }
+                }
             },
             responsive: true,
             maintainAspectRatio: false

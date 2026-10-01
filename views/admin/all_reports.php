@@ -856,6 +856,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
 
@@ -866,17 +867,9 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
 
         <!-- Header (adapted from my_reports.php branding style) -->
         <div class="page-header">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-flag text-[#10A37F] text-xs md:text-sm"></i>
-                </div>
-                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('All Reports'); ?></span>
-            </div>
+            
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                    <h1 class="page-title font-bold text-gray-800"><?php echo t('All Reports'); ?></h1>
-                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1"><?php echo t('View and manage all environmental reports across San Isidro'); ?></p>
-                </div>
+                
                 <div class="flex items-center gap-3">
                     <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
                     <div class="export-dropdown" id="exportDropdownWrap">
@@ -1083,9 +1076,17 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                 'date_to'    => ['el' => 'popoverDateTo', 'clear' => ''],
             ],
             'callback'           => 'applyFilters',
+            'compact_breakpoint' => 1199,
+            'more_icon'          => 'fa-sliders-h',
         ];
-        include __DIR__ . '/../shared/report_filter_toolbar.php';
         ?>
+        <div id="dashHeaderExtras" class="dash-header-extras">
+            <div class="dashboard-toolbar-row dash-topbar">
+                <div class="dashboard-toolbar-filters">
+                    <?php include __DIR__ . '/../shared/report_filter_toolbar.php'; ?>
+                </div>
+            </div>
+        </div>
 
         <!-- Results Table -->
         <style>

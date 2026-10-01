@@ -22,36 +22,7 @@ if (class_exists('ActivityLog')) {
     $activityLog = new ActivityLog($db);
 }
 
-// ============================================
-// ENSURE REQUIRED COLUMNS EXIST
-// ============================================
-try {
-    $checkColumn = $db->query("SHOW COLUMNS FROM users LIKE 'is_verified'");
-    if ($checkColumn->rowCount() == 0) {
-        $db->exec("ALTER TABLE users ADD COLUMN is_verified TINYINT(1) DEFAULT 1");
-        error_log("Added missing 'is_verified' column to users table.");
-    }
-
-    $checkColumn = $db->query("SHOW COLUMNS FROM users LIKE 'force_password_reset'");
-    if ($checkColumn->rowCount() == 0) {
-        $db->exec("ALTER TABLE users ADD COLUMN force_password_reset TINYINT(1) DEFAULT 0 COMMENT 'Set to 1 to force password reset on next login (staff accounts)'");
-        error_log("Added missing 'force_password_reset' column to users table.");
-    }
-
-    $checkColumn = $db->query("SHOW COLUMNS FROM users LIKE 'job_title'");
-    if ($checkColumn->rowCount() == 0) {
-        $db->exec("ALTER TABLE users ADD COLUMN job_title VARCHAR(100) DEFAULT NULL");
-        error_log("Added missing 'job_title' column to users table.");
-    }
-
-    $checkColumn = $db->query("SHOW COLUMNS FROM users LIKE 'profile_picture'");
-    if ($checkColumn->rowCount() == 0) {
-        $db->exec("ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255) DEFAULT NULL");
-        error_log("Added missing 'profile_picture' column to users table.");
-    }
-} catch (PDOException $e) {
-    error_log("Column check failed: " . $e->getMessage());
-}
+// Required user columns are prepared once per schema version by Database.
 
 // ============================================
 // HANDLE LOGOUT (GET request)

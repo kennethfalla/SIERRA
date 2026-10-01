@@ -22,6 +22,7 @@ $system_name = SettingsHelper::get('system_name', 'Sierra');
         * { font-family: 'Manrope', sans-serif; }
         body { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f5fbf6 100%); }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="min-h-screen flex items-center justify-center p-6">
     <div class="max-w-md w-full">

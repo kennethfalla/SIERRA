@@ -276,6 +276,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
         .flash-message.error { background: #fef2f2; border-left: 4px solid #dc2626; color: #991b1b; }
         .flash-message.info { background: #ecfdf5; border-left: 4px solid #0f766e; color: #115e59; }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
     <div class="auth-shell">

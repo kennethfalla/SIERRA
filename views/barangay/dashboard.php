@@ -115,7 +115,7 @@ $f_know_status = ['pending','under_review','verified','in_progress','escalated_p
 $f_know_risk   = ['low','medium','high','critical'];
 $f_status = (isset($_GET['status']) && in_array($_GET['status'], $f_know_status, true)) ? $_GET['status'] : 'all';
 $f_risk   = (isset($_GET['risk'])   && in_array($_GET['risk'],   $f_know_risk,   true)) ? $_GET['risk']   : 'all';
-$f_search = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
+$f_search = ''; // Dashboard filtering uses the visible status, risk and date controls.
 // Search condition (title/description LIKE) against alias r.
 $f_search_sql = '';
 $f_search_params = [];
@@ -164,12 +164,11 @@ if ($f_date_to)   { $fLegend_sql .= ' AND r.created_at <= ?'; $fLegend_params[] 
 if ($f_risk   !== 'all') { $fLegend_sql .= ' AND r.risk_level = ?'; $fLegend_params[] = $f_risk; }
 $fLegend_sql .= $f_search_sql; $fLegend_params = array_merge($fLegend_params, $f_search_params);
 
-$status_count_sql = function ($status) use ($db, $barangay_id, $fLegend_sql, $fLegend_params) {
-    $p = $fLegend_params;
-    $p[] = $status;
-    $s = $db->prepare("SELECT COUNT(*) AS c FROM reports r WHERE r.barangay_id = ? AND r.status = ? {$fLegend_sql}");
-    $s->execute($p);
-    return (int)$s->fetch(PDO::FETCH_ASSOC)['c'];
+$status_summary = $db->prepare("SELECT r.status, COUNT(*) AS total FROM reports r WHERE r.barangay_id = ? {$fLegend_sql} GROUP BY r.status");
+$status_summary->execute($fLegend_params);
+$status_counts = array_map('intval', $status_summary->fetchAll(PDO::FETCH_KEY_PAIR));
+$status_count_sql = static function ($status) use ($status_counts) {
+    return $status_counts[$status] ?? 0;
 };
 $total_reports = $status_count_sql('pending')
                + $status_count_sql('under_review') + $status_count_sql('verified')
@@ -336,6 +335,23 @@ $risk_stats = $db->prepare("
 $risk_stats->execute($fC_params);
 $risk_data = $risk_stats->fetchAll(PDO::FETCH_ASSOC);
 $risk_total = array_sum(array_column($risk_data, 'count'));
+$severityTiers = [
+    'low'      => ['label' => 'Low (' . 1 . '-' . ($criticalBands['yellow'] - 1) . ')', 'count' => 0],
+    'medium'   => ['label' => 'Medium (' . $criticalBands['yellow'] . '-' . ($criticalBands['orange'] - 1) . ')', 'count' => 0],
+    'high'     => ['label' => 'High (' . $criticalBands['orange'] . '-' . ($criticalBands['critical'] - 1) . ')', 'count' => 0],
+    'critical' => ['label' => 'Critical (' . $criticalBands['critical'] . '-20)', 'count' => 0],
+];
+foreach ($risk_data as $riskRow) {
+    $riskKey = strtolower((string)($riskRow['risk_level'] ?? 'low'));
+    if (isset($severityTiers[$riskKey])) {
+        $severityTiers[$riskKey]['count'] = (int)$riskRow['count'];
+    }
+}
+$severityTotal = array_sum(array_column($severityTiers, 'count'));
+foreach ($severityTiers as &$severityTier) {
+    $severityTier['percentage'] = $severityTotal > 0 ? round(($severityTier['count'] / $severityTotal) * 100, 1) : 0;
+}
+unset($severityTier);
 
 // ============================================================
 // ========== DECISION SUPPORT: TOP REPEAT-OFFENDER LOCATIONS ==========
@@ -559,7 +575,8 @@ $recent_reports = $db->prepare("
     JOIN barangays b ON r.barangay_id = b.id
     JOIN users u ON r.user_id = u.id
     WHERE r.barangay_id = ? AND r.status != 'cancelled' {$fC_sql}
-    ORDER BY r.created_at DESC
+    ORDER BY r.created_at DESC, r.id DESC
+    LIMIT 10
 ");
 $recent_reports->execute($fC_params);
 $recent_reports_rows = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
@@ -1489,6 +1506,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-hero.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-hero.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-analytics.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-analytics.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="dashboard-page barangay-dashboard-page">
 
@@ -1515,7 +1533,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             'search_id'          => 'barangaySearchInput',
             'search_value'       => $f_search,
             'search_placeholder' => 'Search reports by title or description...',
-            'show_search' => false,
+            'show_search'        => false,
             'show_active_row' => false,
             'compact_breakpoint' => 1199,
             'more_icon' => 'fa-sliders-h',
@@ -1546,25 +1564,28 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             </div></div>
         </div>
         <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
-        <div class="dash-head">
-            <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
-            <div class="dash-head-actions"><div class="export-dropdown">
-                <button onclick="toggleExportMenu()" class="btn-export-trigger radius-12" type="button">
-                    <i class="fas fa-file-export"></i>
-                    <span>Export</span>
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div id="exportMenu" class="export-dropdown-menu">
-                    <button class="export-dropdown-item" onclick="exportDashboardPdf()" type="button">
-                        <i class="fas fa-file-pdf"></i>
-                        <span>Export as PDF</span>
+
+        <div class="dash-head dash-title-row">
+            <div class="dash-title-actions">
+                <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
+                <div class="export-dropdown">
+                    <button onclick="toggleExportMenu()" class="btn-export-trigger radius-12" type="button">
+                        <i class="fas fa-file-export"></i>
+                        <span>Export</span>
+                        <i class="fas fa-chevron-down"></i>
                     </button>
-                    <button class="export-dropdown-item" onclick="exportDashboardCsv()" type="button">
-                        <i class="fas fa-file-csv"></i>
-                        <span>Export as CSV</span>
-                    </button>
+                    <div id="exportMenu" class="export-dropdown-menu">
+                        <button class="export-dropdown-item" onclick="exportDashboardPdf()" type="button">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Export as PDF</span>
+                        </button>
+                        <button class="export-dropdown-item" onclick="exportDashboardCsv()" type="button">
+                            <i class="fas fa-file-csv"></i>
+                            <span>Export as CSV</span>
+                        </button>
+                    </div>
                 </div>
-            </div></div>
+            </div>
         </div>
 
         
@@ -1751,6 +1772,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                     <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
                     <span class="text-xs text-gray-400">to</span>
                     <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
+                    <button onclick="applyAnalyticsDateFilter()" class="bg-[#10A37F] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#0D8568] transition flex items-center gap-1" title="Reload page with selected date range to update all KPIs and charts">
+                        <i class="fas fa-sync-alt"></i> Apply to Analytics
+                    </button>
                 </div>
             </div>
 
@@ -1800,44 +1824,37 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             </div>
         </div>
 <div class="chart-card b-narrow">
-                <div class="chart-head mb-3">
-                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-exclamation-triangle text-[#10A37F] mr-2" aria-hidden="true"></i>Risk Distribution</div>
-                    <div class="flex items-center gap-2">
-                        <p class="text-xs text-gray-400 font-medium mb-0"><?php echo $risk_total; ?> total</p>
-                        <button type="button" class="rec-info-btn" data-rec="rec-risk" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-risk-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
-                    </div>
+                <div class="chart-head">
+                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-chart-pie text-[#10A37F] mr-2" aria-hidden="true"></i>Severity Distribution</div>
+                    <button type="button" class="rec-info-btn" data-rec="rec-risk" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-risk-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
                 </div>
-                <?php if(!empty($risk_data) && $risk_total > 0): ?>
-                    <div class="chart-canvas-container">
-                        <canvas id="riskChart" style="max-height: 200px;" role="img" aria-label="Doughnut chart of reports by risk level"></canvas>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 mt-4 stat-cards">
-                        <?php 
-                        $risk_colors = [
-                            'critical' => '#EF4444',
-                            'high' => '#F97316',
-                            'medium' => '#F59E0B',
-                            'low' => '#10B981'
-                        ];
-                        foreach($risk_data as $risk): 
-                            $percentage = round(($risk['count'] / $risk_total) * 100);
-                        ?>
-                        <div class="bg-gray-50 rounded-xl p-3">
-                            <div class="flex items-center gap-2">
-                                <div class="w-3 h-3 rounded-full" style="background-color: <?php echo $risk_colors[$risk['risk_level']] ?? '#10B981'; ?>"></div>
-                                <span class="text-xs font-extrabold text-gray-700"><?php echo ucfirst($risk['risk_level']); ?></span>
-                            </div>
-                            <p class="text-xl font-extrabold mt-1 tracking-tight"><?php echo $risk['count']; ?></p>
-                            <p class="text-xs text-gray-500 font-medium"><?php echo $percentage; ?>% of total</p>
+                <?php if($severityTotal > 0): ?>
+                    <div class="severity-layout">
+                        <div class="severity-chart-wrap">
+                            <canvas id="severityChart" role="img" aria-label="Active reports grouped by severity"></canvas>
+                            <div class="severity-chart-total" aria-hidden="true"><strong><?php echo $severityTotal; ?></strong><span>Active reports</span></div>
                         </div>
-                        <?php endforeach; ?>
+                        <div class="severity-breakdown" aria-label="Severity percentages">
+                            <?php foreach ($severityTiers as $severityKey => $severityTier): ?>
+                            <div class="severity-stat severity-<?php echo htmlspecialchars($severityKey, ENT_QUOTES, 'UTF-8'); ?>">
+                                <span class="severity-dot" aria-hidden="true"></span>
+                                <span class="severity-stat-name" title="<?php echo htmlspecialchars($severityTier['label'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($severityTier['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                <span class="severity-stat-value"><?php echo $severityTier['count']; ?> · <?php echo number_format($severityTier['percentage'], 1); ?>%</span>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
                     <div class="rec-stack" id="rec-risk-stack" data-rec="rec-risk" role="region" aria-live="polite">
                         <?php
-                            $domRisk = null;
-                            foreach ($risk_data as $rr) { if ($domRisk === null || $rr['count'] > $domRisk['count']) $domRisk = $rr; }
-                            $domLevel = $domRisk['risk_level'] ?? 'low';
-                            $domPct = $risk_total > 0 ? round(($domRisk['count'] / $risk_total) * 100) : 0;
+                            $domLevel = 'low';
+                            $domCount = 0;
+                            foreach ($severityTiers as $sevKey => $sevTier) {
+                                if ($sevTier['count'] > $domCount) {
+                                    $domLevel = $sevKey;
+                                    $domCount = $sevTier['count'];
+                                }
+                            }
+                            $domPct = $severityTotal > 0 ? round(($domCount / $severityTotal) * 100) : 0;
                             $domClass = in_array($domLevel, ['critical', 'high'], true) ? 'rec-critical' : ($domLevel === 'medium' ? 'rec-medium' : 'rec-low');
                         ?>
                         <div class="rec-box <?php echo $domClass; ?>">
@@ -3092,7 +3109,7 @@ function _buildAnalyticsUrl() {
         else if (preset === 'year') { pf = new Date(today.getFullYear(), 0, 1); }
         f = ymd(pf); t = ymd(pt);
     }
-    var q = searchInput ? searchInput.value.trim() : (url.searchParams.get('search') || '');
+    var q = ''; // Search is not a dashboard filter.
     if (f) url.searchParams.set('date_from', f); else url.searchParams.delete('date_from');
     if (t) url.searchParams.set('date_to', t);   else url.searchParams.delete('date_to');
     if (preset) url.searchParams.set('date_preset', preset); else url.searchParams.delete('date_preset');
@@ -3109,18 +3126,20 @@ function applyDashboardFilters() {
 
 // ========== CHARTS ==========
 <?php if(!empty($risk_data) && $risk_total > 0): ?>
-const riskCtx = document.getElementById('riskChart').getContext('2d');
-new Chart(riskCtx, {
+const severityCtx = document.getElementById('severityChart').getContext('2d');
+new Chart(severityCtx, {
     type: 'doughnut',
     data: {
-        labels: [<?php foreach($risk_data as $r) echo "'" . ucfirst($r['risk_level']) . "',"; ?>],
+        labels: <?php echo json_encode(array_values(array_column($severityTiers, 'label'))); ?>,
         datasets: [{
-            data: [<?php foreach($risk_data as $r) echo $r['count'] . ","; ?>],
-            backgroundColor: <?php echo json_encode(array_map(static function ($risk) { return ['critical' => '#EF4444', 'high' => '#F97316', 'medium' => '#F59E0B', 'low' => '#10B981'][$risk['risk_level']] ?? '#94A3B8'; }, $risk_data)); ?>,
-            borderWidth: 0
+            data: <?php echo json_encode(array_values(array_column($severityTiers, 'count'))); ?>,
+            backgroundColor: ['#10B981', '#F59E0B', '#F97316', '#EF4444'],
+            borderColor: '#fff',
+            borderWidth: 3,
+            hoverOffset: 6
         }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '60%' }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }
 });
 <?php endif; ?>
 

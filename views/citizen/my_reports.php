@@ -1152,6 +1152,15 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
 
         /* ===== TAB SWITCHER ===== */
+        .my-reports-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+        }
+        .my-reports-topbar .tab-switcher { margin-bottom: 0; }
         .tab-switcher {
             display: flex;
             gap: 0;
@@ -1346,6 +1355,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
 
@@ -1358,37 +1368,23 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="loading-spinner"></div>
         </div>
         
-        <!-- Header -->
-        <div class="mb-6">
-            <div class="flex items-center space-x-2 mb-2">
-                <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-list text-[#10A37F] text-sm"></i>
-                </div>
-                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo $active_tab === 'supported' ? t('Supported Reports') : t('My Reports'); ?></span>
-            </div>
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800"><?php echo $active_tab === 'supported' ? t('Reports I Supported') : t('My Reports'); ?></h1>
-                    <p class="text-gray-500 text-sm mt-1"><?php echo $active_tab === 'supported' ? t('Track reports you have supported — see their progress and status updates.') : t('Track and manage all your environmental reports'); ?></p>
-                </div>
-                <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 sm:w-auto justify-center">
-                    <i class="fas fa-plus-circle text-xs md:text-sm"></i> 
-                    <span class="text-xs md:text-sm"><?php echo t('New Report'); ?></span>
+        <!-- Header: tabs on the left, New Report on the right -->
+        <div class="my-reports-topbar">
+            <div class="tab-switcher">
+                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="tab-btn <?php echo $active_tab === 'my' ? 'active' : ''; ?>">
+                    <i class="fas fa-file-alt"></i>
+                    <?php echo t('My Reports'); ?>
+                    <span class="tab-badge"><?php echo $total_reports; ?></span>
+                </a>
+                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported" class="tab-btn supported-tab <?php echo $active_tab === 'supported' ? 'active' : ''; ?>">
+                    <i class="fas fa-heart" style="color: <?php echo $active_tab === 'supported' ? '#0A7E6B' : 'inherit'; ?>;"></i>
+                    <?php echo t('Supported'); ?>
+                    <span class="tab-badge" style="<?php echo $active_tab === 'supported' ? 'background:#0A7E6B; color:white;' : ''; ?>"><?php echo $total_supported; ?></span>
                 </a>
             </div>
-        </div>
-
-        <!-- Tab Switcher -->
-        <div class="tab-switcher">
-            <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="tab-btn <?php echo $active_tab === 'my' ? 'active' : ''; ?>">
-                <i class="fas fa-file-alt"></i>
-                <?php echo t('My Reports'); ?>
-                <span class="tab-badge"><?php echo $total_reports; ?></span>
-            </a>
-            <a href="<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported" class="tab-btn supported-tab <?php echo $active_tab === 'supported' ? 'active' : ''; ?>">
-                <i class="fas fa-heart" style="color: <?php echo $active_tab === 'supported' ? '#0A7E6B' : 'inherit'; ?>;"></i>
-                <?php echo t('Supported'); ?>
-                <span class="tab-badge" style="<?php echo $active_tab === 'supported' ? 'background:#0A7E6B; color:white;' : ''; ?>"><?php echo $total_supported; ?></span>
+            <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 sm:w-auto justify-center">
+                <i class="fas fa-plus-circle text-xs md:text-sm"></i> 
+                <span class="text-xs md:text-sm"><?php echo t('New Report'); ?></span>
             </a>
         </div>
         
@@ -1452,9 +1448,17 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 'date'     => ['el' => 'popoverDateRange', 'clear' => '0'],
             ],
             'callback'           => 'applyFilters',
+            'compact_breakpoint' => 1199,
+            'more_icon'          => 'fa-sliders-h',
         ];
-        include __DIR__ . '/../shared/report_filter_toolbar.php';
         ?>
+        <div id="dashHeaderExtras" class="dash-header-extras">
+            <div class="dashboard-toolbar-row dash-topbar">
+                <div class="dashboard-toolbar-filters">
+                    <?php include __DIR__ . '/../shared/report_filter_toolbar.php'; ?>
+                </div>
+            </div>
+        </div>
 
         <!-- Status filter chips (notification-style) -->
         <?php $status_all_count = array_sum($status_summary); ?>
@@ -1482,7 +1486,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <?php foreach($reports as $report): ?>
                     <?php
                         $cover_src = !empty($report['cover_image']) ? BASE_URL . htmlspecialchars($report['cover_image'], ENT_QUOTES, 'UTF-8') : '';
-                        $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(13,133,104,0.30) 0%, rgba(8,78,62,0.92) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
+                        $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(15,23,42,0.28) 0%, rgba(15,23,42,0.88) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
                     ?>
                     <div class="supported-card" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'">
                         <div class="card-header<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
@@ -1559,7 +1563,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <?php foreach($reports as $report): ?>
                     <?php
                         $cover_src = !empty($report['cover_image']) ? BASE_URL . htmlspecialchars($report['cover_image'], ENT_QUOTES, 'UTF-8') : '';
-                        $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(13,133,104,0.30) 0%, rgba(8,78,62,0.92) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
+                        $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(15,23,42,0.28) 0%, rgba(15,23,42,0.88) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
                     ?>
                     <div class="report-card-grid" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'" onkeydown="if(event.key==='Enter'){window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>';}" role="link" tabindex="0" style="cursor:pointer;" aria-label="<?php echo htmlspecialchars($report['title']); ?> — open report details">
                         <div class="report-card-header rounded-t-2xl<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>

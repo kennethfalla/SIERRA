@@ -898,6 +898,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="bg-[#F5FBF6] <?php echo $can_confirm_resolution ? 'resolution-active' : ''; ?>">
 
@@ -926,25 +927,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         
         <!-- ===== UNIFIED HEADER (matches my_reports.php style) ===== -->
         <div class="mb-6 md:mb-8">
-            <div class="flex items-center space-x-2 mb-2">
-                <div class="w-8 h-8 <?php echo $is_supporter ? 'bg-[#0A7E6B]/10' : 'bg-[#10A37F]/10'; ?> rounded-lg flex items-center justify-center">
-                    <i class="fas <?php echo $is_supporter ? 'fa-heart' : 'fa-map-pin'; ?> <?php echo $is_supporter ? 'text-[#0A7E6B]' : 'text-[#10A37F]'; ?> text-sm"></i>
-                </div>
-                <span class="text-xs uppercase tracking-wider <?php echo $is_supporter ? 'text-[#0A7E6B]' : 'text-[#10A37F]'; ?> font-semibold">
-                    <?php echo $is_supporter ? t('Supported Report Tracking') : t('Report Tracking'); ?>
-                </span>
-            </div>
+            
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
-                        <?php echo $is_supporter ? t('Track Supported Report') : t('Track Report'); ?>
-                    </h1>
-                    <p class="text-gray-500 text-sm mt-1">
-                        <?php echo $is_supporter 
-                            ? t('You supported this report — follow its progress below.') 
-                            : t('Real-time status and details of your environmental report'); ?>
-                    </p>
-                </div>
+                
                 <div class="flex gap-3 flex-wrap">
                     <?php if($can_cancel): ?>
                         <button onclick="openCancelModal()" 

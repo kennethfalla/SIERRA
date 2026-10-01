@@ -1,0 +1,111 @@
+/* Shared form selects and menus. Native values, validation and change events stay intact. */
+:root {
+    --dropdown-accent: #0d8568;
+    --dropdown-ink: #24463a;
+    --dropdown-border: #d7e4dd;
+    --dropdown-hover: #f1f8f4;
+    --dropdown-selected: #e6f4ec;
+}
+body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])),
+body .cs .cs-btn {
+    appearance: none !important;
+    box-sizing: border-box;
+    min-height: 40px;
+    padding-top: .55rem;
+    padding-bottom: .55rem;
+    padding-left: .8rem;
+    padding-right: 2.25rem !important;
+    border: 1px solid var(--dropdown-border) !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    color: var(--dropdown-ink) !important;
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.4;
+    cursor: pointer;
+    box-shadow: none;
+    transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%230d8568' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-size: 18px 18px !important;
+    background-position: right .65rem center !important;
+}
+body .cs .cs-btn { padding-right: .8rem !important; }
+body select:hover:not(:disabled), body .cs .cs-btn:hover:not(:disabled) { border-color: #a4cbb5 !important; }
+body select:focus-visible, body .cs .cs-btn:focus-visible {
+    border-color: var(--dropdown-accent) !important;
+    outline: 2px solid #0d856833 !important;
+    outline-offset: 2px;
+    box-shadow: none !important;
+}
+body select:disabled, body .cs .cs-btn:disabled {
+    background-color: #f5f7f6 !important; color: #87958d !important; cursor: not-allowed; opacity: .75;
+}
+body select.error, body select[aria-invalid="true"], body .cs.is-error .cs-btn {
+    border-color: #dc2626 !important; background-color: #fff7f7 !important;
+}
+body select[multiple], body select[size] { border: 1px solid var(--dropdown-border); border-radius: 8px; accent-color: var(--dropdown-accent); }
+body select option { font-family: inherit; }
+body .app-mobile-header select { min-height: 34px !important; font-size: .76rem; }
+
+/* Supported desktop browsers can also theme the native popup. Other browsers
+   keep their native picker, including keyboard, touch and screen-reader support. */
+@supports (appearance: base-select) {
+    @media (pointer: fine) {
+        body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])),
+        body select:where(:not([multiple]):not([size]):not([data-cs-enhanced]))::picker(select) { appearance: base-select !important; }
+        body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])) {
+            background-image: none !important; padding-right: .8rem !important; gap: .8rem;
+        }
+        body select::picker-icon {
+            content: ''; width: 18px; height: 18px; flex-shrink: 0;
+            background: center / 18px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%230d8568' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+            transition: rotate .16s ease;
+        }
+        body select:open::picker-icon { rotate: 180deg; }
+        body select::picker(select) {
+            padding: 5px; margin-block: 6px; max-height: min(320px, 60vh);
+            border: 1px solid var(--dropdown-border); border-radius: 10px; background: #fff;
+            box-shadow: 0 12px 32px rgba(23,59,44,.13); overflow-y: auto;
+        }
+        body select option { min-height: 36px; padding: .5rem .65rem; border: 0; border-radius: 6px; color: var(--dropdown-ink); background: #fff; font-size: .82rem; gap: .6rem; }
+        body select option:hover, body select option:focus { background: var(--dropdown-hover); }
+        body select option:checked { background: var(--dropdown-selected); color: #086b54; font-weight: 600; }
+        body select option:disabled { color: #94a098; background: #fff; }
+        body select option::checkmark { color: var(--dropdown-accent); }
+    }
+}
+
+body :is(.export-dropdown-menu, .filter-popover, .lang-menu, .cs-list, .notification-dropdown, .menro-notif-dropdown),
+body #categoryFilterMenu {
+    border: 1px solid var(--dropdown-border) !important;
+    border-radius: 10px !important;
+    background: #fff;
+    box-shadow: 0 12px 32px rgba(23,59,44,.13) !important;
+}
+body :is(.export-dropdown-header, .notification-header, .menro-notif-header) { background: #f7faf8; border-bottom-color: #e8efea; }
+body :is(.export-dropdown-item, .lang-menu button, .cs-option) {
+    font-family: inherit; color: var(--dropdown-ink); font-size: .82rem; line-height: 1.45;
+    transition: background-color .15s ease, color .15s ease;
+}
+body .cs-list { padding: 5px; }
+body .cs-option { border-radius: 6px; min-height: 36px; }
+body :is(.export-dropdown-item, .lang-menu button, .cs-option):hover,
+body .cs-option.is-active { background: var(--dropdown-hover); color: #086b54; }
+body .cs-option.is-selected, body .lang-menu button.active { background: var(--dropdown-selected); color: #086b54; font-weight: 600; }
+body .cs-option.is-selected::after { background: none; content: '\2713'; color: var(--dropdown-accent); font-family: sans-serif; }
+body .cs-option[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+body :is(.export-dropdown-item, .lang-menu button):focus-visible { outline: 2px solid var(--dropdown-accent); outline-offset: -3px; background: var(--dropdown-hover); }
+body :is(.btn-filter-by, .btn-date-range, .ft-more-btn) { border-radius: 8px !important; }
+@media (max-width: 640px) {
+    body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])), body .cs .cs-btn { min-height: 44px; }
+    body .app-mobile-header select { min-height: 36px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    body select, body .cs-btn, body .cs-list { animation: none; transition: none; }
+}
+@media print {
+    body select { box-shadow: none !important; background-image: none !important; }
+}

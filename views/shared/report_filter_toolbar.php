@@ -36,6 +36,8 @@ $ft_date_range         = $ft['date_range'] ?? null;
 $ft_show_search        = $ft['show_search'] ?? true;
 $ft_show_active_row    = $ft['show_active_row'] ?? true;
 $ft_compact_breakpoint = max(640, min(1600, (int)($ft['compact_breakpoint'] ?? 640)));
+// The shared app header also needs room for its page title and notifications.
+if (isset($app_page_title)) $ft_compact_breakpoint = max(1400, $ft_compact_breakpoint);
 $ft_more_icon          = $ft['more_icon'] ?? 'fa-ellipsis-vertical';
 
 // Fallback chip-clearing map (used when the host page does not provide chip_clear_map):
@@ -941,6 +943,19 @@ foreach ($ft_popover_fields as $pf) {
     var moreBackdrop = document.getElementById('ftMoreBackdrop');
     var moreClose = document.getElementById('ftMoreClose');
     var mobileQuery = window.matchMedia('(max-width: <?php echo $ft_compact_breakpoint; ?>px)');
+
+    // Keep report-list search available in the filter sheet when the header is compact.
+    var searchWrap = document.getElementById(FT.searchId)?.closest('.toolbar-search');
+    function placeHeaderSearch() {
+        if (!searchWrap || !moreControls || !moreBtn || !document.querySelector('.app-mobile-header')) return;
+        if (mobileQuery.matches) {
+            moreControls.querySelector('.ft-more-controls-header').after(searchWrap);
+        } else {
+            moreBtn.before(searchWrap);
+        }
+    }
+    placeHeaderSearch();
+    mobileQuery.addEventListener('change', placeHeaderSearch);
 
     function clearSheetHold() {
         if (!moreControls) return;

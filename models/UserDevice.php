@@ -7,28 +7,7 @@ class UserDevice {
 
     public function __construct($db) {
         $this->conn = $db;
-        $this->ensureTable();
-    }
-
-    // Auto-create the user_devices table on first use so any install works.
-    private function ensureTable() {
-        try {
-            $this->conn->exec("CREATE TABLE IF NOT EXISTS `user_devices` (
-                `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                `user_id` INT(11) NOT NULL,
-                `device_key` VARCHAR(64) NOT NULL,
-                `device_name` VARCHAR(191) DEFAULT NULL,
-                `user_agent` VARCHAR(255) DEFAULT NULL,
-                `ip_address` VARCHAR(64) DEFAULT NULL,
-                `first_seen_at` DATETIME DEFAULT NULL,
-                `last_login_at` DATETIME DEFAULT NULL,
-                UNIQUE KEY `uq_user_device` (`user_id`, `device_key`),
-                KEY `idx_user_ip` (`user_id`, `ip_address`),
-                INDEX `idx_user` (`user_id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-        } catch (Exception $e) {
-            error_log('UserDevice ensureTable: ' . $e->getMessage());
-        }
+        // Schema is prepared once per version by Database.
     }
 
     /**

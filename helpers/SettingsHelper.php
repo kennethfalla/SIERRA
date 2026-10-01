@@ -997,6 +997,22 @@ class SettingsHelper {
         }
     }
 
+    /** True means accepted for delivery, either by the queue or the provider. */
+    public static function sendReportEmail($to_email, $to_name, $subject, $htmlContent) {
+        if (!defined('EMAIL_QUEUE_ENABLED') || EMAIL_QUEUE_ENABLED !== true) {
+            return self::sendEmail($to_email, $to_name, $subject, $htmlContent);
+        }
+        if (!self::isEmailEnabled() || !filter_var($to_email, FILTER_VALIDATE_EMAIL)) return false;
+        try {
+            require_once __DIR__ . '/EmailQueue.php';
+            $db = (new Database())->getConnection();
+            return (new EmailQueue($db))->enqueue($to_email, (string)$to_name, $subject, $htmlContent);
+        } catch (Throwable $e) {
+            error_log('Report email queue unavailable; using direct delivery.');
+            return self::sendEmail($to_email, $to_name, $subject, $htmlContent);
+        }
+    }
+
     /**
      * Send a transactional email through Brevo or Mailgun API.
      *
@@ -1012,8 +1028,7 @@ class SettingsHelper {
      * @return bool True on success
      */
     public static function sendEmail($to_email, $to_name, $subject, $htmlContent, $gatewayOverride = null) {
-        // Clear cache to ensure we're using the latest settings
-        self::clearCache();
+        // Settings are cached only for this request; set() keeps them current.
 
         $gateway = $gatewayOverride;
 
@@ -1077,6 +1092,7 @@ class SettingsHelper {
             $ch = curl_init($endpoint);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
@@ -1144,6 +1160,7 @@ class SettingsHelper {
             $ch = curl_init($endpoint);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload)); // URL-encode for form data

@@ -1279,6 +1279,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             .risk-summary-container { flex-wrap: wrap; gap: 4px; }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="bg-[#F5FBF6]">
 
@@ -1293,17 +1294,9 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         
         <!-- Header -->
         <div class="page-header">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-check-double text-[#10A37F] text-xs md:text-sm"></i>
-                </div>
-                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Manage Reports</span>
-            </div>
+            
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                    <h1 class="page-title font-bold text-gray-800">Manage Reports</h1>
-                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">Review and manage environmental reports from your barangay</p>
-                </div>
+                
                 <div class="flex items-center gap-2 flex-wrap">
                     <div class="export-dropdown">
                         <button onclick="toggleExportMenu()" class="btn-export-trigger">
@@ -1435,9 +1428,17 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 'residency'=> ['el' => 'popoverResidency', 'clear' => ''],
             ],
             'callback'           => 'applyFilters',
+            'compact_breakpoint' => 1199,
+            'more_icon'          => 'fa-sliders-h',
         ];
-        include __DIR__ . '/../shared/report_filter_toolbar.php';
         ?>
+        <div id="dashHeaderExtras" class="dash-header-extras">
+            <div class="dashboard-toolbar-row dash-topbar">
+                <div class="dashboard-toolbar-filters">
+                    <?php include __DIR__ . '/../shared/report_filter_toolbar.php'; ?>
+                </div>
+            </div>
+        </div>
 
         <!-- Status filter chips (notification-style) -->
         <?php $status_all_count = array_sum($status_summary); ?>
@@ -1481,7 +1482,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 <div class="report-card-grid <?php echo $isEscalatedPending ? 'border-2 border-orange-300' : ''; ?>" data-report-id="<?php echo $r['id']; ?>">
                     <?php
                     $cover_src = !empty($r['cover_image']) ? BASE_URL . htmlspecialchars($r['cover_image'], ENT_QUOTES, 'UTF-8') : '';
-                    $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(13,133,104,0.30) 0%, rgba(8,78,62,0.92) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
+                    $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(15,23,42,0.28) 0%, rgba(15,23,42,0.88) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
                     ?>
                     <div class="report-card-header rounded-t-2xl<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
                         <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">

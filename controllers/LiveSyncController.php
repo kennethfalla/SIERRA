@@ -16,57 +16,22 @@ if (!isLoggedIn()) {
     exit();
 }
 
+// Capture authentication before releasing this user's session lock.
+$user_id = (int)$_SESSION['user_id'];
+if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+header('Cache-Control: no-store');
+
 $database = new Database();
 $db = $database->getConnection();
 $notif = new Notification($db);
-$user_id = (int)$_SESSION['user_id'];
-$role = (string)($_SESSION['user_role'] ?? '');
-
-// Unread count + newest notification + highest id (reliable change detector)
-$unread = $notif->getUnreadCount($user_id);
+$summary = $notif->getSyncSummary($user_id);
+$unread = $summary['unread'];
+$notifSeq = $summary['notif_seq'];
 $latest = $notif->getForUser($user_id, 1);
 $latest = $latest[0] ?? null;
-
-$stmt = $db->prepare("SELECT MAX(id) FROM notifications WHERE user_id = ?");
-$stmt->execute([$user_id]);
-$notifSeq = (int)$stmt->fetchColumn();
-
-// ---- Data version: latest relevant change for this role ----
-$dataVersion = null;
-
-if ($latest && !empty($latest['created_at'])) {
-    $dataVersion = $latest['created_at'];
-}
-
-// Role-scoped report activity
-$reportTs = null;
-if ($role === 'admin' || $role === 'menro') {
-    $stmt = $db->query("SELECT MAX(created_at) FROM reports WHERE is_archived = 0");
-    $reportTs = $stmt->fetchColumn();
-} elseif ($role === 'barangay_personnel') {
-    $barangay_id = (int)($_SESSION['barangay_id'] ?? 0);
-    if ($barangay_id > 0) {
-        $stmt = $db->prepare("SELECT MAX(created_at) FROM reports WHERE is_archived = 0 AND barangay_id = ?");
-        $stmt->execute([$barangay_id]);
-        $reportTs = $stmt->fetchColumn();
-    }
-} else {
-    $stmt = $db->prepare("SELECT MAX(created_at) FROM reports WHERE is_archived = 0 AND user_id = ?");
-    $stmt->execute([$user_id]);
-    $reportTs = $stmt->fetchColumn();
-}
-if ($reportTs && (!$dataVersion || strtotime($reportTs) > strtotime($dataVersion))) {
-    $dataVersion = $reportTs;
-}
-
-// Latest active announcement (reaches citizens and barangay personnel)
-if ($role !== 'admin' && $role !== 'menro') {
-    $stmt = $db->query("SELECT MAX(created_at) FROM announcements WHERE is_active = 1 AND is_archived = 0 AND (expires_at IS NULL OR expires_at > NOW())");
-    $annTs = $stmt->fetchColumn();
-    if ($annTs && (!$dataVersion || strtotime($annTs) > strtotime($dataVersion))) {
-        $dataVersion = $annTs;
-    }
-}
+// The sidebar consumes notification updates only; report/announcement scans
+// were unused. Keep the response field for compatibility.
+$dataVersion = $latest['created_at'] ?? null;
 
 echo json_encode([
     'success'      => true,
@@ -77,6 +42,8 @@ echo json_encode([
         'title'      => $latest['title'],
         'message'    => $latest['message'],
         'is_read'    => (int)$latest['is_read'],
+        'icon'       => (string)($latest['icon'] ?? 'fa-bell'),
+        'color'      => (string)($latest['color'] ?? '#10A37F'),
         'link'       => (string)($latest['link'] ?? ''),
         'created_at' => $latest['created_at'],
     ] : null,

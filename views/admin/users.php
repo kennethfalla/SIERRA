@@ -436,6 +436,7 @@ function getRoleBadge($user_type, $job_title = '') {
         @media (min-width: 640px) { .main-container { padding: 1.5rem; } }
         @media (min-width: 768px) { .main-container { padding: 2rem; } }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
 
@@ -459,16 +460,7 @@ function getRoleBadge($user_type, $job_title = '') {
         $export_csv_type  = $users_tab === 'citizens' ? 'reporters' : ($users_tab === 'barangay' ? 'barangay' : 'menro');
         ?>
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <div>
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-users-cog text-[#10A37F] text-sm"></i>
-                    </div>
-                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('Administration'); ?></span>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-800"><?php echo t('User Management'); ?></h1>
-                <p class="text-gray-500 text-sm mt-1"><?php echo t('Manage citizens, barangay personnel, and MENRO staff accounts'); ?></p>
-            </div>
+            
             <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
             <div class="export-dropdown" id="usersExportWrap">
                 <button onclick="toggleUsersExport()" id="usersExportBtn" class="btn-export-trigger">
@@ -903,9 +895,17 @@ function getRoleBadge($user_type, $job_title = '') {
             'barangay' => ['el' => 'popoverBarangay', 'clear' => '0'],
         ],
         'callback'           => 'applyFilters',
+        'compact_breakpoint' => 1199,
+        'more_icon'          => 'fa-sliders-h',
     ];
-    include __DIR__ . '/../shared/report_filter_toolbar.php';
     ?>
+    <div id="dashHeaderExtras" class="dash-header-extras">
+        <div class="dashboard-toolbar-row dash-topbar">
+            <div class="dashboard-toolbar-filters">
+                <?php include __DIR__ . '/../shared/report_filter_toolbar.php'; ?>
+            </div>
+        </div>
+    </div>
 
     <!-- ===== USERS TABLE ===== -->
     <div class="table-container">

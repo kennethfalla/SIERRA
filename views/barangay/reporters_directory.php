@@ -182,26 +182,19 @@ function reporterLocationOf($r) {
         .risk-high { background: #FFEDD5; color: #9A3412; }
         .risk-critical { background: #FEE2E2; color: #991B1B; }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="bg-[#F5FBF6]">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
-<div class="lg:ml-72 min-h-screen">
+<div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
 
         <div class="mb-6">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-address-book text-[#10A37F] text-sm"></i>
-                </div>
-                <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Reporters Directory</span>
-            </div>
+            
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800">Reporters Directory</h1>
-                    <p class="text-gray-500 text-sm mt-1">Reporter directory for <span class="font-semibold"><?php echo htmlspecialchars($barangay_name); ?></span></p>
-                </div>
+                
                 <div class="export-dropdown">
                     <button onclick="toggleExportMenu()" class="btn-export-trigger">
                         <i class="fas fa-file-export"></i>
@@ -231,14 +224,20 @@ function reporterLocationOf($r) {
                     <span class="tab-badge"><?php echo $total_non_residents; ?></span>
                 </a>
             </nav>
-            <form method="get" action="index.php" class="flex items-center gap-2">
-                <input type="hidden" name="page" value="reporters-directory">
-                <input type="hidden" name="tab" value="<?php echo $active_tab; ?>">
-                <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search reporters..." class="border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-[#10A37F] w-48 sm:w-64">
+            <div id="dashHeaderExtras" class="dash-header-extras">
+                <div class="dashboard-toolbar-row dash-topbar">
+                    <div class="dashboard-toolbar-filters">
+                        <form method="get" action="index.php" class="flex items-center gap-2">
+                            <input type="hidden" name="page" value="reporters-directory">
+                            <input type="hidden" name="tab" value="<?php echo $active_tab; ?>">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search reporters..." class="border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-[#10A37F] w-48 sm:w-64">
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
 
         <?php if (empty($display_rows)): ?>

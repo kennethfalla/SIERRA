@@ -33,6 +33,7 @@ $role_badge_color = in_array($user_type, ['admin', 'menro_staff']) ? 'bg-purple-
 $join_date = date('F Y', strtotime($user['created_at']));
 $barangay_name = $user['barangay_name'] ?? '';
 $full_name = $user['first_name'] . ' ' . $user['last_name'];
+$location_display = $barangay_name ?: ($user['municipality'] ?? '') ?: ($user['province'] ?? '');
 $system_name = SettingsHelper::get('system_name', 'Sierra');
 
 // Password policy
@@ -314,7 +315,122 @@ require_once BASE_PATH . 'helpers/Lang.php';
         @media (min-width: 640px) {
             .profile-menu-group-label { font-size: 0.68rem; padding: 0.5rem 0.5rem 0.25rem; }
         }
-        
+
+        /* ===== Profile hub (reference layout) ===== */
+        body.profile-page #main-content {
+            background: linear-gradient(180deg, #EAF6EF 0%, #F3FAF6 40%, #F5FBF6 100%);
+        }
+        .profile-hub {
+            max-width: none;
+            margin: 0;
+            padding: 0.25rem 0 2rem;
+        }
+        /* Desktop: match the top header width (edge to edge of the content area). */
+        @media (min-width: 1024px) {
+            body.profile-page .main-container {
+                max-width: none;
+                margin: 0;
+                padding-left: 18px;
+                padding-right: 16px;
+            }
+        }
+        .profile-hero-card {
+            background: #ffffff;
+            border-radius: 22px;
+            padding: 1.8rem 1.25rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 22px 48px -32px rgba(15, 23, 42, .45);
+            margin-bottom: 1.4rem;
+        }
+        .profile-hero-card .avatar {
+            width: 92px;
+            height: 92px;
+            margin: 0 auto;
+            border-width: 4px;
+            border-color: #ffffff;
+            box-shadow: 0 10px 24px -10px rgba(16, 163, 127, .45);
+            font-size: 1.9rem;
+        }
+        .profile-hero-name {
+            margin: 0.9rem 0 0.15rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        .profile-hero-email {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #9CA3AF;
+            word-break: break-word;
+        }
+        .profile-hero-meta {
+            margin: 0.35rem 0 0;
+            font-size: 0.8rem;
+            color: #9CA3AF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+        .profile-hero-meta .profile-hero-dot { color: #d1d5db; }
+        .btn-edit-profile {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1.1rem;
+            padding: 0.7rem 1.5rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.88rem;
+            text-decoration: none;
+            box-shadow: 0 12px 26px -12px rgba(16, 163, 127, .6);
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .btn-edit-profile:hover { transform: translateY(-1px); box-shadow: 0 16px 30px -14px rgba(16, 163, 127, .7); }
+
+        .profile-groups { display: flex; flex-direction: column; gap: 1rem; }
+        .profile-group {
+            background: #ffffff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 16px 36px -30px rgba(15, 23, 42, .4);
+        }
+        .profile-group .profile-menu-item {
+            border-bottom: 1px solid #f1f5f3;
+            border-radius: 0;
+            padding: 0.95rem 1.1rem;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .profile-group .profile-menu-item:last-child { border-bottom: none; }
+        .profile-group .menu-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 0;
+            background: transparent;
+            color: #111827;
+            font-size: 1.05rem;
+        }
+        .profile-group .profile-menu-item:hover { background: #f8fbf9; color: #0D8568; }
+        .profile-group .profile-menu-item:hover .menu-icon {
+            background: transparent;
+            color: #10A37F;
+            box-shadow: none;
+        }
+        .profile-group .menu-chevron { color: #d1d5db; font-size: 0.8rem; }
+        .profile-group .logout-item { color: #b91c1c; }
+        .profile-group .logout-item .menu-icon { color: #b91c1c; }
+        .profile-group .logout-item:hover { background: #fef2f2; color: #b91c1c; }
+        .profile-group .logout-item:hover .menu-icon { color: #EF4444; }
+        @media (max-width: 480px) {
+            .profile-hero-card { border-radius: 18px; }
+            .profile-group { border-radius: 14px; }
+        }
+
         .boxed-field {
             border: 1.5px solid #e5ece8;
             border-radius: 1rem;
@@ -556,8 +672,9 @@ require_once BASE_PATH . 'helpers/Lang.php';
             .btn-primary, .btn-secondary { font-size: 0.75rem; padding: 0.4rem 0.75rem; }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body>
+<body class="profile-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -567,26 +684,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
         
         
         <!-- ===== HEADER ===== -->
-        <div class="page-header">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-user-circle text-[#10A37F] text-xs md:text-sm"></i>
-                        </div>
-                        <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('My Account'); ?></span>
-                    </div>
-                    <div>
-                        <h1 class="page-title font-bold text-gray-800">
-                            <?php echo $section ? t(ucwords(str_replace('-', ' ', $section))) : t('My Profile'); ?>
-                        </h1>
-                        <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">
-                            <?php echo $section ? t('Manage your account details') : t('Choose a section to manage your account'); ?>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        
         
         <!-- Success/Error Messages -->
         <?php if(isset($_SESSION['success'])): ?>
@@ -634,9 +732,9 @@ require_once BASE_PATH . 'helpers/Lang.php';
         <!-- ============================================================ -->
         <?php if (!$section): ?>
             <!-- ===== PROFILE MENU (LANDING) ===== -->
-            <div class="profile-menu-card">
-                <!-- Profile summary (avatar + name) -->
-                <div class="profile-summary flex flex-col items-center text-center border-b border-gray-100">
+            <div class="profile-hub">
+                <!-- Profile summary card -->
+                <div class="profile-hero-card">
                     <div class="avatar" id="avatarContainer" title="Change profile photo">
                         <?php if ($profile_pic_url): ?>
                             <img src="<?php echo $profile_pic_url; ?>" alt="Profile" id="avatarImg">
@@ -648,19 +746,25 @@ require_once BASE_PATH . 'helpers/Lang.php';
                             Change Photo
                         </div>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-gray-800"><?php echo htmlspecialchars($full_name); ?></h3>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-1 <?php echo $role_badge_color; ?>">
-                            <i class="fas <?php echo in_array($user_type, ['admin', 'menro_staff'], true) ? 'fa-building' : ($user_type === 'barangay_personnel' ? 'fa-landmark' : 'fa-user'); ?> mr-1"></i>
-                            <?php echo $role_display; ?>
-                        </span>
-                    </div>
+                    <h3 class="profile-hero-name"><?php echo htmlspecialchars($full_name); ?></h3>
+                    <p class="profile-hero-email"><?php echo htmlspecialchars($user['email'] ?? ''); ?></p>
+                    <p class="profile-hero-meta">
+                        <?php echo htmlspecialchars($role_display); ?>
+                        <?php if (!empty($location_display)): ?>
+                            <span class="profile-hero-dot">•</span>
+                            <i class="fas fa-location-dot" aria-hidden="true"></i>
+                            <?php echo htmlspecialchars($location_display); ?>
+                        <?php endif; ?>
+                    </p>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=profile&section=personal-information" class="btn-edit-profile">
+                        <i class="fas fa-pen" aria-hidden="true"></i> <?php echo t('Edit Profile'); ?>
+                    </a>
                 </div>
-                
+
                 <!-- Menu items -->
-                <nav class="mt-2" aria-label="Profile sections">
+                <nav class="profile-groups" aria-label="Profile sections">
                     <!-- Account -->
-                    <div class="profile-menu-group-label"><?php echo t('Account'); ?></div>
+                    <div class="profile-group">
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=personal-information">
                         <span class="menu-icon"><i class="fas fa-id-card"></i></span>
                         <span class="menu-label"><?php echo t('Personal Information'); ?></span>
@@ -689,8 +793,8 @@ require_once BASE_PATH . 'helpers/Lang.php';
                     </a>
                     <?php endif; ?>
                     
-                    <!-- Legal & About -->
-                    <div class="profile-menu-group-label"><?php echo t('Legal & About'); ?></div>
+                    </div>
+                    <div class="profile-group">
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=about">
                         <span class="menu-icon"><i class="fas fa-info-circle"></i></span>
                         <span class="menu-label"><?php echo t('About'); ?> <?php echo htmlspecialchars($system_name); ?></span>
@@ -707,8 +811,8 @@ require_once BASE_PATH . 'helpers/Lang.php';
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     
-                    <!-- Support -->
-                    <div class="profile-menu-group-label"><?php echo t('Support'); ?></div>
+                    </div>
+                    <div class="profile-group">
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=faqs">
                         <span class="menu-icon"><i class="fas fa-question-circle"></i></span>
                         <span class="menu-label"><?php echo t('FAQs'); ?></span>
@@ -720,13 +824,14 @@ require_once BASE_PATH . 'helpers/Lang.php';
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
                     
-                    <!-- Session -->
-                    <div class="profile-menu-group-label" style="border-top:1px solid #f0f4f1; padding-top:0.75rem; margin-top:0.5rem;"><?php echo t('Session'); ?></div>
+                    </div>
+                    <div class="profile-group">
                     <a class="profile-menu-item logout-item" href="javascript:void(0)" onclick="window.openLogoutModal()">
                         <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
                         <span class="menu-label"><?php echo t('Logout'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
+                    </div>
                 </nav>
             </div>
         <?php else: ?>

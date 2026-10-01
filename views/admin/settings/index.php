@@ -706,6 +706,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             .main-container { padding: 0.75rem; }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
 
@@ -716,16 +717,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         
         <!-- ===== PAGE HEADER ===== -->
         <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="w-8 h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-sliders-h text-[#10A37F] text-sm"></i>
-                    </div>
-                    <span class="text-xs uppercase tracking-wider text-[#10A37F] font-semibold"><?php echo t('Administration'); ?></span>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-800"><?php echo t('System Settings'); ?></h1>
-                <p class="text-gray-500 text-sm mt-1"><?php echo t('Configure and manage all system settings'); ?></p>
-            </div>
+            
             <button id="navToggleBtn" onclick="toggleSettingsNav()"
                     class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-200 bg-white text-sm font-semibold text-gray-600 hover:bg-emerald-50 hover:text-[#10A37F] hover:border-emerald-300 transition shadow-sm flex-shrink-0"
                     title="<?php echo t('Hide/Show the settings navigation menu to give the content more room'); ?>">

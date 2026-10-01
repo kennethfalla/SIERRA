@@ -8,6 +8,7 @@ require_once dirname(__DIR__) . '/helpers/SecurityHelper.php';
 require_once dirname(__DIR__) . '/helpers/SettingsHelper.php';
 
 header('Content-Type: application/json');
+header('Cache-Control: no-store');
 
 if (!isLoggedIn()) {
     echo json_encode(['error' => 'Not authenticated.']);
@@ -25,6 +26,7 @@ $action = $_POST['action'] ?? ($_GET['action'] ?? '');
 // GET UNREAD COUNT (read-only, also used on page load polling)
 // ============================================
 if ($action === 'get_unread_count') {
+    if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
     echo json_encode(['success' => true, 'unread_count' => $notif->getUnreadCount($user_id)]);
     exit();
 }
@@ -34,6 +36,9 @@ if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['c
     echo json_encode(['error' => 'Invalid security token. Please refresh and try again.']);
     exit();
 }
+
+// CSRF verification is complete; these actions do not write session data.
+if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
 
 // ============================================
 // MARK ALL AS READ

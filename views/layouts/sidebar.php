@@ -12,6 +12,24 @@ require_once BASE_PATH . 'helpers/PermissionHelper.php';
 require_once BASE_PATH . 'helpers/Lang.php';
 
 $current_page = $_GET['page'] ?? 'dashboard';
+$app_page_titles = [
+    'dashboard' => 'Dashboard',
+    'submit-report' => 'Submit Environmental Report',
+    'my-reports' => ($_GET['tab'] ?? '') === 'supported' ? 'Reports I Supported' : 'My Reports',
+    'track-status' => !empty($is_supporter) ? 'Track Supported Report' : 'Track Report',
+    'all-reports' => 'All Reports',
+    'verify-reports' => 'Manage Reports',
+    'manage-report' => 'Manage Report',
+    'manage-users' => 'User Management',
+    'reporters-directory' => 'Reporters Directory',
+    'audit-logs' => 'Audit Logs',
+    'settings' => 'System Settings',
+    'notifications' => 'All Notifications',
+    'announcements' => 'Announcements',
+    'profile' => 'Settings',
+    'edit-profile' => 'Settings',
+];
+$app_page_title = t($app_page_titles[$current_page] ?? ucwords(str_replace('-', ' ', $current_page)));
 $user_role = $_SESSION['user_role'] ?? 'citizen';
 $user_email = $_SESSION['user_email'] ?? 'user@example.com';
 $barangay_id = $_SESSION['barangay_id'] ?? null;
@@ -41,10 +59,6 @@ if ($user_id) {
         $database = new Database();
         $db = $database->getConnection();
         
-        // Check if profile_picture column exists
-        $columns = $db->query("SHOW COLUMNS FROM users LIKE 'profile_picture'");
-        $hasProfilePicture = $columns->rowCount() > 0;
-        
         $stmt = $db->prepare("
             SELECT 
                 u.id,
@@ -65,7 +79,7 @@ if ($user_id) {
                 u.non_resident_address,
                 u.purok_street,
                 u.is_verified,
-                " . ($hasProfilePicture ? "u.profile_picture," : "'' as profile_picture,") . "
+                u.profile_picture,
                 b.name as barangay_name
             FROM users u
             LEFT JOIN barangays b ON u.barangay_id = b.id
@@ -188,7 +202,7 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
 // ============================================
 $menu_notifs = [];
 $menu_unread = 0;
-if ($user_role === 'admin' && $user_id && isset($db)) {
+if ($user_id && isset($db)) {
     try {
         $sidebar_notif_model = new Notification($db);
         $menu_notifs  = $sidebar_notif_model->getForUser((int)$user_id, 8);
@@ -204,447 +218,6 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
 <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-emerald-600 focus:text-white focus:rounded-lg">
     <?php echo t('Skip to main content'); ?>
 </a>
-
-<!-- Mobile top bar: holds the sidebar toggle (not floating) -->
-<header class="app-mobile-header" role="banner">
-    <div class="app-mobile-brand-wrap">
-        <?php $mob_logo = SettingsHelper::get('lgu_logo'); ?>
-        <?php if ($mob_logo): ?>
-            <img src="<?php echo BASE_URL . $mob_logo; ?>" alt="<?php echo htmlspecialchars($system_name); ?> logo" class="app-mobile-logo">
-        <?php else: ?>
-            <div class="app-mobile-logo app-mobile-logo-fallback" aria-hidden="true"><i class="fas fa-leaf"></i></div>
-        <?php endif; ?>
-        <div class="app-mobile-titles">
-            <span class="app-mobile-brand"><?php echo htmlspecialchars($system_name); ?></span>
-            <span class="app-mobile-sub"><?php echo t('Environmental Reporting'); ?></span>
-        </div>
-    </div>
-    <button id="showSidebarBtn"
-            type="button"
-            class="app-mobile-menu-btn"
-            aria-label="Toggle navigation menu"
-            aria-expanded="false"
-            aria-controls="sidebar"
-            title="Toggle Menu">
-        <svg class="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-        <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-        <span class="sr-only">Toggle menu</span>
-    </button>
-</header>
-
-<aside id="sidebar" 
-       class="fixed left-0 top-0 h-full bg-white shadow-2xl z-40 transition-all duration-300 flex flex-col"
-       style="width: 280px; transform: translateX(-100%);"
-       aria-label="Main navigation sidebar"
-       role="navigation">
-    
-    <!-- Sidebar Header -->
-    <div class="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-        <div class="flex items-center space-x-3">
-            <?php 
-            $logo = SettingsHelper::get('lgu_logo');
-            if ($logo): ?>
-                <img src="<?php echo BASE_URL . $logo; ?>" alt="LGU Logo" class="w-10 h-10 object-contain rounded-xl">
-            <?php else: ?>
-                <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md">
-                    <i class="fas fa-leaf text-white text-lg"></i>
-                </div>
-            <?php endif; ?>
-            <div>
-                <!-- UPDATED: Dynamic system name -->
-                <p class="text-xl font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">
-                    <?php echo htmlspecialchars($system_name); ?>
-                </p>
-                <p class="text-[10px] text-gray-500 uppercase tracking-wider"><?php echo t('Environmental Reporting'); ?></p>
-            </div>
-        </div>
-        <div class="flex items-center gap-1.5 flex-shrink-0">
-            <button id="hideSidebarBtn" 
-                    class="w-10 h-10 rounded-lg bg-transparent hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
-                    aria-label="Close sidebar menu"
-                    title="Hide Sidebar">
-            <i class="material-symbols ms-close text-gray-500 group-hover:text-red-500 transition" aria-hidden="true"></i>
-            <span class="sr-only">Close sidebar</span>
-            </button>
-            </div>
-    </div>
-    
-    <!-- Navigation - Scrollable Area -->
-    <nav class="flex-1 overflow-y-auto px-4 py-5" aria-label="Main navigation">
-        
-        <?php if($user_role == 'citizen'): ?>
-        <!-- Citizen Section -->
-        <div class="mb-6">
-
-            <!-- Home -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Home'); ?></span>
-                <?php if($current_page == 'dashboard'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-
-            <!-- Submit Report -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'submit-report' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'submit-report' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-plus-circle text-sm <?php echo $current_page == 'submit-report' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Submit Report'); ?></span>
-                <?php if($current_page == 'submit-report'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
-            <!-- My Reports -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'my-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'my-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-list text-sm <?php echo $current_page == 'my-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('My Reports'); ?></span>
-                <?php if($current_page == 'my-reports'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
-            <!-- Announcements -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
-                <?php if($current_page == 'announcements'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
-            <!-- Notifications -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
-                <?php if($current_page == 'notifications'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-        </div>
-        
-        <?php elseif($user_role == 'barangay_official'): ?>
-        <!-- Barangay Official Section -->
-        <div class="mb-6">
-
-            <?php if (PermissionHelper::userHasAnyPermission(['can_view_analytics', 'can_view_map'])): ?>
-            
-            <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Dashboard'); ?></span>
-                <?php if($current_page == 'dashboard'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            <?php endif; ?>
-
-            <?php if (PermissionHelper::userHasPermission('can_manage_reports')): ?>
-            <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'verify-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'verify-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-check-double text-sm <?php echo $current_page == 'verify-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Manage Reports'); ?></span>
-                <?php if($current_page == 'verify-reports'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            <?php endif; ?>
-            
-            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
-                <?php if($current_page == 'announcements'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
-            <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
-            <a href="<?php echo BASE_URL; ?>index.php?page=reporters-directory" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-address-book text-sm <?php echo $current_page == 'reporters-directory' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Reporters Directory'); ?></span>
-                <?php if($current_page == 'reporters-directory'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            <?php endif; ?>
-            
-            <!-- Notifications -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
-                <?php if($current_page == 'notifications'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-        </div>
-        
-        <?php elseif($user_role == 'admin'): ?>
-        <!-- Admin/MENRO Section -->
-        <div class="mb-6">
-
-            <?php if (PermissionHelper::userHasAnyPermission(['can_view_analytics', 'can_view_map'])): ?>
-            
-            <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Dashboard'); ?></span>
-                <?php if($current_page == 'dashboard'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            <?php endif; ?>
-
-            <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
-            <a href="<?php echo BASE_URL; ?>index.php?page=all-reports" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'all-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'all-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-flag text-sm <?php echo $current_page == 'all-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('All Reports'); ?></span>
-                <?php if($current_page == 'all-reports'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            <?php endif; ?>
-            
-            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
-                <?php if($current_page == 'announcements'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
-            <!-- Notifications -->
-            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
-                <?php if($current_page == 'notifications'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            
-            <?php if (PermissionHelper::userHasAnyPermission(['can_manage_users', 'can_manage_staff'])): ?>
-            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'manage-users' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'manage-users' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-users-cog text-sm <?php echo $current_page == 'manage-users' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('User Management'); ?></span>
-                <?php if($current_page == 'manage-users'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            <?php endif; ?>
-
-            <?php if (($_SESSION['user_type'] ?? null) === 'admin'): ?>
-            <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs" 
-               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'audit-logs' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'audit-logs' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                    <i class="fas fa-history text-sm <?php echo $current_page == 'audit-logs' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                </div>
-                <span class="ml-3 text-sm font-medium"><?php echo t('Audit Logs'); ?></span>
-                <?php if($current_page == 'audit-logs'): ?>
-                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <span class="sr-only">(current)</span>
-                <?php endif; ?>
-            </a>
-            <?php endif; ?>
-
-            <!-- UPDATED: System Settings (tabbed interface) -->
-            <?php if (PermissionHelper::userHasPermission('can_manage_system')): ?>
-            <div class="mt-4 pt-2 border-t border-emerald-50">
-                <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3"><?php echo t('Settings'); ?></p>
-                <a href="<?php echo BASE_URL; ?>index.php?page=settings&tab=general" 
-                   class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'settings' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
-                    <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'settings' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
-                        <i class="fas fa-cog text-sm <?php echo $current_page == 'settings' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
-                    </div>
-                    <span class="ml-3 text-sm font-medium"><?php echo t('System Settings'); ?></span>
-                    <?php if($current_page == 'settings'): ?>
-                    <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                    <span class="sr-only">(current)</span>
-                    <?php endif; ?>
-                </a>
-            </div>
-            <?php endif; ?>
-        </div>
-        <?php endif; ?>
-    </nav>
-    
-    <!-- User Profile Section - Fixed at Bottom (Links to Profile Page) -->
-    <div class="p-4 border-t border-gray-100 bg-white flex-shrink-0">
-        <a href="<?php echo BASE_URL; ?>index.php?page=profile" 
-           class="flex items-center hover:bg-gray-50 rounded-xl p-1.5 transition-all duration-200 text-left group">
-            <div class="relative">
-                <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
-                    <?php if (!empty($profile_pic_url)): ?>
-                        <img src="<?php echo $profile_pic_url; ?>" alt="Profile" class="w-full h-full object-cover rounded-full">
-                    <?php else: ?>
-                        <span class="text-white font-bold text-sm"><?php echo $initials; ?></span>
-                    <?php endif; ?>
-                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                </div>
-            </div>
-            <div class="ml-3 flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800 truncate group-hover:text-emerald-600 transition"><?php echo htmlspecialchars($display_name); ?></p>
-                <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
-                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium <?php echo $role_badge_color; ?>">
-                        <?php echo $role_display_name; ?>
-                    </span>
-                    <?php if($barangay_name): ?>
-                    <span class="text-[9px] text-gray-400 truncate flex items-center gap-0.5">
-                        <i class="fas fa-map-marker-alt text-[8px]"></i><?php echo htmlspecialchars(substr($barangay_name, 0, 12)); ?>
-                    </span>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <i class="fas fa-chevron-right text-gray-300 text-xs group-hover:text-emerald-500 transition"></i>
-        </a>
-    </div>
-</aside>
-
-<?php if ($user_role === 'admin'): ?>
-<!-- ===== MENRO NOTIFICATION DROPDOWN (sidebar bell) ===== -->
-<div id="menroNotifDropdown" class="menro-notif-dropdown" style="display:none;">
-    <div class="menro-notif-header">
-        <div class="flex justify-between items-center">
-            <div>
-                <h3 class="font-semibold text-gray-800 text-sm"><?php echo t('Notifications'); ?></h3>
-                <p class="text-xs text-gray-400 mt-0.5"><?php echo t('MENRO alerts &amp; report updates'); ?></p>
-            </div>
-            <span class="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-medium" id="menroNotifCount"><?php echo count($menu_notifs); ?></span>
-        </div>
-    </div>
-    <div class="menro-notif-list" id="menroNotifList">
-        <?php if (count($menu_notifs) > 0): ?>
-            <?php foreach ($menu_notifs as $mnotif): ?>
-            <div class="menro-notif-item <?php echo $mnotif['is_read'] ? '' : 'unread'; ?>"
-                 data-link="<?php echo htmlspecialchars($mnotif['link'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
-                 data-id="<?php echo (int)$mnotif['id']; ?>">
-                <div class="menro-notif-icon" style="background: <?php echo $mnotif['color'] ?? '#10A37F'; ?>20;">
-                    <i class="fas <?php echo $mnotif['icon'] ?? 'fa-bell'; ?>" style="color: <?php echo $mnotif['color'] ?? '#10A37F'; ?>; font-size: 1rem;"></i>
-                </div>
-                <div class="menro-notif-content">
-                    <div class="menro-notif-title"><?php echo htmlspecialchars($mnotif['title']); ?></div>
-                    <div class="menro-notif-msg"><?php echo htmlspecialchars($mnotif['message']); ?></div>
-                    <div class="menro-notif-time">
-                        <i class="far fa-clock"></i>
-                        <?php
-                        $mtime = time() - strtotime($mnotif['created_at']);
-                        if ($mtime < 60) echo t('Just now');
-                        elseif ($mtime < 3600) echo floor($mtime / 60) . t(' min ago');
-                        elseif ($mtime < 86400) echo floor($mtime / 3600) . t(' hrs ago');
-                        else echo date('M d', strtotime($mnotif['created_at']));
-                        ?>
-                    </div>
-                </div>
-                <?php if (!$mnotif['is_read']): ?>
-                <div class="menro-notif-dot"></div>
-                <?php endif; ?>
-            </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="menro-notif-empty">
-                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-bell-slash text-xl text-gray-400"></i>
-                </div>
-                <p class="text-gray-400 text-sm"><?php echo t('No notifications yet'); ?></p>
-                <p class="text-xs text-gray-300 mt-1"><?php echo t('New reports and escalations will appear here'); ?></p>
-            </div>
-        <?php endif; ?>
-    </div>
-    <?php if (count($menu_notifs) > 0): ?>
-    <div class="menro-notif-actions">
-        <button type="button" class="menro-mark-all" onclick="menroMarkAllRead()"><i class="fas fa-check-double mr-1"></i><?php echo t('Mark all as read'); ?></button>
-        <button type="button" class="menro-clear-all" onclick="menroClearAll()"><i class="fas fa-trash-alt mr-1"></i><?php echo t('Clear all'); ?></button>
-    </div>
-    <?php endif; ?>
-    <div class="menro-notif-view-all" role="button" tabindex="0" onclick="menroViewAll()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();menroViewAll();}"><i class="fas fa-list-alt mr-2"></i><?php echo t('View all notifications'); ?></div>
-</div>
-<?php endif; ?>
-
-<!-- LOGOUT MODAL - SINGLE SOURCE OF TRUTH -->
-<div id="logoutModal" 
-     class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center"
-     style="z-index: 99999;"
-     role="dialog"
-     aria-modal="true"
-     aria-labelledby="logout-modal-title">
-    <div class="bg-white rounded-2xl max-w-sm w-full mx-4 overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
-        <div class="p-6 text-center">
-            <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-sign-out-alt text-red-500 text-2xl"></i>
-            </div>
-            <h3 id="logout-modal-title" class="text-xl font-semibold text-gray-800 mb-2"><?php echo t('Confirm Logout'); ?></h3>
-            <p class="text-gray-500 text-sm mb-6"><?php echo t('Are you sure you want to logout from your account?'); ?></p>
-            <div class="flex gap-3">
-                <button type="button" onclick="closeLogoutModal()" 
-                        class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition">
-                    <?php echo t('Cancel'); ?>
-                </button>
-                <a href="<?php echo BASE_URL; ?>index.php?page=logout" 
-                   class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition text-center">
-                    <?php echo t('Logout'); ?>
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
 
 <style>
     /* ============================================ */
@@ -899,7 +472,537 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
     .menro-notif-view-all { text-align: center; padding: 11px 16px; border-top: 1px solid #F3F4F6; background: #fff; font-size: .72rem; font-weight: 600; cursor: pointer; color: #10A37F; }
     .menro-notif-view-all:hover { background: #F0FDF4; color: #0D8568; }
     .menro-notif-empty { padding: 2.5rem 1rem; text-align: center; }
+
+    /* ---- Filter toolbars lifted into the top app header (same as dashboards) ---- */
+    body:not(.dashboard-page) #dashHeaderExtras { display: none; }
+    .app-mobile-header #dashHeaderExtras {
+        display: flex !important;
+        align-items: center;
+        min-width: 0;
+        margin-left: auto;
+    }
+    .app-mobile-header #dashHeaderExtras .dashboard-toolbar-row,
+    .app-mobile-header #dashHeaderExtras .dashboard-toolbar-filters,
+    .app-mobile-header #dashHeaderExtras .ft-toolbar {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 0;
+        margin: 0;
+    }
+    .app-mobile-header #dashHeaderExtras .ft-toolbar .reports-toolbar,
+    .app-mobile-header #dashHeaderExtras .reports-toolbar {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        gap: .4rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .app-mobile-header #dashHeaderExtras .reports-toolbar::-webkit-scrollbar { display: none; }
+    .app-mobile-header #dashHeaderExtras .toolbar-select {
+        min-height: 34px;
+        background-color: #f4f7f5;
+        border-color: transparent;
+    }
+    .app-mobile-header #dashHeaderExtras .toolbar-select:hover,
+    .app-mobile-header #dashHeaderExtras .toolbar-select:focus {
+        border-color: #cde3d7;
+        background-color: #ffffff;
+    }
+    .app-mobile-header #dashHeaderExtras .toolbar-divider { display: none; }
+    .app-mobile-header #dashHeaderExtras .toolbar-results { display: none; }
+    .app-mobile-header #dashHeaderExtras .active-filters-row { display: none; }
+    .app-mobile-header #dashHeaderExtras .ft-more-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+        background: #f4f7f5;
+        border-color: transparent;
+    }
+    .app-mobile-header #dashHeaderExtras .toolbar-search { width: 170px; }
+    .app-mobile-header #dashHeaderExtras .toolbar-search input { height: 34px; }
+    .app-mobile-header #dashHeaderExtras form input[type="text"] { min-height: 34px; }
 </style>
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/app-shell.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/app-shell.css'); ?>">
+
+<!-- Page title, filters, notifications and account actions. -->
+<header class="app-mobile-header" role="banner">
+    <div class="app-page-title-wrap">
+        <?php $header_logo = SettingsHelper::get('lgu_logo'); ?>
+        <span class="app-page-logo" aria-hidden="true">
+            <?php if ($header_logo): ?>
+                <img src="<?php echo BASE_URL . $header_logo; ?>" alt="">
+            <?php else: ?>
+                <i class="fas fa-leaf"></i>
+            <?php endif; ?>
+        </span>
+        <h1 class="app-page-title"><?php echo htmlspecialchars($app_page_title, ENT_QUOTES, 'UTF-8'); ?></h1>
+    </div>
+    <div class="app-header-actions">
+        <?php if (!empty($_SESSION['user_id'])): ?>
+        <button type="button" id="<?php echo ($user_role === 'admin') ? 'menroNotifBell' : 'notifBellBtn'; ?>"
+                class="notification-bell sierra-hero-bell radius-12"
+                onclick="<?php echo ($user_role === 'admin') ? 'menroToggleNotifs(event)' : "if (typeof toggleNotifications === 'function') toggleNotifications(); else window.location.href='" . BASE_URL . "index.php?page=notifications';"; ?>"
+                aria-label="<?php echo t('Notifications'); ?>" aria-haspopup="true" aria-expanded="false"
+                aria-controls="<?php echo ($user_role === 'admin') ? 'menroNotifDropdown' : 'notificationDropdown'; ?>">
+            <i class="fas fa-bell" aria-hidden="true"></i>
+            <?php if ($menu_unread > 0): ?>
+            <span class="notification-badge" id="notificationBadge"><?php echo $menu_unread > 9 ? '9+' : $menu_unread; ?></span>
+            <?php endif; ?>
+        </button>
+        <?php endif; ?>
+        <?php if (!empty($_SESSION['user_id'])): ?>
+        <a href="<?php echo BASE_URL; ?>index.php?page=profile" class="app-header-user">
+            <span class="app-header-avatar">
+                <?php if (!empty($profile_pic_url)): ?>
+                    <img src="<?php echo htmlspecialchars($profile_pic_url); ?>" alt="Profile">
+                <?php else: ?>
+                    <?php echo htmlspecialchars($initials); ?>
+                <?php endif; ?>
+            </span>
+            <span class="app-header-user-txt">
+                <strong><?php echo htmlspecialchars($display_name); ?></strong>
+                <em><?php echo htmlspecialchars($role_display_name); ?><?php if (!empty($barangay_name)): ?> • <?php echo htmlspecialchars($barangay_name); ?><?php endif; ?></em>
+            </span>
+            <i class="fas fa-chevron-down app-header-chev" aria-hidden="true"></i>
+        </a>
+        <?php endif; ?>
+        <button id="showSidebarBtn"
+                type="button"
+                class="app-mobile-menu-btn"
+                aria-label="Toggle navigation menu"
+                aria-expanded="false"
+                aria-controls="sidebar"
+                title="Toggle Menu">
+            <svg class="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+            <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            <span class="sr-only">Toggle menu</span>
+        </button>
+    </div>
+</header>
+
+<aside id="sidebar" 
+       class="fixed left-0 top-0 h-full bg-white shadow-2xl z-40 transition-all duration-300 flex flex-col"
+       style="width: 280px; transform: translateX(-100%);"
+       aria-label="Main navigation sidebar"
+       role="navigation">
+    
+    <!-- Sidebar Header -->
+    <div class="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center space-x-3">
+            <?php 
+            $logo = SettingsHelper::get('lgu_logo');
+            if ($logo): ?>
+                <img src="<?php echo BASE_URL . $logo; ?>" alt="LGU Logo" class="w-10 h-10 object-contain rounded-xl">
+            <?php else: ?>
+                <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fas fa-leaf text-white text-lg"></i>
+                </div>
+            <?php endif; ?>
+            <div>
+                <!-- UPDATED: Dynamic system name -->
+                <p class="text-xl font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">
+                    <?php echo htmlspecialchars($system_name); ?>
+                </p>
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider"><?php echo t('Environmental Reporting'); ?></p>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button id="hideSidebarBtn" 
+                    class="w-10 h-10 rounded-lg bg-transparent hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 flex items-center justify-center group"
+                    aria-label="Close sidebar menu"
+                    title="Hide Sidebar">
+            <i class="material-symbols ms-close text-gray-500 group-hover:text-red-500 transition" aria-hidden="true"></i>
+            <span class="sr-only">Close sidebar</span>
+            </button>
+            </div>
+    </div>
+    
+    <!-- Navigation - Scrollable Area -->
+    <nav class="flex-1 overflow-y-auto px-4 py-5" aria-label="Main navigation">
+        
+        <p class="sb-label"><?php echo t('Menu'); ?></p>
+
+        <?php if($user_role == 'citizen'): ?>
+        <!-- Citizen Section -->
+        <div class="mb-6">
+
+            <!-- Home -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Home'); ?></span>
+                <?php if($current_page == 'dashboard'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+
+            <!-- Submit Report -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'submit-report' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'submit-report' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-plus-circle text-sm <?php echo $current_page == 'submit-report' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Submit Report'); ?></span>
+                <?php if($current_page == 'submit-report'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
+            <!-- My Reports -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'my-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'my-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-list text-sm <?php echo $current_page == 'my-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('My Reports'); ?></span>
+                <?php if($current_page == 'my-reports'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
+            <!-- Announcements -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
+                <?php if($current_page == 'announcements'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
+            <!-- Notifications -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
+                <?php if($current_page == 'notifications'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+        </div>
+        
+        <?php elseif($user_role == 'barangay_official'): ?>
+        <!-- Barangay Official Section -->
+        <div class="mb-6">
+
+            <?php if (PermissionHelper::userHasAnyPermission(['can_view_analytics', 'can_view_map'])): ?>
+            
+            <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Dashboard'); ?></span>
+                <?php if($current_page == 'dashboard'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+
+            <?php if (PermissionHelper::userHasPermission('can_manage_reports')): ?>
+            <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'verify-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'verify-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-check-double text-sm <?php echo $current_page == 'verify-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Manage Reports'); ?></span>
+                <?php if($current_page == 'verify-reports'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+            
+            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
+                <?php if($current_page == 'announcements'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
+            <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
+            <a href="<?php echo BASE_URL; ?>index.php?page=reporters-directory" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'reporters-directory' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-address-book text-sm <?php echo $current_page == 'reporters-directory' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Reporters Directory'); ?></span>
+                <?php if($current_page == 'reporters-directory'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+            
+            <!-- Notifications -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
+                <?php if($current_page == 'notifications'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+        </div>
+        
+        <?php elseif($user_role == 'admin'): ?>
+        <!-- Admin/MENRO Section -->
+        <div class="mb-6">
+
+            <?php if (PermissionHelper::userHasAnyPermission(['can_view_analytics', 'can_view_map'])): ?>
+            
+            <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'dashboard' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-home text-sm <?php echo $current_page == 'dashboard' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Dashboard'); ?></span>
+                <?php if($current_page == 'dashboard'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+
+            <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
+            <a href="<?php echo BASE_URL; ?>index.php?page=all-reports" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'all-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'all-reports' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-flag text-sm <?php echo $current_page == 'all-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('All Reports'); ?></span>
+                <?php if($current_page == 'all-reports'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+            
+            <a href="<?php echo BASE_URL; ?>index.php?page=announcements" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'announcements' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'announcements' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
+                <?php if($current_page == 'announcements'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
+            <!-- Notifications -->
+            <a href="<?php echo BASE_URL; ?>index.php?page=notifications" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'notifications' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'notifications' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
+                <?php if($current_page == 'notifications'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            
+            <?php if (PermissionHelper::userHasAnyPermission(['can_manage_users', 'can_manage_staff'])): ?>
+            <a href="<?php echo BASE_URL; ?>index.php?page=manage-users" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'manage-users' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'manage-users' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-users-cog text-sm <?php echo $current_page == 'manage-users' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('User Management'); ?></span>
+                <?php if($current_page == 'manage-users'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+
+            <?php if (($_SESSION['user_type'] ?? null) === 'admin'): ?>
+            <a href="<?php echo BASE_URL; ?>index.php?page=audit-logs" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'audit-logs' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'audit-logs' ? 'bg-emerald-100' : 'bg-gray-100'; ?>">
+                    <i class="fas fa-history text-sm <?php echo $current_page == 'audit-logs' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
+                </div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Audit Logs'); ?></span>
+                <?php if($current_page == 'audit-logs'): ?>
+                <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span class="sr-only">(current)</span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
+
+        </div>
+        <?php endif; ?>
+
+        <!-- GENERAL -->
+        <div class="sb-general pt-3" style="border-top:1px solid rgba(255,255,255,.09);">
+            <p class="sb-label"><?php echo t('General'); ?></p>
+            <a href="<?php echo BASE_URL; ?>index.php?page=<?php echo ($user_role === 'admin') ? 'settings&tab=general' : 'profile'; ?>" 
+               class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center"><i class="fas fa-cog text-sm"></i></div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Settings'); ?></span>
+            </a>
+            <a href="#" onclick="openLogoutModal();return false;" 
+               class="sb-logout flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center"><i class="fas fa-sign-out-alt text-sm"></i></div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Log Out'); ?></span>
+            </a>
+        </div>
+    </nav>
+    
+    <!-- User Profile Section - Fixed at Bottom (Links to Profile Page) -->
+    <div class="p-4 border-t border-gray-100 bg-white flex-shrink-0">
+        <a href="<?php echo BASE_URL; ?>index.php?page=profile" 
+           class="flex items-center hover:bg-gray-50 rounded-xl p-1.5 transition-all duration-200 text-left group">
+            <div class="relative">
+                <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
+                    <?php if (!empty($profile_pic_url)): ?>
+                        <img src="<?php echo $profile_pic_url; ?>" alt="Profile" class="w-full h-full object-cover rounded-full">
+                    <?php else: ?>
+                        <span class="text-white font-bold text-sm"><?php echo $initials; ?></span>
+                    <?php endif; ?>
+                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                </div>
+            </div>
+            <div class="ml-3 flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-800 truncate group-hover:text-emerald-600 transition"><?php echo htmlspecialchars($display_name); ?></p>
+                <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium <?php echo $role_badge_color; ?>">
+                        <?php echo $role_display_name; ?>
+                    </span>
+                    <?php if($barangay_name): ?>
+                    <span class="text-[9px] text-gray-400 truncate flex items-center gap-0.5">
+                        <i class="fas fa-map-marker-alt text-[8px]"></i><?php echo htmlspecialchars(substr($barangay_name, 0, 12)); ?>
+                    </span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <i class="fas fa-chevron-right text-gray-300 text-xs group-hover:text-emerald-500 transition"></i>
+        </a>
+    </div>
+</aside>
+
+<?php if ($user_role === 'admin'): ?>
+<!-- ===== MENRO NOTIFICATION DROPDOWN (sidebar bell) ===== -->
+<div id="menroNotifDropdown" class="menro-notif-dropdown" style="display:none;">
+    <div class="menro-notif-header">
+        <div class="flex justify-between items-center">
+            <div>
+                <h3 class="font-semibold text-gray-800 text-sm"><?php echo t('Notifications'); ?></h3>
+                <p class="text-xs text-gray-400 mt-0.5"><?php echo t('MENRO alerts &amp; report updates'); ?></p>
+            </div>
+            <span class="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-medium" id="menroNotifCount"><?php echo count($menu_notifs); ?></span>
+        </div>
+    </div>
+    <div class="menro-notif-list" id="menroNotifList">
+        <?php if (count($menu_notifs) > 0): ?>
+            <?php foreach ($menu_notifs as $mnotif): ?>
+            <div class="menro-notif-item <?php echo $mnotif['is_read'] ? '' : 'unread'; ?>"
+                 data-link="<?php echo htmlspecialchars($mnotif['link'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                 data-id="<?php echo (int)$mnotif['id']; ?>">
+                <div class="menro-notif-icon" style="background: <?php echo $mnotif['color'] ?? '#10A37F'; ?>20;">
+                    <i class="fas <?php echo $mnotif['icon'] ?? 'fa-bell'; ?>" style="color: <?php echo $mnotif['color'] ?? '#10A37F'; ?>; font-size: 1rem;"></i>
+                </div>
+                <div class="menro-notif-content">
+                    <div class="menro-notif-title"><?php echo htmlspecialchars($mnotif['title']); ?></div>
+                    <div class="menro-notif-msg"><?php echo htmlspecialchars($mnotif['message']); ?></div>
+                    <div class="menro-notif-time">
+                        <i class="far fa-clock"></i>
+                        <?php
+                        $mtime = time() - strtotime($mnotif['created_at']);
+                        if ($mtime < 60) echo t('Just now');
+                        elseif ($mtime < 3600) echo floor($mtime / 60) . t(' min ago');
+                        elseif ($mtime < 86400) echo floor($mtime / 3600) . t(' hrs ago');
+                        else echo date('M d', strtotime($mnotif['created_at']));
+                        ?>
+                    </div>
+                </div>
+                <?php if (!$mnotif['is_read']): ?>
+                <div class="menro-notif-dot"></div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="menro-notif-empty">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-bell-slash text-xl text-gray-400"></i>
+                </div>
+                <p class="text-gray-400 text-sm"><?php echo t('No notifications yet'); ?></p>
+                <p class="text-xs text-gray-300 mt-1"><?php echo t('New reports and escalations will appear here'); ?></p>
+            </div>
+        <?php endif; ?>
+    </div>
+    <?php if (count($menu_notifs) > 0): ?>
+    <div class="menro-notif-actions">
+        <button type="button" class="menro-mark-all" onclick="menroMarkAllRead()"><i class="fas fa-check-double mr-1"></i><?php echo t('Mark all as read'); ?></button>
+        <button type="button" class="menro-clear-all" onclick="menroClearAll()"><i class="fas fa-trash-alt mr-1"></i><?php echo t('Clear all'); ?></button>
+    </div>
+    <?php endif; ?>
+    <div class="menro-notif-view-all" role="button" tabindex="0" onclick="menroViewAll()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();menroViewAll();}"><i class="fas fa-list-alt mr-2"></i><?php echo t('View all notifications'); ?></div>
+</div>
+<?php endif; ?>
+
+<!-- LOGOUT MODAL - SINGLE SOURCE OF TRUTH -->
+<div id="logoutModal" 
+     class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center"
+     style="z-index: 99999;"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="logout-modal-title">
+    <div class="bg-white rounded-2xl max-w-sm w-full mx-4 overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-sign-out-alt text-red-500 text-2xl"></i>
+            </div>
+            <h3 id="logout-modal-title" class="text-xl font-semibold text-gray-800 mb-2"><?php echo t('Confirm Logout'); ?></h3>
+            <p class="text-gray-500 text-sm mb-6"><?php echo t('Are you sure you want to logout from your account?'); ?></p>
+            <div class="flex gap-3">
+                <button type="button" onclick="closeLogoutModal()" 
+                        class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition">
+                    <?php echo t('Cancel'); ?>
+                </button>
+                <a href="<?php echo BASE_URL; ?>index.php?page=logout" 
+                   class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 transition text-center">
+                    <?php echo t('Logout'); ?>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 <script>
     let sidebarOpen = false;
@@ -1014,161 +1117,7 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
 </script>
 
 <!-- ===== REALTIME NOTIFICATIONS (polling + top-center toast, all pages) ===== -->
-<script>
-(function () {
-    'use strict';
-    var LIVE_URL = '<?php echo BASE_URL; ?>controllers/LiveSyncController.php';
-    var POLL_MS = 30000;   // check for new notifications every 30 seconds (was 10s — free hosts throttle on hit volume)
-    var TOAST_MS = 6000;   // how long each toast stays on screen
-
-    var baselineVersion = null;
-    var baselineSeq = null;
-    var lastUnread = -1;
-    var pageVisible = true;
-    var polling = false;
-    var seenIds = {};
-
-    function timeAgo(ts) {
-        var d = new Date(String(ts).replace(/-/g, '/').replace(/\.\d+/, ''));
-        if (isNaN(d.getTime())) return '';
-        var s = Math.floor((Date.now() - d.getTime()) / 1000);
-        if (s < 60) return 'just now';
-        var m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
-        var h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
-        var dd = Math.floor(h / 24); return dd + 'd ago';
-    }
-
-    function updateBadge(unread) {
-        var badge = document.getElementById('notificationBadge');
-        if (unread > 0) {
-            if (!badge) {
-                var bell = document.querySelector('.notification-bell, .rt-bell');
-                if (!bell) return;
-                badge = document.createElement('span');
-                badge.id = 'notificationBadge';
-                badge.className = 'notification-badge';
-                bell.appendChild(badge);
-            }
-            badge.textContent = unread > 9 ? '9+' : unread;
-            badge.style.display = '';
-        } else if (badge) {
-            badge.style.display = 'none';
-        }
-    }
-
-    function showToast(latest) {
-        if (!latest || !latest.title) return;
-        var key = latest.id || (latest.title + latest.created_at);
-        if (seenIds[key]) return;
-        seenIds[key] = true;
-
-        // stack toasts, newest on top, centered at the top of the page
-        var wrapper = document.getElementById('rtToastWrapper');
-        if (!wrapper) {
-            wrapper = document.createElement('div');
-            wrapper.id = 'rtToastWrapper';
-            wrapper.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1000000;display:flex;flex-direction:column;gap:10px;width:min(92vw,420px);pointer-events:none;';
-            document.body.appendChild(wrapper);
-        }
-
-        var toast = document.createElement('div');
-        toast.setAttribute('role', 'alert');
-        toast.style.cssText = 'pointer-events:auto;display:flex;align-items:flex-start;gap:12px;background:#ffffff;border:1px solid #e2e8f0;border-left:4px solid ' + (latest.color || '#10A37F') + ';border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:14px 16px;font-family:inherit;cursor:pointer;opacity:0;transform:translateY(-16px);animation:rtToastIn .35s cubic-bezier(.16,1,.3,1) forwards;';
-
-        var icon = document.createElement('div');
-        icon.style.cssText = 'width:38px;height:38px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (latest.color || '#10A37F') + '1f;';
-        var i = document.createElement('i');
-        i.className = 'fas ' + (latest.icon || 'fa-bell');
-        i.style.cssText = 'color:' + (latest.color || '#10A37F') + ';font-size:1.05rem;';
-        icon.appendChild(i);
-
-        var body = document.createElement('div');
-        body.style.cssText = 'flex:1;min-width:0;';
-
-        var t = document.createElement('div');
-        t.style.cssText = 'font-weight:700;font-size:0.85rem;color:#111827;line-height:1.3;margin-bottom:2px;';
-        t.textContent = latest.title;
-
-        var m = document.createElement('div');
-        m.style.cssText = 'font-size:0.78rem;color:#6B7280;line-height:1.4;margin-bottom:4px;word-wrap:break-word;';
-        m.textContent = latest.message;
-
-        var meta = document.createElement('div');
-        meta.style.cssText = 'font-size:0.68rem;color:#6B7280;display:flex;align-items:center;gap:4px;';
-        var ci = document.createElement('i');
-        ci.className = 'far fa-clock';
-        ci.style.fontSize = '0.68rem';
-        meta.appendChild(ci);
-        meta.appendChild(document.createTextNode(' ' + timeAgo(latest.created_at)));
-
-        body.appendChild(t);
-        body.appendChild(m);
-        body.appendChild(meta);
-
-        var close = document.createElement('button');
-        close.innerHTML = '&times;';
-        close.style.cssText = 'flex-shrink:0;border:none;background:transparent;color:#6B7280;font-size:1.1rem;line-height:1;cursor:pointer;padding:0 2px;';
-        close.addEventListener('click', function (e) { e.stopPropagation(); dismiss(toast); });
-
-        toast.appendChild(icon);
-        toast.appendChild(body);
-        toast.appendChild(close);
-
-        if (latest.link) {
-            toast.addEventListener('click', function () { window.location.href = latest.link; });
-        }
-        wrapper.appendChild(toast);
-
-        setTimeout(function () { dismiss(toast); }, TOAST_MS);
-    }
-
-    function dismiss(toast) {
-        if (!toast || !toast.parentNode) return;
-        toast.style.transition = 'opacity .28s ease, transform .28s ease';
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-16px)';
-        setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 280);
-    }
-
-    function tick() {
-        if (!pageVisible || polling) return;
-        polling = true;
-        fetch(LIVE_URL, { method: 'GET', credentials: 'same-origin', cache: 'no-store' })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (!data || data.success !== true) return;
-                var unread = parseInt(data.unread, 10) || 0;
-                updateBadge(unread);
-                if (baselineVersion === null) {
-                    baselineVersion = data.data_version;
-                    baselineSeq = data.notif_seq;
-                    lastUnread = unread;
-                    return;
-                }
-                if (unread > lastUnread && data.latest) {
-                    showToast(data.latest);
-                }
-                lastUnread = unread;
-                if (data.data_version && data.data_version !== baselineVersion) baselineVersion = data.data_version;
-                if (typeof data.notif_seq === 'number') baselineSeq = data.notif_seq;
-            })
-            .catch(function () {})
-            .then(function () { polling = false; });
-    }
-
-    document.addEventListener('visibilitychange', function () {
-        pageVisible = !document.hidden;
-        if (pageVisible) tick();
-    });
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () { setTimeout(tick, 2500); });
-    } else {
-        setTimeout(tick, 2500);
-    }
-    setInterval(tick, POLL_MS);
-})();
-</script>
+<script src="<?php echo BASE_URL; ?>assets/js/notification-polling.js?v=20261001" data-live-url="<?php echo BASE_URL; ?>controllers/LiveSyncController.php"></script>
 <?php if ($user_role === 'admin'): ?>
 <!-- ===== MENRO NOTIFICATION BELL LOGIC (toggle / mark read / clear) ===== -->
 <script>
@@ -1335,45 +1284,22 @@ if ($user_role === 'admin' && $user_id && isset($db)) {
 </style>
 
 <script>
-/* Relocate the dashboard hero's notification bell into the mobile header
-   (left of the menu button) on phones; restore it to the hero on desktop. */
+/* Lift page filter toolbars (#dashHeaderExtras) into the top app header,
+   before the notification bell. The bell itself is always in the header. */
 (function () {
     'use strict';
     var header = document.querySelector('.app-mobile-header');
     var burger = document.getElementById('showSidebarBtn');
     if (!header || !burger) return;
 
-    var mq = window.matchMedia('(max-width: 1023px)');
-    var homeParent = null, homeNext = null;
-
-    function findBell() {
-        return document.querySelector('.sierra-hero .sierra-hero-bell') ||
-               document.querySelector('.sierra-hero .notification-bell');
-    }
-    function toHeader() {
-        var b = findBell();
-        if (b && b.parentNode !== header) {
-            homeParent = b.parentNode;
-            homeNext = b.nextSibling;
-            header.insertBefore(b, burger);
-        }
+    function liftExtras() {
         var extras = document.getElementById('dashHeaderExtras');
-        if (extras && extras.parentNode !== header) {
-            var ref = header.querySelector('.sierra-hero-bell, .notification-bell, .menro-header-bell') || burger;
-            header.insertBefore(extras, ref);
-        }
+        if (!extras || extras.parentNode === header) return;
+        var actions = header.querySelector('.app-header-actions');
+        header.insertBefore(extras, actions || burger);
     }
-    function toHero() {
-        var b = header.querySelector('.sierra-hero-bell, .notification-bell');
-        if (b && homeParent) homeParent.insertBefore(b, homeNext);
-    }
-    function sync() { toHeader(); }
-
-    if (mq.addEventListener) mq.addEventListener('change', sync);
-    else if (mq.addListener) mq.addListener(sync);
-
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sync);
-    else sync();
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', liftExtras);
+    else liftExtras();
 })();
 </script>
 

@@ -206,10 +206,10 @@ function sendReportStatusEmail($db, $report_id, $templateKey, $subjectLabel, $ac
     </html>
     ";
 
-    $email_sent = SettingsHelper::sendEmail($recipient_email, $full_name, $subject, $html);
+    $email_sent = SettingsHelper::sendReportEmail($recipient_email, $full_name, $subject, $html);
 
     if ($email_sent) {
-        $activityLog->log($user_id, 'Email Receipt', "Sent \"$subjectLabel\" email for report #$report_id to $recipient_email");
+        $activityLog->log($user_id, 'Email Receipt', "Accepted \"$subjectLabel\" email for delivery for report #$report_id to $recipient_email");
     } else {
         error_log("Report status email ($templateKey) failed for report #$report_id to $recipient_email");
     }
@@ -250,7 +250,7 @@ function sendNotificationEmail($email, $name, $title, $message, $link = '') {
     </html>
     ";
 
-    return SettingsHelper::sendEmail($email, $name, $subject, $html);
+    return SettingsHelper::sendReportEmail($email, $name, $subject, $html);
 }
 
 // ============================================
@@ -1895,7 +1895,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </html>
                 ";
 
-                $email_sent = SettingsHelper::sendEmail(
+                $email_sent = SettingsHelper::sendReportEmail(
                     $recipient_email,
                     ($newReport['first_name'] ?? '') . ' ' . ($newReport['last_name'] ?? ''),
                     $subject,
@@ -1903,7 +1903,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
 
                 if ($email_sent) {
-                    $activityLog->log($user_id, 'Email Receipt', "Sent official report receipt #$report_id to $recipient_email");
+                    $activityLog->log($user_id, 'Email Receipt', "Accepted official report receipt for delivery #$report_id to $recipient_email");
                 } else {
                     error_log("Report receipt email failed for report #$report_id to $recipient_email");
                 }

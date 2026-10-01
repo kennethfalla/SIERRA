@@ -1,0 +1,394 @@
+/* ============================================================
+   Sierra — App shell (all roles)
+   Floating dark-green sidebar card + floating white header card
+   + dashboard title row. Loaded from views/layouts/sidebar.php.
+   ============================================================ */
+
+body {
+    background: #eef3f0;
+}
+
+/* ---------- Sidebar card ---------- */
+#sidebar {
+    background: #075B48;
+    border-right: none !important;
+    box-shadow: none !important;
+    border-radius: 0;
+    overflow: hidden;
+}
+#sidebar .sidebar-brand,
+#sidebar .p-5.border-b {
+    border-color: rgba(255, 255, 255, .09) !important;
+}
+#sidebar p.text-xl,
+#sidebar .bg-clip-text {
+    background: none !important;
+    -webkit-text-fill-color: #ffffff !important;
+    color: #ffffff !important;
+}
+#sidebar .p-5 .text-\[10px\],
+#sidebar .uppercase.tracking-wider {
+    color: #7fa092 !important;
+}
+#sidebar nav {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    scrollbar-width: thin;
+}
+#sidebar nav > * { flex-shrink: 0; }
+#sidebar .sb-general { margin-top: auto; padding-top: 1.25rem; }
+#sidebar nav::-webkit-scrollbar { width: 5px; }
+#sidebar nav::-webkit-scrollbar-track { background: transparent; }
+#sidebar nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .18); border-radius: 8px; }
+
+/* Hide the close button on desktop (kept for mobile drawer) */
+@media (min-width: 1024px) {
+    #hideSidebarBtn { display: none !important; }
+}
+
+/* Section labels (MENU / GENERAL / Settings) */
+#sidebar .sb-label {
+    margin: 0 0 .55rem;
+    padding: 0 .85rem;
+    font-size: .64rem;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: #7fa092;
+}
+
+/* Nav links */
+#sidebar nav a {
+    color: #cfe0d8 !important;
+    border-radius: 12px !important;
+    position: relative;
+}
+#sidebar nav a > div:first-child {
+    background: transparent !important;
+}
+#sidebar nav a > div:first-child i {
+    color: #9fe6c6 !important;
+}
+#sidebar nav a > span.ml-3,
+#sidebar nav a > span:not([class]) {
+    color: inherit !important;
+}
+#sidebar nav a:hover {
+    background: rgba(255, 255, 255, .08) !important;
+    color: #ffffff !important;
+}
+#sidebar nav a:hover > div:first-child i { color: #ffffff !important; }
+
+/* Active item */
+#sidebar nav a[class*="bg-emerald-50"] {
+    background: rgba(255, 255, 255, .11) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+}
+#sidebar nav a[class*="bg-emerald-50"] > div:first-child {
+    background: transparent !important;
+}
+#sidebar nav a[class*="bg-emerald-50"] > div:first-child i {
+    color: #6ee7b7 !important;
+}
+#sidebar nav a[class*="bg-emerald-50"]::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    border-radius: 0 6px 6px 0;
+    background: #34d399;
+}
+#sidebar nav a[class*="bg-emerald-50"] .ml-auto {
+    background: #34d399 !important;
+}
+
+/* Admin settings block label */
+#sidebar nav .border-t { border-color: rgba(255, 255, 255, .09) !important; }
+
+/* Bottom user card */
+#sidebar > .border-t,
+#sidebar > div[class*="border-t"] {
+    background: transparent !important;
+    border-color: rgba(255, 255, 255, .09) !important;
+}
+#sidebar > div[class*="border-t"] a { color: #cfe0d8; }
+#sidebar > div[class*="border-t"] a:hover { background: rgba(255, 255, 255, .08) !important; }
+#sidebar > div[class*="border-t"] p.text-sm,
+#sidebar > div[class*="border-t"] .font-semibold {
+    color: #ffffff !important;
+}
+#sidebar > div[class*="border-t"] .text-gray-400,
+#sidebar > div[class*="border-t"] .text-\[9px\] {
+    color: #7fa092 !important;
+}
+#sidebar > div[class*="border-t"] i.fa-chevron-right { color: #587b6c !important; }
+
+/* ---------- Top header card ---------- */
+.app-mobile-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e6efea;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+.app-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 0;
+    flex-shrink: 0;
+}
+.app-header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    color: #4b5f57;
+    text-decoration: none;
+    transition: background-color .15s ease, color .15s ease;
+}
+.app-header-icon:hover { background: #ecfdf5; color: #10A37F; }
+.app-header-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 6px 4px 4px;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background-color .15s ease;
+}
+.app-header-user:hover { background: #f1f8f4; }
+.app-header-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, #10A37F, #0d8568);
+    color: #fff;
+    font-weight: 700;
+    font-size: .85rem;
+    flex-shrink: 0;
+}
+.app-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.app-header-user-txt { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.app-header-user-txt strong { font-size: .84rem; font-weight: 700; color: #16271f; white-space: nowrap; }
+.app-header-user-txt em { font-style: normal; font-size: .72rem; color: #7c8f87; white-space: nowrap; }
+.app-header-chev { color: #94a3a0; font-size: .68rem; }
+
+/* Header injected dashboard toolbar -> pill look */
+.app-mobile-header #dashHeaderExtras {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-left: auto;
+    margin-right: 0;
+}
+.app-page-title-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0 auto 0 0;
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+}
+.app-page-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex: 0 0 auto;
+    background: #e8f5ed;
+    color: #0d8568;
+    border: 1px solid #d5eadd;
+}
+.app-page-logo img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+.app-page-title {
+    min-width: 0;
+    margin: 0;
+    font-size: clamp(.9rem, 1.4vw, 1.2rem);
+    font-weight: 800;
+    line-height: 1.3;
+    color: #16271f;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.app-mobile-header #dashHeaderExtras .reports-toolbar { background: transparent !important; border: none !important; }
+
+/* ---------- DASHBOARD TITLE ROW ---------- */
+.dash-title-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 0 0 1.1rem;
+}
+.dash-title-left { min-width: 0; }
+.dash-title-h {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin: 0;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: #16271f;
+}
+.dash-live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem .7rem;
+    border-radius: 999px;
+    background: #e9f7f0;
+    color: #0d8568;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+.dash-live-pill i { width: 7px; height: 7px; border-radius: 50%; background: #10A37F; animation: dashLivePulse 1.8s ease-out infinite; }
+@keyframes dashLivePulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 163, 127, .5); }
+    100% { box-shadow: 0 0 0 8px rgba(16, 163, 127, 0); }
+}
+.dash-title-sub { margin: .35rem 0 0; font-size: .86rem; color: #6b7c76; }
+.dash-title-actions { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .dash-title-actions {
+    width: 100%;
+    justify-content: space-between;
+}
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .dash-title-actions .export-dropdown {
+    margin-left: auto;
+}
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .dash-title-actions .btn-add-report {
+    margin-left: auto;
+}
+.btn-add-report {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .65rem 1.1rem;
+    border-radius: 12px;
+    background: #0d8568;
+    color: #fff;
+    font-size: .86rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 12px 26px -14px rgba(13, 133, 104, .9);
+    transition: background-color .18s ease, transform .18s ease;
+}
+.btn-add-report:hover { background: #0a6e56; transform: translateY(-1px); }
+
+/* ---------- Desktop: floating cards ---------- */
+@media (min-width: 1024px) {
+    body { padding-top: 100px !important; }
+
+    /* Cover the gap above the floating bar through its midpoint. */
+    body:has(.app-mobile-header)::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 286px;
+        right: 0;
+        height: 50px;
+        background: #eef3f0;
+        z-index: 44;
+        pointer-events: none;
+    }
+
+    #sidebar {
+        left: 14px !important;
+        top: 14px !important;
+        bottom: 14px !important;
+        height: auto !important;
+        width: 272px !important;
+        border-radius: 24px;
+        box-shadow: 0 30px 60px -30px rgba(4, 40, 28, .7) !important;
+    }
+
+    .app-mobile-header {
+        left: 300px;
+        right: 16px;
+        top: 14px;
+        height: 72px;
+        padding: 0 12px 0 18px;
+        border: 1px solid #e6efea;
+        border-radius: 18px;
+        border-bottom: 1px solid #e6efea;
+        box-shadow: 0 18px 40px -30px rgba(6, 95, 70, .55);
+    }
+    .app-mobile-brand-wrap { display: none !important; }
+
+    #main-content.lg\:ml-72,
+    #main-content { margin-left: 300px !important; }
+}
+
+@media (max-width: 1023px) {
+    .app-header-user,
+    .app-header-mail { display: none !important; }
+}
+
+/* Keep account details from crowding titles and filters on smaller desktops. */
+@media (min-width: 1024px) and (max-width: 1399px) {
+    .app-header-user-txt, .app-header-chev { display: none; }
+}
+
+@media (max-width: 640px) {
+    .app-mobile-header #dashHeaderExtras form input[type="text"] {
+        width: clamp(80px, 26vw, 140px);
+    }
+    .dash-title-h { font-size: 1.35rem; }
+    .dash-title-actions { width: 100%; }
+    .btn-add-report { flex: 1 1 auto; justify-content: center; }
+}
+
+/* Logout item in the sidebar */
+#sidebar nav a.sb-logout span,
+#sidebar nav a.sb-logout i { color: #f2a99b !important; }
+#sidebar nav a.sb-logout:hover { background: rgba(240, 150, 130, .14) !important; }
+#sidebar nav a.sb-logout:hover span,
+#sidebar nav a.sb-logout:hover i { color: #ffcabf !important; }
+
+/* Header toolbar -> rounded pills */
+.app-mobile-header #dashHeaderExtras .toolbar-select,
+.app-mobile-header #dashHeaderExtras .toolbar-search input {
+    border-radius: 999px !important;
+    background: #f4f7f5 !important;
+    border: 1px solid #e6efea !important;
+    min-height: 44px !important;
+}
+.app-mobile-header #dashHeaderExtras .toolbar-select:hover { background: #eef4f1 !important; }
+.app-mobile-header #dashHeaderExtras .ft-toolbar { gap: .5rem; }
+
+/* Desktop: hide the sidebar profile card (profile lives in the header now) */
+@media (min-width: 1024px) {
+    #sidebar > .p-4.border-t { display: none !important; }
+}
+
+/* Wider screens have room for every filter beside the page title. */
+@media (min-width: 1401px) {
+    .app-mobile-header #dashHeaderExtras .ft-more-btn { display: none !important; }
+    .app-mobile-header #dashHeaderExtras .ft-more-controls { display: contents !important; }
+    .app-mobile-header #dashHeaderExtras .ft-more-controls-header { display: none !important; }
+}
+
+@media (max-width: 1400px) {
+    .app-mobile-header #dashHeaderExtras .ft-more-controls .toolbar-search {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+    .app-mobile-header #dashHeaderExtras .reports-toolbar { overflow: visible; }
+}
+
+

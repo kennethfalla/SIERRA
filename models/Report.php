@@ -85,7 +85,7 @@ class Report {
     // READ (with default exclusion of cancelled)
     // ============================================
     
-    public function getReportsByUser($user_id) {
+    public function getReportsByUser($user_id, $limit = null) {
         $query = "SELECT r.*, c.name as category_name, c.icon_class, b.name as barangay_name,
                          (SELECT COUNT(*) FROM report_images WHERE report_id = r.id) as image_count
                   FROM " . $this->table . " r
@@ -93,13 +93,26 @@ class Report {
                   JOIN barangays b ON r.barangay_id = b.id
                   WHERE r.user_id = :user_id
                   AND r.status != :cancelled
-                  ORDER BY r.created_at DESC";
+                  ORDER BY r.created_at DESC, r.id DESC";
+        if ($limit !== null) {
+            $query .= " LIMIT :limit";
+        }
         
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":user_id", $user_id);
         $stmt->bindValue(":cancelled", self::STATUS_CANCELLED);
+        if ($limit !== null) {
+            $stmt->bindValue(":limit", max(1, (int)$limit), PDO::PARAM_INT);
+        }
         $stmt->execute();
         return $stmt;
+    }
+
+    /** Full status totals, independent of the recent-reports display limit. */
+    public function getUserStatusCounts($user_id) {
+        $stmt = $this->conn->prepare("SELECT status, COUNT(*) AS total FROM reports WHERE user_id = ? GROUP BY status");
+        $stmt->execute([(int)$user_id]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_KEY_PAIR));
     }
 
     public function getAllReports($barangay_id = null, $status = null, $limit = null, $offset = null) {

@@ -820,6 +820,7 @@ if ($date_to != '') $active_filters++;
             .page-title { font-size: 1.25rem; }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
 
@@ -830,29 +831,9 @@ if ($date_to != '') $active_filters++;
 
         <!-- ===== HEADER ===== -->
         <div class="page-header">
-            <div class="flex items-center gap-2 mb-2">
-                <div class="w-7 h-7 md:w-8 md:h-8 bg-[#10A37F]/10 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-bullhorn text-[#10A37F] text-xs md:text-sm"></i>
-                </div>
-                <span class="text-[10px] md:text-xs uppercase tracking-wider text-[#10A37F] font-semibold">Announcements</span>
-            </div>
+            
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                    <h1 class="page-title font-bold text-gray-800">
-                        <?php
-                        if ($is_admin) echo 'MENRO Announcements';
-                        elseif ($is_barangay) echo htmlspecialchars($barangay_name) . ' Updates';
-                        else echo 'Community Announcements';
-                        ?>
-                    </h1>
-                    <p class="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">
-                        <?php
-                        if ($is_admin) echo 'Manage all announcements for the municipality';
-                        elseif ($is_barangay) echo 'View and manage announcements for your barangay';
-                        else echo 'Stay updated with the latest news from your barangay and MENRO';
-                        ?>
-                    </p>
-                </div>
+                
                 <?php if ($can_create): ?>
                     <button onclick="openCreateModal()" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 justify-center">
                         <i class="fas fa-plus-circle text-xs md:text-sm"></i>
@@ -970,9 +951,17 @@ if ($date_to != '') $active_filters++;
             ], fn($v) => $v !== null),
             'chips_clear_all'    => true,
             'callback'           => 'applyFilters',
+            'compact_breakpoint' => 1199,
+            'more_icon'          => 'fa-sliders-h',
         ];
-        include __DIR__ . '/report_filter_toolbar.php';
         ?>
+        <div id="dashHeaderExtras" class="dash-header-extras">
+            <div class="dashboard-toolbar-row dash-topbar">
+                <div class="dashboard-toolbar-filters">
+                    <?php include __DIR__ . '/report_filter_toolbar.php'; ?>
+                </div>
+            </div>
+        </div>
 
         <!-- ===== FEED ===== -->
         <div id="announcementsGrid" class="feed-container">

@@ -6,53 +6,7 @@ class ActivityLog {
 
     public function __construct($db) {
         $this->conn = $db;
-        $this->ensureTable();
-        $this->ensureColumns();
-    }
-
-    // Auto-create the activity_logs table on first use so any install works.
-    private function ensureTable() {
-        try {
-            $this->conn->exec("CREATE TABLE IF NOT EXISTS `activity_logs` (
-                `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                `user_id` INT(11) DEFAULT NULL,
-                `actor_name` VARCHAR(191) DEFAULT NULL,
-                `actor_role` VARCHAR(50) DEFAULT NULL,
-                `target_module` VARCHAR(50) DEFAULT NULL,
-                `action` VARCHAR(100) NOT NULL,
-                `description` VARCHAR(500) DEFAULT NULL,
-                `ip_address` VARCHAR(64) DEFAULT NULL,
-                `user_agent` VARCHAR(255) DEFAULT NULL,
-                `status` VARCHAR(30) NOT NULL DEFAULT 'SUCCESS',
-                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX `idx_user` (`user_id`),
-                INDEX `idx_action` (`action`),
-                INDEX `idx_created` (`created_at`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-        } catch (Exception $e) {
-            // Table already exists or creation is not permitted here.
-        }
-    }
-
-    // Auto-migrate: add metadata columns that may not exist in older installs.
-    private function ensureColumns() {
-        try {
-            $this->conn->exec("ALTER TABLE `activity_logs` ADD COLUMN IF NOT EXISTS `user_agent` VARCHAR(255) DEFAULT NULL AFTER `ip_address`");
-            $this->conn->exec("ALTER TABLE `activity_logs` ADD COLUMN IF NOT EXISTS `status` VARCHAR(30) NOT NULL DEFAULT 'SUCCESS' AFTER `user_agent`");
-        } catch (Exception $e) {
-            // Some MySQL 5.x versions don't support "ADD COLUMN IF NOT EXISTS"; fall back to a check.
-            try {
-                $cols = $this->conn->query("SHOW COLUMNS FROM `activity_logs`")->fetchAll(PDO::FETCH_COLUMN);
-                if (!in_array('user_agent', $cols)) {
-                    $this->conn->exec("ALTER TABLE `activity_logs` ADD COLUMN `user_agent` VARCHAR(255) DEFAULT NULL AFTER `ip_address`");
-                }
-                if (!in_array('status', $cols)) {
-                    $this->conn->exec("ALTER TABLE `activity_logs` ADD COLUMN `status` VARCHAR(30) NOT NULL DEFAULT 'SUCCESS' AFTER `user_agent`");
-                }
-            } catch (Exception $e2) {
-                // Table may not exist yet; ignore.
-            }
-        }
+        // Schema is prepared once per version by Database.
     }
 
     // Logs an activity entry.

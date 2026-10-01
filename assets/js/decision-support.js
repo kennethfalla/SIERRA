@@ -18,6 +18,8 @@
     let activeButton = null;
     let pinned = false;
     let closeTimer = null;
+    let discoveryTimer = null;
+    let discoveryIndex = -1;
     const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)');
 
     function cancelClose() {
@@ -36,6 +38,19 @@
             button.setAttribute('aria-expanded', 'false');
         });
         if (returnFocus && previousButton) previousButton.focus();
+    }
+
+    function rotateDiscovery() {
+        buttons.forEach(function (button) { button.classList.remove('rec-discovery'); });
+        if (document.hidden || activeButton || buttons.length === 0) return;
+        discoveryIndex = (discoveryIndex + 1) % buttons.length;
+        buttons[discoveryIndex].classList.add('rec-discovery');
+    }
+
+    function startDiscovery() {
+        if (discoveryTimer || buttons.length === 0) return;
+        rotateDiscovery();
+        discoveryTimer = setInterval(rotateDiscovery, 4200);
     }
 
     function position() {
@@ -67,6 +82,7 @@
         }
         activeButton = button;
         pinned = pin;
+        buttons.forEach(function (item) { item.classList.remove('rec-discovery'); });
         popover.hidden = false;
         buttons.forEach(function (item) {
             const active = item === button;
@@ -86,6 +102,7 @@
         button.setAttribute('aria-controls', 'decisionSupportPopover');
         button.setAttribute('aria-expanded', 'false');
         button.removeAttribute('title');
+        button.setAttribute('aria-label', 'Decision support');
         button.addEventListener('mouseenter', function () {
             if (supportsHover.matches && !pinned) show(button, false);
         });
@@ -108,4 +125,9 @@
     });
     window.addEventListener('resize', position);
     window.addEventListener('scroll', position, true);
+    document.addEventListener('visibilitychange', function () {
+        buttons.forEach(function (button) { button.classList.remove('rec-discovery'); });
+        if (!document.hidden && !activeButton) rotateDiscovery();
+    });
+    startDiscovery();
 })();

@@ -671,6 +671,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="relative min-h-screen" style="background: linear-gradient(135deg, #f0f7f4 0%, #e6f0ec 100%);">
     <div class="floating-shape top-[-100px] right-[-100px] w-[300px] h-[300px] opacity-15" style="background: #10A37F;"></div>

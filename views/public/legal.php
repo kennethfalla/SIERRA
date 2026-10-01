@@ -29,6 +29,7 @@ $content_file = BASE_PATH . 'views/shared/legal/' . ($is_privacy ? 'privacy.php'
         li { margin-bottom: 5px; }
         a:focus-visible { outline: 3px solid #10a37f; outline-offset: 3px; }
     </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
     <header><div class="wrap">

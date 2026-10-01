@@ -2,6 +2,8 @@
 // config/database.php – COMPLETE DATABASE CONNECTION
 // Includes automatic column migration for force_password_reset
 
+require_once dirname(__DIR__) . '/helpers/SchemaMigration.php';
+
 class Database {
     private $host;
     private $port;
@@ -33,9 +35,9 @@ class Database {
      * @return PDO
      */
     // Bump this whenever new auto-migrations are added further below. The
-    // migration block only runs when this value changes, so normal requests run
-    // zero schema checks (important on shared hosting / high-traffic polling).
-    const SCHEMA_VERSION = '2026-09-29-1';
+    // database stores completion, so normal requests run one version lookup
+    // and no schema inspection (important on shared hosting / high-traffic polling).
+    const SCHEMA_VERSION = '2026-10-01-1';
 
     // Reuse a single PDO connection per request (see getConnection()).
     private static $sharedConn = null;
@@ -72,13 +74,16 @@ class Database {
 
             // Auto-ensure required columns exist (once per request only).
             if (!self::$columnsEnsured) {
-                $this->ensureColumns();
+                SchemaMigration::run($this->conn, self::SCHEMA_VERSION, function () {
+                    return $this->ensureColumns();
+                });
                 self::$columnsEnsured = true;
             }
 
             self::$sharedConn = $this->conn;
 
         } catch(PDOException $exception) {
+            if (PHP_SAPI === 'cli') throw $exception;
             die("Database Connection Error: " . $exception->getMessage());
         }
         return $this->conn;
@@ -89,14 +94,6 @@ class Database {
      * This auto-migrates the database on connection
      */
     private function ensureColumns() {
-        // Cheap gate: once the migrations have run for this schema version we
-        // drop a marker file and skip every SHOW/ALTER/CREATE check on later
-        // requests. On shared hosting this removes dozens of queries per request.
-        $marker = dirname(__DIR__) . '/config/.schema_version';
-        if (is_file($marker) && trim((string) @file_get_contents($marker)) === self::SCHEMA_VERSION) {
-            return true;
-        }
-
         try {
             // ============================================
             // 1. CHECK: force_password_reset column in users table
@@ -324,7 +321,8 @@ class Database {
             // 8. CHECK: announcement broadcast targeting
             // ============================================
             // broadcast_type: global_public | localized_public | internal_global | internal_direct
-            if (!$this->columnExists('announcements', 'broadcast_type')) {
+            $needsBroadcastBackfill = !$this->columnExists('announcements', 'broadcast_type');
+            if ($needsBroadcastBackfill) {
                 $this->conn->exec("ALTER TABLE announcements ADD COLUMN broadcast_type VARCHAR(30) NOT NULL DEFAULT 'localized_public' COMMENT 'Broadcast routing: global_public | localized_public | internal_global | internal_direct' AFTER is_active");
                 error_log("[Database] Added 'broadcast_type' column to announcements table.");
             }
@@ -338,7 +336,7 @@ class Database {
             }
             // Backfill legacy rows: old "Public" announcements map to global_public;
             // barangay-scoped ones keep localized_public.
-            if ($this->columnExists('announcements', 'broadcast_type')) {
+            if ($needsBroadcastBackfill) {
                 $this->conn->exec("UPDATE announcements SET broadcast_type = 'global_public' WHERE is_public = 1 AND broadcast_type = 'localized_public'");
             }
 
@@ -431,7 +429,34 @@ class Database {
                 error_log("[Database] Created 'user_devices' table.");
             }
 
-            @file_put_contents($marker, self::SCHEMA_VERSION);
+            // Centralized here instead of DDL in model constructors/login requests.
+            if (!$this->columnExists('users', 'is_verified')) {
+                $this->conn->exec("ALTER TABLE users ADD COLUMN is_verified TINYINT(1) DEFAULT 1");
+            }
+            $this->conn->exec("CREATE TABLE IF NOT EXISTS `activity_logs` (
+                `id` INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `user_id` INT(11) DEFAULT NULL,
+                `actor_name` VARCHAR(191) DEFAULT NULL,
+                `actor_role` VARCHAR(50) DEFAULT NULL,
+                `target_module` VARCHAR(50) DEFAULT NULL,
+                `action` VARCHAR(100) NOT NULL,
+                `description` VARCHAR(500) DEFAULT NULL,
+                `ip_address` VARCHAR(64) DEFAULT NULL,
+                `user_agent` VARCHAR(255) DEFAULT NULL,
+                `status` VARCHAR(30) NOT NULL DEFAULT 'SUCCESS',
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_user` (`user_id`),
+                INDEX `idx_action` (`action`),
+                INDEX `idx_created` (`created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            $activityColumns = $this->conn->query("SHOW COLUMNS FROM activity_logs")->fetchAll(PDO::FETCH_COLUMN);
+            if (!in_array('user_agent', $activityColumns, true)) {
+                $this->conn->exec("ALTER TABLE activity_logs ADD COLUMN user_agent VARCHAR(255) DEFAULT NULL AFTER ip_address");
+            }
+            if (!in_array('status', $activityColumns, true)) {
+                $this->conn->exec("ALTER TABLE activity_logs ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'SUCCESS' AFTER user_agent");
+            }
+
             return true;
 
         } catch (PDOException $e) {
@@ -446,13 +471,9 @@ class Database {
      * @return bool
      */
     public function tableExists($table) {
-        try {
-            $stmt = $this->conn->prepare("SHOW TABLES LIKE ?");
-            $stmt->execute([$table]);
-            return $stmt->rowCount() > 0;
-        } catch (PDOException $e) {
-            return false;
-        }
+        $stmt = $this->conn->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
+        $stmt->execute([$table]);
+        return (int)$stmt->fetchColumn() > 0;
     }
 
     /**
@@ -462,13 +483,9 @@ class Database {
      * @return bool
      */
     public function columnExists($table, $column) {
-        try {
-            $stmt = $this->conn->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
-            $stmt->execute([$column]);
-            return $stmt->rowCount() > 0;
-        } catch (PDOException $e) {
-            return false;
-        }
+        $stmt = $this->conn->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
+        $stmt->execute([$table, $column]);
+        return (int)$stmt->fetchColumn() > 0;
     }
 
     /**
