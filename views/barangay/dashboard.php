@@ -646,7 +646,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-loading.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-loading.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
     <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
@@ -1509,6 +1510,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="dashboard-page barangay-dashboard-page">
+<?php $dashboard_loading_initial = true; include BASE_PATH . 'views/shared/dashboard_loading.php'; ?>
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -2130,7 +2132,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             </td>
                             <td class="px-3 py-3">
                                 <span class="status-badge status-<?php echo $row['status'] == 'rejected' ? 'rejected' : $row['status']; ?>">
-                                    <i class="fas <?php echo $row['status'] == 'pending' ? 'fa-clock' : ($row['status'] == 'in_progress' ? 'fa-spinner fa-pulse' : ($row['status'] == 'resolved' ? 'fa-check-circle' : ($row['status'] == 'rejected' ? 'fa-times' : 'fa-share'))); ?> mr-1 text-xs"></i>
+                                    <i class="fas <?php echo $row['status'] == 'pending' ? 'fa-clock' : ($row['status'] == 'in_progress' ? 'fa-spinner' : ($row['status'] == 'resolved' ? 'fa-check-circle' : ($row['status'] == 'rejected' ? 'fa-times' : 'fa-share'))); ?> mr-1 text-xs"></i>
                                     <?php echo $display_status == 'escalated' ? 'Escalated' : ($display_status == 'declined' ? 'Declined' : ($display_status == 'in_progress' ? 'In Progress' : ucfirst($display_status))); ?>
                                 </span>
                             </td>
@@ -3038,7 +3040,7 @@ function getStatusBadgeHTML(status) {
         'pending': { label: 'Pending', class: 'status-pending', icon: 'fa-clock' },
         'under_review': { label: 'Under Review', class: 'status-under_review', icon: 'fa-search' },
         'verified': { label: 'Verified', class: 'status-verified', icon: 'fa-check-circle' },
-        'in_progress': { label: 'In Progress', class: 'status-in_progress', icon: 'fa-spinner fa-pulse' },
+        'in_progress': { label: 'In Progress', class: 'status-in_progress', icon: 'fa-spinner' },
         'escalated_pending': { label: 'Escalated Pending', class: 'status-escalated_pending', icon: 'fa-hourglass-half' },
         'escalated': { label: 'Escalated', class: 'status-escalated', icon: 'fa-shield-alt' },
         'resolved': { label: 'Resolved', class: 'status-resolved', icon: 'fa-check-circle' },

@@ -343,7 +343,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F7FBF9; }
@@ -858,7 +858,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body>
+<body class="admin-data-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -1089,22 +1089,10 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
         </div>
 
         <!-- Results Table -->
-        <style>
-            /* Mobile: keep Title / Status / Date / Action; hide the rest so the
-               table fits without horizontal scrolling. */
-            @media (max-width: 767px) {
-                .all-reports-table th:nth-child(1), .all-reports-table td:nth-child(1),
-                .all-reports-table th:nth-child(3), .all-reports-table td:nth-child(3),
-                .all-reports-table th:nth-child(4), .all-reports-table td:nth-child(4),
-                .all-reports-table th:nth-child(5), .all-reports-table td:nth-child(5),
-                .all-reports-table th:nth-child(6), .all-reports-table td:nth-child(6) { display: none; }
-                .all-reports-table th, .all-reports-table td { padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
-            }
-        </style>
         <div id="reportsGrid">
             <div class="table-container">
                 <div class="overflow-x-auto">
-                    <table class="w-full all-reports-table">
+                    <table class="w-full all-reports-table app-data-table">
                         <thead>
                             <tr class="border-b" style="background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%);">
                                 <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('ID'); ?></th>
@@ -1122,23 +1110,23 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                             <?php if(count($reports) > 0): ?>
                                 <?php foreach($reports as $row): ?>
                                 <tr class="border-b hover:bg-emerald-50/30 transition">
-                                    <td class="px-4 py-3 text-sm text-gray-500">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
-                                    <td class="px-4 py-3 text-sm font-semibold text-gray-800"><?php echo htmlspecialchars(substr($row['title'], 0, 40)); ?></td>
-                                    <td class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['user_name']); ?></td>
-                                    <td class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['category_name']); ?></td>
-                                    <td class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['barangay_name']); ?></td>
-                                    <td class="px-4 py-3">
+                                    <td data-label="<?php echo t('ID'); ?>" class="px-4 py-3 text-sm text-gray-500">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
+                                    <td data-label="<?php echo t('Title'); ?>" class="px-4 py-3 text-sm font-semibold text-gray-800"><?php echo htmlspecialchars(substr($row['title'], 0, 40)); ?></td>
+                                    <td data-label="<?php echo t('Reporter'); ?>" class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['user_name']); ?></td>
+                                    <td data-label="<?php echo t('Category'); ?>" class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['category_name']); ?></td>
+                                    <td data-label="<?php echo t('Barangay'); ?>" class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['barangay_name']); ?></td>
+                                    <td data-label="<?php echo t('Risk'); ?>" class="px-4 py-3">
                                         <span class="risk-badge risk-<?php echo $row['risk_level']; ?>">
                                             <?php echo ucfirst($row['risk_level']); ?>
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3">
+                                    <td data-label="<?php echo t('Status'); ?>" class="px-4 py-3">
                                         <?php 
                                             $status_class = 'status-' . $row['status'];
                                             $status_icon = '';
                                             if ($row['status'] == 'pending') $status_icon = 'fa-clock';
                                             elseif ($row['status'] == 'under_review') $status_icon = 'fa-search';
-                                            elseif ($row['status'] == 'in_progress') $status_icon = 'fa-spinner fa-pulse';
+                                            elseif ($row['status'] == 'in_progress') $status_icon = 'fa-spinner';
                                             elseif ($row['status'] == 'escalated_pending') $status_icon = 'fa-hourglass-half';
                                             elseif ($row['status'] == 'escalated') $status_icon = 'fa-shield-alt';
                                             elseif ($row['status'] == 'resolved') $status_icon = 'fa-check-circle';
@@ -1150,8 +1138,8 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                                             <?php echo $status_label; ?>
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3 text-sm text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
-                                    <td class="px-4 py-3">
+                                    <td data-label="<?php echo t('Date'); ?>" class="px-4 py-3 text-sm text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
+                                    <td data-label="<?php echo t('Action'); ?>" class="px-4 py-3">
                                         <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$row['id']); ?>" class="btn-primary px-4 py-1.5 text-white text-sm rounded-lg inline-block">
                                             <i class="fas fa-eye mr-1"></i> <?php echo t('View'); ?>
                                         </a>

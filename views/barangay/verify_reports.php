@@ -285,7 +285,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -1470,7 +1470,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                     $status_icon = '';
                     if ($r['status'] == 'pending') $status_icon = 'fa-clock';
                     elseif ($r['status'] == 'under_review') $status_icon = 'fa-search';
-                    elseif ($r['status'] == 'in_progress') $status_icon = 'fa-spinner fa-pulse';
+                    elseif ($r['status'] == 'in_progress') $status_icon = 'fa-spinner';
                     elseif ($r['status'] == 'escalated_pending') $status_icon = 'fa-hourglass-half';
                     elseif ($r['status'] == 'escalated') $status_icon = 'fa-shield-alt';
                     elseif ($r['status'] == 'resolved') $status_icon = 'fa-check-circle';

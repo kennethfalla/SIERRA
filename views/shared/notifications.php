@@ -259,7 +259,15 @@ $has_notifications = count($notifications) > 0;
         fd.append('csrf_token', getCsrfToken());
         if (data) Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
         return fetch(BASE_URL + 'controllers/NotificationController.php', { method: 'POST', body: fd })
-            .then(function (res) { return res.json(); });
+            .then(function (res) {
+                return res.text().then(function (text) {
+                    try {
+                        return JSON.parse(text);
+                    } catch (err) {
+                        return { success: false, error: 'Unexpected server response. Please refresh the page and try again.' };
+                    }
+                });
+            });
     }
 
     window.markAllAsRead = function () {
@@ -281,6 +289,9 @@ $has_notifications = count($notifications) > 0;
                 showToast('All notifications marked as read.', 'success');
             } else if (data && data.error) {
                 showToast(data.error, 'error');
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-double"></i> Mark all as read'; }
+            } else {
+                showToast('Failed to mark notifications as read.', 'error');
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-double"></i> Mark all as read'; }
             }
         }).catch(function () {

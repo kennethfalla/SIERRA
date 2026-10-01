@@ -398,6 +398,15 @@ require_once BASE_PATH . 'helpers/Lang.php';
             overflow: hidden;
             box-shadow: 0 16px 36px -30px rgba(15, 23, 42, .4);
         }
+        .profile-group-title {
+            padding: .85rem 1.1rem .35rem;
+            color: #6b7f76;
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            background: #fbfdfc;
+        }
         .profile-group .profile-menu-item {
             border-bottom: 1px solid #f1f5f3;
             border-radius: 0;
@@ -422,7 +431,10 @@ require_once BASE_PATH . 'helpers/Lang.php';
             box-shadow: none;
         }
         .profile-group .menu-chevron { color: #d1d5db; font-size: 0.8rem; }
-        .profile-group .logout-item { color: #b91c1c; }
+        .profile-group .logout-item {
+            color: #b91c1c;
+            background: #fff5f5;
+        }
         .profile-group .logout-item .menu-icon { color: #b91c1c; }
         .profile-group .logout-item:hover { background: #fef2f2; color: #b91c1c; }
         .profile-group .logout-item:hover .menu-icon { color: #EF4444; }
@@ -765,6 +777,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
                 <nav class="profile-groups" aria-label="Profile sections">
                     <!-- Account -->
                     <div class="profile-group">
+                    <div class="profile-group-title"><?php echo t('Account'); ?></div>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=personal-information">
                         <span class="menu-icon"><i class="fas fa-id-card"></i></span>
                         <span class="menu-label"><?php echo t('Personal Information'); ?></span>
@@ -795,6 +808,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
                     
                     </div>
                     <div class="profile-group">
+                    <div class="profile-group-title"><?php echo t('System Information'); ?></div>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=about">
                         <span class="menu-icon"><i class="fas fa-info-circle"></i></span>
                         <span class="menu-label"><?php echo t('About'); ?> <?php echo htmlspecialchars($system_name); ?></span>
@@ -813,6 +827,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
                     
                     </div>
                     <div class="profile-group">
+                    <div class="profile-group-title"><?php echo t('Support'); ?></div>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=faqs">
                         <span class="menu-icon"><i class="fas fa-question-circle"></i></span>
                         <span class="menu-label"><?php echo t('FAQs'); ?></span>
@@ -826,6 +841,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
                     
                     </div>
                     <div class="profile-group">
+                    <div class="profile-group-title"><?php echo t('Session'); ?></div>
                     <a class="profile-menu-item logout-item" href="javascript:void(0)" onclick="window.openLogoutModal()">
                         <span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span>
                         <span class="menu-label"><?php echo t('Logout'); ?></span>

@@ -783,20 +783,24 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         /* Back button style matching my_reports */
         .btn-back {
-            background: #f1f5f9;
-            color: #1f2937;
-            padding: 0.5rem 1rem;
-            border-radius: 0.75rem;
+            background: #ffffff;
+            color: #355146;
+            padding: 0.6rem 1rem;
+            border: 1px solid #dce8e1;
+            border-radius: 999px;
             font-size: 0.8rem;
-            font-weight: 500;
+            font-weight: 700;
             transition: all 0.2s;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             text-decoration: none;
+            box-shadow: 0 8px 20px -18px rgba(13, 73, 54, .45);
         }
         .btn-back:hover {
-            background: #e2e8f0;
+            background: #eef8f1;
+            color: #0D8568;
+            border-color: #b8dcca;
             transform: translateY(-1px);
         }
         @media (min-width: 640px) {
@@ -805,13 +809,59 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 font-size: 0.875rem;
             }
         }
-        .resolution-confirm-float {
+        .track-cancel-float {
             position: fixed;
-            left: 0;
+            left: 18rem;
             right: 0;
             bottom: 0;
             z-index: 5000;
-            padding: 0.75rem 1rem 0.75rem calc(1rem + 18rem);
+            padding: .75rem 1rem;
+            background: linear-gradient(to top, rgba(245, 251, 246, 1) 0%, rgba(245, 251, 246, .9) 80%, rgba(245, 251, 246, 0) 100%);
+            pointer-events: none;
+        }
+        .track-cancel-bar {
+            pointer-events: auto;
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: linear-gradient(to right, #FFF7F7, #FEF2F2);
+            border: 2px solid #FECACA;
+            border-radius: 1rem;
+            padding: .75rem 1rem;
+            box-shadow: 0 10px 30px rgba(185, 28, 28, .12);
+            backdrop-filter: blur(8px);
+        }
+        .track-cancel-bar button {
+            flex-shrink: 0;
+            min-height: 44px;
+            border-radius: .75rem;
+            font-weight: 700;
+            justify-content: center;
+        }
+        body:has(.track-cancel-float) .main-container {
+            padding-bottom: 6.5rem;
+        }
+        @media (max-width: 1023px) {
+            .track-cancel-float {
+                left: 0;
+                padding: .75rem .75rem max(.75rem, env(safe-area-inset-bottom));
+            }
+        }
+        @media (max-width: 640px) {
+            .track-cancel-bar { flex-direction: column; align-items: stretch; gap: .75rem; }
+            .track-cancel-bar button { width: 100%; }
+            body:has(.track-cancel-float) .main-container { padding-bottom: 10rem; }
+        }
+        .resolution-confirm-float {
+            position: fixed;
+            left: 18rem;
+            right: 0;
+            bottom: 0;
+            z-index: 5000;
+            padding: 0.75rem 1rem;
             background: linear-gradient(to top, rgba(245, 251, 246, 1) 0%, rgba(245, 251, 246, 0.9) 80%, rgba(245, 251, 246, 0) 100%);
             pointer-events: none;
         }
@@ -830,8 +880,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             box-shadow: 0 10px 30px rgba(16, 163, 127, 0.15);
             backdrop-filter: blur(8px);
         }
-        @media (max-width: 767px) {
+        @media (max-width: 1023px) {
             .resolution-confirm-float {
+                left: 0;
                 padding: 0.75rem 0.75rem 0.75rem 0.75rem;
             }
         }
@@ -931,13 +982,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 
                 <div class="flex gap-3 flex-wrap">
-                    <?php if($can_cancel): ?>
-                        <button onclick="openCancelModal()" 
-                                class="bg-red-500 hover:bg-red-600 text-white px-4 md:px-5 py-2 rounded-xl transition-all flex items-center gap-2 text-sm">
-                            <i class="fas fa-times-circle"></i>
-                            <span><?php echo t('Cancel Report'); ?></span>
-                        </button>
-                    <?php endif; ?>
                     <a href="<?php 
                         if ($_SESSION['user_role'] == 'admin') {
                             echo BASE_URL . 'index.php?page=all-reports';
@@ -992,7 +1036,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             if($display_status == 'pending') $status_icon = 'fa-clock';
                             elseif($display_status == 'under_review') $status_icon = 'fa-search';
                             elseif($display_status == 'verified') $status_icon = 'fa-search';
-                            elseif($display_status == 'in_progress') $status_icon = 'fa-spinner fa-pulse';
+                            elseif($display_status == 'in_progress') $status_icon = 'fa-spinner';
                             elseif($display_status == 'escalated_pending') $status_icon = 'fa-hourglass-half';
                             elseif($display_status == 'escalated') $status_icon = 'fa-building';
                             elseif($display_status == 'resolved') $status_icon = 'fa-check-circle';
@@ -1049,7 +1093,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             if($display_status == 'pending') $status_icon = 'fa-clock';
                             elseif($display_status == 'under_review') $status_icon = 'fa-search';
                             elseif($display_status == 'verified') $status_icon = 'fa-search';
-                            elseif($display_status == 'in_progress') $status_icon = 'fa-spinner fa-pulse';
+                            elseif($display_status == 'in_progress') $status_icon = 'fa-spinner';
                             elseif($display_status == 'escalated_pending') $status_icon = 'fa-hourglass-half';
                             elseif($display_status == 'escalated') $status_icon = 'fa-building';
                             elseif($display_status == 'resolved') $status_icon = 'fa-check-circle';
@@ -1191,7 +1235,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 </div>
                 
                 <div class="timeline-step <?php echo $step3_class; ?>">
-                    <div class="step-icon"><i class="fas <?php echo $step3_class == 'completed' ? 'fa-check' : ($step3_class == 'current' ? 'fa-spinner fa-pulse' : 'fa-spinner'); ?>"></i></div>
+                    <div class="step-icon"><i class="fas <?php echo $step3_class == 'completed' ? 'fa-check' : ($step3_class == 'current' ? 'fa-spinner' : 'fa-spinner'); ?>"></i></div>
                     <div class="step-label"><?php echo t('In Progress'); ?></div>
                     <div class="step-date"><?php echo $step3_text; ?></div>
                 </div>
@@ -1204,6 +1248,26 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         </div>
         
+        <?php if($can_cancel): ?>
+        <div class="track-cancel-float">
+            <div class="track-cancel-bar">
+                <div class="flex items-center gap-3 md:gap-4 min-w-0">
+                    <div class="w-11 h-11 md:w-14 md:h-14 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-times-circle text-red-600 text-xl"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="font-bold text-gray-800 text-sm md:text-base"><?php echo t('Cancel Report'); ?></h3>
+                        <p class="text-gray-600 text-xs md:text-sm"><?php echo t('You can cancel this report while it is pending.'); ?></p>
+                    </div>
+                </div>
+                <button type="button" onclick="openCancelModal()" class="bg-red-600 hover:bg-red-700 text-white px-5 md:px-6 py-2.5 md:py-3 transition-all flex items-center gap-2 text-sm">
+                    <i class="fas fa-times-circle"></i>
+                    <span><?php echo t('Cancel Report'); ?></span>
+                </button>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Resolution Confirmation -->
         <?php if($can_confirm_resolution): ?>
         <div class="resolution-confirm-float">

@@ -195,6 +195,7 @@ if (is_dir($barangays_dir)) {
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-loading.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-loading.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
     <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
@@ -1827,6 +1828,7 @@ text-decoration: underline;
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="dashboard-page citizen-dashboard-page">
+<?php $dashboard_loading_initial = true; include BASE_PATH . 'views/shared/dashboard_loading.php'; ?>
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -2061,16 +2063,16 @@ text-decoration: underline;
                             <td class="barangay-cell"><?php echo htmlspecialchars($row['barangay_name']); ?></td>
                             <td>
                                 <span class="status-badge status-<?php echo $row['status']; ?>">
-                                    <i class="fas <?php 
-                                        echo $row['status'] == 'pending' ? 'fa-clock' : 
+                                    <i class="fas <?php
+                                        echo $row['status'] == 'pending' ? 'fa-clock' :
                                             ($row['status'] == 'under_review' ? 'fa-search' :
-                                            ($row['status'] == 'in_progress' ? 'fa-spinner fa-pulse' : 
+                                            ($row['status'] == 'in_progress' ? 'fa-spinner' :
                                             ($row['status'] == 'escalated_pending' ? 'fa-hourglass-half' :
                                             ($row['status'] == 'escalated' ? 'fa-shield-alt' :
-                                            ($row['status'] == 'resolved' ? 'fa-check-circle' : 
+                                            ($row['status'] == 'resolved' ? 'fa-check-circle' :
                                             ($row['status'] == 'closed' ? 'fa-archive' :
                                             ($row['status'] == 'rejected' ? 'fa-times-circle' :
-                                            ($row['status'] == 'cancelled' ? 'fa-ban' : 'fa-check')))))))); 
+                                            ($row['status'] == 'cancelled' ? 'fa-ban' : 'fa-check'))))))));
                                     ?>"></i>
                                     <?php echo str_replace('_', ' ', ucfirst($row['status'])); ?>
                                 </span>
@@ -2124,16 +2126,16 @@ text-decoration: underline;
                         <div class="card-bottom">
                             <span class="card-status">
                                 <span class="status-badge status-<?php echo $row['status']; ?>">
-                                    <i class="fas <?php 
-                                        echo $row['status'] == 'pending' ? 'fa-clock' : 
+                                    <i class="fas <?php
+                                        echo $row['status'] == 'pending' ? 'fa-clock' :
                                             ($row['status'] == 'under_review' ? 'fa-search' :
-                                            ($row['status'] == 'in_progress' ? 'fa-spinner fa-pulse' : 
+                                            ($row['status'] == 'in_progress' ? 'fa-spinner' :
                                             ($row['status'] == 'escalated_pending' ? 'fa-hourglass-half' :
                                             ($row['status'] == 'escalated' ? 'fa-shield-alt' :
-                                            ($row['status'] == 'resolved' ? 'fa-check-circle' : 
+                                            ($row['status'] == 'resolved' ? 'fa-check-circle' :
                                             ($row['status'] == 'closed' ? 'fa-archive' :
                                             ($row['status'] == 'rejected' ? 'fa-times-circle' :
-                                            ($row['status'] == 'cancelled' ? 'fa-ban' : 'fa-check')))))))); 
+                                            ($row['status'] == 'cancelled' ? 'fa-ban' : 'fa-check'))))))));
                                     ?>"></i>
                                     <?php echo str_replace('_', ' ', ucfirst($row['status'])); ?>
                                 </span>
@@ -2307,7 +2309,15 @@ function markAllAsRead() {
     formData.append('csrf_token', getCsrfToken());
 
     fetch(NOTIF_BASE_URL + 'controllers/NotificationController.php', { method: 'POST', body: formData })
-        .then(function(res) { return res.json(); })
+        .then(function(res) {
+            return res.text().then(function(text) {
+                try {
+                    return JSON.parse(text);
+                } catch (err) {
+                    return { success: false, error: 'Unexpected server response. Please refresh the page and try again.' };
+                }
+            });
+        })
         .then(function(data) {
             if (data && data.success) {
                 document.querySelectorAll('.notification-item .notification-dot').forEach(function(dot) { dot.remove(); });
@@ -2319,6 +2329,8 @@ function markAllAsRead() {
                 }
             } else if (data && data.error) {
                 showNotification(data.error, 'error');
+            } else {
+                showNotification('Failed to mark notifications as read.', 'error');
             }
         })
         .catch(function() { showNotification('Failed to mark notifications as read.', 'error'); })

@@ -724,7 +724,8 @@ function getDecisionBadge($classification) {
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-loading.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-loading.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
     <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
@@ -1389,6 +1390,7 @@ function getDecisionBadge($classification) {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body class="dashboard-page menro-dashboard-page">
+<?php $dashboard_loading_initial = true; include BASE_PATH . 'views/shared/dashboard_loading.php'; ?>
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -2749,7 +2751,7 @@ function getStatusBadgeHTML(status) {
         'pending': { label: 'Pending', class: 'status-pending', icon: 'fa-clock' },
         'under_review': { label: 'Under Review', class: 'status-under_review', icon: 'fa-search' },
         'verified': { label: 'Verified', class: 'status-verified', icon: 'fa-check-circle' },
-        'in_progress': { label: 'In Progress', class: 'status-in_progress', icon: 'fa-spinner fa-pulse' },
+        'in_progress': { label: 'In Progress', class: 'status-in_progress', icon: 'fa-spinner' },
         'escalated_pending': { label: 'Escalated Pending', class: 'status-escalated_pending', icon: 'fa-hourglass-half' },
         'escalated': { label: 'Escalated', class: 'status-escalated', icon: 'fa-shield-alt' },
         'resolved': { label: 'Resolved', class: 'status-resolved', icon: 'fa-check-circle' },

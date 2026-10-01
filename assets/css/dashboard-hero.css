@@ -61,8 +61,6 @@
     }
 }
 .sierra-hero-extra .dashboard-toolbar-row { margin-bottom: 0; gap: .5rem; }
-.sierra-hero-extra .dashboard-toolbar-row .reports-toolbar,
-.sierra-hero-extra .btn-export-trigger { background: rgba(255,255,255,.96); border-color: transparent; min-height: 44px; }
 .sierra-hero-extra .dash-date { color: #eafff6; font-weight: 600; font-size: .78rem; display: inline-flex; align-items: center; gap: .4rem; }
 .sierra-hero-greeting { display: flex; align-items: center; gap: .5rem; margin-bottom: .25rem; color: #ffffffcc; font-size: .875rem; font-weight: 500; }
 .sierra-hero-greeting i { font-size: 1.125rem; }
@@ -141,8 +139,8 @@ body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page
     .sierra-hero .sierra-hero-bell .fa-bell { font-size: .9rem; }
     body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero { min-height: 126px; padding: 1rem 1.2rem; }
     body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero::before { width: 250px; height: 250px; top: -125px; right: -120px; }
-    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-greeting { font-size: .68rem; margin-bottom: .55rem; }
-    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-name { font-size: 1.5rem; }
-    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-subtitle { font-size: .72rem; line-height: 1.35; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-greeting { font-size: .76rem; margin-bottom: .45rem; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-name { font-size: 1.8rem; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-subtitle { font-size: .86rem; line-height: 1.35; }
 }
 @media (prefers-reduced-motion: reduce) { .sierra-hero, .sierra-hero * { animation: none; transition: none; } .sierra-hero:hover { transform: none; } }

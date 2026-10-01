@@ -421,8 +421,15 @@
 #showSidebarBtn.app-mobile-menu-btn svg { display: none; }
 #showSidebarBtn::before { content: "\e5d2"; font-size: 24px; }
 body.sidebar-open #showSidebarBtn::before { content: "\e5cd"; }
-.leaflet-control-layers-toggle { background-image:none !important; display:flex; align-items:center; justify-content:center; }
-.leaflet-control-layers-toggle::before { content:"\e53b"; font-size:24px; color:#475467; }
+.leaflet-control-layers-toggle {
+    width: 38px !important;
+    height: 38px !important;
+    background-image:none !important;
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+}
+.leaflet-control-layers-toggle::before { content:"\e53b"; font-size:24px; color:#0D8568; }
 .leaflet-control-zoom-in, .leaflet-control-zoom-out { font-size:0 !important; }
 .leaflet-control-zoom-in > span, .leaflet-control-zoom-out > span { display:none; }
 .leaflet-control-zoom-in::before { content:"\e145"; font-size:20px; vertical-align:middle; }

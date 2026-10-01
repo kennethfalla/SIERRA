@@ -187,7 +187,7 @@ $top_actions = $db->query("
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F7FBF9; }
@@ -330,7 +330,7 @@ $top_actions = $db->query("
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body class="bg-[#F7FBF9]">
+<body class="bg-[#F7FBF9] admin-data-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -512,21 +512,9 @@ $top_actions = $db->query("
         </div>
         
         <!-- Logs Table -->
-        <style>
-            /* Mobile: keep Timestamp / User / Action / Status; hide the rest so
-               the table fits without horizontal scrolling. */
-            @media (max-width: 767px) {
-                .audit-logs-table th:nth-child(3), .audit-logs-table td:nth-child(3),
-                .audit-logs-table th:nth-child(5), .audit-logs-table td:nth-child(5),
-                .audit-logs-table th:nth-child(7), .audit-logs-table td:nth-child(7),
-                .audit-logs-table th:nth-child(8), .audit-logs-table td:nth-child(8),
-                .audit-logs-table th:nth-child(9), .audit-logs-table td:nth-child(9) { display: none; }
-                .audit-logs-table th, .audit-logs-table td { padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
-            }
-        </style>
         <div class="table-container mb-6 animate-slide-up">
             <div class="overflow-x-auto">
-                <table class="w-full audit-logs-table">
+                <table class="w-full audit-logs-table app-data-table">
                     <thead>
                         <tr class="border-b" style="background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%);">
                             <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Timestamp'); ?></th>
@@ -604,10 +592,10 @@ $top_actions = $db->query("
                                     ?? ucfirst(str_replace('_', ' ', $log_user_role));
                             ?>
                             <tr class="border-b hover:bg-emerald-50/30 transition">
-                                <td class="px-4 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">
+                                <td data-label="<?php echo t('Timestamp'); ?>" class="px-4 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">
                                     <?php echo date('M d, Y H:i:s', strtotime($log['created_at'])); ?>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td data-label="<?php echo t('User'); ?>" class="px-4 py-3">
                                     <?php if($log_user_name): ?>
                                     <p class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($log_user_name); ?></p>
                                     <?php if($log_user_email): ?><p class="text-xs text-gray-400"><?php echo htmlspecialchars($log_user_email); ?></p><?php endif; ?>
@@ -615,7 +603,7 @@ $top_actions = $db->query("
                                     <span class="text-gray-400 text-sm"><?php echo t('System'); ?></span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td data-label="<?php echo t('Role'); ?>" class="px-4 py-3">
                                     <?php if($log_user_role): ?>
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold text-white <?php echo $role_class; ?>">
                                         <?php echo htmlspecialchars($log_user_role_label); ?>
@@ -624,17 +612,17 @@ $top_actions = $db->query("
                                     <span class="text-gray-400 text-xs">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td data-label="<?php echo t('Action'); ?>" class="px-4 py-3">
                                     <span class="action-badge <?php echo $action_class; ?>">
                                         <?php echo htmlspecialchars($log['action']); ?>
                                     </span>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td data-label="<?php echo t('Module'); ?>" class="px-4 py-3">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wide">
                                         <?php echo htmlspecialchars($module); ?>
                                     </span>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td data-label="<?php echo t('Status'); ?>" class="px-4 py-3">
                                     <?php $log_status = $log['status'] ?? 'SUCCESS'; ?>
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide
                                         <?php
@@ -645,13 +633,13 @@ $top_actions = $db->query("
                                         <?php echo htmlspecialchars($log_status); ?>
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-600 max-w-xs">
+                                <td data-label="<?php echo t('Details'); ?>" class="px-4 py-3 text-sm text-gray-600 max-w-xs">
                                     <?php echo htmlspecialchars($log['description'] ?: '—'); ?>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-500">
+                                <td data-label="<?php echo t('IP Address'); ?>" class="px-4 py-3 text-sm text-gray-500">
                                     <?php echo htmlspecialchars($log['ip_address'] ?: '—'); ?>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-500">
+                                <td data-label="<?php echo t('Device'); ?>" class="px-4 py-3 text-sm text-gray-500">
                                     <?php
                                         $ua = trim($log['user_agent'] ?? '');
                                         echo $ua ? htmlspecialchars(friendlyDeviceName($ua)) : '—';

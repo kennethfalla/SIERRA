@@ -421,7 +421,7 @@ function getRoleBadge($user_type, $job_title = '') {
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; }
@@ -438,7 +438,7 @@ function getRoleBadge($user_type, $job_title = '') {
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body>
+<body class="admin-data-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -910,7 +910,7 @@ function getRoleBadge($user_type, $job_title = '') {
     <!-- ===== USERS TABLE ===== -->
     <div class="table-container">
         <div class="overflow-x-visible xl:overflow-x-auto">
-            <table class="w-full">
+            <table class="w-full app-data-table users-table">
                 <thead>
                     <tr>
                         <th class="text-left"><?php echo t('User'); ?></th>
@@ -934,7 +934,7 @@ function getRoleBadge($user_type, $job_title = '') {
                     <?php if(count($display_users) > 0): ?>
                         <?php foreach($display_users as $user): ?>
                         <tr>
-                            <td class="mobile-user">
+                            <td class="mobile-user" data-label="<?php echo t('User'); ?>">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                         <?php if(!empty($user['profile_picture'])): ?>
@@ -997,7 +997,7 @@ function getRoleBadge($user_type, $job_title = '') {
                             <td data-label="Registered">
                                 <span class="text-sm text-gray-500 font-medium"><?php echo date('M d, Y', strtotime($user['created_at'])); ?></span>
                             </td>
-                            <td class="mobile-actions">
+                            <td class="mobile-actions" data-label="<?php echo t('Actions'); ?>">
                                 <div class="flex flex-wrap items-center gap-1.5">
                                     <!-- View Profile -->
                                     <button onclick="viewProfile(<?php echo $user['id']; ?>)"

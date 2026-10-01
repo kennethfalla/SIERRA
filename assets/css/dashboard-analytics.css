@@ -7,8 +7,6 @@
         .dash-head-actions { display:flex; align-items:center; justify-content:flex-end; margin-left:auto; }
         .dash-date { display:inline-flex; align-items:center; gap:.5rem; color:#496657; font-size:.8rem; font-weight:700; white-space:nowrap; }
         .dash-date i { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:.65rem; background:#e8f5ed; color:#0d8568; }
-        .dash-head .btn-export-trigger { min-height:40px; padding:.6rem .95rem; border-color:#0d8568; background:#0d8568; color:#fff; box-shadow:0 4px 10px rgba(13,133,104,.16); }
-        .dash-head .btn-export-trigger:hover, .dash-head .btn-export-trigger.active { border-color:#086e57; background:#086e57; color:#fff; }
         .dash-topbar { margin-bottom:.25rem; }
 
         .bento { display:grid; grid-template-columns:1.28fr 1fr 1fr; gap:1rem; margin-bottom:1rem; align-items:stretch; }
@@ -104,6 +102,27 @@
         .severity-stat-value { color:#203b31; font-size:.7rem; font-weight:800; font-variant-numeric:tabular-nums; }
         .severity-low .severity-dot { background:#10b981; } .severity-medium .severity-dot { background:#f59e0b; }
         .severity-high .severity-dot { background:#f97316; } .severity-critical .severity-dot { background:#ef4444; }
+        body.barangay-dashboard-page .bento .b-narrow:has(#severityChart) {
+            display:flex;
+            flex-direction:column;
+        }
+        body.barangay-dashboard-page .bento .b-narrow:has(#severityChart) .severity-layout {
+            flex:1 1 auto;
+            justify-content:center;
+            gap:.75rem;
+        }
+        body.barangay-dashboard-page .bento .b-narrow:has(#severityChart) .severity-chart-wrap {
+            width:170px;
+            height:170px;
+        }
+        body.barangay-dashboard-page .bento .b-narrow:has(#severityChart) .rec-stack {
+            margin-top:.75rem;
+        }
+        @media (min-width:1101px) {
+            body.barangay-dashboard-page .bento .b-narrow:has(#severityChart) {
+                min-height:0;
+            }
+        }
 
         /* Table + list cards */
         @media (min-width:768px) {
@@ -153,5 +172,3 @@ body.barangay-dashboard-page .kpi-foot a { color:#0d8568; font-weight:700; }
 }
 
 body.barangay-dashboard-page .bento .demo-chart { height:110px; }
-body.barangay-dashboard-page .bento .map-head-tools { flex-wrap:wrap; }
-body.barangay-dashboard-page .bento #timeframeToggle { flex:1 1 auto; }

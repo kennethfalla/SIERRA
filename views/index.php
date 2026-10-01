@@ -634,7 +634,7 @@ if ($isLoggedIn && $is_staff) {
                 font-size: clamp(2.1rem, 8.8vw, 3rem) !important;
                 line-height: 1.08;
                 letter-spacing: -0.025em;
-                text-transform: none;
+                text-transform: uppercase;
                 text-wrap: balance;
                 margin-bottom: 1rem !important;
             }

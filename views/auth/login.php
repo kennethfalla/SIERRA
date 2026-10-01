@@ -33,6 +33,7 @@ $db = $database->getConnection();
 $system_name = SettingsHelper::get('system_name', 'Sierra');
 $lgu_logo = SettingsHelper::get('lgu_logo', '');
 $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
+$demo_access_enabled = (int)SettingsHelper::get('demo_access_enabled', 1) === 1;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -46,6 +47,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-loading.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-loading.css'); ?>">
     <style>
         * { font-family: 'Manrope', sans-serif; }
         html, body { height: 100%; }
@@ -279,6 +281,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
 <body>
+    <?php include BASE_PATH . 'views/shared/dashboard_loading.php'; ?>
     <div class="auth-shell">
 
         <!-- ============================================ -->
@@ -428,6 +431,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                 <!-- ============================================ -->
                 <!-- DEMO ACCOUNTS -->
                 <!-- ============================================ -->
+                <?php if ($demo_access_enabled): ?>
                 <div class="mt-5 pt-3 border-t border-gray-100">
                     <button type="button" class="flex items-center justify-between w-full cursor-pointer py-1 group" onclick="toggleDemoAccounts()" aria-expanded="false" aria-controls="demoContent">
                         <div class="flex items-center gap-1.5">
@@ -536,6 +540,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
                         <p class="text-center text-[8px] text-gray-400">Click any card to auto-fill credentials</p>
                     </div>
                 </div>
+                <?php endif; ?>
 
             </div>
 
@@ -605,6 +610,8 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
     // FORM SUBMISSION
     // ============================================
     loginForm.addEventListener('submit', function(e) {
+        if (loginForm.dataset.submitting === 'true') return true;
+
         const loginValue = loginInput.value.trim();
         const passwordValue = passwordInput.value.trim();
 
@@ -622,11 +629,20 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
         }
 
         hideFieldError();
+        e.preventDefault();
+        loginForm.dataset.submitting = 'true';
         submitBtn.disabled = true;
         submitText.classList.add('hidden');
         submitSpinner.classList.remove('hidden');
+        if (window.SierraDashboardLoading) window.SierraDashboardLoading.show();
 
-        return true;
+        window.requestAnimationFrame(function() {
+            window.setTimeout(function() {
+                loginForm.submit();
+            }, 80);
+        });
+
+        return false;
     });
 
     // ============================================
@@ -670,10 +686,9 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
     let demoVisible = false;
 
     function toggleDemoAccounts() {
+        if (!demoContent) return;
         demoVisible = !demoVisible;
-        if (demoContent) {
-            demoContent.style.display = demoVisible ? 'block' : 'none';
-        }
+        demoContent.style.display = demoVisible ? 'block' : 'none';
         if (demoChevron) {
             demoChevron.classList.toggle('fa-chevron-down', !demoVisible);
             demoChevron.classList.toggle('fa-chevron-up', demoVisible);
@@ -712,7 +727,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
     // ============================================
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 'Enter') {
-            loginForm.dispatchEvent(new Event('submit'));
+            loginForm.requestSubmit();
         }
     });
     </script>

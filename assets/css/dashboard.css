@@ -51,6 +51,23 @@ body.dashboard-page { background: #f4f8f5; color: #203b31; }
 .dashboard-page #map { border: 1px solid #e0e9e3; border-radius: 12px; }
 .dashboard-page .map-toggle button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .dashboard-page .map-toggle button i { font-size: .85em; }
+.dashboard-page .leaflet-control-layers-toggle {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    box-shadow: 0 8px 20px -14px rgba(15, 23, 42, .45) !important;
+}
+.dashboard-page .leaflet-control-layers-toggle::before {
+    color: #0D8568 !important;
+    font-size: 22px !important;
+}
+.dashboard-page .leaflet-control-layers-expanded {
+    border: 1px solid #dce8e1 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 12px 32px -22px rgba(13, 73, 54, .4) !important;
+    font-family: 'Manrope', sans-serif !important;
+}
 .dashboard-page :is(button, a, input, select):focus-visible { outline: 3px solid #10a37f; outline-offset: 4px; }
 .dashboard-page .dashboard-hero :is(button, a):focus-visible { outline-color: #fff; }
 .dashboard-page .notification-bell { border: 1px solid #ffffff40; cursor: pointer; }
@@ -67,6 +84,49 @@ body.dashboard-page { background: #f4f8f5; color: #203b31; }
 }
 @media (max-width: 380px) {
     .dashboard-page .analytics-kpi-grid { grid-template-columns: 1fr; }
+}
+@media (min-width: 768px) {
+    .dashboard-page .map-head {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: .75rem;
+    }
+    .dashboard-page .map-title-wrap {
+        width: 100%;
+    }
+    .dashboard-page .map-head-tools {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: .75rem;
+        width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        padding-bottom: .25rem;
+    }
+    .dashboard-page .map-head #mapToggle,
+    .dashboard-page .map-head #timeframeToggle {
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
+        overflow: visible;
+    }
+    .dashboard-page .map-head #mapToggle button,
+    .dashboard-page .map-head #timeframeToggle button {
+        white-space: nowrap;
+        padding-inline: .6rem;
+        font-size: .72rem;
+    }
+    .dashboard-page .map-head #customRangeBox:not(.hidden) {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+}
+@media (min-width: 1101px) and (max-width: 1399px) {
+    .dashboard-page .bento #map-container.b-wide { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) {
     .dashboard-page *, .dashboard-page *::before, .dashboard-page *::after { animation: none !important; transition: none !important; }

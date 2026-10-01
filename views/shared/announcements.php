@@ -668,6 +668,222 @@ if ($date_to != '') $active_filters++;
         .modal-header-sticky { padding: 1.5rem 1.5rem 0 1.5rem; border-bottom: 1px solid #E5E7EB; background: white; border-radius: 1.5rem 1.5rem 0 0; flex-shrink: 0; }
         .modal-footer-sticky { padding: 1rem 1.5rem 1.5rem 1.5rem; background: white; border-top: 1px solid #E5E7EB; flex-shrink: 0; }
         .modal-form-scrollable { flex: 1; overflow-y: auto; padding: 1.5rem; }
+        .composer-modal .composer-card {
+            width: min(94vw, 680px);
+            max-height: min(92vh, 900px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-radius: 1.25rem;
+            background: #F7FBF9;
+        }
+        .composer-modal .modal-header-sticky {
+            padding: 1rem 1.125rem;
+            border-bottom: 1px solid #E5EFE9;
+            border-radius: 1.25rem 1.25rem 0 0;
+        }
+        .composer-modal .modal-form-scrollable {
+            padding: 1rem 1.125rem;
+            background: #F7FBF9;
+        }
+        .composer-modal .modal-footer-sticky {
+            padding: 1rem 1.125rem;
+            border-top: 1px solid #E5EFE9;
+            border-radius: 0 0 1.25rem 1.25rem;
+        }
+        .composer-author-row,
+        .composer-title-box,
+        .composer-editor-shell,
+        .composer-meta-grid,
+        .composer-expiration-box,
+        .composer-attachment-box {
+            background: #FFFFFF;
+            border: 1px solid #E1ECE6;
+            box-shadow: 0 8px 22px -18px rgba(13, 133, 104, 0.45);
+        }
+        .composer-author-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem;
+            border-radius: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .composer-avatar {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #10A37F, #0D8568);
+            color: #fff;
+            font-weight: 800;
+        }
+        .composer-author-copy strong {
+            display: block;
+            font-size: 0.95rem;
+            color: #1F2937;
+        }
+        .composer-author-copy span {
+            display: block;
+            font-size: 0.78rem;
+            color: #6B7280;
+            line-height: 1.35;
+        }
+        .composer-title-box {
+            border-radius: 1rem;
+            padding: 0.45rem 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .composer-title-input {
+            width: 100%;
+            min-height: 3rem;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: #1F2937;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .composer-title-input::placeholder { color: #8CA097; font-weight: 600; }
+        .composer-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+            border-radius: 1rem;
+            padding: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+        .composer-meta-grid .form-group { margin-bottom: 0; }
+        .composer-meta-grid .form-label {
+            font-size: 0.72rem;
+            color: #658074;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .composer-meta-grid .text-xs { line-height: 1.35; }
+        .composer-content-field { margin-bottom: 0.75rem; }
+        .composer-content-field .form-label { display: none; }
+        .composer-editor-shell {
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .composer-editor-shell .ql-toolbar {
+            border: 0 !important;
+            border-bottom: 1px solid #E5EFE9 !important;
+            background: #FBFEFC;
+            border-radius: 0;
+        }
+        .composer-editor-shell .ql-container {
+            border: 0 !important;
+            min-height: 170px;
+            background: #fff;
+            border-radius: 0;
+        }
+        .composer-editor-shell .ql-editor {
+            min-height: 150px;
+            font-size: 1rem;
+        }
+        .composer-attachment-box {
+            border-radius: 1rem;
+            padding: 0.875rem;
+            margin-bottom: 0;
+        }
+        .composer-expiration-box {
+            border-radius: 1rem;
+            padding: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+        .composer-expiration-box .form-label {
+            font-size: 0.72rem;
+            color: #658074;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .composer-attachment-box .form-label {
+            margin-bottom: 0.65rem;
+            color: #1F2937;
+        }
+        .composer-upload-strip.upload-area {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            padding: 0.875rem;
+            text-align: left;
+            background: #F8FCFA;
+            border: 1px solid #DDEBE4;
+            border-radius: 0.875rem;
+        }
+        .composer-upload-strip.upload-area i {
+            margin: 0 !important;
+            color: #10A37F !important;
+        }
+        .composer-trigger-card {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 0.9rem 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #E1ECE6;
+            border-radius: 1rem;
+            background: #FFFFFF;
+            box-shadow: 0 8px 22px -18px rgba(13, 133, 104, 0.45);
+            cursor: pointer;
+            text-align: left;
+            transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+        .composer-trigger-card:hover {
+            border-color: #10A37F;
+            box-shadow: 0 16px 30px -24px rgba(13, 133, 104, 0.55);
+            transform: translateY(-1px);
+        }
+        .composer-trigger-card .composer-avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+        .composer-trigger-placeholder {
+            flex: 1 1 auto;
+            min-height: 2.5rem;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            border-radius: 999px;
+            background: #F4F8F6;
+            color: #718078;
+            font-weight: 650;
+            font-size: 0.95rem;
+        }
+        .composer-trigger-icon {
+            color: #10A37F;
+            font-size: 1rem;
+        }
+        @media (max-width: 640px) {
+            .composer-modal {
+                align-items: flex-end;
+            }
+            .composer-modal .composer-card {
+                width: 100%;
+                max-height: 94vh;
+                border-radius: 1.25rem 1.25rem 0 0;
+            }
+            .composer-meta-grid {
+                grid-template-columns: 1fr;
+            }
+            .composer-upload-strip.upload-area {
+                align-items: flex-start;
+            }
+            .composer-modal .modal-footer-sticky .flex {
+                flex-direction: column-reverse;
+            }
+            .composer-modal .btn-cancel,
+            .composer-modal .btn-submit {
+                width: 100%;
+                justify-content: center;
+            }
+        }
         /* ===== PRIMARY BUTTON (on-brand) ===== */
         .btn-primary {
             background: linear-gradient(135deg, #10A37F, #0D8568);
@@ -829,24 +1045,11 @@ if ($date_to != '') $active_filters++;
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
 
-        <!-- ===== HEADER ===== -->
-        <div class="page-header">
-            
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                
-                <?php if ($can_create): ?>
-                    <button onclick="openCreateModal()" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 justify-center">
-                        <i class="fas fa-plus-circle text-xs md:text-sm"></i>
-                        <span class="text-xs md:text-sm">Create Post</span>
-                    </button>
-                <?php endif; ?>
-            </div>
-        </div>
-
         <?php if ($can_create): ?>
-        <!-- Floating "+" button — mobile only, replaces the header Create Post button -->
-        <button onclick="openCreateModal()" class="fab-create sm:hidden" aria-label="Create Post">
-            <i class="fas fa-plus"></i>
+        <button type="button" onclick="openCreateModal()" class="composer-trigger-card" aria-label="Create announcement">
+            <span class="composer-avatar"><i class="fas fa-bullhorn text-sm"></i></span>
+            <span class="composer-trigger-placeholder">What's on your mind?</span>
+            <span class="composer-trigger-icon"><i class="fas fa-images"></i></span>
         </button>
         <?php endif; ?>
 
@@ -1124,19 +1327,11 @@ if ($date_to != '') $active_filters++;
 
 <!-- ===== MODALS & LIGHTBOX (same as before) ===== -->
 <!-- CREATE MODAL -->
-<div id="createModal" class="modal">
-    <div class="modal-content scrollbar-hide">
+<div id="createModal" class="modal composer-modal">
+    <div class="modal-content scrollbar-hide composer-card">
         <div class="modal-header-sticky">
             <div class="flex items-center gap-3">
-                <div class="post-avatar w-10 h-10">
-                    <i class="fas fa-plus text-sm"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-xl text-gray-800 tracking-tight">Create Announcement</h3>
-                    <p class="text-xs text-gray-400 font-medium">
-                        <?php echo $is_admin ? 'Post to the whole municipality or a specific barangay' : 'Post to ' . htmlspecialchars($barangay_name); ?>
-                    </p>
-                </div>
+                <h3 class="font-bold text-lg text-gray-800 tracking-tight mx-auto">Create post</h3>
                 <button onclick="closeCreateModal()" class="ml-auto w-8 h-8 hover:bg-gray-100 rounded-lg transition flex items-center justify-center">
                     <i class="fas fa-times text-gray-500"></i>
                 </button>
@@ -1149,6 +1344,21 @@ if ($date_to != '') $active_filters++;
                 <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                 <input type="hidden" name="content" id="create_content_hidden">
 
+                <div class="composer-author-row">
+                    <div class="composer-avatar">
+                        <i class="fas fa-bullhorn text-sm"></i>
+                    </div>
+                    <div class="composer-author-copy">
+                        <strong><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'EnviroTrack'); ?></strong>
+                        <span><?php echo $is_admin ? 'Post to the whole municipality or a specific barangay' : 'Post to ' . htmlspecialchars($barangay_name); ?></span>
+                    </div>
+                </div>
+
+                <div class="composer-title-box">
+                    <input type="text" name="title" required class="composer-title-input" placeholder="What's on your mind?">
+                </div>
+
+                <div class="composer-meta-grid">
                 <?php if ($is_admin): ?>
                 <div class="form-group">
                     <label class="form-label">Broadcast Target</label>
@@ -1209,31 +1419,29 @@ if ($date_to != '') $active_filters++;
                         <?php endforeach; ?>
                     </select>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Title</label>
-                    <input type="text" name="title" required class="form-input-custom" placeholder="What's the announcement about?">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group composer-content-field">
                     <label class="form-label">Content</label>
-                    <div style="border: 2px solid #E5E7EB; border-radius: 0.75rem; overflow: hidden;">
+                    <div class="composer-editor-shell">
                         <div id="create_editor"></div>
                     </div>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group composer-expiration-box">
                     <label class="form-label">Expiration <span class="text-gray-400 text-xs font-normal">(Optional)</span></label>
                     <input type="datetime-local" name="expires_at" id="create_expires_at" class="form-input-custom">
                     <p class="text-xs text-gray-400 mt-1 font-medium">Leave empty to keep this announcement visible indefinitely. After this date/time the post is automatically hidden.</p>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group composer-attachment-box">
                     <label class="form-label">Add Photos <span class="text-gray-400 text-xs font-normal">(Max 10)</span></label>
-                    <div class="upload-area" id="uploadArea">
+                    <div class="upload-area composer-upload-strip" id="uploadArea">
                         <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2 block"></i>
-                        <p class="text-sm text-gray-500 font-medium">Click or drag & drop to upload photos</p>
-                        <p class="text-xs text-gray-400 mt-1 font-medium">JPG, PNG, GIF, WebP up to 5MB</p>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Click or drag & drop to upload photos</p>
+                            <p class="text-xs text-gray-400 mt-1 font-medium">JPG, PNG, GIF, WebP up to 5MB</p>
+                        </div>
                         <input type="file" id="photoInput" name="images[]" accept="image/*" multiple style="display: none;">
                     </div>
                     <div id="photoPreviews" class="photo-preview-grid"></div>
@@ -1585,7 +1793,7 @@ function initQuill() {
     if (createEditorEl && !createQuill) {
         createQuill = new Quill('#create_editor', {
             theme: 'snow',
-            placeholder: 'Write your announcement details here...',
+            placeholder: "What's on your mind?",
             modules: {
                 toolbar: [
                     [{ 'header': [1, 2, 3, false] }],

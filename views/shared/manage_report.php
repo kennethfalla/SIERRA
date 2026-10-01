@@ -45,7 +45,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
@@ -59,9 +59,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
 
         /* ===== CONTAINER ===== */
-        .main-container { max-width: 1280px; margin: 0 auto; padding: 1rem; }
-        @media (min-width: 640px) { .main-container { padding: 1.5rem; } }
-        @media (min-width: 768px) { .main-container { padding: 2rem; } }
+        .main-container { max-width: 1280px; margin: 0 auto; padding: 1rem 1rem 18rem; }
+        @media (min-width: 640px) { .main-container { padding: 1.5rem 1.5rem 18rem; } }
+        @media (min-width: 768px) { .main-container { padding: 2rem 2rem 18rem; } }
 
         /* ===== CARDS ===== */
         .card { background: white; border-radius: 1rem; border: 1px solid rgba(16,163,127,0.08); padding: 1.25rem; margin-bottom: 1.25rem; transition: all 0.25s ease; }
@@ -275,9 +275,43 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .note-item { background: #F5FBF6; padding: 12px; border-radius: 0.75rem; margin-bottom: 8px; border-left: 3px solid #10A37F; }
 
         /* ===== ACTION PANEL ===== */
-        .action-panel { background: white; border-radius: 1rem; border: 1px solid rgba(16,163,127,0.08); padding: 1.1rem; margin-top: 1.25rem; }
-        @media (min-width: 640px) { .action-panel { padding: 1.35rem; } }
-        @media (min-width: 1024px) { .action-panel { padding: 1.5rem; } }
+        .action-panel {
+            position: fixed;
+            left: 18rem;
+            right: 0;
+            bottom: 0;
+            z-index: 1200;
+            padding: .75rem 1rem;
+            background: linear-gradient(to top, rgba(245, 251, 246, 1) 0%, rgba(245, 251, 246, .9) 80%, rgba(245, 251, 246, 0) 100%);
+            pointer-events: none;
+        }
+        .action-panel-bar {
+            pointer-events: auto;
+            max-width: 1100px;
+            max-height: min(48vh, 410px);
+            margin: 0 auto;
+            overflow-y: auto;
+            background: linear-gradient(to right, #F0FDF4, #ECFDF5);
+            backdrop-filter: blur(8px);
+            border-radius: 1rem;
+            border: 2px solid #A7F3D0;
+            padding: .75rem 1rem;
+            box-shadow: 0 10px 30px rgba(16, 163, 127, .15);
+        }
+        .action-panel-bar > .flex:first-child { margin-bottom: .75rem; padding-bottom: .75rem; }
+        .action-panel-bar .action-cards { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+        .action-panel-bar .action-card { min-width: 0; }
+        @media (max-width: 1023px) {
+            .action-panel {
+                left: 0;
+                padding: .75rem .75rem max(.75rem, env(safe-area-inset-bottom));
+            }
+            .main-container { padding-bottom: 19rem; }
+        }
+        @media (max-width: 640px) {
+            .action-panel-bar { max-height: min(50vh, 420px); }
+            .action-panel-bar .action-cards { grid-template-columns: 1fr; }
+        }
 
         /* ===== INFO ROWS ===== */
         .info-label { color: #6b7280; font-size: 0.8rem; font-weight: 500; }
@@ -660,6 +694,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .risk-edit-btn:hover { background: rgba(16,163,127,0.18); }
         .action-card-btn--resolve { background: linear-gradient(135deg, #10A37F, #0D8568); }
         .action-card-btn--escalate { background: linear-gradient(135deg, #D97706, #B45309); }
+        .qn-note-suggestions { display: none; }
+        .qn-note-suggestions.visible { display: block; }
         .action-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,20,0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 1rem; animation: fadeIn .15s ease; }
         .action-modal-overlay.open { display: flex; }
         .action-modal-card { background: #fff; border-radius: 1rem; width: 100%; max-width: 460px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.28); animation: fadeUp .2s ease; }
@@ -758,7 +794,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             .photo-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
             .info-label, .info-value { font-size: 0.8rem; }
             .card-header { font-size: 0.8rem; }
-            .action-panel { padding: 1rem; }
             .card form.flex.gap-2 { flex-wrap: wrap; }
             .card form.flex.gap-2 input { flex: 1 1 100%; }
             .card form.flex.gap-2 button { width: 100%; }
@@ -1127,7 +1162,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             ?>
             <?php if ($note_composer_allowed): ?>
             <?php if (!empty($note_templates)): ?>
-            <div class="qn-wrap">
+            <div class="qn-wrap qn-note-suggestions" id="noteQuickSuggestions">
                 <div class="qn-suggestions-header">
                     <div class="qn-suggestions-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
                     <span class="qn-suggestions-title">Quick suggestions</span>
@@ -1156,7 +1191,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <?php endif; ?>
 
         <!-- 🛠️ ACTION & MANAGEMENT PANEL -->
-        <div class="action-panel fade-up">
+        <div class="action-panel no-print">
+          <div class="action-panel-bar">
             <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100">
                 <div class="w-9 h-9 rounded-xl bg-[#10A37F]/10 flex items-center justify-center flex-shrink-0">
                     <i class="fas fa-tools text-[#10A37F] text-sm"></i>
@@ -1294,7 +1330,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php if ($can_escalate): ?>
                 <div class="action-card action-card-btn action-card-btn--escalate" onclick="openActionModal('escalateModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActionModal('escalateModal');}" aria-haspopup="dialog">
                     <div class="flex items-center gap-3">
-                        <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-share"></i></div>
+                        <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-arrow-up-right-dots"></i></div>
                         <div class="min-w-0 flex-1">
                             <p class="font-bold text-gray-800 text-sm">Escalate to MENRO</p>
                             <p class="text-xs text-gray-400 truncate">Request MENRO intervention</p>
@@ -1337,6 +1373,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php endif; ?>
             <?php endif; ?>
             </div>
+          </div>
         </div>
 
     </div>
@@ -1429,7 +1466,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <input type="hidden" name="action" value="resolve_report">
                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution photo or video <span class="text-red-500">(required)</span></label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution photo or video</label>
                     <div class="file-upload-area" id="resImageArea" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImage')">
                         <img class="file-upload-preview" id="resImagePreviewImg" alt="">
                         <video class="file-upload-preview" id="resImagePreviewVideo" controls muted playsinline></video>
@@ -1446,7 +1483,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution note <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution note</label>
                     <?php if (!empty($resolve_templates)): ?>
                     <div class="qn-wrap mb-1.5">
                         <div class="qn-suggestions-header">
@@ -1478,7 +1515,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <div class="action-modal-card">
         <div class="action-modal-header">
             <div class="flex items-center gap-3 min-w-0">
-                <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-share"></i></div>
+                <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-arrow-up-right-dots"></i></div>
                 <div class="min-w-0">
                     <p class="font-bold text-gray-800 text-sm" id="escalateModalTitle">Escalate to MENRO</p>
                     <p class="text-xs text-gray-400">Request MENRO intervention</p>
@@ -1513,7 +1550,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <?php endif; ?>
                     <textarea name="escalation_reason" id="escalationReason" rows="4" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Explain why this report needs to be escalated to MENRO..." required></textarea>
                 </div>
-                <button type="submit" class="btn-warning modal-submit"><i class="fas fa-paper-plane mr-1.5"></i> Escalate Report</button>
+                <button type="submit" class="btn-warning modal-submit"><i class="fas fa-arrow-up-right-dots mr-1.5"></i> Escalate Report</button>
             </form>
         </div>
     </div>
@@ -1596,7 +1633,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <input type="hidden" name="action" value="resolve_report">
                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution photo or video <span class="text-red-500">(required)</span></label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution photo or video</label>
                     <div class="file-upload-area" id="resImageAdminArea" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleFileDrop(event, 'resImageAdmin')">
                         <img class="file-upload-preview" id="resImageAdminPreviewImg" alt="">
                         <video class="file-upload-preview" id="resImageAdminPreviewVideo" controls muted playsinline></video>
@@ -1613,7 +1650,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution note <span class="text-gray-400 font-normal">(optional)</span></label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Resolution note</label>
                     <?php if (!empty($resolve_templates)): ?>
                     <div class="qn-wrap mb-1.5">
                         <div class="qn-suggestions-header">
@@ -1796,8 +1833,21 @@ function insertNoteTemplate(listName, index, inputId) {
     var el = document.getElementById(inputId);
     if (!el || !list || !list[index]) return;
     el.value = (el.value && el.value.trim()) ? el.value.trim() + ' ' + list[index] : list[index];
+    var suggestions = document.getElementById('noteQuickSuggestions');
+    if (suggestions && inputId === 'noteInput') suggestions.classList.add('visible');
     el.focus();
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    var noteInput = document.getElementById('noteInput');
+    var suggestions = document.getElementById('noteQuickSuggestions');
+    if (!noteInput || !suggestions) return;
+    function toggleNoteSuggestions() {
+        suggestions.classList.toggle('visible', noteInput.value.trim().length > 0);
+    }
+    noteInput.addEventListener('input', toggleNoteSuggestions);
+    toggleNoteSuggestions();
+});
 
 // ===== GALLERY PICKER =====
 // "Take Photo" now opens the real in-page camera (see openEvidenceCamera

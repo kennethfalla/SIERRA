@@ -1179,9 +1179,25 @@ if ($user_id && isset($db)) {
         fd.append('csrf_token', window.menroGetCsrf());
         if (data) Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
         fetch(MENRO_NOTIF_URL + 'controllers/NotificationController.php', { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                return r.text().then(function (text) {
+                    try {
+                        return JSON.parse(text);
+                    } catch (err) {
+                        return { success: false, error: 'Unexpected server response. Please refresh the page and try again.' };
+                    }
+                });
+            })
             .then(function (d) { if (cb) cb(d); })
-            .catch(function () { if (cb) cb(null); });
+            .catch(function () { if (cb) cb({ success: false, error: 'Unable to update notifications. Please check your connection.' }); });
+    }
+
+    function menroNotifyError(message) {
+        if (window.GB && typeof window.GB.alert === 'function') {
+            window.GB.alert({ type: 'error', title: 'Notification update failed', message: message });
+        } else {
+            alert(message);
+        }
     }
 
     window.__menroRefreshBadge = function (unread) {
@@ -1208,6 +1224,12 @@ if ($user_id && isset($db)) {
     };
 
     window.menroMarkAllRead = function () {
+        var actionBtn = document.querySelector('.menro-mark-all');
+        if (actionBtn) {
+            actionBtn.disabled = true;
+            actionBtn.dataset.originalText = actionBtn.dataset.originalText || actionBtn.innerHTML;
+            actionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking...';
+        }
         menroPost('mark_all_read', null, function (data) {
             if (data && data.success) {
                 document.querySelectorAll('#menroNotifList .menro-notif-item').forEach(function (el) {
@@ -1218,6 +1240,13 @@ if ($user_id && isset($db)) {
                 var cnt = document.getElementById('menroNotifCount');
                 if (cnt) cnt.textContent = String(document.querySelectorAll('#menroNotifList .menro-notif-item').length);
                 window.__menroRefreshBadge(0);
+                if (actionBtn) actionBtn.style.display = 'none';
+            } else {
+                menroNotifyError((data && data.error) || 'Unable to mark notifications as read.');
+                if (actionBtn) {
+                    actionBtn.disabled = false;
+                    actionBtn.innerHTML = actionBtn.dataset.originalText || '<i class="fas fa-check-double"></i> Mark all as read';
+                }
             }
         });
     };
