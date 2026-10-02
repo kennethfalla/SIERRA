@@ -13,6 +13,8 @@ $db = $database->getConnection();
 // Get total reports count
 $stmt = $db->query("SELECT COUNT(*) as total FROM reports");
 $total_reports = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+$stmt = $db->query("SELECT COUNT(*) as total FROM reports WHERE status = 'resolved'");
+$resolved_reports = (int)($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 
 // San Isidro Statistics (editable in Settings > Landing Page)
 $lp = function($key, $default = '') {
@@ -49,6 +51,22 @@ foreach ($reports_for_map as &$map_row) {
     $map_row['token'] = IdGuard::enc((int)$map_row['id']);
 }
 unset($map_row);
+
+$landing_barangays = [];
+try {
+    $landing_barangays = $db->query("SELECT name FROM barangays ORDER BY name ASC")->fetchAll(PDO::FETCH_COLUMN);
+} catch (Exception $e) {
+    $landing_barangays = [];
+}
+
+$landing_categories = [];
+try {
+    $landing_categories = $db->query("SELECT name FROM categories WHERE is_active = 1 ORDER BY name ASC LIMIT 8")->fetchAll(PDO::FETCH_COLUMN);
+} catch (Exception $e) {
+    $landing_categories = [];
+}
+
+$landing_response_time = $lp('lp_response_timeline', 'Barangay or MENRO staff usually review new reports within 1 to 3 working days, depending on urgency and available details.');
 
 // MENRO Vision, Mission, and About (editable in Settings > Landing Page)
 $menro_vision = $lp('lp_vision_body', 'A clean, green, and sustainable San Isidro where every citizen is an active steward of the environment, and environmental resources are protected and preserved for future generations.');
@@ -1420,7 +1438,95 @@ if ($isLoggedIn && $is_staff) {
 </section>
 
 <!-- ============================================ -->
-<!-- SECTION 6: FAQ -->
+<!-- SECTION 6: BEFORE YOU REPORT -->
+<!-- ============================================ -->
+<section id="report-guide" class="py-20 bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center lp-section-head-wrap">
+            <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider">Before You Report</span>
+            <div class="section-divider"></div>
+            <h2 class="lp-section-head">
+                What You Need To Know
+                <em>clear steps before sending a concern</em>
+            </h2>
+            <p class="text-gray-500 mt-2 max-w-2xl mx-auto">A short guide to coverage, privacy, urgency, and what happens after you submit.</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-4 mb-8">
+            <div class="lp-info-card">
+                <span class="lp-info-icon"><i class="fas fa-map-marked-alt"></i></span>
+                <h3>Barangay Coverage</h3>
+                <p>Reports are routed to the barangay connected to the pinned location, with MENRO support for escalated or municipal-level concerns.</p>
+                <div class="lp-chip-list">
+                    <?php foreach (array_slice($landing_barangays, 0, 9) as $barangay_name): ?>
+                        <span><?php echo htmlspecialchars($barangay_name); ?></span>
+                    <?php endforeach; ?>
+                    <?php if (count($landing_barangays) > 9): ?>
+                        <span>+<?php echo count($landing_barangays) - 9; ?> more</span>
+                    <?php elseif (!$landing_barangays): ?>
+                        <span>San Isidro barangays</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="lp-info-card">
+                <span class="lp-info-icon"><i class="fas fa-list-check"></i></span>
+                <h3>Report Categories</h3>
+                <p>Choose the closest category so staff can assess the issue faster and assign the right response.</p>
+                <div class="lp-chip-list">
+                    <?php foreach ($landing_categories ?: ['Illegal dumping', 'Flooding', 'Drainage blockage', 'Air or water pollution'] as $category_name): ?>
+                        <span><?php echo htmlspecialchars($category_name); ?></span>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="lp-info-card">
+                <span class="lp-info-icon"><i class="fas fa-clock"></i></span>
+                <h3>Review Timeline</h3>
+                <p><?php echo htmlspecialchars($landing_response_time); ?></p>
+                <div class="lp-mini-flow">
+                    <span>Submitted</span>
+                    <i class="fas fa-arrow-right"></i>
+                    <span>Reviewed</span>
+                    <i class="fas fa-arrow-right"></i>
+                    <span>Resolved</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-4 gap-4">
+            <div class="lp-detail-card">
+                <i class="fas fa-user-shield"></i>
+                <h3>Privacy</h3>
+                <p>Your identity is not shown publicly. Barangay and MENRO staff can view reporter details only for verification and coordination.</p>
+            </div>
+            <div class="lp-detail-card">
+                <i class="fas fa-triangle-exclamation"></i>
+                <h3>Urgent Issues</h3>
+                <p>For immediate danger, call local emergency services first. You can still file a report after the urgent situation is safe.</p>
+            </div>
+            <div class="lp-detail-card">
+                <i class="fas fa-location-dot"></i>
+                <h3>Nearby Reports</h3>
+                <p>If a similar report already exists near your pinned location, the system may ask you to support the existing report instead.</p>
+            </div>
+            <div class="lp-detail-card">
+                <i class="fas fa-headset"></i>
+                <h3>Need Help?</h3>
+                <p>Email <?php echo htmlspecialchars($contact_email); ?> or call <?php echo htmlspecialchars($emergency_hotline); ?> if you cannot register, log in, or submit.</p>
+            </div>
+        </div>
+
+        <div class="lp-impact-strip">
+            <span><strong><?php echo number_format($resolved_reports); ?></strong> resolved reports recorded</span>
+            <span><strong><?php echo number_format($total_reports); ?></strong> total community reports submitted</span>
+            <span><strong><?php echo count($reports_for_map); ?></strong> recent map pins visible</span>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SECTION 7: FAQ -->
 <!-- ============================================ -->
 <section id="faq" class="py-20 bg-[#F5FBF6]">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1481,6 +1587,38 @@ if ($isLoggedIn && $is_staff) {
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
                 <div class="faq-a">Your report goes to the appropriate barangay or MENRO staff. They verify the report, assign it, and work to resolve it. You will be notified at every step until the issue is marked resolved.</div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-q">
+                    <span>How long does review usually take?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a"><?php echo htmlspecialchars($landing_response_time); ?> Reports with clear photos, descriptions, and pinned locations are easier to review.</div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-q">
+                    <span>What if another person already reported the same issue?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a">If the system detects a nearby similar report, you may support the existing report instead of creating a duplicate. This helps staff count how many people are affected by the same concern.</div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-q">
+                    <span>Is my personal information public?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a">No. Public viewers do not see your personal details. Authorized barangay and MENRO staff can view reporter information only when they need to verify, coordinate, or resolve a report.</div>
+            </details>
+
+            <details class="faq-item">
+                <summary class="faq-q">
+                    <span>What should I do for emergencies?</span>
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-a">For immediate danger, contact local emergency responders first. You can call <?php echo htmlspecialchars($emergency_hotline); ?> or email <?php echo htmlspecialchars($contact_email); ?> if you need help with the reporting system.</div>
             </details>
         </div>
     </div>

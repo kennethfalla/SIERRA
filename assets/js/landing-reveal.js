@@ -6,7 +6,8 @@
     const candidates = Array.from(document.querySelectorAll(
         '#features > div > *, #features .feature-card, ' +
         '#map-section > div > *, #stats > div > *, #stats .stat-card, ' +
-        '#about > .relative > *, #about .grid > *, #faq > div > *, #faq .faq-item, footer .grid > *'
+        '#about > .relative > *, #about .grid > *, #report-guide > div > *, ' +
+        '#report-guide .lp-info-card, #report-guide .lp-detail-card, #faq > div > *, #faq .faq-item, footer .grid > *'
     ));
     // Animate cards individually; their grid wrapper stays in normal layout.
     const targets = candidates.filter(el => !el.classList.contains('grid') && !el.querySelector('.faq-item'));
