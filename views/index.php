@@ -291,6 +291,7 @@ if ($isLoggedIn && $is_staff) {
                 url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2069&q=80');
             background-size: cover;
             background-position: center;
+            animation: landingHeroBgDrift 28s ease-in-out infinite alternate;
         }
 
         .hero-media-video {
@@ -360,6 +361,10 @@ if ($isLoggedIn && $is_staff) {
         @keyframes heroMediaDrift {
             from { transform: scale(1.02) translate3d(-.5%, -.5%, 0); }
             to { transform: scale(1.08) translate3d(.7%, .7%, 0); }
+        }
+        @keyframes landingHeroBgDrift {
+            from { background-position: 50% 50%; }
+            to { background-position: 56% 48%; }
         }
 
         /* Hero bottom corners: square on load, rounded once the page is scrolled */
@@ -446,6 +451,7 @@ if ($isLoggedIn && $is_staff) {
         @media (prefers-reduced-motion: reduce) {
             .stat-card,
             .hero-media-video,
+            .hero-bg,
             .hero-content-wrap,
             main section[id],
             main section[id] > .max-w-7xl,
@@ -1177,10 +1183,10 @@ if ($isLoggedIn && $is_staff) {
                 <div id="map"></div>
             </div>
             <div class="lp-map-legend flex flex-wrap gap-3 mt-4 text-xs text-gray-500">
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-500"></span> Low Risk</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-500"></span> Medium Risk</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span> High Risk</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-600"></span> Critical Risk</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#16A34A;"></span> Low Risk</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium Risk</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#EA580C;"></span> High Risk</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#DC2626;"></span> Critical Risk</span>
                 <span class="flex items-center gap-1.5 ml-auto text-emerald-600 font-medium">
                     <i class="fas fa-map-pin"></i> <?php echo count($reports_for_map); ?> reports shown
                 </span>
@@ -1206,22 +1212,22 @@ if ($isLoggedIn && $is_staff) {
         
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6 stat-cards">
             <div class="stat-card bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 text-center">
-                <div class="text-3xl font-bold text-emerald-600"><?php echo number_format($san_isidro_stats['barangays']); ?></div>
+                <div class="text-3xl font-bold text-emerald-600 lp-stat-number" data-count="<?php echo (int)$san_isidro_stats['barangays']; ?>"><?php echo number_format($san_isidro_stats['barangays']); ?></div>
                 <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_barangays_label', 'Barangays')); ?></p>
                 <p class="text-xs text-gray-400 mt-2"><?php echo htmlspecialchars($lp('lp_stat_barangays_sub')); ?></p>
             </div>
             <div class="stat-card bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 text-center">
-                <div class="text-3xl font-bold text-emerald-700"><?php echo number_format($san_isidro_stats['population']); ?></div>
+                <div class="text-3xl font-bold text-emerald-700 lp-stat-number" data-count="<?php echo (int)$san_isidro_stats['population']; ?>"><?php echo number_format($san_isidro_stats['population']); ?></div>
                 <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_population_label', 'Population')); ?></p>
                 <p class="text-xs text-gray-400 mt-2"><?php echo htmlspecialchars($lp('lp_stat_population_sub')); ?></p>
             </div>
             <div class="stat-card bg-gradient-to-br from-teal-50 to-emerald-100 rounded-2xl p-6 text-center">
-                <div class="text-3xl font-bold text-teal-700"><?php echo number_format($san_isidro_stats['households']); ?></div>
+                <div class="text-3xl font-bold text-teal-700 lp-stat-number" data-count="<?php echo (int)$san_isidro_stats['households']; ?>"><?php echo number_format($san_isidro_stats['households']); ?></div>
                 <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_households_label', 'Households')); ?></p>
                 <p class="text-xs text-gray-400 mt-2"><?php echo htmlspecialchars($lp('lp_stat_households_sub')); ?></p>
             </div>
             <div class="stat-card bg-gradient-to-br from-emerald-100 to-white rounded-2xl p-6 text-center">
-                <div class="text-3xl font-bold text-emerald-700"><?php echo number_format($total_reports); ?></div>
+                <div class="text-3xl font-bold text-emerald-700 lp-stat-number" data-count="<?php echo (int)$total_reports; ?>"><?php echo number_format($total_reports); ?></div>
                 <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($lp('lp_stat_reports_label', 'Reports Submitted')); ?></p>
                 <p class="text-xs text-gray-400 mt-2"><?php echo htmlspecialchars($lp('lp_stat_reports_sub')); ?></p>
             </div>
@@ -1638,10 +1644,10 @@ function initMap() {
     
     // Add markers
     const riskColors = {
-        'low': '#10B981',
+        'low': '#16A34A',
         'medium': '#F59E0B',
-        'high': '#F97316',
-        'critical': '#EF4444'
+        'high': '#EA580C',
+        'critical': '#DC2626'
     };
     
     const riskIcons = {
@@ -1656,7 +1662,7 @@ function initMap() {
             const lat = parseFloat(report.latitude);
             const lng = parseFloat(report.longitude);
             const risk = report.risk_level || 'low';
-            const color = riskColors[risk] || '#059669';
+            const color = riskColors[risk] || '#16A34A';
             
             const customIcon = L.divIcon({
                 html: `<div style="background-color: ${color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); border: 2px solid white;">
@@ -1713,6 +1719,52 @@ function escapeHtml(text) {
 }
 
 document.addEventListener('DOMContentLoaded', initMap);
+
+// ============================================
+// LANDING STATS COUNT-UP
+// ============================================
+(function () {
+    var numbers = Array.prototype.slice.call(document.querySelectorAll('.lp-stat-number[data-count]'));
+    if (!numbers.length) return;
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function formatNumber(value) {
+        return Math.round(value).toLocaleString();
+    }
+    function animateNumber(el) {
+        if (el.dataset.counted === '1') return;
+        el.dataset.counted = '1';
+        var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+        if (reduceMotion || target === 0) {
+            el.textContent = formatNumber(target);
+            return;
+        }
+        var startTime = null;
+        var duration = Math.min(1800, Math.max(850, String(target).length * 190));
+        function tick(timestamp) {
+            if (startTime === null) startTime = timestamp;
+            var progress = Math.min(1, (timestamp - startTime) / duration);
+            var eased = 1 - Math.pow(1 - progress, 3);
+            el.textContent = formatNumber(target * eased);
+            if (progress < 1) window.requestAnimationFrame(tick);
+            else el.textContent = formatNumber(target);
+        }
+        el.textContent = '0';
+        window.requestAnimationFrame(tick);
+    }
+    if (!window.IntersectionObserver) {
+        numbers.forEach(animateNumber);
+        return;
+    }
+    var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            numbers.forEach(animateNumber);
+            observer.disconnect();
+        });
+    }, { threshold: .35 });
+    var stats = document.getElementById('stats');
+    observer.observe(stats || numbers[0]);
+}());
 
 // ============================================
 // SMOOTH SCROLL

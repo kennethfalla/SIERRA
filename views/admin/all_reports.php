@@ -865,41 +865,6 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
 
-        <!-- Header (adapted from my_reports.php branding style) -->
-        <div class="page-header">
-            
-            <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-3">
-                
-                <div class="flex items-center gap-3">
-                    <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
-                    <div class="export-dropdown" id="exportDropdownWrap">
-                        <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
-                            <i class="fas fa-file-export"></i>
-                            <span><?php echo t('Export'); ?></span>
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <div id="exportDropdown" class="export-dropdown-menu" style="width:280px;">
-                            <button class="export-dropdown-item" onclick="printReports()">
-                                <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
-                                <div class="item-text">
-                                    <div class="item-title"><?php echo t('Export as PDF'); ?></div>
-                                    <div class="item-desc"><?php echo t('Preview and save as PDF'); ?></div>
-                                </div>
-                            </button>
-                            <button class="export-dropdown-item" onclick="downloadExport('master')">
-                                <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
-                                <div class="item-text">
-                                    <div class="item-title"><?php echo t('Export as CSV'); ?></div>
-                                    <div class="item-desc"><?php echo t('All reports with current filters'); ?></div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
         <!-- ===== STATS SUMMARY CARDS ===== -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6 stat-cards">
             <!-- Total -->
@@ -1091,6 +1056,37 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
         <!-- Results Table -->
         <div id="reportsGrid">
             <div class="table-container">
+                <div class="table-section-header">
+                    <div class="table-section-title">
+                        <h2><?php echo t('Reports List'); ?></h2>
+                        <p><?php echo t('Review submitted reports with the current filters.'); ?></p>
+                    </div>
+                    <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
+                    <div class="export-dropdown" id="exportDropdownWrap">
+                        <button onclick="toggleExportDropdown()" id="exportDropBtn" class="btn-export-trigger">
+                            <i class="fas fa-file-export"></i>
+                            <span><?php echo t('Export'); ?></span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div id="exportDropdown" class="export-dropdown-menu" style="width:280px;">
+                            <button class="export-dropdown-item" onclick="printReports()">
+                                <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
+                                <div class="item-text">
+                                    <div class="item-title"><?php echo t('Export as PDF'); ?></div>
+                                    <div class="item-desc"><?php echo t('Preview and save as PDF'); ?></div>
+                                </div>
+                            </button>
+                            <button class="export-dropdown-item" onclick="downloadExport('master')">
+                                <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
+                                <div class="item-text">
+                                    <div class="item-title"><?php echo t('Export as CSV'); ?></div>
+                                    <div class="item-desc"><?php echo t('All reports with current filters'); ?></div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full all-reports-table app-data-table">
                         <thead>

@@ -337,18 +337,6 @@ $top_actions = $db->query("
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
         
-        <!-- Header (on-brand) -->
-        <div class="page-header">
-            
-            <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-3">
-                
-                <a href="?page=audit-logs-report<?php echo $date_from ? '&from=' . urlencode($date_from) : ''; ?><?php echo $date_to ? '&to=' . urlencode($date_to) : ''; ?><?php echo $action_filter !== 'all' ? '&action=' . urlencode($action_filter) : ''; ?><?php echo !empty($user_filter) ? '&user=' . urlencode($user_filter) : ''; ?><?php echo $status_filter !== 'all' ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="btn-export-trigger">
-                    <i class="fas fa-file-export"></i>
-                    <span><?php echo t('Export'); ?></span>
-                </a>
-            </div>
-        </div>
-        
         <!-- Success/Error Messages -->
         <?php if(isset($_SESSION['success'])): ?>
             <div class="mb-5 p-4 bg-green-50 border-l-4 border-green-500 rounded-xl text-green-700 flex items-center gap-3 animate-slide-up">
@@ -513,6 +501,16 @@ $top_actions = $db->query("
         
         <!-- Logs Table -->
         <div class="table-container mb-6 animate-slide-up">
+            <div class="table-section-header">
+                <div class="table-section-title">
+                    <h2><?php echo t('Audit Logs List'); ?></h2>
+                    <p><?php echo t('System activities matching the current filters.'); ?></p>
+                </div>
+                <a href="?page=audit-logs-report<?php echo $date_from ? '&from=' . urlencode($date_from) : ''; ?><?php echo $date_to ? '&to=' . urlencode($date_to) : ''; ?><?php echo $action_filter !== 'all' ? '&action=' . urlencode($action_filter) : ''; ?><?php echo !empty($user_filter) ? '&user=' . urlencode($user_filter) : ''; ?><?php echo $status_filter !== 'all' ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="btn-export-trigger">
+                    <i class="fas fa-file-export"></i>
+                    <span><?php echo t('Export'); ?></span>
+                </a>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full audit-logs-table app-data-table">
                     <thead>

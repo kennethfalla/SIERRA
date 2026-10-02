@@ -460,36 +460,6 @@ function getRoleBadge($user_type, $job_title = '') {
                             . ($registered_to ? '&created_to=' . $registered_to : '');
         $export_csv_type  = $users_tab === 'citizens' ? 'reporters' : ($users_tab === 'barangay' ? 'barangay' : 'menro');
         ?>
-        <div class="users-page-actions mb-6">
-            
-            <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
-            <div class="export-dropdown" id="usersExportWrap">
-                <button onclick="toggleUsersExport()" id="usersExportBtn" class="btn-export-trigger">
-                    <i class="fas fa-file-export"></i>
-                    <span><?php echo t('Export'); ?></span>
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div id="usersExportDropdown" class="export-dropdown-menu" style="width:280px;">
-                    <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php<?php echo $report_url; ?>', '_blank')">
-                        <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
-                        <div class="item-text">
-                            <div class="item-title"><?php echo t('Export as PDF'); ?></div>
-                            <div class="item-desc"><?php echo t('Preview and save as PDF'); ?></div>
-                        </div>
-                    </button>
-                    <div class="export-dropdown-divider"></div>
-                    <button class="export-dropdown-item" onclick="downloadUsersExport('<?php echo $export_csv_type; ?>')">
-                        <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
-                        <div class="item-text">
-                            <div class="item-title"><?php echo t('Export as CSV'); ?></div>
-                            <div class="item-desc">Users from the <?php echo $users_tab; ?> tab</div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-            <?php endif; ?>
-        </div>
-
         <!-- Flash Messages -->
         <?php if(isset($_SESSION['success'])): ?>
             <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-xl text-green-700 text-sm flex items-center gap-2">
@@ -717,21 +687,6 @@ function getRoleBadge($user_type, $job_title = '') {
 
 <div class="fade-in">
 
-    <!-- ===== TOOLBAR ===== -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
-        <p class="text-sm text-gray-500 font-medium order-2 sm:order-1">
-            <i class="fas fa-user-cog mr-1.5 text-[#10A37F]"></i>
-            Manage <?php echo strtolower($tab_label); ?> accounts, roles, and access.
-        </p>
-        <?php if($show_create_btn): ?>
-        <button onclick="openCreateModal('<?php echo $create_role; ?>')"
-                class="btn-primary px-5 py-2.5 text-white font-semibold flex items-center justify-center gap-2 shadow-sm text-sm w-full sm:w-auto order-1 sm:order-2">
-            <i class="fas fa-plus-circle"></i>
-            <?php echo $create_label; ?>
-        </button>
-        <?php endif; ?>
-    </div>
-
     <!-- ===== VALIDATION ERRORS (create account) ===== -->
     <?php if(isset($_SESSION['errors']) && is_array($_SESSION['errors'])): ?>
         <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl text-red-700 text-sm">
@@ -812,6 +767,13 @@ function getRoleBadge($user_type, $job_title = '') {
                 <span class="tab-badge"><?php echo $total_menro; ?></span>
             </a>
         </nav>
+        <?php if($show_create_btn): ?>
+        <button onclick="openCreateModal('<?php echo $create_role; ?>')"
+                class="btn-primary px-5 py-2.5 text-white font-semibold flex items-center justify-center gap-2 shadow-sm text-sm ml-auto flex-shrink-0">
+            <i class="fas fa-plus-circle"></i>
+            <?php echo $create_label; ?>
+        </button>
+        <?php endif; ?>
     </div>
 
     <!-- ===== FILTER TOOLBAR (shared report toolbar design) ===== -->
@@ -911,6 +873,38 @@ function getRoleBadge($user_type, $job_title = '') {
 
     <!-- ===== USERS TABLE ===== -->
     <div class="table-container">
+        <div class="table-section-header">
+            <div class="table-section-title">
+                <h2><?php echo t('Users List'); ?></h2>
+                <p><?php echo t('Accounts shown from the selected tab.'); ?></p>
+            </div>
+            <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
+            <div class="export-dropdown" id="usersExportWrap">
+                <button onclick="toggleUsersExport()" id="usersExportBtn" class="btn-export-trigger">
+                    <i class="fas fa-file-export"></i>
+                    <span><?php echo t('Export'); ?></span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div id="usersExportDropdown" class="export-dropdown-menu" style="width:280px;">
+                    <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php<?php echo $report_url; ?>', '_blank')">
+                        <div class="item-icon" style="background:#E8F5F0; color:#10A37F;"><i class="fas fa-file-pdf"></i></div>
+                        <div class="item-text">
+                            <div class="item-title"><?php echo t('Export as PDF'); ?></div>
+                            <div class="item-desc"><?php echo t('Preview and save as PDF'); ?></div>
+                        </div>
+                    </button>
+                    <div class="export-dropdown-divider"></div>
+                    <button class="export-dropdown-item" onclick="downloadUsersExport('<?php echo $export_csv_type; ?>')">
+                        <div class="item-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fas fa-file-csv"></i></div>
+                        <div class="item-text">
+                            <div class="item-title"><?php echo t('Export as CSV'); ?></div>
+                            <div class="item-desc">Users from the <?php echo $users_tab; ?> tab</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
         <div class="overflow-x-visible xl:overflow-x-auto">
             <table class="w-full app-data-table users-table">
                 <thead>

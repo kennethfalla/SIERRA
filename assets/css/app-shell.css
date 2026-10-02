@@ -438,41 +438,75 @@ body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page
     font-family: 'Manrope', sans-serif;
 }
 
+.status-badge,
+.risk-badge {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: .38rem;
+    min-height: 28px;
+    padding: .32rem .72rem !important;
+    border-radius: 999px !important;
+    border: 1px solid currentColor !important;
+    font-size: .7rem !important;
+    font-weight: 850 !important;
+    line-height: 1.1;
+    letter-spacing: .01em;
+    white-space: nowrap;
+    box-shadow: 0 8px 18px -16px currentColor;
+}
+
 .status-pending {
-    background: rgba(245, 158, 11, .14) !important;
-    color: #F59E0B !important;
+    background: #FFFBEB !important;
+    color: #B45309 !important;
 }
 .status-under_review,
 .status-verified {
-    background: rgba(59, 130, 246, .14) !important;
-    color: #3B82F6 !important;
+    background: #EFF6FF !important;
+    color: #1D4ED8 !important;
 }
 .status-in_progress {
-    background: rgba(99, 102, 241, .14) !important;
-    color: #6366F1 !important;
+    background: #EEF2FF !important;
+    color: #4F46E5 !important;
 }
 .status-escalated_pending {
-    background: rgba(234, 88, 12, .14) !important;
-    color: #EA580C !important;
+    background: #FFF7ED !important;
+    color: #C2410C !important;
 }
 .status-escalated {
-    background: rgba(234, 88, 12, .14) !important;
-    color: #EA580C !important;
+    background: #FFF7ED !important;
+    color: #C2410C !important;
 }
 .status-resolved,
 .status-active {
-    background: rgba(22, 163, 74, .14) !important;
-    color: #16A34A !important;
+    background: #F0FDF4 !important;
+    color: #15803D !important;
 }
 .status-rejected,
 .status-inactive {
-    background: rgba(220, 38, 38, .14) !important;
-    color: #DC2626 !important;
+    background: #FEF2F2 !important;
+    color: #B91C1C !important;
 }
 .status-cancelled,
 .status-closed {
     background: #F3F4F6 !important;
     color: #4B5563 !important;
+}
+.risk-low {
+    background: #F0FDF4 !important;
+    color: #15803D !important;
+}
+.risk-medium {
+    background: #FFFBEB !important;
+    color: #B45309 !important;
+}
+.risk-high {
+    background: #FFF7ED !important;
+    color: #C2410C !important;
+}
+.risk-critical {
+    background: #FEF2F2 !important;
+    color: #B91C1C !important;
 }
 .status-in_progress .fa-pulse,
 .status-badge.status-in_progress .fa-pulse {
@@ -496,6 +530,36 @@ body.admin-data-page .table-container {
     border-radius: 16px !important;
     box-shadow: 0 3px 12px rgba(23, 59, 44, .04);
     overflow: hidden;
+}
+
+.table-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid var(--sierra-border);
+    background: linear-gradient(90deg, #ffffff 0%, #f6fbf8 100%);
+}
+.table-section-title {
+    min-width: 0;
+}
+.table-section-title h2 {
+    margin: 0;
+    color: #18382b;
+    font-size: .98rem;
+    font-weight: 850;
+    letter-spacing: -.01em;
+}
+.table-section-title p {
+    margin: .18rem 0 0;
+    color: #6b7c76;
+    font-size: .72rem;
+    font-weight: 600;
+}
+.table-section-header .export-dropdown,
+.table-section-header .btn-export-trigger {
+    flex-shrink: 0;
 }
 
 body.admin-data-page .table-container table {
@@ -617,6 +681,22 @@ body.admin-data-page .flex.justify-center.gap-2 {
 @media (max-width: 1023px) {
     body.admin-data-page .main-container {
         padding: 16px;
+    }
+    .table-section-header {
+        align-items: stretch;
+        flex-direction: column;
+        padding: .9rem;
+        border: 1px solid var(--sierra-border);
+        border-radius: 16px;
+        margin-bottom: 12px;
+        background: #fff;
+    }
+    .table-section-header .export-dropdown,
+    .table-section-header .btn-export-trigger {
+        width: 100%;
+    }
+    .table-section-header .btn-export-trigger {
+        justify-content: center;
     }
 }
 
@@ -757,36 +837,6 @@ body.admin-data-page .report-table-view {
 body.admin-data-page .report-table-view:hover { color: #0D8568; background: rgba(16,163,127,.12); }
 .users-filter-toolbar { margin-bottom: 1rem; }
 .users-filter-toolbar .reports-toolbar { gap: .6rem; }
-.app-mobile-header #dashHeaderExtras.users-header-tools {
-    flex: 1 1 auto;
-    justify-content: flex-end;
-    max-width: min(760px, 58vw);
-}
-.app-mobile-header #dashHeaderExtras.users-header-tools .ft-toolbar {
-    width: 100%;
-}
-.app-mobile-header #dashHeaderExtras.users-header-tools .reports-toolbar {
-    justify-content: flex-end;
-    gap: .35rem;
-}
-.app-mobile-header #dashHeaderExtras.users-header-tools .toolbar-search {
-    flex: 1 1 210px;
-    width: min(260px, 24vw);
-    max-width: 260px;
-}
-.app-mobile-header #dashHeaderExtras.users-header-tools .toolbar-select {
-    min-width: 0 !important;
-    width: auto;
-    max-width: 150px;
-    padding-left: 11px;
-    padding-right: 28px;
-}
-.app-mobile-header #dashHeaderExtras.users-header-tools .toolbar-filter-btn {
-    min-height: 40px;
-    border-radius: 999px;
-    background: #f4f7f5;
-    border-color: #e6efea;
-}
 .users-page .users-page-actions {
     display: flex;
     justify-content: flex-end;
@@ -804,31 +854,6 @@ body.map-fullscreen #detailsModal { z-index: 10020 !important; }
 }
 body.barangay-dashboard-page .dash-title-actions { justify-content: flex-end; }
 body.barangay-dashboard-page .dash-title-actions .export-dropdown { margin-left: 0; }
-@media (max-width: 1400px) {
-    .app-mobile-header #dashHeaderExtras.users-header-tools {
-        max-width: min(560px, 50vw);
-    }
-    .app-mobile-header #dashHeaderExtras.users-header-tools .toolbar-search {
-        width: min(190px, 18vw);
-        max-width: 190px;
-    }
-    .app-mobile-header #dashHeaderExtras.users-header-tools .toolbar-select {
-        display: none;
-    }
-}
-@media (max-width: 1023px) {
-    .app-mobile-header #dashHeaderExtras.users-header-tools {
-        flex: 0 1 auto;
-        max-width: min(46vw, 190px);
-    }
-    .app-mobile-header #dashHeaderExtras.users-header-tools .toolbar-search {
-        width: clamp(104px, 28vw, 150px);
-        max-width: 150px;
-    }
-    .app-mobile-header #dashHeaderExtras.users-header-tools .reports-toolbar {
-        gap: .25rem;
-    }
-}
 @media (prefers-reduced-motion: reduce) {
     body.admin-data-page .stat-card::after,
     body.admin-data-page .stat-cards > *::after {

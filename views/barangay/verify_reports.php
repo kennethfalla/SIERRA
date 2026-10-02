@@ -1292,33 +1292,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             <div class="loading-spinner"></div>
         </div>
         
-        <!-- Header -->
-        <div class="page-header">
-            
-            <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-3">
-                
-                <div class="flex items-center gap-2 flex-wrap">
-                    <div class="export-dropdown">
-                        <button onclick="toggleExportMenu()" class="btn-export-trigger">
-                            <i class="fas fa-file-export"></i>
-                            <span>Export</span>
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <div id="exportMenu" class="export-dropdown-menu">
-                            <button class="export-dropdown-item" onclick="exportReportsPdf()">
-                                <i class="fas fa-file-pdf"></i>
-                                <span>Export as PDF</span>
-                            </button>
-                            <button class="export-dropdown-item" onclick="exportCSV()">
-                                <i class="fas fa-file-csv"></i>
-                                <span>Export as CSV</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         <!-- Success/Error Messages -->
         <?php if (isset($_SESSION['success'])): ?>
             <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-xl text-green-700 text-sm">
@@ -1459,6 +1432,32 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 <span class="status-chip-count"><?php echo (int)$sc_count; ?></span>
             </button>
             <?php endforeach; ?>
+        </div>
+
+        <div class="table-container mb-4">
+            <div class="table-section-header">
+                <div class="table-section-title">
+                    <h2>Verify Reports List</h2>
+                    <p>Reports matching the current filters and view mode.</p>
+                </div>
+                <div class="export-dropdown">
+                    <button onclick="toggleExportMenu()" class="btn-export-trigger">
+                        <i class="fas fa-file-export"></i>
+                        <span>Export</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div id="exportMenu" class="export-dropdown-menu">
+                        <button class="export-dropdown-item" onclick="exportReportsPdf()">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Export as PDF</span>
+                        </button>
+                        <button class="export-dropdown-item" onclick="exportCSV()">
+                            <i class="fas fa-file-csv"></i>
+                            <span>Export as CSV</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Reports Grid -->

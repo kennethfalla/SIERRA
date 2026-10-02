@@ -1570,7 +1570,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
         <div class="dash-head dash-title-row">
             <div class="dash-title-actions">
-                <a class="dashboard-announcement-link" href="<?php echo BASE_URL; ?>index.php?page=announcements"><i class="fas fa-bullhorn" aria-hidden="true"></i> Announcements</a>
                 <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
                 <div class="export-dropdown">
                     <button onclick="toggleExportMenu()" class="btn-export-trigger radius-12" type="button">
