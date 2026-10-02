@@ -2189,11 +2189,8 @@ if (is_dir($barangays_dir)) {
             // Close map tip if open
             closeMapTip();
             
-            // Close duplicate modal if open
-            closeDuplicateModal();
-            
             // Show instruction toast
-            showToast('Click on the map to pin a location. Nearby reports will appear as markers.', 'info');
+            showToast('Pin a location to check nearby reports you can support.', 'info');
         }
         
         // Invalidate map size to fix rendering issues
@@ -2207,6 +2204,7 @@ if (is_dir($barangays_dir)) {
     // ESC key to exit fullscreen
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
+            if (duplicateModal.style.display === 'flex' || detailsModal.style.display === 'flex') return;
             const mapContainer = document.getElementById('mapContainer');
             if (mapContainer && mapContainer.classList.contains('fullscreen')) {
                 toggleMapFullscreen();
@@ -2913,7 +2911,6 @@ if (is_dir($barangays_dir)) {
         // so the "did you mean...?" popup appears whenever there is a nearby report.
         const categoryId = 0;
         const mapContainer = document.getElementById('mapContainer');
-        const isFullscreen = mapContainer && mapContainer.classList.contains('fullscreen');
         
         try {
             const url = '<?php echo BASE_URL; ?>controllers/ReportController.php?action=check_nearby_reports&lat=' + lat + '&lng=' + lng + '&category_id=' + categoryId;
@@ -2923,15 +2920,12 @@ if (is_dir($barangays_dir)) {
             const data = await response.json();
             
             if (data.success && data.reports && data.reports.length > 0) {
-                // If in fullscreen mode, show markers on map
-                if (isFullscreen) {
+                // Keep the support dialog available in both map sizes.
+                if (mapContainer && mapContainer.classList.contains('fullscreen')) {
                     showNearbyMarkersOnMap(data.reports, lat, lng);
-                    isDuplicateCheckDone = true;
-                } else {
-                    // Normal mode: show modal
-                    showDuplicateModal(data.reports);
-                    isDuplicateCheckDone = true;
                 }
+                showDuplicateModal(data.reports);
+                isDuplicateCheckDone = true;
             }
         } catch (error) {
             console.error('Duplicate check error:', error);
@@ -3067,6 +3061,9 @@ if (is_dir($barangays_dir)) {
     }
 
     function showDuplicateModal(reports) {
+        // Escape the form's stacking context so the dialog stays above the map.
+        document.body.appendChild(duplicateModal);
+        document.body.appendChild(document.getElementById('detailsModal'));
         // Store the reports for later use in details modal
         currentDuplicateReports = reports;
 

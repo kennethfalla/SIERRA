@@ -868,7 +868,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
         <!-- Header (adapted from my_reports.php branding style) -->
         <div class="page-header">
             
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-3">
                 
                 <div class="flex items-center gap-3">
                     <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
@@ -1140,7 +1140,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                                     </td>
                                     <td data-label="<?php echo t('Date'); ?>" class="px-4 py-3 text-sm text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
                                     <td data-label="<?php echo t('Action'); ?>" class="px-4 py-3">
-                                        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$row['id']); ?>" class="btn-primary px-4 py-1.5 text-white text-sm rounded-lg inline-block">
+                                        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$row['id']); ?>" class="report-table-view">
                                             <i class="fas fa-eye mr-1"></i> <?php echo t('View'); ?>
                                         </a>
                                         <?php /* MENRO staff may open any report to view it, but can only

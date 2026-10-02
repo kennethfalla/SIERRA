@@ -928,6 +928,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // STANDARD LOGIN
                 // ========================================
                 session_regenerate_id(true);
+                $_SESSION['initial_page_loading'] = true;
 
                 $_SESSION['user_id'] = $row['id'];
                 $_SESSION['first_name'] = $row['first_name'];
@@ -1095,6 +1096,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $freshUser = $freshStmt->fetch(PDO::FETCH_ASSOC);
 
                 session_regenerate_id(true);
+                $_SESSION['initial_page_loading'] = true;
 
                 $_SESSION['user_id'] = $freshUser['id'];
                 $_SESSION['first_name'] = $freshUser['first_name'];

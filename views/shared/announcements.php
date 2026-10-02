@@ -14,9 +14,15 @@ if(!isLoggedIn()) {
 $user_role = $_SESSION['user_role'];
 $user_id = $_SESSION['user_id'];
 $barangay_id = $_SESSION['barangay_id'] ?? null;
+$current_profile_picture = trim($_SESSION['profile_picture'] ?? '');
 
 $database = new Database();
 $db = $database->getConnection();
+
+$current_profile_stmt = $db->prepare("SELECT profile_picture FROM users WHERE id = ?");
+$current_profile_stmt->execute([$user_id]);
+$current_profile_picture = trim((string)($current_profile_stmt->fetchColumn() ?: $current_profile_picture));
+$_SESSION['profile_picture'] = $current_profile_picture;
 
 // Determine permissions
 $is_admin = ($user_role === 'admin');
@@ -126,6 +132,7 @@ $offset = ($page - 1) * $limit;
 $sql = "
     SELECT a.*, 
            CONCAT(u.first_name, ' ', u.last_name) as author_name,
+           u.profile_picture as author_profile_picture,
            b.name as barangay_name,
            (SELECT COUNT(*) FROM announcement_images WHERE announcement_id = a.id) as image_count,
            a.created_by,
@@ -717,9 +724,34 @@ if ($date_to != '') $active_filters++;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            overflow: hidden;
             background: linear-gradient(135deg, #10A37F, #0D8568);
             color: #fff;
             font-weight: 800;
+        }
+        .composer-avatar img,
+        .announcement-author-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .composer-modal-title {
+            min-width: 0;
+        }
+        .composer-modal-title h3 {
+            margin: 0;
+            font-size: 1.08rem;
+            line-height: 1.2;
+            font-weight: 900;
+            color: #1f2937;
+            letter-spacing: -0.025em;
+        }
+        .composer-modal-title p {
+            margin: .15rem 0 0;
+            font-size: .72rem;
+            font-weight: 700;
+            color: #8CA097;
         }
         .composer-author-copy strong {
             display: block;
@@ -1045,14 +1077,6 @@ if ($date_to != '') $active_filters++;
 <div class="lg:ml-72 min-h-screen">
     <div class="main-container max-w-7xl mx-auto">
 
-        <?php if ($can_create): ?>
-        <button type="button" onclick="openCreateModal()" class="composer-trigger-card" aria-label="Create announcement">
-            <span class="composer-avatar"><i class="fas fa-bullhorn text-sm"></i></span>
-            <span class="composer-trigger-placeholder">What's on your mind?</span>
-            <span class="composer-trigger-icon"><i class="fas fa-images"></i></span>
-        </button>
-        <?php endif; ?>
-
         <!-- ===== SUCCESS/ERROR MESSAGES ===== -->
         <?php if(isset($_SESSION['success'])): ?>
             <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-xl text-green-700 text-sm">
@@ -1119,6 +1143,20 @@ if ($date_to != '') $active_filters++;
                 </div>
             </div>
         </div>
+        <?php endif; ?>
+
+        <?php if ($can_create): ?>
+        <button type="button" onclick="openCreateModal()" class="composer-trigger-card" aria-label="Create announcement">
+            <span class="composer-avatar">
+                <?php if ($current_profile_picture !== ''): ?>
+                    <img src="<?php echo BASE_URL . htmlspecialchars($current_profile_picture); ?>" alt="Your profile photo">
+                <?php else: ?>
+                    <i class="fas fa-bullhorn text-sm"></i>
+                <?php endif; ?>
+            </span>
+            <span class="composer-trigger-placeholder">What's happening?</span>
+            <span class="composer-trigger-icon"><i class="fas fa-images"></i></span>
+        </button>
         <?php endif; ?>
 
         <!-- ===== FILTER TOOLBAR ===== -->
@@ -1221,11 +1259,16 @@ if ($date_to != '') $active_filters++;
 
                         <!-- Author & Date -->
                         <div class="flex items-center gap-2 mb-2">
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
-                                <?php 
-                                $name = $announcement['author_name'] ?? 'A';
-                                echo strtoupper(substr($name, 0, 1));
-                                ?>
+                            <?php
+                            $name = $announcement['author_name'] ?? 'A';
+                            $author_profile_picture = trim($announcement['author_profile_picture'] ?? '');
+                            ?>
+                            <div class="announcement-author-avatar w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+                                <?php if ($author_profile_picture !== ''): ?>
+                                    <img src="<?php echo BASE_URL . htmlspecialchars($author_profile_picture); ?>" alt="<?php echo htmlspecialchars($name); ?> profile photo">
+                                <?php else: ?>
+                                    <?php echo strtoupper(substr($name, 0, 1)); ?>
+                                <?php endif; ?>
                             </div>
                             <div>
                                 <p class="text-sm font-semibold text-gray-800"><?php echo htmlspecialchars($announcement['author_name']); ?></p>
@@ -1331,7 +1374,10 @@ if ($date_to != '') $active_filters++;
     <div class="modal-content scrollbar-hide composer-card">
         <div class="modal-header-sticky">
             <div class="flex items-center gap-3">
-                <h3 class="font-bold text-lg text-gray-800 tracking-tight mx-auto">Create post</h3>
+                <div class="composer-modal-title">
+                    <h3>What's happening?</h3>
+                    <p>Create a clear update for the right audience</p>
+                </div>
                 <button onclick="closeCreateModal()" class="ml-auto w-8 h-8 hover:bg-gray-100 rounded-lg transition flex items-center justify-center">
                     <i class="fas fa-times text-gray-500"></i>
                 </button>
@@ -1346,7 +1392,11 @@ if ($date_to != '') $active_filters++;
 
                 <div class="composer-author-row">
                     <div class="composer-avatar">
-                        <i class="fas fa-bullhorn text-sm"></i>
+                        <?php if ($current_profile_picture !== ''): ?>
+                            <img src="<?php echo BASE_URL . htmlspecialchars($current_profile_picture); ?>" alt="Your profile photo">
+                        <?php else: ?>
+                            <i class="fas fa-bullhorn text-sm"></i>
+                        <?php endif; ?>
                     </div>
                     <div class="composer-author-copy">
                         <strong><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'EnviroTrack'); ?></strong>
@@ -1355,7 +1405,7 @@ if ($date_to != '') $active_filters++;
                 </div>
 
                 <div class="composer-title-box">
-                    <input type="text" name="title" required class="composer-title-input" placeholder="What's on your mind?">
+                    <input type="text" name="title" required class="composer-title-input" placeholder="Give your post a short title">
                 </div>
 
                 <div class="composer-meta-grid">
@@ -1793,7 +1843,7 @@ function initQuill() {
     if (createEditorEl && !createQuill) {
         createQuill = new Quill('#create_editor', {
             theme: 'snow',
-            placeholder: "What's on your mind?",
+            placeholder: "What's happening?",
             modules: {
                 toolbar: [
                     [{ 'header': [1, 2, 3, false] }],

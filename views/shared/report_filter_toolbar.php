@@ -37,7 +37,8 @@ $ft_show_search        = $ft['show_search'] ?? true;
 $ft_show_active_row    = $ft['show_active_row'] ?? true;
 $ft_compact_breakpoint = max(640, min(1600, (int)($ft['compact_breakpoint'] ?? 640)));
 // The shared app header also needs room for its page title and notifications.
-if (isset($app_page_title)) $ft_compact_breakpoint = max(1400, $ft_compact_breakpoint);
+$ft_in_header = $ft['in_header'] ?? isset($app_page_title);
+if ($ft_in_header) $ft_compact_breakpoint = max(1400, $ft_compact_breakpoint);
 $ft_more_icon          = $ft['more_icon'] ?? 'fa-ellipsis-vertical';
 
 // Fallback chip-clearing map (used when the host page does not provide chip_clear_map):
@@ -729,6 +730,15 @@ foreach ($ft_popover_fields as $pf) {
         </div>
         <?php endif; ?>
 
+        <?php if ($ft_view_toggle): ?>
+            <!-- View choices stay visible at every screen size. -->
+            <div class="view-toggle" id="ftViewToggle">
+                <button type="button" id="gridViewBtn" aria-label="Grid view" title="Grid view" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'grid' ? 'active' : ''; ?>"
+                        onclick="<?php echo htmlspecialchars($ft_view_toggle['grid'] ?? ''); ?>"><i class="fas fa-th"></i></button>
+                <button type="button" id="listViewBtn" aria-label="List view" title="List view" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'list' ? 'active' : ''; ?>"
+                        onclick="<?php echo htmlspecialchars($ft_view_toggle['list'] ?? ''); ?>"><i class="fas fa-list"></i></button>
+            </div>
+        <?php endif; ?>
         <!-- Mobile-only "more filters" trigger (3 dots) -->
         <button type="button" class="ft-more-btn" id="ftMoreBtn" aria-label="More filters" aria-expanded="false">
             <i class="fas <?php echo htmlspecialchars($ft_more_icon, ENT_QUOTES); ?>"></i>
@@ -858,21 +868,11 @@ foreach ($ft_popover_fields as $pf) {
             </div>
             <?php endif; ?>
 
-            <?php if ($ft_results_text !== '' || $ft_view_toggle || $ft_trailing_select): ?>
+            <?php if ($ft_results_text !== '' || $ft_trailing_select): ?>
             <div class="toolbar-divider"></div>
             <div class="toolbar-results">
                 <?php if ($ft_results_text !== ''): ?>
                     <span class="toolbar-results-text"><?php echo $ft_results_text; ?></span>
-                <?php endif; ?>
-
-                <?php if ($ft_view_toggle): ?>
-                    <!-- View toggle lives inside the 3-dot sheet on mobile, inline on desktop -->
-                    <div class="view-toggle" id="ftViewToggle">
-                        <button type="button" id="gridViewBtn" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'grid' ? 'active' : ''; ?>"
-                                onclick="<?php echo htmlspecialchars($ft_view_toggle['grid'] ?? ''); ?>"><i class="fas fa-th"></i></button>
-                        <button type="button" id="listViewBtn" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'list' ? 'active' : ''; ?>"
-                                onclick="<?php echo htmlspecialchars($ft_view_toggle['list'] ?? ''); ?>"><i class="fas fa-list"></i></button>
-                    </div>
                 <?php endif; ?>
 
                 <?php if ($ft_trailing_select): ?>
@@ -947,7 +947,7 @@ foreach ($ft_popover_fields as $pf) {
     // Keep report-list search available in the filter sheet when the header is compact.
     var searchWrap = document.getElementById(FT.searchId)?.closest('.toolbar-search');
     function placeHeaderSearch() {
-        if (!searchWrap || !moreControls || !moreBtn || !document.querySelector('.app-mobile-header')) return;
+        if (!<?php echo $ft_in_header ? 'true' : 'false'; ?> || !searchWrap || !moreControls || !moreBtn || !document.querySelector('.app-mobile-header')) return;
         if (mobileQuery.matches) {
             moreControls.querySelector('.ft-more-controls-header').after(searchWrap);
         } else {

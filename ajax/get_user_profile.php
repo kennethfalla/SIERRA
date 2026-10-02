@@ -4,6 +4,8 @@ require_once dirname(__DIR__) . '/config/config.php';
 requireRole('admin');
 
 header('Content-Type: application/json');
+header('Cache-Control: no-store');
+require_once BASE_PATH . 'helpers/ProfilePicture.php';
 
 $user_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -17,7 +19,7 @@ $db = $database->getConnection();
 
 $query = "SELECT u.id, u.email, u.first_name, u.last_name, u.user_type, u.barangay_id, 
                  u.contact_number, u.is_active, u.created_at, u.job_title,
-                 u.is_resident, u.non_resident_address,
+                 u.is_resident, u.non_resident_address, u.profile_picture,
                  b.name as barangay_name 
           FROM users u 
           LEFT JOIN barangays b ON u.barangay_id = b.id 
@@ -32,6 +34,7 @@ if (!$user) {
 }
 
 $user['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
+$user['profile_picture'] = ProfilePicture::url($user['profile_picture'] ?? '');
 // Format contact number if needed
 if (!empty($user['contact_number'])) {
     $clean = preg_replace('/[^0-9]/', '', $user['contact_number']);

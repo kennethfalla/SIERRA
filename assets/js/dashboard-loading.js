@@ -1,59 +1,39 @@
 (function () {
+    'use strict';
     var overlay = document.getElementById('dashboardLoading');
     if (!overlay) return;
-    var storageKey = 'sierraDashboardLoadingStartedAt';
-    var minDashboardTime = 700;
-
-    function rememberStart() {
-        try {
-            window.sessionStorage.setItem(storageKey, String(Date.now()));
-        } catch (error) {}
-    }
-
-    function readStart() {
-        try {
-            return parseInt(window.sessionStorage.getItem(storageKey) || '', 10) || 0;
-        } catch (error) {
-            return 0;
-        }
-    }
-
-    function clearStart() {
-        try {
-            window.sessionStorage.removeItem(storageKey);
-        } catch (error) {}
-    }
-
-    function show() {
+    var delay = 650;
+    var timer;
+    var finished = false;
+    function reveal() {
+        if (finished) return;
         overlay.classList.remove('is-leaving');
         overlay.hidden = false;
-        rememberStart();
     }
-
+    function show() {
+        finished = false;
+        clearTimeout(timer);
+        timer = window.setTimeout(reveal, delay);
+    }
     function hide() {
-        if (overlay.hidden) return;
-        overlay.classList.add('is-leaving');
-        window.setTimeout(function () {
-            overlay.hidden = true;
-            clearStart();
-        }, 200);
+        finished = true;
+        clearTimeout(timer);
+        overlay.hidden = true;
     }
-
-    function hideAfterMinimum() {
-        var startedAt = readStart() || Date.now();
-        var elapsed = Date.now() - startedAt;
-        var wait = Math.max(0, minDashboardTime - elapsed);
-        window.setTimeout(hide, wait);
-    }
-
     window.SierraDashboardLoading = { show: show, hide: hide };
     window.addEventListener('pageshow', function (event) {
         if (event.persisted) hide();
     });
-    if (document.body.classList.contains('dashboard-page')) {
-        if (!readStart()) rememberStart();
-        if (document.readyState === 'complete') hideAfterMinimum();
-        else window.addEventListener('load', hideAfterMinimum, { once: true });
-        window.setTimeout(hide, 5000);
+    // The server grants this only to the first authenticated page after login.
+    if (overlay.dataset.initialLoad !== '1') return;
+    timer = window.setTimeout(reveal, Math.max(0, delay - performance.now()));
+    function rendered() {
+        window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(hide);
+        });
     }
+    if (document.readyState === 'complete') rendered();
+    else window.addEventListener('load', rendered, { once: true });
+    // Failed external resources must never trap the workspace.
+    window.setTimeout(hide, 12000);
 }());

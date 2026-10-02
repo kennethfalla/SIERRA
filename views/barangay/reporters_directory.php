@@ -191,10 +191,32 @@ function reporterLocationOf($r) {
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
 
-        <div class="mb-6">
-            
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-emerald-100">
+            <nav class="flex gap-1 sm:space-x-8 overflow-x-auto whitespace-nowrap">
+                <a href="?page=reporters-directory&tab=residents<?php echo $search ? '&search='.urlencode($search) : ''; ?>" class="px-3 sm:px-1 py-4 text-sm flex items-center gap-2 <?php echo $active_tab === 'residents' ? 'tab-active' : 'tab-inactive'; ?>">
+                    <i class="fas fa-home"></i> Residents
+                    <span class="tab-badge"><?php echo $total_residents; ?></span>
+                </a>
+                <a href="?page=reporters-directory&tab=non_residents<?php echo $search ? '&search='.urlencode($search) : ''; ?>" class="px-3 sm:px-1 py-4 text-sm flex items-center gap-2 <?php echo $active_tab === 'non_residents' ? 'tab-active' : 'tab-inactive'; ?>">
+                    <i class="fas fa-road"></i> Non-Residents &amp; Other Barangay
+                    <span class="tab-badge"><?php echo $total_non_residents; ?></span>
+                </a>
+            </nav>
+            <div class="flex flex-wrap items-center gap-2">
+                <div id="dashHeaderExtras" class="dash-header-extras">
+                    <div class="dashboard-toolbar-row dash-topbar">
+                        <div class="dashboard-toolbar-filters">
+                            <form method="get" action="index.php" class="flex items-center gap-2">
+                                <input type="hidden" name="page" value="reporters-directory">
+                                <input type="hidden" name="tab" value="<?php echo $active_tab; ?>">
+                                <div class="relative">
+                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search reporters..." class="border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-[#10A37F] w-48 sm:w-64">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
                 <div class="export-dropdown">
                     <button onclick="toggleExportMenu()" class="btn-export-trigger">
                         <i class="fas fa-file-export"></i>
@@ -208,33 +230,6 @@ function reporterLocationOf($r) {
                         <button class="export-dropdown-item" onclick="downloadCsv()">
                             <i class="fas fa-file-csv"></i><span>Export as CSV</span>
                         </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-emerald-100">
-            <nav class="flex gap-1 sm:space-x-8 overflow-x-auto whitespace-nowrap">
-                <a href="?page=reporters-directory&tab=residents<?php echo $search ? '&search='.urlencode($search) : ''; ?>" class="px-3 sm:px-1 py-4 text-sm flex items-center gap-2 <?php echo $active_tab === 'residents' ? 'tab-active' : 'tab-inactive'; ?>">
-                    <i class="fas fa-home"></i> Residents
-                    <span class="tab-badge"><?php echo $total_residents; ?></span>
-                </a>
-                <a href="?page=reporters-directory&tab=non_residents<?php echo $search ? '&search='.urlencode($search) : ''; ?>" class="px-3 sm:px-1 py-4 text-sm flex items-center gap-2 <?php echo $active_tab === 'non_residents' ? 'tab-active' : 'tab-inactive'; ?>">
-                    <i class="fas fa-road"></i> Non-Residents &amp; Other Barangay
-                    <span class="tab-badge"><?php echo $total_non_residents; ?></span>
-                </a>
-            </nav>
-            <div id="dashHeaderExtras" class="dash-header-extras">
-                <div class="dashboard-toolbar-row dash-topbar">
-                    <div class="dashboard-toolbar-filters">
-                        <form method="get" action="index.php" class="flex items-center gap-2">
-                            <input type="hidden" name="page" value="reporters-directory">
-                            <input type="hidden" name="tab" value="<?php echo $active_tab; ?>">
-                            <div class="relative">
-                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                                <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search reporters..." class="border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-[#10A37F] w-48 sm:w-64">
-                            </div>
-                        </form>
                     </div>
                 </div>
             </div>

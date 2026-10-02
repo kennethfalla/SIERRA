@@ -340,7 +340,7 @@ $top_actions = $db->query("
         <!-- Header (on-brand) -->
         <div class="page-header">
             
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-3">
                 
                 <a href="?page=audit-logs-report<?php echo $date_from ? '&from=' . urlencode($date_from) : ''; ?><?php echo $date_to ? '&to=' . urlencode($date_to) : ''; ?><?php echo $action_filter !== 'all' ? '&action=' . urlencode($action_filter) : ''; ?><?php echo !empty($user_filter) ? '&user=' . urlencode($user_filter) : ''; ?><?php echo $status_filter !== 'all' ? '&status=' . urlencode($status_filter) : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" class="btn-export-trigger">
                     <i class="fas fa-file-export"></i>

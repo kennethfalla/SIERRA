@@ -1457,6 +1457,7 @@ function getDecisionBadge($classification) {
         </div>
 
         <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
+        <?php include BASE_PATH . 'views/shared/dashboard_announcements.php'; ?>
 
         <div class="dash-head dash-title-row">
             <div class="dash-title-actions">

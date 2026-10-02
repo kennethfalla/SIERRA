@@ -59,9 +59,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
 
         /* ===== CONTAINER ===== */
-        .main-container { max-width: 1280px; margin: 0 auto; padding: 1rem 1rem 18rem; }
-        @media (min-width: 640px) { .main-container { padding: 1.5rem 1.5rem 18rem; } }
-        @media (min-width: 768px) { .main-container { padding: 2rem 2rem 18rem; } }
+        .main-container { max-width: 1280px; margin: 0 auto; padding: 1rem 1rem 13rem; }
+        @media (min-width: 640px) { .main-container { padding: 1.5rem 1.5rem 13rem; } }
+        @media (min-width: 768px) { .main-container { padding: 2rem 2rem 13rem; } }
 
         /* ===== CARDS ===== */
         .card { background: white; border-radius: 1rem; border: 1px solid rgba(16,163,127,0.08); padding: 1.25rem; margin-bottom: 1.25rem; transition: all 0.25s ease; }
@@ -69,6 +69,111 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @media (min-width: 640px) { .card { padding: 1.5rem; } }
         .card-header { font-weight: 700; font-size: 0.85rem; color: #4b5563; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         .card-header i { color: #10A37F; }
+
+        .report-top-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .85rem;
+            flex-wrap: wrap;
+        }
+        .report-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .55rem;
+            min-height: 42px;
+            padding: .62rem 1rem;
+            border-radius: 14px;
+            background: #fff;
+            border: 1px solid rgba(16, 163, 127, .12);
+            color: #334155;
+            font-size: .82rem;
+            font-weight: 800;
+            box-shadow: 0 10px 24px -20px rgba(13, 133, 104, .45);
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+        .report-back-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(16, 163, 127, .35);
+            box-shadow: 0 18px 32px -24px rgba(13, 133, 104, .55);
+        }
+        .report-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px;
+            margin-bottom: 1.5rem;
+            color: #fff;
+            background:
+                radial-gradient(circle at 90% 10%, rgba(255,255,255,.22), transparent 30%),
+                linear-gradient(135deg, #0f766e 0%, #10A37F 52%, #0D8568 100%);
+            box-shadow: 0 24px 60px -36px rgba(13, 133, 104, .9);
+            border: 1px solid rgba(255, 255, 255, .22);
+        }
+        .report-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(120deg, rgba(255,255,255,.08), transparent 45%);
+            pointer-events: none;
+        }
+        .report-hero-inner {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: clamp(1.1rem, 2.5vw, 1.65rem);
+        }
+        .report-hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: .55rem;
+            margin-bottom: .65rem;
+            padding: .36rem .65rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .14);
+            color: rgba(255,255,255,.88);
+            font-size: .72rem;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .report-hero-title {
+            margin: 0;
+            max-width: 760px;
+            font-size: clamp(1.35rem, 3vw, 2rem);
+            line-height: 1.15;
+            font-weight: 900;
+            letter-spacing: -.035em;
+        }
+        .report-hero-meta, .report-hero-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+        .report-hero-meta { margin-top: .9rem; }
+        .report-hero-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .42rem;
+            padding: .42rem .65rem;
+            border-radius: 12px;
+            background: rgba(255,255,255,.14);
+            color: rgba(255,255,255,.9);
+            font-size: .74rem;
+            font-weight: 700;
+        }
+        .report-hero .status-badge,
+        .report-hero .risk-badge {
+            border: 1px solid rgba(255,255,255,.4);
+            box-shadow: 0 10px 22px -18px rgba(15,23,42,.6);
+        }
+        @media (max-width: 640px) {
+            .report-top-actions { align-items: stretch; }
+            .report-top-actions .export-dropdown, .report-top-actions .btn-export-trigger, .report-back-btn { width: 100%; justify-content: center; }
+            .report-hero-inner { flex-direction: column; }
+        }
 
         /* ===== BUTTONS ===== */
         .btn-primary { background: linear-gradient(135deg, #10A37F, #0D8568); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 2px 8px rgba(16,163,127,0.18); }
@@ -272,7 +377,61 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         #map { height: 340px; border-radius: 0.75rem; border: 1px solid rgba(16,163,127,0.08); }
 
         /* ===== NOTES ===== */
-        .note-item { background: #F5FBF6; padding: 12px; border-radius: 0.75rem; margin-bottom: 8px; border-left: 3px solid #10A37F; }
+        .note-thread {
+            display: flex;
+            flex-direction: column;
+            gap: .85rem;
+        }
+        .note-item {
+            align-items: flex-start;
+        }
+        .note-bubble {
+            flex: 1 1 auto;
+            min-width: 0;
+            background: #F8FCFA;
+            border: 1px solid rgba(16, 163, 127, .12);
+            border-radius: 1rem 1rem 1rem .35rem;
+            padding: .72rem .85rem;
+            box-shadow: 0 8px 22px -20px rgba(13, 133, 104, .45);
+        }
+        .note-meta {
+            display: flex;
+            align-items: baseline;
+            gap: .45rem;
+            flex-wrap: wrap;
+            margin-bottom: .22rem;
+        }
+        .note-author {
+            font-size: .78rem;
+            font-weight: 900;
+            color: #1f2937;
+        }
+        .note-time {
+            font-size: .68rem;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+        .note-text {
+            margin: 0;
+            color: #334155;
+            font-size: .88rem;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+        .note-composer {
+            display: flex;
+            gap: .6rem;
+            padding: .65rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(16, 163, 127, .14);
+            background: #fff;
+            box-shadow: 0 12px 28px -24px rgba(13, 133, 104, .55);
+        }
+        .note-composer input {
+            border: 0 !important;
+            background: #F4F8F6;
+            border-radius: 999px !important;
+        }
 
         /* ===== ACTION PANEL ===== */
         .action-panel {
@@ -306,7 +465,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 left: 0;
                 padding: .75rem .75rem max(.75rem, env(safe-area-inset-bottom));
             }
-            .main-container { padding-bottom: 19rem; }
+            .main-container { padding-bottom: 15rem; }
         }
         @media (max-width: 640px) {
             .action-panel-bar { max-height: min(50vh, 420px); }
@@ -328,14 +487,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .badge-verified { background: #dbeafe; color: #1e40af; }
         .badge-resident { background: #d1fae5; color: #065f46; }
         .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
-        .status-pending { background: #FEF3C7; color: #D97706; }
-        .status-under_review { background: #DBEAFE; color: #1E40AF; }
-        .status-verified { background: #DBEAFE; color: #1E40AF; }
-        .status-in_progress { background: #D1FAE5; color: #065F46; }
-        .status-escalated_pending { background: #FDE68A; color: #92400E; }
-        .status-escalated { background: #FED7AA; color: #9A3412; }
-        .status-resolved { background: #D1FAE5; color: #10A37F; }
-        .status-rejected { background: #FEE2E2; color: #991B1B; }
+        .status-pending { background: rgba(245, 158, 11, .14); color: #F59E0B; }
+        .status-under_review { background: rgba(59, 130, 246, .14); color: #3B82F6; }
+        .status-verified { background: rgba(59, 130, 246, .14); color: #3B82F6; }
+        .status-in_progress { background: rgba(99, 102, 241, .14); color: #6366F1; }
+        .status-escalated_pending { background: rgba(234, 88, 12, .14); color: #EA580C; }
+        .status-escalated { background: rgba(234, 88, 12, .14); color: #EA580C; }
+        .status-resolved { background: rgba(22, 163, 74, .14); color: #16A34A; }
+        .status-rejected { background: rgba(220, 38, 38, .14); color: #DC2626; }
         .status-closed { background: #F3F4F6; color: #6B7280; }
         .risk-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
         .risk-low { background: #D1FAE5; color: #065F46; }
@@ -622,7 +781,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .empty-state i { font-size: 1.75rem; margin-bottom: 8px; opacity: 0.5; }
 
         /* ===== NOTE AVATAR ===== */
-        .note-avatar { width: 26px; height: 26px; border-radius: 9999px; background: linear-gradient(135deg,#10A37F,#0D8568); color: white; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .note-avatar { width: 34px; height: 34px; border-radius: 9999px; background: linear-gradient(135deg,#10A37F,#0D8568); color: white; font-size: 0.78rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 10px 18px -14px rgba(13,133,104,.75); }
 
         /* ===== ENHANCED ACTION PANEL ===== */
         /* Report Progress Timeline (track-status style) */
@@ -828,67 +987,56 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <?php endif; ?>
 
         <!-- ===== BRANDED HEADER ===== -->
-        <div class="mb-6 md:mb-8">
-            
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                
-                <div class="flex gap-2 flex-wrap">
-                    <div class="export-dropdown">
-                        <button onclick="togglePrintMenu()" class="btn-export-trigger" id="printDropdownTrigger">
-                            <i class="fas fa-file-export"></i>
-                            <span>Export</span>
-                            <i class="fas fa-chevron-down"></i>
+        <div class="report-top-actions mb-5 md:mb-6 no-print">
+            <a href="<?php echo ($user_role == 'admin') ? BASE_URL . 'index.php?page=all-reports' : BASE_URL . 'index.php?page=verify-reports'; ?>"
+               class="report-back-btn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back to reports</span>
+            </a>
+            <div class="export-dropdown">
+                <button onclick="togglePrintMenu()" class="btn-export-trigger" id="printDropdownTrigger">
+                    <i class="fas fa-file-export"></i>
+                    <span>Export</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div id="printDropdownMenu" class="export-dropdown-menu" style="width:220px;">
+                    <div>
+                        <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo (int)$report['id']; ?>&print=1', '_blank')">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Export as PDF</span>
                         </button>
-                        <div id="printDropdownMenu" class="export-dropdown-menu" style="width:220px;">
-                            <div>
-                                <button class="export-dropdown-item" onclick="window.open('<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo (int)$report['id']; ?>&print=1', '_blank')">
-                                    <i class="fas fa-file-pdf"></i>
-                                    <span>Export as PDF</span>
-                                </button>
-                                <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
-                                <button class="export-dropdown-item" onclick="handleDownloadCSV()">
-                                    <i class="fas fa-file-csv"></i>
-                                    <span>Export as CSV</span>
-                                </button>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                        <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
+                        <button class="export-dropdown-item" onclick="handleDownloadCSV()">
+                            <i class="fas fa-file-csv"></i>
+                            <span>Export as CSV</span>
+                        </button>
+                        <?php endif; ?>
                     </div>
-                    <a href="<?php echo ($user_role == 'admin') ? BASE_URL . 'index.php?page=all-reports' : BASE_URL . 'index.php?page=verify-reports'; ?>"
-                       class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 md:px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs md:text-sm font-medium">
-                        <i class="fas fa-arrow-left"></i>
-                        <span>Back</span>
-                    </a>
                 </div>
             </div>
         </div>
 
-        <!-- ===== GRADIENT HEADER CARD ===== -->
-        <div class="fade-up bg-gradient-to-r from-[#10A37F] to-[#0D8568] rounded-2xl shadow-xl overflow-hidden mb-6 md:mb-8 relative">
-            <div class="absolute inset-0 opacity-[0.06] pointer-events-none" style="background-image: radial-gradient(circle at 90% 10%, white 0%, transparent 45%);"></div>
-            <div class="px-4 md:px-6 py-4 md:py-6">
-                <div class="flex flex-wrap justify-between items-start gap-4">
-                    <div class="space-y-2">
-                        <div class="flex items-center gap-2">
-                            <div class="w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-file-alt text-white/80 text-[10px] md:text-xs"></i>
-                            </div>
-                            <span class="text-white/80 text-[10px] md:text-xs uppercase tracking-wider font-semibold">Report #<?php echo str_pad($report['id'], 6, '0', STR_PAD_LEFT); ?></span>
-                        </div>
-                        <h2 class="text-xl md:text-2xl font-bold text-white"><?php echo htmlspecialchars($report['title']); ?></h2>
-                        <div class="flex flex-wrap gap-2 mt-1">
-                            <span class="inline-flex items-center gap-1 px-2 py-1 bg-white/20 rounded-lg text-white text-[10px] md:text-xs">
-                                <i class="fas fa-calendar-alt"></i> <?php echo date('M d, Y \a\t h:i A', strtotime($report['created_at'])); ?>
-                            </span>
-                            <span class="inline-flex items-center gap-1 px-2 py-1 bg-white/20 rounded-lg text-white text-[10px] md:text-xs">
-                                <i class="far fa-clock"></i> <?php echo timeAgo($report['created_at']); ?>
-                            </span>
-                        </div>
+        <!-- ===== REPORT HERO CARD ===== -->
+        <div class="report-hero fade-up">
+            <div class="report-hero-inner">
+                <div>
+                    <span class="report-hero-kicker">
+                        <i class="fas fa-file-alt"></i>
+                        Report #<?php echo str_pad($report['id'], 6, '0', STR_PAD_LEFT); ?>
+                    </span>
+                    <h2 class="report-hero-title"><?php echo htmlspecialchars($report['title']); ?></h2>
+                    <div class="report-hero-meta">
+                        <span class="report-hero-chip">
+                            <i class="fas fa-calendar-alt"></i> <?php echo date('M d, Y \a\t h:i A', strtotime($report['created_at'])); ?>
+                        </span>
+                        <span class="report-hero-chip">
+                            <i class="far fa-clock"></i> <?php echo timeAgo($report['created_at']); ?>
+                        </span>
                     </div>
-                    <div class="flex gap-2 flex-wrap">
-                        <?php echo getStatusBadge($report['status']); ?>
-                        <?php echo getRiskBadge($report['risk_level']); ?>
-                    </div>
+                </div>
+                <div class="report-hero-badges">
+                    <?php echo getStatusBadge($report['status']); ?>
+                    <?php echo getRiskBadge($report['risk_level']); ?>
                 </div>
             </div>
         </div>
@@ -1130,15 +1278,18 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <!-- Notes -->
         <?php if ($show_notes): ?>
         <div class="card fade-up" style="animation-delay:0.2s">
-            <div class="card-header"><i class="fas fa-sticky-note"></i> Investigation Notes</div>
-            <div class="max-h-60 overflow-y-auto mb-4 space-y-2 pr-1">
+            <div class="card-header"><i class="fas fa-comments"></i> Investigation Notes</div>
+            <div class="note-thread max-h-72 overflow-y-auto mb-4 pr-1">
                 <?php if (!empty($notes)): ?>
                     <?php foreach ($notes as $note): ?>
-                        <div class="note-item flex gap-2.5">
+                        <div class="note-item flex gap-3">
                             <div class="note-avatar" aria-hidden="true"><?php echo strtoupper(substr($note['user_name'], 0, 1)); ?></div>
-                            <div class="min-w-0">
-                                <p class="text-sm text-gray-700"><?php echo htmlspecialchars($note['note']); ?></p>
-                                <p class="text-xs text-gray-400 mt-1"><span class="font-medium text-gray-500"><?php echo htmlspecialchars($note['user_name']); ?></span> • <?php echo date('M d, h:i A', strtotime($note['created_at'])); ?></p>
+                            <div class="note-bubble">
+                                <div class="note-meta">
+                                    <span class="note-author"><?php echo htmlspecialchars($note['user_name']); ?></span>
+                                    <span class="note-time"><?php echo date('M d, h:i A', strtotime($note['created_at'])); ?></span>
+                                </div>
+                                <p class="note-text"><?php echo htmlspecialchars($note['note']); ?></p>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -1179,7 +1330,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 </div>
             </div>
             <?php endif; ?>
-            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="flex gap-2" onsubmit="setLoading(this)">
+            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="note-composer" onsubmit="setLoading(this)">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <input type="hidden" name="action" value="add_note">
                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">

@@ -58,54 +58,6 @@ $notifModel = new Notification($db);
 $notifications = $notifModel->getForUser($user_id, 10);
 $unread_count = $notifModel->getUnreadCount($user_id);
 
-// ========== LATEST ANNOUNCEMENT ==========
-// Non-residents (visitors) see ONLY municipality-wide announcements; residents
-// additionally see their own barangay's localized announcements.
-if ($is_resident) {
-    $announcement_sql = "
-        SELECT a.*, 
-               CONCAT(u.first_name, ' ', u.last_name) as author_name,
-               b.name as barangay_name,
-               COALESCE(a.is_public, 1) as is_public,
-               a.created_by_role,
-               (SELECT COUNT(*) FROM announcement_images WHERE announcement_id = a.id) as image_count
-        FROM announcements a
-        JOIN users u ON a.created_by = u.id
-        LEFT JOIN barangays b ON a.barangay_id = b.id
-        WHERE a.is_active = 1 AND a.is_archived = 0 
-        AND (a.expires_at IS NULL OR a.expires_at > NOW())
-        AND (
-            a.broadcast_type = 'global_public' 
-            OR (a.broadcast_type = 'localized_public' AND a.barangay_id = :barangay_id)
-        )
-        ORDER BY a.created_at DESC
-        LIMIT 1
-    ";
-} else {
-    $announcement_sql = "
-        SELECT a.*, 
-               CONCAT(u.first_name, ' ', u.last_name) as author_name,
-               b.name as barangay_name,
-               COALESCE(a.is_public, 1) as is_public,
-               a.created_by_role,
-               (SELECT COUNT(*) FROM announcement_images WHERE announcement_id = a.id) as image_count
-        FROM announcements a
-        JOIN users u ON a.created_by = u.id
-        LEFT JOIN barangays b ON a.barangay_id = b.id
-        WHERE a.is_active = 1 AND a.is_archived = 0 
-        AND (a.expires_at IS NULL OR a.expires_at > NOW())
-        AND a.broadcast_type = 'global_public'
-        ORDER BY a.created_at DESC
-        LIMIT 1
-    ";
-}
-$ann_stmt = $db->prepare($announcement_sql);
-if ($is_resident) {
-    $ann_stmt->bindParam(':barangay_id', $barangay_id);
-}
-$ann_stmt->execute();
-$latest_announcement = $ann_stmt->fetch(PDO::FETCH_ASSOC);
-
 $display_reports = array_slice($reports, 0, 5);
 
 // ========== COMMUNITY REPORTS MAP (includes own reports; reporter names always hidden) ==========
@@ -1912,59 +1864,7 @@ text-decoration: underline;
             </div>
         </div>
         
-        <!-- ===== ANNOUNCEMENT CARD (TITLE + RICH CONTENT) ===== -->
-        <div class="announce-card mb-4 md:mb-6">
-            <div class="announce-left">
-                <div class="announce-icon"><i class="fas fa-bullhorn"></i></div>
-                <div class="announce-text">
-                    <span class="announce-label">
-                        <i class="far fa-calendar-alt mr-1"></i> 
-                        <?php 
-                        if ($latest_announcement) {
-                            echo date('M d, Y', strtotime($latest_announcement['created_at']));
-                        } else {
-                            echo t('No announcements');
-                        }
-                        ?>
-                    </span>
-                    <div class="announce-msg">
-                        <?php if ($latest_announcement): ?>
-                            <strong><?php echo htmlspecialchars($latest_announcement['title']); ?></strong>
-                            <?php 
-                                // Get safe content with allowed tags
-                                $allowed_tags = '<p><br><strong><em><u><i><b><ul><ol><li><h1><h2><h3><h4><h5><h6><span><div><a>';
-                                $safe_content = strip_tags($latest_announcement['content'], $allowed_tags);
-                                // Remove event handlers and javascript:
-                                $safe_content = preg_replace('/\s*on\w+\s*=\s*"[^"]*"/i', '', $safe_content);
-                                $safe_content = preg_replace('/\s*on\w+\s*=\s*\'[^\']*\'/i', '', $safe_content);
-                                $safe_content = preg_replace('/javascript\s*:/i', '', $safe_content);
-                                $safe_content = preg_replace('/\s*style\s*=\s*"[^"]*"/i', '', $safe_content);
-                                if (!empty(trim($safe_content))) {
-                                    echo ' — ' . $safe_content;
-                                }
-                            ?>
-                        <?php else: ?>
-                            <?php echo t('No announcements available at the moment.'); ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            <div class="announce-right">
-                <?php if ($latest_announcement): ?>
-                <span class="badge-delay">
-                    <?php 
-                    $days = floor((time() - strtotime($latest_announcement['created_at'])) / 86400);
-                    if ($days == 0) echo t('New');
-                    elseif ($days == 1) echo t('1 day ago');
-                    else echo $days . ' days ago';
-                    ?>
-                </span>
-                <?php endif; ?>
-                <a href="<?php echo BASE_URL; ?>index.php?page=announcements" class="btn-announce">
-                    <?php echo t('Details'); ?> <i class="fas fa-chevron-right text-xs"></i>
-                </a>
-            </div>
-        </div>
+        <?php include BASE_PATH . 'views/shared/dashboard_announcements.php'; ?>
 
         <div class="bento citizen-overview">
             <section class="chart-card hero-kpi">

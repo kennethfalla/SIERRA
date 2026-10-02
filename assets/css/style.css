@@ -52,43 +52,43 @@ body {
 }
 
 .status-pending {
-    background-color: #fef3c7;
-    color: #92400e;
+    background-color: rgba(245, 158, 11, 0.14);
+    color: #F59E0B;
 }
 
 .status-under_review {
-    background-color: #dbeafe;
-    color: #1e40af;
+    background-color: rgba(59, 130, 246, 0.14);
+    color: #3B82F6;
 }
 
 .status-verified {
-    background-color: #dbeafe;
-    color: #1e40af;
+    background-color: rgba(59, 130, 246, 0.14);
+    color: #3B82F6;
 }
 
 .status-in_progress {
-    background-color: #fce7f3;
-    color: #9d174d;
+    background-color: rgba(99, 102, 241, 0.14);
+    color: #6366F1;
 }
 
 .status-escalated_pending {
-    background-color: #fde68a;
-    color: #92400e;
+    background-color: rgba(234, 88, 12, 0.14);
+    color: #EA580C;
 }
 
 .status-escalated {
-    background-color: #fed7aa;
-    color: #9a3412;
+    background-color: rgba(234, 88, 12, 0.14);
+    color: #EA580C;
 }
 
 .status-resolved {
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: rgba(22, 163, 74, 0.14);
+    color: #16A34A;
 }
 
 .status-rejected {
-    background-color: #fee2e2;
-    color: #991b1b;
+    background-color: rgba(220, 38, 38, 0.14);
+    color: #DC2626;
 }
 
 .status-closed {

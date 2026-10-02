@@ -1295,7 +1295,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         <!-- Header -->
         <div class="page-header">
             
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-3">
                 
                 <div class="flex items-center gap-2 flex-wrap">
                     <div class="export-dropdown">

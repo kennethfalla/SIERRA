@@ -1,0 +1,22 @@
+.announce-carousel { margin: 0 0 1.5rem; padding: 1rem; border: 1px solid #dce8e1; border-radius: 16px; background: #fff; overflow: hidden; }
+.announce-carousel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; font-size: .8rem; font-weight: 800; color: #244c3c; }
+.announce-carousel-heading a { color: #0d8568; font-size: .75rem; white-space: nowrap; }
+.announce-slides { position: relative; min-height: 110px; }
+.announce-slide { display: flex; align-items: center; gap: 1.2rem; min-width: 0; animation: announcement-enter .48s cubic-bezier(.22,1,.36,1); }
+.announce-slide[hidden] { display: none; }
+.announce-slide.is-leaving { position: absolute; inset: 0; pointer-events: none; animation: announcement-leave .42s ease both; }
+.announce-photo { width: 160px; height: 110px; flex: 0 0 160px; object-fit: cover; border-radius: 12px; }
+.announce-photo-empty { display: grid; place-items: center; background: linear-gradient(135deg,#e0f5e8,#f4faf6); color: #0d8568; font-size: 2rem; }
+.announce-slide-copy { min-width: 0; }
+.announce-slide-copy time { color: #708379; font-size: .65rem; }
+.announce-slide-copy h2 { margin: .3rem 0; font-size: .95rem; font-weight: 800; color: #18382b; }
+.announce-slide-copy p { font-size: .8rem; color: #64776d; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.announce-controls { display: flex; justify-content: flex-end; align-items: center; gap: .5rem; margin-top: .65rem; color: #64776d; font-size: .7rem; }
+.announce-controls span { margin-right: auto; font-weight: 700; color: #244c3c; }
+.announce-controls button { width: 32px; height: 32px; border: 1px solid #dce8e1; border-radius: 8px; background: #f4faf6; color: #0d8568; cursor: pointer; }
+.announce-controls button:hover { background: #e0f5e8; }
+.announce-empty { padding: 1rem 0; font-size: .8rem; color: #64776d; }
+@keyframes announcement-enter { from { opacity: 0; transform: translateX(18px); filter: blur(5px); } to { opacity: 1; transform: translateX(0); filter: blur(0); } }
+@keyframes announcement-leave { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-14px); filter: blur(4px); } }
+@media (max-width: 640px) { .announce-slides { min-height: 100px; } .announce-photo { width: 88px; height: 100px; flex-basis: 88px; } .announce-slide { gap: .8rem; } }
+@media (prefers-reduced-motion: reduce) { .announce-slide, .announce-slide.is-leaving { animation: none; } }

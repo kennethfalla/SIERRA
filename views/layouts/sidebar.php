@@ -30,6 +30,25 @@ $app_page_titles = [
     'edit-profile' => 'Settings',
 ];
 $app_page_title = t($app_page_titles[$current_page] ?? ucwords(str_replace('-', ' ', $current_page)));
+$app_page_subtitles = [
+    'dashboard' => 'Your community at a glance.',
+    'submit-report' => 'Report an environmental concern.',
+    'my-reports' => 'Your reports and support.',
+    'track-status' => 'Follow report progress.',
+    'all-reports' => 'Explore community reports.',
+    'verify-reports' => 'Review and take action.',
+    'manage-report' => 'Report details and actions.',
+    'announcements' => 'Latest community updates.',
+    'notifications' => 'Your latest updates.',
+    'audit-logs' => 'Recent system activity.',
+    'manage-users' => 'Accounts and access.',
+    'users' => 'Accounts and access.',
+    'reporters-directory' => 'Meet your community reporters.',
+    'settings' => 'System preferences.',
+    'profile' => 'Your account preferences.',
+    'edit-profile' => 'Your account preferences.',
+];
+$app_page_subtitle = t($app_page_subtitles[$current_page] ?? 'Your workspace.');
 $user_role = $_SESSION['user_role'] ?? 'citizen';
 $user_email = $_SESSION['user_email'] ?? 'user@example.com';
 $barangay_id = $_SESSION['barangay_id'] ?? null;
@@ -219,6 +238,7 @@ if ($user_id && isset($db)) {
     <?php echo t('Skip to main content'); ?>
 </a>
 
+<?php include BASE_PATH . 'views/shared/dashboard_loading.php'; ?>
 <style>
     /* ============================================ */
     /* SIDEBAR OVERLAY STYLES                       */
@@ -531,6 +551,7 @@ if ($user_id && isset($db)) {
     .app-mobile-header #dashHeaderExtras form input[type="text"] { min-height: 34px; }
 </style>
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/app-shell.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/app-shell.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/dashboard-scroll-reveal.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/dashboard-scroll-reveal.js'); ?>" defer></script>
 
 <!-- Page title, filters, notifications and account actions. -->
 <header class="app-mobile-header" role="banner">
@@ -543,7 +564,10 @@ if ($user_id && isset($db)) {
                 <i class="fas fa-leaf"></i>
             <?php endif; ?>
         </span>
-        <h1 class="app-page-title"><?php echo htmlspecialchars($app_page_title, ENT_QUOTES, 'UTF-8'); ?></h1>
+        <span class="app-page-title-stack">
+            <h1 class="app-page-title"><?php echo htmlspecialchars($app_page_title, ENT_QUOTES, 'UTF-8'); ?></h1>
+            <span class="app-page-subtitle"><?php echo htmlspecialchars($app_page_subtitle, ENT_QUOTES, 'UTF-8'); ?></span>
+        </span>
     </div>
     <div class="app-header-actions">
         <?php if (!empty($_SESSION['user_id'])): ?>

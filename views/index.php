@@ -184,14 +184,31 @@ if ($isLoggedIn && $is_staff) {
         }
         
         .stat-card {
-            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            animation: statFloatIn .72s cubic-bezier(.2,.7,.2,1) both;
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
             border: 1px solid rgba(5, 150, 105, 0.08);
+        }
+        .stat-card:nth-child(1) { animation-delay: .04s; }
+        .stat-card:nth-child(2) { animation-delay: .12s; }
+        .stat-card:nth-child(3) { animation-delay: .20s; }
+        .stat-card:nth-child(4) { animation-delay: .28s; }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.55) 48%, transparent 72%);
+            transform: translateX(-120%);
+            transition: transform .65s ease;
+            pointer-events: none;
         }
         .stat-card:hover {
             transform: translateY(-4px);
             border-color: #059669;
             box-shadow: 0 20px 30px -15px rgba(5, 150, 105, 0.15);
         }
+        .stat-card:hover::after { transform: translateX(120%); }
         
         .feature-card {
             transition: all 0.3s ease;
@@ -201,6 +218,25 @@ if ($isLoggedIn && $is_staff) {
             transform: translateY(-6px);
             border-color: #059669;
             box-shadow: 0 25px 40px -20px rgba(5, 150, 105, 0.2);
+        }
+
+        main section[id] {
+            transition: transform .32s ease, filter .32s ease;
+        }
+        main section[id] > .max-w-7xl,
+        main section[id] > .container {
+            transition: transform .32s ease;
+        }
+        main section[id]:hover > .max-w-7xl,
+        main section[id]:hover > .container {
+            transform: translateY(-2px);
+        }
+        #stats:hover .stat-card {
+            box-shadow: 0 22px 40px -26px rgba(5, 150, 105, .28);
+        }
+        @keyframes statFloatIn {
+            from { opacity: 0; transform: translateY(22px) scale(.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
         
         .floating-shape {
@@ -264,6 +300,8 @@ if ($isLoggedIn && $is_staff) {
             height: 100%;
             object-fit: cover;
             z-index: 0;
+            transform: scale(1.02);
+            animation: heroMediaDrift 18s ease-in-out infinite alternate;
         }
 
         .hero-bg-overlay {
@@ -290,6 +328,38 @@ if ($isLoggedIn && $is_staff) {
 
         .hero-scroll-cue {
             text-shadow: 0 1px 6px rgba(0,0,0,0.25);
+        }
+
+        #home::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 38%;
+            background: linear-gradient(0deg, rgba(1, 28, 19, .42), transparent);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .hero-content-wrap {
+            transition: opacity .72s ease, transform .72s cubic-bezier(.22,1,.36,1);
+        }
+        body:not(.landing-ready) .hero-content-wrap,
+        body:not(.landing-ready) .hero-media-video {
+            opacity: 0;
+        }
+        body:not(.landing-ready) .hero-content-wrap {
+            transform: translateY(28px);
+        }
+        body.landing-ready .hero-content-wrap {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @keyframes heroMediaDrift {
+            from { transform: scale(1.02) translate3d(-.5%, -.5%, 0); }
+            to { transform: scale(1.08) translate3d(.7%, .7%, 0); }
         }
 
         /* Hero bottom corners: square on load, rounded once the page is scrolled */
@@ -350,6 +420,16 @@ if ($isLoggedIn && $is_staff) {
             line-height: 1.6;
         }
         .faq-a strong { color: #047857; }
+        .faq-item::details-content {
+            block-size: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: block-size .32s ease, opacity .24s ease;
+        }
+        .faq-item[open]::details-content {
+            block-size: auto;
+            opacity: 1;
+        }
 
         /* ============================================ */
         /* LANDING NAVBAR (the compiled Tailwind build  */
@@ -363,6 +443,21 @@ if ($isLoggedIn && $is_staff) {
         }
         .nav-landing.shadow-md { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
         main section[id] { scroll-margin-top: 4.5rem; }
+        @media (prefers-reduced-motion: reduce) {
+            .stat-card,
+            .hero-media-video,
+            .hero-content-wrap,
+            main section[id],
+            main section[id] > .max-w-7xl,
+            main section[id] > .container {
+                animation: none !important;
+                transition: none !important;
+            }
+            main section[id]:hover > .max-w-7xl,
+            main section[id]:hover > .container {
+                transform: none !important;
+            }
+        }
 
         .nav-link {
             color: #4b5563;
@@ -886,7 +981,7 @@ if ($isLoggedIn && $is_staff) {
     <?php if ($show_hero_overlay): ?>
         <div class="absolute inset-0 hero-bg-overlay"></div>
     <?php endif; ?>
-    <div class="relative z-10 flex flex-col gap-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-24 sm:pb-28 pt-24">
+        <div class="hero-content-wrap relative z-10 flex flex-col gap-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-24 sm:pb-28 pt-24">
 
             <!-- Left: eyebrow + heading + subtitle + CTAs (left aligned) -->
             <div class="max-w-3xl animate-fade-up">
@@ -1073,9 +1168,15 @@ if ($isLoggedIn && $is_staff) {
             <?php endif; ?>
         </div>
         
-        <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4">
-            <div id="map"></div>
-            <div class="flex flex-wrap gap-3 mt-4 text-xs text-gray-500">
+        <div class="lp-live-map-card bg-white rounded-2xl shadow-sm border border-emerald-50 p-4">
+            <div class="lp-live-map-top">
+                <span><i class="fas fa-location-crosshairs"></i> San Isidro live view</span>
+                <strong><?php echo count($reports_for_map); ?> active pins</strong>
+            </div>
+            <div class="lp-map-frame">
+                <div id="map"></div>
+            </div>
+            <div class="lp-map-legend flex flex-wrap gap-3 mt-4 text-xs text-gray-500">
                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-green-500"></span> Low Risk</span>
                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-yellow-500"></span> Medium Risk</span>
                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span> High Risk</span>
@@ -1670,11 +1771,15 @@ if (resolutionBar && window.IntersectionObserver && !window.matchMedia('(prefers
     var seenKey = 'sierra_intro_seen';
 
     var cleaned = false;
+    function revealLanding() {
+        document.body.classList.add('landing-ready');
+    }
     function cleanup() {
         if (cleaned) return;
         cleaned = true;
         if (splash.parentNode) splash.parentNode.removeChild(splash);
         document.body.classList.remove('splash-lock');
+        revealLanding();
     }
 
     // Show the intro only once per browser session

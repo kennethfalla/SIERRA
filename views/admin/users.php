@@ -8,6 +8,7 @@ require_once dirname(__DIR__, 2) . '/config/config.php';
 require_once dirname(__DIR__, 2) . '/helpers/Lang.php';
 require_once BASE_PATH . 'helpers/SettingsHelper.php';
 require_once BASE_PATH . 'helpers/PermissionHelper.php';
+require_once BASE_PATH . 'helpers/ProfilePicture.php';
 requireRole('admin');
 
 $system_name = SettingsHelper::get('system_name', 'Sierra');
@@ -438,7 +439,7 @@ function getRoleBadge($user_type, $job_title = '') {
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body class="admin-data-page">
+<body class="admin-data-page users-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -459,7 +460,7 @@ function getRoleBadge($user_type, $job_title = '') {
                             . ($registered_to ? '&created_to=' . $registered_to : '');
         $export_csv_type  = $users_tab === 'citizens' ? 'reporters' : ($users_tab === 'barangay' ? 'barangay' : 'menro');
         ?>
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+        <div class="users-page-actions mb-6">
             
             <?php if (PermissionHelper::userHasPermission('can_export_reports')): ?>
             <div class="export-dropdown" id="usersExportWrap">
@@ -896,10 +897,11 @@ function getRoleBadge($user_type, $job_title = '') {
         ],
         'callback'           => 'applyFilters',
         'compact_breakpoint' => 1199,
+        'in_header'          => true,
         'more_icon'          => 'fa-sliders-h',
     ];
     ?>
-    <div id="dashHeaderExtras" class="dash-header-extras">
+    <div id="dashHeaderExtras" class="dash-header-extras users-filter-toolbar users-header-tools">
         <div class="dashboard-toolbar-row dash-topbar">
             <div class="dashboard-toolbar-filters">
                 <?php include __DIR__ . '/../shared/report_filter_toolbar.php'; ?>
@@ -938,7 +940,7 @@ function getRoleBadge($user_type, $job_title = '') {
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                         <?php if(!empty($user['profile_picture'])): ?>
-                                            <img src="<?php echo BASE_URL . $user['profile_picture']; ?>" alt="<?php echo t('Profile'); ?>" class="w-full h-full object-cover">
+                                            <img src="<?php echo htmlspecialchars(ProfilePicture::url($user['profile_picture']), ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo t('Profile'); ?>" class="w-full h-full object-cover">
                                         <?php else: ?>
                                             <i class="fas <?php echo ($user['user_type'] ?? '') === 'admin' || ($user['user_type'] ?? '') === 'menro_staff' ? 'fa-crown' : (($user['user_type'] ?? '') === 'barangay_personnel' ? 'fa-landmark' : 'fa-user'); ?> text-[#10A37F] text-sm"></i>
                                         <?php endif; ?>
