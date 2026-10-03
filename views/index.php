@@ -868,6 +868,7 @@ if ($isLoggedIn && $is_staff) {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/landing-interactions.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/landing-interactions.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/custom-cursor.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/custom-cursor.css'); ?>">
     <script defer src="<?php echo BASE_URL; ?>assets/js/landing-reveal.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/landing-reveal.js'); ?>"></script>
+    <script defer src="<?php echo BASE_URL; ?>assets/js/landing-motion.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/landing-motion.js'); ?>"></script>
     <script defer src="<?php echo BASE_URL; ?>assets/js/custom-cursor.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/custom-cursor.js'); ?>"></script>
 </head>
 <body class="bg-[#F5FBF6] splash-lock">
@@ -1070,8 +1071,26 @@ if ($isLoggedIn && $is_staff) {
 </section>
 
 <!-- ============================================ -->
-<!-- SECTION 2: HOW IT WORKS -->
+<!-- MARQUEE TICKER -->
 <!-- ============================================ -->
+<?php $marquee_items = ['Clean Air', 'Clean Water', 'Waste Management', 'Tree Planting', 'Coastal Care', 'Green San Isidro']; ?>
+<div class="lp-marquee" aria-hidden="true">
+    <div class="lp-marquee-track">
+        <?php for ($m = 0; $m < 2; $m++): ?>
+        <div class="lp-marquee-group">
+            <?php foreach ($marquee_items as $mi): ?>
+            <span class="lp-marquee-item"><?php echo htmlspecialchars($mi); ?></span>
+            <span class="lp-marquee-sep">&#10022;</span>
+            <?php endforeach; ?>
+        </div>
+        <?php endfor; ?>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 2: HOW IT WORKS (+ pinned stack with the Map) -->
+<!-- ============================================ -->
+<div class="lp-stack">
 <section id="features" class="py-20 bg-white">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center lp-steps-head-wrap">
@@ -1088,6 +1107,7 @@ if ($isLoggedIn && $is_staff) {
         </div>
         
         <div class="lp-steps-track">
+            <span class="lp-steps-fill" aria-hidden="true"></span>
             <div class="lp-step">
                 <span class="lp-step-num">01</span>
                 <span class="lp-step-icon"><i class="fas fa-user-plus"></i></span>
@@ -1171,6 +1191,9 @@ if ($isLoggedIn && $is_staff) {
     </div>
 </section>
 
+<!-- Scroll hold: lets the full How It Works stay on screen before the Map covers it -->
+<div class="lp-cover-hold" aria-hidden="true"></div>
+
 <!-- ============================================ -->
 <!-- SECTION 3: MAP (LIVE ENVIRONMENTAL REPORTS) -->
 <!-- ============================================ -->
@@ -1212,12 +1235,24 @@ if ($isLoggedIn && $is_staff) {
         </div>
     </div>
 </section>
+</div><!-- /.lp-stack -->
 
 <!-- ============================================ -->
 <!-- SECTION 4: STATS (COMMUNITY IMPACT) -->
 <!-- ============================================ -->
-<section id="stats" class="py-20 bg-white">
+<section id="stats" class="py-20 bg-white relative overflow-hidden">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Number storm: big counters that resolve into the real stats -->
+        <div class="lp-stats-storm" aria-hidden="true">
+            <span class="lp-storm-num" style="left:5%;  top:10%; font-size:clamp(1.8rem,5vw,4rem);" data-storm-to="<?php echo (int)$san_isidro_stats['population']; ?>">0</span>
+            <span class="lp-storm-num" style="left:66%; top:6%;  font-size:clamp(1.6rem,4.5vw,3.4rem);" data-storm-to="<?php echo (int)$total_reports; ?>">0</span>
+            <span class="lp-storm-num" style="left:36%; top:20%; font-size:clamp(1.4rem,4vw,3rem);" data-storm-to="<?php echo (int)$san_isidro_stats['households']; ?>">0</span>
+            <span class="lp-storm-num" style="left:10%; top:50%; font-size:clamp(1.3rem,3.6vw,2.6rem);" data-storm-to="<?php echo (int)$san_isidro_stats['barangays']; ?>">0</span>
+            <span class="lp-storm-num" style="left:76%; top:44%; font-size:clamp(1.5rem,4vw,3rem);" data-storm-to="2026">0</span>
+            <span class="lp-storm-num" style="left:50%; top:64%; font-size:clamp(1.2rem,3.4vw,2.4rem);" data-storm-to="<?php echo (int)$san_isidro_stats['population']; ?>">0</span>
+            <span class="lp-storm-num" style="left:22%; top:80%; font-size:clamp(1.1rem,3vw,2.2rem);" data-storm-to="<?php echo (int)$total_reports; ?>">0</span>
+            <span class="lp-storm-num" style="left:60%; top:84%; font-size:clamp(1.3rem,3.6vw,2.6rem);" data-storm-to="<?php echo (int)$san_isidro_stats['households']; ?>">0</span>
+        </div>
         <div class="text-center lp-section-head-wrap">
             <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_stats_kicker', 'Community Impact')); ?></span>
             <div class="section-divider"></div>
@@ -1258,8 +1293,12 @@ if ($isLoggedIn && $is_staff) {
 <!-- ============================================ -->
 <section id="about" class="py-20 relative overflow-hidden">
     <div class="absolute inset-0 bg-gradient-to-br from-white via-emerald-50/30 to-emerald-100/30"></div>
-    <div class="absolute top-0 right-0 w-96 h-96 bg-emerald-100/20 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-0 left-0 w-80 h-80 bg-emerald-100/25 rounded-full blur-3xl"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 bg-emerald-100/20 rounded-full blur-3xl" data-parallax="0.09"></div>
+    <div class="absolute bottom-0 left-0 w-80 h-80 bg-emerald-100/25 rounded-full blur-3xl" data-parallax="-0.07"></div>
+
+    <!-- Decorative: big floating leaf + big rotating ring (scroll-linked) -->
+    <span class="lp-bg-float lp-bg-float--leaf" data-parallax="0.12" aria-hidden="true"><span class="lp-bg-leaf"><i class="fas fa-leaf"></i></span></span>
+    <span class="lp-bg-float lp-bg-float--ring" data-parallax="-0.15" aria-hidden="true"><span class="lp-bg-ring"></span></span>
     
     <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
@@ -1283,7 +1322,7 @@ if ($isLoggedIn && $is_staff) {
 
             <!-- Mission Imagery -->
             <div class="relative order-2 md:order-1">
-                <div class="absolute -top-6 -left-6 w-40 h-40 bg-emerald-100 rounded-3xl -z-10 hidden md:block"></div>
+                <div class="absolute -top-6 -left-6 w-40 h-40 bg-emerald-100 rounded-3xl -z-10 hidden md:block" data-parallax="0.06"></div>
 
                 <?php if ($mission_image_main): ?>
                     <img src="<?php echo htmlspecialchars($mission_image_main); ?>" alt="<?php echo htmlspecialchars($lp('lp_mission_title', 'Our Mission')); ?>" class="w-full h-[320px] md:h-[380px] object-cover rounded-2xl shadow-xl">
@@ -1369,7 +1408,7 @@ if ($isLoggedIn && $is_staff) {
 
             <!-- Vision Imagery -->
             <div class="relative">
-                <div class="absolute -top-6 -right-6 w-40 h-40 bg-emerald-100 rounded-3xl -z-10 hidden md:block"></div>
+                <div class="absolute -top-6 -right-6 w-40 h-40 bg-emerald-100 rounded-3xl -z-10 hidden md:block" data-parallax="0.06"></div>
 
                 <?php if ($vision_image_main): ?>
                     <img src="<?php echo htmlspecialchars($vision_image_main); ?>" alt="<?php echo htmlspecialchars($lp('lp_vision_title', 'Our Vision')); ?>" class="w-full h-[320px] md:h-[380px] object-cover rounded-2xl shadow-xl">

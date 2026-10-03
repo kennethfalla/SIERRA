@@ -1,3 +1,8 @@
+/* Tailwind sets html/body { overflow-x: hidden }, which turns the page into a
+   scroll container and silently disables position: sticky. `clip` hides the
+   horizontal overflow without creating a scroll container, so sticky works. */
+html, body { overflow-x: clip; }
+
 /* Landing actions use the same icon family and green as the dashboards. */
 .nav-landing :is(.nav-login-btn, .nav-register, .nav-dashboard-btn) {
     display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
@@ -19,12 +24,13 @@
     .nav-landing .landing-brand-name { max-width: 55px; }
     .nav-landing .nav-mobile-auth :is(.nav-login-btn, .nav-register, .nav-dashboard-btn) { padding-inline: .4rem; font-size: .68rem; }
 }
-/* Only JavaScript-initialized content is hidden. Without JS it stays readable. */
+/* Only JavaScript-initialized content is hidden. Without JS it stays readable.
+   Motion tuned to Alethia's authored appear easing: y50 -> 0, 0.6s, cubic-bezier(.44,0,.33,1). */
 .landing-reveal {
-    transition: opacity .65s ease, translate .65s cubic-bezier(.22,1,.36,1);
+    transition: opacity .6s cubic-bezier(.44, 0, .33, 1), translate .6s cubic-bezier(.44, 0, .33, 1);
     transition-delay: var(--reveal-delay, 0ms);
 }
-.landing-reveal.is-pending { opacity: 0; translate: 0 28px; }
+.landing-reveal.is-pending { opacity: 0; translate: 0 50px; }
 .landing-reveal.is-visible { opacity: 1; translate: 0 0; }
 @media (prefers-reduced-motion: reduce) {
     .landing-reveal, .landing-reveal.is-pending { opacity: 1 !important; translate: none !important; transition: none !important; }
@@ -32,6 +38,22 @@
 @media print {
     .landing-reveal, .landing-reveal.is-pending { opacity: 1 !important; translate: none !important; transition: none !important; }
 }
+
+/* Landing scroll-motion layer (progress bar + parallax hints) */
+.lp-scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    background: linear-gradient(90deg, #10A37F 0%, #0D8568 100%);
+    z-index: 9999;
+    pointer-events: none;
+}
+[data-parallax] { will-change: transform; }
+.hero-content-wrap { will-change: transform, opacity; }
 
 /* About > Our Mission: photo and text slide in from opposite sides and meet. */
 .lp-mission-split > .landing-reveal { transition-delay: 0ms !important; }
@@ -128,9 +150,9 @@
     box-shadow: 0 28px 50px -34px rgba(6, 95, 70, .55);
     transition: transform .35s cubic-bezier(.22, 1, .36, 1), box-shadow .35s ease, border-color .35s ease;
 }
-.lp-step:nth-child(1) { transform: translateY(26px) rotate(-1.6deg); }
-.lp-step:nth-child(2) { transform: translateY(-10px); }
-.lp-step:nth-child(3) { transform: translateY(34px) rotate(1.6deg); }
+.lp-step:nth-of-type(1) { transform: translateY(26px) rotate(-1.6deg); }
+.lp-step:nth-of-type(2) { transform: translateY(-10px); }
+.lp-step:nth-of-type(3) { transform: translateY(34px) rotate(1.6deg); }
 .lp-step:hover {
     transform: translateY(-6px) rotate(0deg);
     border-color: #bfe3d2;
@@ -538,9 +560,9 @@
     }
     .lp-steps-track::before { display: none; }
     .lp-step,
-    .lp-step:nth-child(1),
-    .lp-step:nth-child(2),
-    .lp-step:nth-child(3) { transform: none; }
+    .lp-step:nth-of-type(1),
+    .lp-step:nth-of-type(2),
+    .lp-step:nth-of-type(3) { transform: none; }
     .lp-step:hover { transform: translateY(-4px); }
     .lp-section-head,
     .lp-steps-head { font-size: clamp(1.7rem, 7vw, 2.3rem); }
@@ -558,4 +580,232 @@
     .lp-map-frame,
     .lp-info-card,
     .lp-detail-card { transition: none; }
+}
+
+/* ===== Marquee ticker ===== */
+.lp-marquee {
+    position: relative;
+    overflow: hidden;
+    background: #0b3a2c;
+    color: #eafff6;
+    padding: .75rem 0;
+}
+.lp-marquee::before,
+.lp-marquee::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 64px;
+    z-index: 1;
+    pointer-events: none;
+}
+.lp-marquee::before { left: 0; background: linear-gradient(90deg, #0b3a2c, rgba(11, 58, 44, 0)); }
+.lp-marquee::after { right: 0; background: linear-gradient(270deg, #0b3a2c, rgba(11, 58, 44, 0)); }
+.lp-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: lpMarquee 30s linear infinite;
+}
+.lp-marquee:hover .lp-marquee-track { animation-play-state: paused; }
+.lp-marquee-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding-right: 1.5rem;
+}
+.lp-marquee-item {
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.lp-marquee-sep { color: #34d399; font-size: .7rem; }
+@keyframes lpMarquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+/* ===== How It Works: scroll progress + active step ===== */
+.lp-steps-fill {
+    position: absolute;
+    left: 8%;
+    top: 52%;
+    width: 84%;
+    height: 2px;
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    background: linear-gradient(90deg, #10A37F, #0d8568);
+    border-radius: 2px;
+    z-index: 0;
+    pointer-events: none;
+}
+.lp-step.is-active {
+    border-color: #9ed9bf;
+    box-shadow: 0 40px 64px -34px rgba(6, 95, 70, .75);
+}
+.lp-step.is-active .lp-step-num {
+    background: linear-gradient(135deg, #065f46, #10A37F);
+    border-color: transparent;
+    color: #fff;
+}
+.lp-step.is-active .lp-step-icon {
+    box-shadow: 0 0 0 4px rgba(16, 163, 127, .18), 0 10px 20px -10px rgba(6, 95, 70, .8);
+}
+
+/* ===== Scroll-scrubbed word reveal ===== */
+.lp-word { opacity: .16; transition: opacity .3s ease; }
+.lp-word.is-lit { opacity: 1; }
+
+@media (max-width: 900px) {
+    .lp-steps-fill { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lp-marquee-track { animation: none; }
+    .lp-word { opacity: 1 !important; transition: none; }
+    .lp-steps-fill { display: none; }
+}
+
+/* ===== How It Works: cards fly in from different sides into center ===== */
+body.lp-motion .lp-steps-track .lp-step {
+    transition: transform .35s cubic-bezier(.22, 1, .36, 1), box-shadow .35s ease, border-color .35s ease,
+                opacity .7s cubic-bezier(.44, 0, .33, 1), translate .7s cubic-bezier(.44, 0, .33, 1);
+}
+body.lp-motion .lp-steps-track .lp-step:nth-of-type(1) { transition-delay: 0ms; }
+body.lp-motion .lp-steps-track .lp-step:nth-of-type(2) { transition-delay: 90ms; }
+body.lp-motion .lp-steps-track .lp-step:nth-of-type(3) { transition-delay: 180ms; }
+body.lp-motion .lp-steps-track.lp-steps-armed:not(.lp-steps-in) .lp-step { opacity: 0; }
+body.lp-motion .lp-steps-track.lp-steps-armed:not(.lp-steps-in) .lp-step:nth-of-type(1) { translate: -170px 70px; }
+body.lp-motion .lp-steps-track.lp-steps-armed:not(.lp-steps-in) .lp-step:nth-of-type(2) { translate: 0 130px; }
+body.lp-motion .lp-steps-track.lp-steps-armed:not(.lp-steps-in) .lp-step:nth-of-type(3) { translate: 170px 70px; }
+body.lp-motion .lp-steps-track.lp-steps-in .lp-step { opacity: 1; translate: 0 0; }
+@media (max-width: 900px) {
+    body.lp-motion .lp-steps-track.lp-steps-armed:not(.lp-steps-in) .lp-step:nth-of-type(1) { translate: -70px 40px; }
+    body.lp-motion .lp-steps-track.lp-steps-armed:not(.lp-steps-in) .lp-step:nth-of-type(2) { translate: 0 70px; }
+    body.lp-motion .lp-steps-track.lp-steps-armed:not(.lp-steps-in) .lp-step:nth-of-type(3) { translate: 70px 40px; }
+}
+
+/* ===== Sticky cover: the Map slides up over the pinned How It Works ===== */
+.lp-stack { position: relative; }
+.lp-cover-hold { height: 0; }
+@media (min-width: 900px) {
+    .lp-stack #features {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        transform-origin: center top;
+        will-change: transform, opacity;
+        transition: transform .3s ease-out, opacity .3s ease-out;
+    }
+    /* Keep the full How It Works on screen for a beat before the Map covers it. */
+    .lp-cover-hold { height: 80vh; }
+    .lp-stack #map-section {
+        position: relative;
+        z-index: 2;
+        border-radius: 30px 30px 0 0;
+        box-shadow: 0 -50px 90px -50px rgba(6, 95, 70, .55);
+        will-change: transform, opacity;
+        transition: transform .45s cubic-bezier(.22, 1, .36, 1), opacity .45s ease-out;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lp-stack #features { position: static; transform: none !important; opacity: 1 !important; min-height: 0; display: block; }
+    .lp-cover-hold { height: 0 !important; }
+    .lp-stack #map-section { border-radius: 0; }
+}
+
+/* ===== Stats: a storm of numbers that resolves into the stat cards ===== */
+.lp-stats-storm { display: none; }
+body.lp-motion .lp-stats-storm {
+    display: block;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+}
+.lp-storm-num {
+    position: absolute;
+    font-weight: 900;
+    letter-spacing: -.05em;
+    line-height: 1;
+    color: #10A37F;
+    opacity: .45;
+    white-space: nowrap;
+    animation: lpStormFloat 3.2s ease-in-out infinite alternate;
+}
+.lp-storm-num:nth-child(2n) { color: #0d8568; animation-duration: 4.1s; }
+.lp-storm-num:nth-child(3n) { color: #34d399; animation-duration: 2.7s; }
+@keyframes lpStormFloat {
+    from { transform: translateY(-10px); }
+    to { transform: translateY(12px); }
+}
+@media (prefers-reduced-motion: reduce) {
+    body.lp-motion .lp-stats-storm { display: none; }
+}
+
+/* ===== About LGU: decorative big leaf + rotating ring ===== */
+.lp-bg-float { position: absolute; z-index: 0; pointer-events: none; will-change: transform; }
+.lp-bg-float--leaf { top: 2%; left: -10%; }
+.lp-bg-float--ring { top: 26%; right: -10%; }
+
+.lp-bg-leaf {
+    display: block;
+    line-height: 1;
+    font-size: clamp(260px, 36vw, 560px);
+    color: #10A37F;
+    opacity: .11;
+    transform-origin: 50% 50%;
+    animation: lpLeafFloat 18s ease-in-out infinite;
+}
+@keyframes lpLeafFloat {
+    0%   { transform: translate3d(-8%, 12px, 0) rotate(-16deg); }
+    50%  { transform: translate3d(10%, -46px, 0) rotate(12deg); }
+    100% { transform: translate3d(-6%, 18px, 0) rotate(-10deg); }
+}
+
+.lp-bg-ring {
+    position: relative;
+    display: block;
+    width: clamp(260px, 38vw, 520px);
+    aspect-ratio: 1 / 1;
+    border: 2px dashed rgba(16, 163, 127, .38);
+    border-radius: 50%;
+    animation: lpRingSpin 52s linear infinite;
+}
+.lp-bg-ring::before,
+.lp-bg-ring::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+}
+.lp-bg-ring::before {
+    inset: 11%;
+    border: 1px solid rgba(16, 163, 127, .22);
+}
+.lp-bg-ring::after {
+    top: -5px;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    background: #10A37F;
+    opacity: .55;
+}
+@keyframes lpRingSpin {
+    to { transform: rotate(360deg); }
+}
+@media (max-width: 640px) {
+    .lp-bg-leaf { opacity: .08; }
+    .lp-bg-ring { opacity: .6; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lp-bg-leaf,
+    .lp-bg-ring { animation: none; }
 }

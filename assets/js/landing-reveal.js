@@ -10,7 +10,7 @@
         '#report-guide .lp-info-card, #report-guide .lp-detail-card, #faq > div > *, #faq .faq-item, footer .grid > *'
     ));
     // Animate cards individually; their grid wrapper stays in normal layout.
-    const targets = candidates.filter(el => !el.classList.contains('grid') && !el.querySelector('.faq-item'));
+    const targets = candidates.filter(el => !el.classList.contains('grid') && !el.classList.contains('lp-steps-track') && !el.querySelector('.faq-item'));
     const roots = targets.filter(el => !targets.some(parent => parent !== el && parent.contains(el)));
     let observer;
     function reveal(el, immediately) {
