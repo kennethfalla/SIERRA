@@ -167,13 +167,13 @@ class Report {
     }
 
     public function getReportById($id) {
-        $query = "SELECT r.*, c.name as category_name, c.icon_class, b.name as barangay_name,
-                         u.id as user_id, u.first_name, u.last_name, u.email, u.contact_number,
-                         CONCAT(u.first_name, ' ', u.last_name) as user_name
+        $query = "SELECT r.*, COALESCE(c.name, 'Uncategorized') as category_name, c.icon_class, COALESCE(b.name, 'Unassigned') as barangay_name,
+                         r.user_id as user_id, u.first_name, u.last_name, u.email, u.contact_number,
+                         COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), 'Unavailable account') as user_name
                   FROM " . $this->table . " r
-                  JOIN categories c ON r.category_id = c.id
-                  JOIN barangays b ON r.barangay_id = b.id
-                  JOIN users u ON r.user_id = u.id
+                  LEFT JOIN categories c ON r.category_id = c.id
+                  LEFT JOIN barangays b ON r.barangay_id = b.id
+                  LEFT JOIN users u ON r.user_id = u.id
                   WHERE r.id = :id";
         
         $stmt = $this->conn->prepare($query);
@@ -183,17 +183,17 @@ class Report {
     }
     
     public function getReportWithDetails($id) {
-        $query = "SELECT r.*, c.name as category_name, c.icon_class, c.description as category_description,
-                         b.name as barangay_name, b.zone as barangay_zone,
-                         u.id as user_id, u.first_name, u.last_name, u.email, u.contact_number,
+        $query = "SELECT r.*, COALESCE(c.name, 'Uncategorized') as category_name, c.icon_class, c.description as category_description,
+                         COALESCE(b.name, 'Unassigned') as barangay_name, b.zone as barangay_zone,
+                         r.user_id as user_id, u.first_name, u.last_name, u.email, u.contact_number,
                          u.is_resident, u.purok_street, u.non_resident_address, u.province as user_province, u.municipality as user_municipality,
-                         CONCAT(u.first_name, ' ', u.last_name) as user_name,
+                         COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), 'Unavailable account') as user_name,
                          (SELECT COUNT(*) FROM report_images WHERE report_id = r.id) as image_count,
                          (SELECT image_path FROM report_images WHERE report_id = r.id AND is_primary = 1 LIMIT 1) as primary_image
                   FROM " . $this->table . " r
-                  JOIN categories c ON r.category_id = c.id
-                  JOIN barangays b ON r.barangay_id = b.id
-                  JOIN users u ON r.user_id = u.id
+                  LEFT JOIN categories c ON r.category_id = c.id
+                  LEFT JOIN barangays b ON r.barangay_id = b.id
+                  LEFT JOIN users u ON r.user_id = u.id
                   WHERE r.id = :id";
         
         $stmt = $this->conn->prepare($query);

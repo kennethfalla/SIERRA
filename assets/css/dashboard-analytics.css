@@ -172,3 +172,9 @@ body.barangay-dashboard-page .kpi-foot a { color:#0d8568; font-weight:700; }
 }
 
 body.barangay-dashboard-page .bento .demo-chart { height:110px; }
+/* Keep short dashboard summaries at their content height. */
+body:is(.barangay-dashboard-page,.citizen-dashboard-page) .bento { align-items:start; }
+body:is(.barangay-dashboard-page,.citizen-dashboard-page) .bento .kpi-sm { justify-content:flex-start; gap:.65rem; }
+body:is(.barangay-dashboard-page,.citizen-dashboard-page) .bento .indicator-list { flex:none; grid-auto-rows:auto; }
+body.barangay-dashboard-page .bento .chart-card { padding:1rem; }
+body.barangay-dashboard-page .bento .b-narrow:has(#severityChart) .severity-layout { flex:none; justify-content:flex-start; }

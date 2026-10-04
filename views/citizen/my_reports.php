@@ -1,7 +1,7 @@
 <?php
 // views/citizen/my_reports.php - COMPLETE VERSION WITH VERIFICATION/UPVOTE INTEGRATION
 // UPDATED: Verify button only appears for reports not owned by the current user
-// WITH TOOLBAR/POPOVER FILTER, PAGINATION, SORT, VIEW TOGGLE, AND AJAX UPDATES
+// WITH TOOLBAR/POPOVER FILTER, PAGINATION, SORT, AND AJAX UPDATES
 // UPDATED: Added "Supported Reports" tab with enhanced card design matching own report cards
 // UPDATED: Added stats summary cards (matching admin dashboard design)
 
@@ -27,7 +27,6 @@ $filter_date = isset($_GET['date_range']) && $_GET['date_range'] != '' ? (int)$_
 $search_keyword = isset($_GET['search']) ? trim($_GET['search']) : '';
 $sort_order = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$view_mode = isset($_COOKIE['report_view_mode']) ? $_COOKIE['report_view_mode'] : 'grid';
 if ($page < 1) $page = 1;
 
 // Get categories for dropdowns
@@ -1356,6 +1355,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/report-list.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/report-list.css'); ?>">
 </head>
 <body>
 
@@ -1378,7 +1378,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 </a>
                 <a href="<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported" class="tab-btn supported-tab <?php echo $active_tab === 'supported' ? 'active' : ''; ?>">
                     <i class="fas fa-heart" style="color: <?php echo $active_tab === 'supported' ? '#0A7E6B' : 'inherit'; ?>;"></i>
-                    <?php echo t('Supported'); ?>
+                    <?php echo t('My Support'); ?>
                     <span class="tab-badge" style="<?php echo $active_tab === 'supported' ? 'background:#0A7E6B; color:white;' : ''; ?>"><?php echo $total_supported; ?></span>
                 </a>
             </div>
@@ -1424,11 +1424,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 ['kind' => 'select', 'id' => 'popoverDateRange', 'label' => 'Date Range', 'value' => $filter_date, 'default' => '0',
                  'options' => ['0' => 'All Time', '7' => 'Last 7 Days', '30' => 'Last 30 Days', '90' => 'Last 90 Days']],
             ],
-            'view_toggle'        => [
-                'active' => $view_mode,
-                'grid'   => "setViewMode('grid')",
-                'list'   => "setViewMode('list')",
-            ],
+            'view_toggle' => null,
             'trailing_select'    => null,
             'sort_select'        => [
                 'id'        => 'toolbarSort',
@@ -1478,195 +1474,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </div>
         
         <!-- Reports Grid -->
-        <div id="reportsGrid" class="reports-grid <?php echo $view_mode; ?>-view">
+        <div class="table-section-header report-feed-heading"><div class="table-section-copy"><h2><?php echo t($active_tab === 'supported' ? 'My Support' : 'Reports List'); ?></h2></div></div>
+        <div id="reportsGrid" class="reports-grid report-feed">
             <?php if(count($reports) > 0): ?>
-
-                <?php if ($active_tab === 'supported'): ?>
-                    <!-- ===== ENHANCED SUPPORTED REPORTS CARDS (matching own card spacing) ===== -->
-                    <?php foreach($reports as $report): ?>
-                    <?php
-                        $cover_src = !empty($report['cover_image']) ? BASE_URL . htmlspecialchars($report['cover_image'], ENT_QUOTES, 'UTF-8') : '';
-                        $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(15,23,42,0.28) 0%, rgba(15,23,42,0.88) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
-                    ?>
-                    <div class="supported-card" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'">
-                        <div class="card-header<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
-                            <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
-                                <div class="space-y-2">
-                                    <div class="supported-banner">
-                                        <i class="fas fa-heart" style="color: #ef4444;"></i>
-                                        <?php echo t('You Supported This'); ?>
-                                    </div>
-                                    <h3 class="header-title"><?php echo htmlspecialchars($report['title']); ?></h3>
-                                </div>
-                                <div class="text-right flex-shrink-0">
-                                    <div class="header-meta">#<?php echo str_pad($report['id'], 6, '0', STR_PAD_LEFT); ?></div>
-                                    <div class="header-meta mt-2"><?php echo date('M d, Y', strtotime($report['created_at'])); ?></div>
-                                </div>
-                            </div>
-                            <!-- Badges -->
-                            <div class="header-badges">
-                                <?php
-                                $status_icon = '';
-                                if ($report['status'] == 'pending') $status_icon = 'fa-clock';
-                                elseif ($report['status'] == 'under_review') $status_icon = 'fa-search';
-                                elseif ($report['status'] == 'in_progress') $status_icon = 'fa-spinner';
-                                elseif ($report['status'] == 'escalated_pending') $status_icon = 'fa-hourglass-half';
-                                elseif ($report['status'] == 'escalated') $status_icon = 'fa-shield-alt';
-                                elseif ($report['status'] == 'resolved') $status_icon = 'fa-check-circle';
-                                elseif ($report['status'] == 'rejected') $status_icon = 'fa-times-circle';
-                                elseif ($report['status'] == 'cancelled') $status_icon = 'fa-ban';
-                                else $status_icon = 'fa-clock';
-                                $status_label = ucfirst(str_replace('_', ' ', $report['status']));
-                                ?>
-                                <span class="status-badge header-badge status-<?php echo $report['status']; ?>">
-                                    <i class="fas <?php echo $status_icon; ?> text-[10px] sm:text-xs"></i>
-                                    <?php echo $status_label; ?>
-                                </span>
-                                <?php if ($report['status'] != 'cancelled' && $report['status'] != 'rejected'): ?>
-                                <span class="risk-badge header-badge risk-<?php echo $report['risk_level']; ?>">
-                                    <i class="fas <?php echo $report['risk_level'] == 'low' ? 'fa-seedling' : ($report['risk_level'] == 'medium' ? 'fa-exclamation-triangle' : ($report['risk_level'] == 'high' ? 'fa-fire' : 'fa-skull-crossbones')); ?> text-[10px] sm:text-xs"></i>
-                                    <?php echo ucfirst($report['risk_level']); ?>
-                                </span>
-                                <?php endif; ?>
-                                <?php if(isset($report['decision_classification']) && $report['decision_classification'] && $report['status'] != 'cancelled' && $report['status'] != 'rejected'): ?>
-                                <span class="severity-badge header-badge severity-<?php echo strtolower($report['decision_pin'] ?? 'Green'); ?>">
-                                    <i class="fas fa-chart-line text-[10px] sm:text-xs"></i>
-                                    <?php echo $report['decision_classification']; ?>
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="p-4 sm:p-5">
-                            <p class="text-gray-600 text-sm leading-relaxed line-clamp-3"><?php echo htmlspecialchars(substr($report['description'], 0, 80)); ?><?php echo strlen($report['description']) > 80 ? '...' : ''; ?></p>
-
-                            <div class="flex flex-wrap items-center justify-between gap-3 mt-3 pt-2 border-t border-gray-100">
-                                <div class="flex flex-wrap gap-3 meta-item">
-                                    <span><i class="fas fa-tag mr-1"></i> <?php echo htmlspecialchars($report['category_name']); ?></span>
-                                    <span><i class="fas fa-map-marker-alt mr-1"></i> <?php echo htmlspecialchars($report['barangay_name']); ?></span>
-                                    <span><i class="fas fa-thumbs-up mr-1"></i> <?php echo (int)$report['verification_count']; ?> supporters</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs text-[#0A7E6B] bg-[#E8F4F0] px-2 py-1 rounded-full">
-                                        <i class="fas fa-calendar-check mr-1"></i> <?php echo date('M d', strtotime($report['supported_at'])); ?>
-                                    </span>
-                                    <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>" class="track-report-btn" onclick="event.stopPropagation();">
-                                        <i class="fas fa-satellite-dish"></i> <?php echo t('Track'); ?>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-
-                <?php else: ?>
-                    <!-- ===== MY REPORTS CARDS ===== -->
-                    <?php foreach($reports as $report): ?>
-                    <?php
-                        $cover_src = !empty($report['cover_image']) ? BASE_URL . htmlspecialchars($report['cover_image'], ENT_QUOTES, 'UTF-8') : '';
-                        $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(15,23,42,0.28) 0%, rgba(15,23,42,0.88) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
-                    ?>
-                    <div class="report-card-grid" data-report-id="<?php echo $report['id']; ?>" onclick="window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>'" onkeydown="if(event.key==='Enter'){window.location.href='<?php echo BASE_URL; ?>index.php?page=track-status&id=<?php echo IdGuard::enc((int)$report['id']); ?>';}" role="link" tabindex="0" style="cursor:pointer;" aria-label="<?php echo htmlspecialchars($report['title']); ?> — open report details">
-                        <div class="report-card-header rounded-t-2xl<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
-                            <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
-                                <div class="space-y-2">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-lg flex items-center justify-center">
-                                            <i class="fas fa-file-alt text-white/80 text-[10px] md:text-xs"></i>
-                                        </div>
-                                        <span class="header-label"><?php echo t('Report Summary'); ?></span>
-                                    </div>
-                                    <h3 class="header-title"><?php echo htmlspecialchars($report['title']); ?></h3>
-                                </div>
-                                <div class="text-right">
-                                    <div class="header-meta">#<?php echo str_pad($report['id'], 6, '0', STR_PAD_LEFT); ?></div>
-                                    <div class="header-meta mt-2"><?php echo date('M d, Y', strtotime($report['created_at'])); ?></div>
-                                </div>
-                            </div>
-                            <div class="header-badges">
-                                <?php
-                                $status_class = 'status-' . $report['status'];
-                                $status_icon = '';
-                                if ($report['status'] == 'pending') $status_icon = 'fa-clock';
-                                elseif ($report['status'] == 'under_review') $status_icon = 'fa-search';
-                                elseif ($report['status'] == 'in_progress') $status_icon = 'fa-spinner';
-                                elseif ($report['status'] == 'escalated_pending') $status_icon = 'fa-hourglass-half';
-                                elseif ($report['status'] == 'escalated') $status_icon = 'fa-shield-alt';
-                                elseif ($report['status'] == 'resolved') $status_icon = 'fa-check-circle';
-                                elseif ($report['status'] == 'rejected') $status_icon = 'fa-times-circle';
-                                elseif ($report['status'] == 'cancelled') $status_icon = 'fa-ban';
-                                else $status_icon = 'fa-clock';
-                                $status_label = ucfirst(str_replace('_', ' ', $report['status']));
-                                ?>
-                                <span class="status-badge header-badge <?php echo $status_class; ?>">
-                                    <i class="fas <?php echo $status_icon; ?> text-[10px] sm:text-xs"></i>
-                                    <?php echo $status_label; ?>
-                                </span>
-                                <?php if ($report['status'] != 'cancelled' && $report['status'] != 'rejected'): ?>
-                                <span class="risk-badge header-badge risk-<?php echo $report['risk_level']; ?>">
-                                    <i class="fas <?php echo $report['risk_level'] == 'low' ? 'fa-seedling' : ($report['risk_level'] == 'medium' ? 'fa-exclamation-triangle' : ($report['risk_level'] == 'high' ? 'fa-fire' : 'fa-skull-crossbones')); ?> text-[10px] sm:text-xs"></i>
-                                    <?php echo ucfirst($report['risk_level']); ?>
-                                </span>
-                                <?php endif; ?>
-                                <?php if(isset($report['decision_classification']) && $report['decision_classification'] && $report['status'] != 'cancelled' && $report['status'] != 'rejected'): ?>
-                                <span class="severity-badge header-badge severity-<?php echo strtolower($report['decision_pin'] ?? 'Green'); ?>">
-                                    <i class="fas fa-chart-line text-[10px] sm:text-xs"></i>
-                                    <?php echo $report['decision_classification']; ?>
-                                    <span class="text-[8px] sm:text-[9px] opacity-75">(<?php echo $report['severity_score'] ?? 0; ?>)</span>
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="p-4 sm:p-5">
-                            <p class="text-gray-500 mb-3 sm:mb-4 line-clamp-3"><?php echo htmlspecialchars(substr($report['description'], 0, 80)); ?><?php echo strlen($report['description']) > 80 ? '...' : ''; ?></p>
-                            
-                            <div class="flex flex-wrap gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-gray-100">
-                                <div class="meta-item">
-                                    <div class="meta-icon"><i class="fas fa-tag text-gray-400 text-[10px] sm:text-xs"></i></div>
-                                    <span><?php echo htmlspecialchars($report['category_name']); ?></span>
-                                </div>
-                                <div class="meta-item">
-                                    <div class="meta-icon"><i class="fas fa-map-marker-alt text-gray-400 text-[10px] sm:text-xs"></i></div>
-                                    <span><?php echo htmlspecialchars($report['barangay_name']); ?></span>
-                                </div>
-                                <div class="meta-item">
-                                    <div class="meta-icon"><i class="far fa-calendar-alt text-gray-400 text-[10px] sm:text-xs"></i></div>
-                                    <span><?php echo date('M d, Y', strtotime($report['created_at'])); ?></span>
-                                </div>
-                            </div>
-
-                            <!-- ===== VERIFICATION SECTION (with ownership check) ===== -->
-                            <div class="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-gray-100">
-                                <!-- Verification Count -->
-                                <span class="verification-count">
-                                    <i class="fas fa-thumbs-up"></i>
-                                    <span class="font-medium" id="verifyCount-<?php echo $report['id']; ?>"><?php echo (int)$report['verification_count']; ?></span>
-                                    <span class="text-gray-400">verification<?php echo $report['verification_count'] != 1 ? 's' : ''; ?></span>
-                                </span>
-                                
-                                <?php if ($report['user_id'] != $user_id): ?>
-                                    <!-- Only show verify options if not the owner -->
-                                    <?php if ($report['is_verified_by_user'] > 0): ?>
-                                        <span class="verification-badge">
-                                            <i class="fas fa-check-circle"></i> <?php echo t('You verified this'); ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <?php if (!in_array($report['status'], ['resolved', 'rejected', 'cancelled'])): ?>
-                                            <button class="verify-btn" onclick="event.stopPropagation(); verifyReport(<?php echo $report['id']; ?>, this)">
-                                                <i class="fas fa-thumbs-up"></i> <?php echo t('Verify'); ?>
-                                            </button>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    <!-- Own report – show a label -->
-                                    <span class="own-report-label">
-                                        <i class="fas fa-user"></i> <?php echo t('Your report'); ?>
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                <?php $reportListContext = 'citizen'; foreach ($reports as $listReport) { include BASE_PATH . 'views/shared/report_list_item.php'; } ?>
 
             <?php else: ?>
                 <div class="empty-state">
@@ -1732,29 +1543,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 </div>
 
 <script>
-let currentViewMode = '<?php echo $view_mode; ?>';
-
-// ===== VIEW MODE =====
-function setViewMode(mode) {
-    currentViewMode = mode;
-    const container = document.getElementById('reportsGrid');
-    const gridBtn = document.getElementById('gridViewBtn');
-    const listBtn = document.getElementById('listViewBtn');
-    
-    container.classList.remove('grid-view', 'list-view');
-    container.classList.add(mode + '-view');
-    
-    if (mode === 'grid') {
-        gridBtn.classList.add('active');
-        listBtn.classList.remove('active');
-    } else {
-        listBtn.classList.add('active');
-        gridBtn.classList.remove('active');
-    }
-    
-    document.cookie = "report_view_mode=" + mode + "; path=/; max-age=" + (365 * 24 * 60 * 60);
-}
-
 // ===== LOADING =====
 function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
@@ -1793,7 +1581,7 @@ function applyFilters() {
 
 // ===== VERIFY / UPVOTE REPORT (AJAX) =====
 function verifyReport(reportId, button) {
-    if (button.closest('.report-card-grid')?.querySelector('.own-report-label')) {
+    if (button.closest('.report-feed-item')?.querySelector('.own-report-label')) {
         showToast('You cannot verify your own report.', 'warning');
         return;
     }

@@ -300,9 +300,10 @@ foreach ($barangay_boundaries as $bid => $bb) {
 
         if (!settingsPreviewMap) {
             settingsPreviewMap = L.map('mapSettingsPreview').setView([lat, lng], zoom);
+            MapLayers.configure(settingsPreviewMap);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
+                maxZoom: 20, maxNativeZoom:19
             }).addTo(settingsPreviewMap);
 
             settingsPreviewMap.on('click', function (e) {
@@ -366,9 +367,10 @@ foreach ($barangay_boundaries as $bid => $bb) {
         if (!geojsons.length) return;
         if (!boundaryPreviewMap) {
             boundaryPreviewMap = L.map('barangayBoundaryMap', { scrollWheelZoom: false });
+            MapLayers.configure(boundaryPreviewMap);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
+                maxZoom: 20, maxNativeZoom:19
             }).addTo(boundaryPreviewMap);
         }
         const bounds = [];

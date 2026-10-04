@@ -279,6 +279,7 @@ $demo_access_enabled = (int)SettingsHelper::get('demo_access_enabled', 1) === 1;
         .flash-message.info { background: #ecfdf5; border-left: 4px solid #0f766e; color: #115e59; }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
 </head>
 <body>
     <?php include BASE_PATH . 'views/shared/dashboard_loading.php'; ?>

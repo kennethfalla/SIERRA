@@ -1,0 +1,31 @@
+.sierra-map-panel { min-width:0; padding:1.3rem; border:1px solid #dce9e1; border-radius:1.15rem; background:#fff; box-shadow:0 4px 18px rgba(28,70,46,.055); }
+.sierra-map-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.8rem; margin-bottom:1rem; }
+.sierra-map-eyebrow { color:#0d8568; font-size:.68rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+.sierra-map-heading h2 { color:#244c3d; font-size:1.05rem; font-weight:800; }
+.sierra-map-full-link { display:inline-flex; align-items:center; gap:.5rem; min-height:38px; padding:.5rem .75rem; border:1px solid #cde5d7; border-radius:.7rem; background:#eef8f1; color:#0d8568; font-size:.76rem; font-weight:800; text-decoration:none; transition:background .2s,border-color .2s,transform .2s; }
+.sierra-map-full-link:hover { background:#e1f2e8; border-color:#91c5a5; transform:translateY(-2px); }
+.sierra-map-controls { display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap; padding-bottom:.85rem; }
+.sierra-map-panel-full .sierra-map-controls > .sierra-map-filter-row { margin-left:auto; }
+.sierra-map-panel-full .sierra-map-controls { align-items:center; flex-direction:row; }
+.sierra-map-segment { display:flex; gap:.25rem; padding:.25rem; border:1px solid #deebe2; border-radius:.72rem; background:#f5f9f6; }
+.sierra-map-segment button { min-height:34px; padding:.4rem .65rem; border-radius:.5rem; color:#4f6b5d; font-size:.72rem; font-weight:700; white-space:nowrap; }
+.sierra-map-segment button.active { color:#fff; background:#0d8568; box-shadow:0 2px 6px rgba(13,133,104,.2); }
+.sierra-map-filter-row { display:flex; justify-content:flex-end; gap:.5rem; flex-wrap:wrap; }
+.sierra-map-filter-row select,.sierra-map-dates input { max-width:180px; min-height:39px; padding:.45rem .65rem; border:1px solid #dbe8df; border-radius:.65rem; background:#fff; color:#3b5748; font:600 .73rem Manrope,sans-serif; }
+.sierra-map-dates { display:flex; justify-content:flex-end; gap:.6rem; padding:0 0 .8rem; }
+.sierra-map-dates[hidden] { display:none; }
+.sierra-map-dates label { display:flex; align-items:center; gap:.4rem; color:#64776b; font-size:.72rem; }
+.sierra-hazard-map { width:100%; height:360px; border:1px solid #e0e9e3; border-radius:.8rem; background:#e4eee7; overflow:hidden; }
+.sierra-map-panel-full .sierra-hazard-map { height:min(73vh,760px); min-height:420px; }
+.sierra-map-foot { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; padding-top:.8rem; color:#65776b; font-size:.7rem; }
+.sierra-map-foot > span { display:inline-flex; align-items:center; gap:.35rem; }
+.sierra-map-foot strong { margin-left:auto; color:#244c3d; font-weight:800; }
+.sierra-risk-dot { width:.65rem; height:.65rem; border-radius:50%; }
+.sierra-risk-dot.low { background:#10b981; }.sierra-risk-dot.medium { background:#f59e0b; }.sierra-risk-dot.high { background:#f97316; }.sierra-risk-dot.critical { background:#ef4444; }
+.sierra-map-popup { display:flex; flex-direction:column; gap:.3rem; min-width:160px; color:#334d3e; font:600 .74rem Manrope,sans-serif; }
+.sierra-map-popup strong { color:#183c2d; font-size:.83rem; }.sierra-map-popup a { color:#0d8568; font-weight:800; text-decoration:none; }
+.sierra-map-marker { display:flex; align-items:center; justify-content:center; border-radius:50%; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+.sierra-map-marker span { display:block; width:14px; height:14px; border-radius:50%; border:1px solid rgba(0,0,0,.1); }
+@media(max-width:850px){.sierra-map-controls{align-items:stretch;flex-direction:column}.sierra-map-filter-row{justify-content:flex-start}.sierra-map-filter-row label{flex:1 1 140px}.sierra-map-filter-row select{width:100%;max-width:none}.sierra-hazard-map{height:330px}.sierra-map-panel-full .sierra-hazard-map{height:65vh;min-height:350px}}
+@media(max-width:520px){.sierra-map-panel{padding:1rem}.sierra-map-segment button{flex:1}.sierra-map-dates{justify-content:stretch;flex-wrap:wrap}.sierra-map-dates label{flex:1 1 120px}.sierra-map-dates input{width:100%}.sierra-hazard-map{height:285px}.sierra-map-panel-full .sierra-hazard-map{height:60vh}}
+@media(max-width:700px){.sierra-map-panel-full .sierra-map-controls{align-items:stretch;flex-direction:column}.sierra-map-panel-full .sierra-map-controls>.sierra-map-filter-row{margin-left:0}}

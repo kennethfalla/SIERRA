@@ -77,6 +77,8 @@ class PermissionHelper {
         return [
             // Dashboards contain both the hazard map and the analytics.
             'dashboard'                     => ['can_view_analytics', 'can_view_map'],
+            'analytics'                     => ['can_view_analytics'],
+            'map'                           => ['can_view_map'],
             'dashboard-report'              => ['can_view_analytics', 'can_view_map'],
             'barangay-dashboard-report'     => ['can_view_analytics', 'can_view_map'],
             'barangay-dashboard-print'      => ['can_view_analytics', 'can_view_map'],

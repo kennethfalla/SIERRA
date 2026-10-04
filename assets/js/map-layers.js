@@ -41,6 +41,8 @@
      */
     function addMapLayerControl(map, opts) {
         opts = opts || {};
+        // Authenticated maps keep the same usable zoom range on every device.
+        if (document.getElementById('sidebar')) configureMap(map);
 
         var layers = {
             'Satellite': satelliteLayer(),
@@ -58,6 +60,48 @@
         }).addTo(map);
 
         return active;
+    }
+
+    function configureMap(map) {
+        if (map._sierraConfigured) return;
+        map._sierraConfigured = true;
+        map.setMinZoom(3);
+        map.setMaxZoom(20);
+        map.options.zoomSnap = 1;
+        map.options.zoomDelta = 1;
+        map.options.wheelPxPerZoomLevel = 90;
+        map.touchZoom && map.touchZoom.enable();
+        map.doubleClickZoom && map.doubleClickZoom.enable();
+        map.boxZoom && map.boxZoom.enable();
+        // Resize without recentering or changing the zoom selected by the user.
+        var queued = false;
+        function resize() {
+            if (queued) return;
+            queued = true;
+            window.requestAnimationFrame(function () {
+                queued = false;
+                if (map._loaded) map.invalidateSize({pan:false});
+            });
+        }
+        var observer = window.ResizeObserver ? new ResizeObserver(resize) : null;
+        if (observer) observer.observe(map.getContainer());
+        window.addEventListener('resize', resize);
+        map.on('unload', function () {
+            if (observer) observer.disconnect();
+            window.removeEventListener('resize', resize);
+        });
+        resize();
+    }
+
+    // The Analytics outline: white casing below a green dashed boundary.
+    function addBoundary(map, geojson, options) {
+        options = options || {};
+        L.geoJSON(geojson, {style:whiteCasingStyle(1.5),interactive:false}).addTo(map);
+        return L.geoJSON(geojson, {
+            style:dashedBoundaryStyle(1.5),
+            interactive:options.interactive !== false,
+            onEachFeature:options.onEachFeature
+        }).addTo(map);
     }
 
     // Green dashed stroke (transparent fill). Pairs with whiteCasingStyle() so
@@ -120,6 +164,8 @@
         getLayers: function () { return { 'Satellite': satelliteLayer(), 'Street': streetLayer(), 'Light': lightLayer() }; },
         dashedBoundaryStyle: dashedBoundaryStyle,
         whiteCasingStyle: whiteCasingStyle,
-        spotlight: spotlight
+        spotlight: spotlight,
+        addBoundary: addBoundary,
+        configure: configureMap
     };
 })();

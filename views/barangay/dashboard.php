@@ -36,7 +36,7 @@ $user_name = $_SESSION['user_name'] ?? 'Barangay Official';
 // The boundary file is matched against the barangay name stored in the
 // session (case-insensitive, ignoring hyphens/spaces, e.g. "San Roque").
 $barangay_boundary = null;
-$barangay_name_key = strtolower(preg_replace('/[^a-z0-9]+/', '', $barangay_info['name'] ?? ''));
+$barangay_name_key = strtolower(preg_replace('/[^a-z0-9]+/i', '', $barangay_info['name'] ?? ''));
 if ($barangay_name_key !== '') {
     $barangays_dir = BASE_PATH . 'geojson/barangay';
     if (is_dir($barangays_dir)) {
@@ -58,8 +58,8 @@ if ($barangay_name_key !== '') {
                     continue;
                 }
                 $prop_name = $barangay_feature['properties']['barangay_name'] ?? $barangay_feature['properties']['name'] ?? '';
-                $prop_key = strtolower(preg_replace('/[^a-z0-9]+/', '', $prop_name));
-                $file_key = strtolower(preg_replace('/[^a-z0-9]+/', '', pathinfo($barangay_base, PATHINFO_FILENAME)));
+                $prop_key = strtolower(preg_replace('/[^a-z0-9]+/i', '', $prop_name));
+                $file_key = strtolower(preg_replace('/[^a-z0-9]+/i', '', pathinfo($barangay_base, PATHINFO_FILENAME)));
                 if ($prop_key === $barangay_name_key || $file_key === $barangay_name_key) {
                     $barangay_feature['properties']['name'] = $barangay_info['name'];
                     $barangay_boundary = ['type' => 'FeatureCollection', 'features' => [$barangay_feature]];
@@ -115,7 +115,7 @@ $f_know_status = ['pending','under_review','verified','in_progress','escalated_p
 $f_know_risk   = ['low','medium','high','critical'];
 $f_status = (isset($_GET['status']) && in_array($_GET['status'], $f_know_status, true)) ? $_GET['status'] : 'all';
 $f_risk   = (isset($_GET['risk'])   && in_array($_GET['risk'],   $f_know_risk,   true)) ? $_GET['risk']   : 'all';
-$f_search = ''; // Dashboard filtering uses the visible status, risk and date controls.
+$f_search = trim((string)($_GET['search'] ?? ''));
 // Search condition (title/description LIKE) against alias r.
 $f_search_sql = '';
 $f_search_params = [];
@@ -234,6 +234,8 @@ $fTrend_sql = '';
 $fTrend_params = [$barangay_id];
 if ($f_status !== 'all') { $fTrend_sql .= ' AND r.status = ?'; $fTrend_params[] = $f_status; }
 if ($f_risk   !== 'all') { $fTrend_sql .= ' AND r.risk_level = ?'; $fTrend_params[] = $f_risk; }
+$fTrend_sql .= $f_search_sql;
+$fTrend_params = array_merge($fTrend_params, $f_search_params);
 
 $avgResHoursThisMonth = $db->prepare("
     SELECT AVG(TIMESTAMPDIFF(HOUR, r.created_at, r.resolved_at)) AS avg_hours
@@ -290,62 +292,48 @@ $resolvedThisMonth = (int)$resolvedThisMonthQ->fetch(PDO::FETCH_ASSOC)['count'];
 $resolutionRateThisMonth = $assignedThisMonth > 0 ? round(($resolvedThisMonth / $assignedThisMonth) * 100) : 0;
 
 // ========== WEEKLY RESOLUTION STATS (kept - powers the secondary Weekly Trends card) ==========
-$weekly_stats = $db->prepare("
-    SELECT 
-        DATE_FORMAT(r.created_at, '%W') as day,
-        COUNT(*) as total,
-        SUM(CASE WHEN r.status = 'resolved' THEN 1 ELSE 0 END) as resolved
-    FROM reports r
-    WHERE r.barangay_id = ? AND r.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-    {$fSR_sql}
-    GROUP BY DAYOFWEEK(r.created_at)
-    ORDER BY DAYOFWEEK(r.created_at)
-");
-$weekly_stats->execute($fSR_params);
-$weekly_data = $weekly_stats->fetchAll(PDO::FETCH_ASSOC);
+// Count submissions and resolutions on their actual event dates, with zero days filled.
+$weeklyNew = $db->prepare("SELECT DATE(r.created_at) AS day, COUNT(*) AS total FROM reports r
+    WHERE r.barangay_id = ? AND r.created_at >= CURDATE() - INTERVAL 6 DAY AND r.created_at < CURDATE() + INTERVAL 1 DAY {$fC_sql}
+    GROUP BY DATE(r.created_at)");
+$weeklyNew->execute($fC_params);
+$weeklyNewCounts = array_column($weeklyNew->fetchAll(PDO::FETCH_ASSOC), 'total', 'day');
+$weeklyResolved = $db->prepare("SELECT DATE(r.resolved_at) AS day, COUNT(*) AS total FROM reports r
+    WHERE r.barangay_id = ? AND r.status = 'resolved' AND r.resolved_at >= CURDATE() - INTERVAL 6 DAY AND r.resolved_at < CURDATE() + INTERVAL 1 DAY {$fR_sql}
+    GROUP BY DATE(r.resolved_at)");
+$weeklyResolved->execute($fR_params);
+$weeklyResolvedCounts = array_column($weeklyResolved->fetchAll(PDO::FETCH_ASSOC), 'total', 'day');
+$weekly_data = [];
+for ($dayOffset = 6; $dayOffset >= 0; $dayOffset--) {
+    $weeklyDay = date('Y-m-d', strtotime("-{$dayOffset} days"));
+    $weekly_data[] = ['day'=>date('D', strtotime($weeklyDay)), 'total'=>(int)($weeklyNewCounts[$weeklyDay] ?? 0), 'resolved'=>(int)($weeklyResolvedCounts[$weeklyDay] ?? 0)];
+}
 
 // ========== CATEGORY DISTRIBUTION (kept - powers the secondary Category card) ==========
 $category_stats = $db->prepare("
     SELECT c.name, COUNT(r.id) as count
     FROM categories c
     LEFT JOIN reports r ON c.id = r.category_id AND r.barangay_id = ? {$fC_sql}
-    GROUP BY c.id
+    GROUP BY c.id, c.name
     HAVING COUNT(r.id) > 0
     ORDER BY count DESC
 ");
 $category_stats->execute($fC_params);
 $category_data = $category_stats->fetchAll(PDO::FETCH_ASSOC);
 
-// ========== RISK LEVEL DISTRIBUTION (kept - powers the secondary Risk card) ==========
-$risk_stats = $db->prepare("
-    SELECT 
-        COALESCE(r.risk_level, 'low') as risk_level,
-        COUNT(*) as count
-    FROM reports r
-    WHERE r.barangay_id = ? {$fC_sql}
-    GROUP BY r.risk_level
-    ORDER BY 
-        CASE r.risk_level 
-            WHEN 'critical' THEN 1 
-            WHEN 'high' THEN 2 
-            WHEN 'medium' THEN 3 
-            WHEN 'low' THEN 4 
-        END
-");
-$risk_stats->execute($fC_params);
-$risk_data = $risk_stats->fetchAll(PDO::FETCH_ASSOC);
-$risk_total = array_sum(array_column($risk_data, 'count'));
+// Active severity distribution uses the same score bands as the map.
 $severityTiers = [
     'low'      => ['label' => 'Low (' . 1 . '-' . ($criticalBands['yellow'] - 1) . ')', 'count' => 0],
     'medium'   => ['label' => 'Medium (' . $criticalBands['yellow'] . '-' . ($criticalBands['orange'] - 1) . ')', 'count' => 0],
     'high'     => ['label' => 'High (' . $criticalBands['orange'] . '-' . ($criticalBands['critical'] - 1) . ')', 'count' => 0],
     'critical' => ['label' => 'Critical (' . $criticalBands['critical'] . '-20)', 'count' => 0],
 ];
-foreach ($risk_data as $riskRow) {
-    $riskKey = strtolower((string)($riskRow['risk_level'] ?? 'low'));
-    if (isset($severityTiers[$riskKey])) {
-        $severityTiers[$riskKey]['count'] = (int)$riskRow['count'];
-    }
+$activeSeverity = $db->prepare("SELECT r.severity_score FROM reports r
+    WHERE r.barangay_id = ? AND r.status NOT IN ('resolved', 'rejected', 'cancelled')
+    AND r.severity_score IS NOT NULL {$fC_sql}");
+$activeSeverity->execute($fC_params);
+while ($severityRow = $activeSeverity->fetch(PDO::FETCH_ASSOC)) {
+    $severityTiers[getRiskLevelFromScore($severityRow['severity_score'])]['count']++;
 }
 $severityTotal = array_sum(array_column($severityTiers, 'count'));
 foreach ($severityTiers as &$severityTier) {
@@ -409,7 +397,7 @@ try {
         FROM reports r
         JOIN categories c ON c.id = r.category_id
         WHERE r.barangay_id = ?
-        GROUP BY c.id
+        GROUP BY c.id, c.name
         HAVING COUNT(*) >= 1
         ORDER BY (SUM(CASE WHEN r.status = 'resolved' THEN 1 ELSE 0 END) / COUNT(*)) DESC, COUNT(*) DESC
         LIMIT 8
@@ -497,40 +485,16 @@ try {
 // ========== LOCAL DEMOGRAPHICS (Resident vs Non-Resident) ==========
 // Scoped strictly to reports submitted within this barangay.
 // ============================================================
-$demographics = ['resident' => 0, 'non_resident' => 0];
+require_once BASE_PATH . 'helpers/ReporterDemographics.php';
+$demographics = ['resident' => 0, 'non_resident' => 0, 'unknown' => 0];
 $demographicsAvailable = true;
 try {
-    $stmt = $db->prepare("
-        SELECT u.residency_status AS status_type, COUNT(*) AS total
-        FROM reports r
-        JOIN users u ON u.id = r.user_id
-        WHERE r.barangay_id = ? {$fC_sql}
-        GROUP BY u.residency_status
-    ");
-    $stmt->execute($fC_params);
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $key = (strtolower($row['status_type']) === 'resident') ? 'resident' : 'non_resident';
-        $demographics[$key] += (int)$row['total'];
-    }
+    $demographics = ReporterDemographics::summarize($db, "r.barangay_id = ? {$fC_sql}", $fC_params);
 } catch (Exception $e) {
-    try {
-        $stmt = $db->prepare("
-            SELECT u.is_resident AS status_type, COUNT(*) AS total
-            FROM reports r
-            JOIN users u ON u.id = r.user_id
-            WHERE r.barangay_id = ? {$fC_sql}
-            GROUP BY u.is_resident
-        ");
-        $stmt->execute($fC_params);
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $key = ((int)$row['status_type'] === 1) ? 'resident' : 'non_resident';
-            $demographics[$key] += (int)$row['total'];
-        }
-    } catch (Exception $e2) {
-        $demographicsAvailable = false;
-    }
+    $demographicsAvailable = false;
+    error_log('Reporter demographics unavailable: ' . $e->getMessage());
 }
-$demographicsTotal = $demographics['resident'] + $demographics['non_resident'];
+$demographicsTotal = array_sum($demographics);
 $residentPct = $demographicsTotal > 0 ? round(($demographics['resident'] / $demographicsTotal) * 100, 1) : 0;
 $nonResidentPct = $demographicsTotal > 0 ? round(($demographics['non_resident'] / $demographicsTotal) * 100, 1) : 0;
 
@@ -640,7 +604,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo isset($csrf_token) ? htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8') : ''; ?>">
     <title>Barangay Dashboard - Sierra</title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
@@ -650,11 +614,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
     <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
-    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
-    <!-- Leaflet.markercluster for algorithm-driven clustering (same as MENRO map) -->
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet-markercluster/css/MarkerCluster.css" />
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet-markercluster/css/MarkerCluster.Default.css" />
-    <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet-markercluster/js/leaflet.markercluster.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-layers.js'); ?>"></script>
     <script src="<?php echo BASE_URL; ?>assets/vendor/chart/chart.umd.min.js"></script>
     <script>if (window.Chart && Chart.defaults) Chart.defaults.font.family = 'Manrope, sans-serif';</script>
     <style>
@@ -1535,7 +1495,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             'search_id'          => 'barangaySearchInput',
             'search_value'       => $f_search,
             'search_placeholder' => 'Search reports by title or description...',
-            'show_search'        => false,
+            'show_search'        => true,
             'show_active_row' => false,
             'compact_breakpoint' => 1199,
             'more_icon' => 'fa-sliders-h',
@@ -1714,116 +1674,36 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
 <div class="chart-card kpi-sm">
                 <div class="chart-head">
-                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-users text-[#10A37F] mr-2" aria-hidden="true"></i>User Demographics</div>
+                    <div class="chart-title mb-0" role="heading" aria-level="3"><i class="fas fa-users text-[#10A37F] mr-2" aria-hidden="true"></i>Reporter Demographics</div>
                     <button type="button" class="rec-info-btn" data-rec="rec-demo" aria-label="Show recommendation" aria-expanded="false" aria-controls="rec-demo-stack"><i class="fas fa-info" aria-hidden="true"></i></button>
                 </div>
                 <?php if (!$demographicsAvailable || $demographicsTotal === 0): ?>
                     <p class="text-sm text-gray-400 py-10 text-center">Demographic data not available yet.</p>
                 <?php else: ?>
-                <div class="chart-container demo-chart">
-                    <canvas id="demographicsChart" role="img" aria-label="Doughnut chart of reports by resident vs non-resident reporters"></canvas>
-                </div>
-                <div class="flex flex-wrap justify-center gap-2 text-xs mt-2">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10A37F;" aria-hidden="true"></span> Resident (<?php echo $residentPct; ?>%)</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;" aria-hidden="true"></span> Non-Resident (<?php echo $nonResidentPct; ?>%)</span>
-                </div>
-                <p class="text-xs text-gray-400 mt-3 text-center">
-                    Split of reports submitted in your barangay by residents vs. non-residents.
-                </p>
+                <?php include BASE_PATH . 'views/shared/reporter_demographics.php'; ?>
                 <div class="rec-stack" id="rec-demo-stack" data-rec="rec-demo" role="region" aria-live="polite">
                     <div class="rec-box <?php echo $residentPct < 50 ? 'rec-medium' : 'rec-low'; ?>">
                         <i class="fas fa-lightbulb mr-2" aria-hidden="true"></i>
                         <strong>Recommendation:</strong>
                         <?php if ($residentPct < 50): ?>
-                            Most reports come from non-residents (<?php echo $nonResidentPct; ?>%). Encourage your residents to report local hazards too — run an information drive in your barangay.
+                            Most reporters are non-residents (<?php echo $nonResidentPct; ?>%). Encourage your residents to report local hazards too — run an information drive in your barangay.
                         <?php else: ?>
-                            Most reports come from your own residents (<?php echo $residentPct; ?>%) — strong local engagement. Keep it up.
+                            Most reporters are residents (<?php echo $residentPct; ?>%) — strong local engagement. Keep it up.
                         <?php endif; ?>
                     </div>
                 </div>
                 <?php endif; ?>
             </div>
 <div id="map-container" class="b-wide">
-            <div class="map-head">
-                <div class="map-title-wrap">
-                    <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
-                        <i class="fas fa-map-marked-alt text-[#10A37F]"></i>
-                        Environmental Hazard Map
-                    </h2>
-                    <button type="button" id="mapFullscreenBtn" onclick="toggleMapFullscreen()" title="Toggle Fullscreen Map" aria-label="Toggle fullscreen map" class="map-fullscreen-btn">
-                        <i class="fas fa-expand" id="fullscreenIcon"></i>
-                    </button>
-                </div>
-
-                <!-- Mode toggle + Timeframe Segmented Control (same row) -->
-                <div class="map-head-tools">
-                    <div class="map-toggle" id="mapToggle">
-                        <button class="active" data-mode="active"><i class="fas fa-map-pin" aria-hidden="true"></i><span>Active Hazards</span></button>
-                        <button data-mode="historical"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>Historical Trends</span></button>
-                    </div>
-                    <div class="map-toggle" id="timeframeToggle">
-                        <button data-range="today">Today</button>
-                        <button data-range="week">This Week</button>
-                        <button data-range="month">This Month</button>
-                        <button data-range="year">This Year</button>
-                        <button data-range="custom">Custom</button>
-                        <button class="active" data-range="all">All Time</button>
-                    </div>
-                </div>
-
-                <div id="customRangeBox" class="hidden items-center gap-2">
-                    <input type="date" id="rangeFrom" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="Start date">
-                    <span class="text-xs text-gray-400">to</span>
-                    <input type="date" id="rangeTo" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#10A37F]" title="End date">
-                    <button onclick="applyAnalyticsDateFilter()" class="bg-[#10A37F] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#0D8568] transition flex items-center gap-1" title="Reload page with selected date range to update all KPIs and charts">
-                        <i class="fas fa-sync-alt"></i> Apply to Analytics
-                    </button>
-                </div>
-            </div>
-
-            <div id="map" class="relative">
-                <!-- Floating legend + category filter overlay (top-right of the map canvas) -->
-                <div class="map-overlay">
-                    <div class="map-legend">
-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $criticalBands['yellow'] - 1; ?>)</span>
-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (<?php echo $criticalBands['yellow']; ?>-<?php echo $criticalBands['orange'] - 1; ?>)</span>
-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $criticalBands['orange']; ?>-<?php echo $criticalBands['critical'] - 1; ?>)</span>
-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $criticalBands['critical']; ?>-20)</span>
-                    </div>
-                    <div class="relative" id="categoryFilterWrap">
-                        <button id="categoryFilterBtn" class="flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-sm hover:border-[#10A37F] transition">
-                            <i class="fas fa-filter text-[#10A37F]"></i>
-                            <span id="categoryFilterLabel">All Categories</span>
-                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
-                        </button>
-                        <div id="categoryFilterMenu" class="hidden absolute z-[1100] mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-lg p-3 right-0">
-                            <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
-                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Hazard Categories</span>
-                                <div class="flex gap-2">
-                                    <button type="button" id="catSelectAll" class="text-xs text-[#10A37F] font-semibold hover:underline">All</button>
-                                    <button type="button" id="catSelectNone" class="text-xs text-gray-400 font-semibold hover:underline">None</button>
-                                </div>
-                            </div>
-                            <div id="categoryCheckboxList" class="max-h-56 overflow-y-auto space-y-1">
-                                <?php foreach ($categories as $cat): ?>
-                                <label class="flex items-center gap-2 text-sm text-gray-700 px-1 py-1 rounded hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" class="category-checkbox accent-[#10A37F]" value="<?php echo htmlspecialchars($cat['id']); ?>" checked>
-                                    <span><?php echo htmlspecialchars($cat['name']); ?></span>
-                                </label>
-                                <?php endforeach; ?>
-                                <?php if (empty($categories)): ?>
-                                <p class="text-xs text-gray-400 px-1">No categories found.</p>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div class="map-head"><div class="map-title-wrap">
+                <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2"><i class="fas fa-map-marked-alt text-[#10A37F]"></i>Environmental Hazard Map</h2>
+                <a href="<?php echo BASE_URL; ?>index.php?page=map" title="View Full Map" class="map-fullscreen-btn" style="width:auto;min-width:44px;padding:0 .75rem;gap:.4rem;text-decoration:none;white-space:nowrap"><i class="fas fa-expand" aria-hidden="true"></i><span>View Full Map</span></a>
+            </div></div>
+            <div id="map" class="relative"></div>
             <div class="map-legend map-legend-inline text-xs text-gray-500">
-                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> Low (1-<?php echo $criticalBands['yellow'] - 1; ?>)</span>
-                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium (<?php echo $criticalBands['yellow']; ?>-<?php echo $criticalBands['orange'] - 1; ?>)</span>
-                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> High (<?php echo $criticalBands['orange']; ?>-<?php echo $criticalBands['critical'] - 1; ?>)</span>
-                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> Critical (<?php echo $criticalBands['critical']; ?>-20)</span>
+                <?php foreach (['low'=>['Low','#10B981'],'medium'=>['Medium','#F59E0B'],'high'=>['High','#F97316'],'critical'=>['Critical','#EF4444']] as $mapLegend): ?>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:<?php echo $mapLegend[1]; ?>;"></span><?php echo t($mapLegend[0]); ?></span>
+                <?php endforeach; ?>
             </div>
         </div>
 <div class="chart-card b-narrow">
@@ -1947,9 +1827,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <?php if ($weekly_new === 0): ?>
                             No reports were filed in the last 7 days. Encourage your residents to keep reporting hazards.
                         <?php elseif ($weekly_res < $weekly_new): ?>
-                            Your barangay resolved <?php echo $weekly_res; ?> of <?php echo $weekly_new; ?> new reports in the last 7 days &mdash; a backlog is building. Assign more field follow-up.
+                            Your barangay resolved <?php echo $weekly_res; ?> reports and received <?php echo $weekly_new; ?> new reports in the last 7 days &mdash; a backlog is building. Assign more field follow-up.
                         <?php else: ?>
-                            Your barangay resolved <?php echo $weekly_res; ?> of <?php echo $weekly_new; ?> new reports in the last 7 days &mdash; you are keeping pace. Keep it up.
+                            Your barangay resolved <?php echo $weekly_res; ?> reports and received <?php echo $weekly_new; ?> new reports in the last 7 days &mdash; you are keeping pace. Keep it up.
                         <?php endif; ?>
                     </div>
                 </div>
@@ -2534,14 +2414,12 @@ function initMap() {
     // Draw THIS barangay's own boundary (its GeoJSON) so the map shows only
     // their jurisdiction, with the citizen report pins sitting on top of it.
     if (barangayBoundary && barangayBoundary.features) {
-        L.geoJSON(barangayBoundary, { style: MapLayers.whiteCasingStyle(2), interactive: false }).addTo(map);
-        const brgyLayer = L.geoJSON(barangayBoundary, {
-            style: MapLayers.dashedBoundaryStyle(2),
-            onEachFeature: function(feature, layer) {
-                const name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
-                layer.bindTooltip(name, { sticky: true });
+        const brgyLayer = MapLayers.addBoundary(map, barangayBoundary, {
+            onEachFeature:function(feature, layer) {
+                const properties = feature.properties || {};
+                layer.bindTooltip(properties.barangay_name || properties.name || 'Barangay', {sticky:true});
             }
-        }).addTo(map);
+        });
 
         // Frame the map on the barangay polygon so the whole jurisdiction is visible,
         // but never zoom past the configured default zoom level.
@@ -2590,7 +2468,8 @@ function getFilteredData(mode) {
     const dateField = (mode === 'active') ? 'created_at' : 'resolved_at';
     const q = searchQuery.trim().toLowerCase();
     return source.filter(report => {
-        const categoryOk = selectedCategories.size === 0 ? false : selectedCategories.has(String(report.category_id));
+        const categoryOk = selectedCategories.size === allCategories.length
+            || selectedCategories.has(String(report.category_id));
         const rangeOk = isWithinRange(report[dateField], selectedRange);
         const statusOk = selectedStatus === 'all' || String(report.status || '') === selectedStatus;
         const riskOk = selectedRisk === 'all' || String(report.risk_level || '') === selectedRisk;
@@ -2633,10 +2512,10 @@ function loadMapData(mode) {
         return;
     }
 
-    // Algorithm-driven clustering: reports within ~50m merge into a single
+    // Algorithm-driven clustering: reports within the configured meter distance merge into a single
     // cluster, colored by average severity score (not just pin volume).
-    const clusterGroup = L.markerClusterGroup({
-        maxClusterRadius: 60,
+    const clusterGroup = SierraMapClusters.layer({
+        radiusMeters: mapDefaults.clustering_radius_meters,
         iconCreateFunction: function(cluster) {
             const markers = cluster.getAllChildMarkers();
             let totalScore = 0, count = 0;
@@ -2646,7 +2525,7 @@ function loadMapData(mode) {
             });
             const avgScore = count > 0 ? totalScore / count : 0;
             const color = getSeverityColor(avgScore);
-            const size = 40 + (count * 2);
+            const size = Math.min(64, 38 + Math.log2(count) * 6);
             return L.divIcon({
                 html: `<div style="background: ${color}; width: ${size}px; height: ${size}px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: ${size/2}px; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">${count}</div>`,
                 iconSize: [size, size],
@@ -2665,7 +2544,7 @@ function loadMapData(mode) {
         const tier = getSeverityTier(score);
         const isPending = report.status === 'pending';
         const popupAction = isPending
-            ? `<a href="<?php echo BASE_URL; ?>index.php?page=verify-reports&id=${report.token}" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 8px; padding: 4px 12px; font-size: 12px; text-decoration: none; display: inline-block;">Manage Report</a>`
+            ? `<a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=${report.token}" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 8px; padding: 4px 12px; font-size: 12px; text-decoration: none; display: inline-block;">Manage Report</a>`
             : '';
         const popupContent = `
             <div style="font-family: Manrope, sans-serif; min-width: 200px;">
@@ -2687,7 +2566,7 @@ function loadMapData(mode) {
             className: 'severity-marker'
         });
 
-        const marker = L.marker([lat, lng], { icon: icon, severityScore: score }).bindPopup(popupContent);
+        const marker = L.marker([lat, lng], { icon: icon, severityScore: score, reportTitle: report.title }).bindPopup(popupContent);
         marker.on('click', function() {
             if (!isPending) openDrillPanel(report.id);
         });
@@ -2705,173 +2584,6 @@ function loadMapData(mode) {
     }
     initialFitApplied = true;
 }
-
-// ========== TIME MACHINE TOGGLE (Active Hazards vs Historical/Resolved) ==========
-document.getElementById('mapToggle').addEventListener('click', function(e) {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    const mode = btn.dataset.mode;
-    if (mode === currentMode) return;
-    currentMode = mode;
-    this.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    loadMapData(mode);
-});
-
-// ========== TIMEFRAME SELECTOR (This Week / Month / Year / Custom / All) ==========
-function toYMD(d) {
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return d.getFullYear() + '-' + m + '-' + day;
-}
-function toggleCustomRangeBox() {
-    const box = document.getElementById('customRangeBox');
-    if (!box) return;
-    if (selectedRange === 'custom') {
-        if (!selectedFrom) {
-            const to = new Date();
-            const from = new Date();
-            from.setDate(to.getDate() - 30);
-            selectedFrom = toYMD(from);
-            selectedTo = toYMD(to);
-        }
-        document.getElementById('rangeFrom').value = selectedFrom;
-        document.getElementById('rangeTo').value = selectedTo;
-        box.classList.remove('hidden');
-        box.classList.add('flex');
-    } else {
-        box.classList.add('hidden');
-        box.classList.remove('flex');
-    }
-}
-function selectRange(range) {
-    if (range === selectedRange && range !== 'custom') return;
-    selectedRange = range;
-    document.querySelectorAll('#timeframeToggle [data-range]').forEach(b => {
-        b.classList.toggle('active', b.dataset.range === range);
-    });
-    toggleCustomRangeBox();
-    loadMapData(currentMode);
-}
-document.getElementById('timeframeToggle').addEventListener('click', function(e) {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    selectRange(btn.dataset.range);
-});
-
-// ------------------------------------------------------------
-// MAP FULLSCREEN TOGGLE
-// ------------------------------------------------------------
-window.toggleMapFullscreen = function() {
-    const mapContainer = document.getElementById('map-container');
-    const fullscreenIcon = document.getElementById('fullscreenIcon');
-    if (!mapContainer) return;
-    const isFullscreen = mapContainer.classList.contains('map-fullscreen');
-
-    if (isFullscreen) {
-        mapContainer.classList.remove('map-fullscreen');
-        if (fullscreenIcon) fullscreenIcon.className = 'fas fa-expand';
-        document.body.style.overflow = '';
-    } else {
-        mapContainer.classList.add('map-fullscreen');
-        if (fullscreenIcon) fullscreenIcon.className = 'fas fa-compress';
-        document.body.style.overflow = 'hidden';
-    }
-
-    setTimeout(function() {
-        if (typeof map !== 'undefined' && map) map.invalidateSize();
-    }, 100);
-};
-
-document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Escape') return;
-    const mapContainer = document.getElementById('map-container');
-    if (mapContainer && mapContainer.classList.contains('map-fullscreen')) {
-        window.toggleMapFullscreen();
-    }
-});
-function applyCustomRange() {
-    if (selectedRange !== 'custom') return;
-    const from = document.getElementById('rangeFrom').value;
-    const to = document.getElementById('rangeTo').value;
-    if (!from || !to) { window.GB.alert({ type: 'error', title: 'Invalid range', message: 'Please select both a start and end date.' }); return; }
-    if (from > to) { window.GB.alert({ type: 'error', title: 'Invalid range', message: 'The start date must be on or before the end date.' }); return; }
-    selectedFrom = from;
-    selectedTo = to;
-    loadMapData(currentMode);
-}
-document.getElementById('rangeFrom').addEventListener('change', applyCustomRange);
-document.getElementById('rangeTo').addEventListener('change', applyCustomRange);
-
-// ========== REPORT FILTER TOOLBAR (search / status / risk) ==========
-const barangaySearchInput = document.getElementById('barangaySearchInput');
-const barangayStatusFilter = document.getElementById('barangayStatusFilter');
-const barangayRiskFilter = document.getElementById('barangayRiskFilter');
-
-let searchTimer = null;
-barangaySearchInput?.addEventListener('input', function() {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(function() { searchQuery = barangaySearchInput.value; loadMapData(currentMode); }, 350);
-});
-barangayStatusFilter.addEventListener('change', function() {
-    selectedStatus = barangayStatusFilter.value;
-    loadMapData(currentMode);
-});
-barangayRiskFilter.addEventListener('change', function() {
-    selectedRisk = barangayRiskFilter.value;
-    loadMapData(currentMode);
-});
-
-// ========== CATEGORY FILTER DROPDOWN ==========
-const categoryFilterBtn = document.getElementById('categoryFilterBtn');
-const categoryFilterMenu = document.getElementById('categoryFilterMenu');
-const categoryFilterLabel = document.getElementById('categoryFilterLabel');
-
-categoryFilterBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    categoryFilterMenu.classList.toggle('hidden');
-});
-document.addEventListener('click', function(e) {
-    if (!categoryFilterMenu.contains(e.target) && e.target !== categoryFilterBtn) {
-        categoryFilterMenu.classList.add('hidden');
-    }
-});
-
-function updateCategoryLabel() {
-    const total = allCategories.length;
-    const selected = selectedCategories.size;
-    if (selected === total) categoryFilterLabel.textContent = 'All Categories';
-    else if (selected === 0) categoryFilterLabel.textContent = 'No Categories';
-    else if (selected === 1) {
-        const only = allCategories.find(c => selectedCategories.has(String(c.id)));
-        categoryFilterLabel.textContent = only ? only.name : '1 Category';
-    } else categoryFilterLabel.textContent = `${selected} Categories`;
-}
-
-document.querySelectorAll('.category-checkbox').forEach(cb => {
-    cb.addEventListener('change', function() {
-        if (this.checked) selectedCategories.add(this.value);
-        else selectedCategories.delete(this.value);
-        updateCategoryLabel();
-        loadMapData(currentMode);
-    });
-});
-
-document.getElementById('catSelectAll').addEventListener('click', function() {
-    document.querySelectorAll('.category-checkbox').forEach(cb => {
-        cb.checked = true;
-        selectedCategories.add(cb.value);
-    });
-    updateCategoryLabel();
-    loadMapData(currentMode);
-});
-
-document.getElementById('catSelectNone').addEventListener('click', function() {
-    document.querySelectorAll('.category-checkbox').forEach(cb => { cb.checked = false; });
-    selectedCategories.clear();
-    updateCategoryLabel();
-    loadMapData(currentMode);
-});
 
 // ========== DRILL-DOWN PANEL (reuses the existing ReportController endpoint) ==========
 function openDrillPanel(reportId) {
@@ -3112,7 +2824,7 @@ function _buildAnalyticsUrl() {
         else if (preset === 'year') { pf = new Date(today.getFullYear(), 0, 1); }
         f = ymd(pf); t = ymd(pt);
     }
-    var q = ''; // Search is not a dashboard filter.
+    var q = searchInput ? searchInput.value.trim() : '';
     if (f) url.searchParams.set('date_from', f); else url.searchParams.delete('date_from');
     if (t) url.searchParams.set('date_to', t);   else url.searchParams.delete('date_to');
     if (preset) url.searchParams.set('date_preset', preset); else url.searchParams.delete('date_preset');
@@ -3127,10 +2839,10 @@ function applyDashboardFilters() {
     window.location.href = _buildAnalyticsUrl().toString();
 }
 
+document.addEventListener('DOMContentLoaded', function () {
 // ========== CHARTS ==========
-<?php if(!empty($risk_data) && $risk_total > 0): ?>
-const severityCtx = document.getElementById('severityChart').getContext('2d');
-new Chart(severityCtx, {
+<?php if($severityTotal > 0): ?>
+SierraCharts.create('severityChart', {
     type: 'doughnut',
     data: {
         labels: <?php echo json_encode(array_values(array_column($severityTiers, 'label'))); ?>,
@@ -3147,11 +2859,10 @@ new Chart(severityCtx, {
 <?php endif; ?>
 
 <?php if(!empty($category_data)): ?>
-const categoryCtx = document.getElementById('categoryPieChart').getContext('2d');
-new Chart(categoryCtx, {
+SierraCharts.create('categoryPieChart', {
     type: 'doughnut',
     data: {
-        labels: [<?php foreach($category_data as $cat) echo "'" . addslashes($cat['name']) . "',"; ?>],
+        labels: <?php echo json_encode(array_column($category_data, 'name'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>,
         datasets: [{
             data: [<?php foreach($category_data as $cat) echo $cat['count'] . ","; ?>],
             backgroundColor: ['#10A37F', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'],
@@ -3162,8 +2873,7 @@ new Chart(categoryCtx, {
 });
 <?php endif; ?>
 
-const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
-new Chart(weeklyCtx, {
+SierraCharts.create('weeklyChart', {
     type: 'bar',
     data: {
         labels: [<?php foreach($weekly_data as $w) echo "'" . $w['day'] . "',"; ?>],
@@ -3180,23 +2890,21 @@ new Chart(weeklyCtx, {
 });
 
 <?php if ($demographicsAvailable && $demographicsTotal > 0): ?>
-const demographicsCtx = document.getElementById('demographicsChart').getContext('2d');
-new Chart(demographicsCtx, {
+SierraCharts.create('demographicsChart', {
     type: 'doughnut',
     data: {
-        labels: ['Resident', 'Non-Resident'],
+        labels: ['Resident', 'Non-Resident', 'Not recorded'],
         datasets: [{
-            data: [<?php echo $demographics['resident']; ?>, <?php echo $demographics['non_resident']; ?>],
-            backgroundColor: ['#10A37F', '#F59E0B'],
+            data: [<?php echo $demographics['resident']; ?>, <?php echo $demographics['non_resident']; ?>, <?php echo $demographics['unknown']; ?>],
+            backgroundColor: ['#10A37F', '#F59E0B', '#94a3b8'],
             borderWidth: 0
         }]
     },
-    options: { cutout: '65%', plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
+    options: { cutout: '76%', plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
 });
 <?php endif; ?>
 
-const peakDayCtx = document.getElementById('peakDayChart').getContext('2d');
-new Chart(peakDayCtx, {
+SierraCharts.create('peakDayChart', {
     type: 'bar',
     data: {
         labels: <?php echo json_encode($dayLabels); ?>,
@@ -3218,6 +2926,8 @@ new Chart(peakDayCtx, {
     }
 });
 
+
+});
 
 document.addEventListener('DOMContentLoaded', initMap);
 

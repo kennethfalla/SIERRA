@@ -261,6 +261,9 @@ elseif($role === 'barangay_official') {
         case 'dashboard':
             require_once 'views/barangay/dashboard.php';
             break;
+        case 'map':
+            require_once 'views/shared/map_page.php';
+            break;
         case 'verify-reports':
             require_once 'views/barangay/verify_reports.php';
             break;
@@ -296,6 +299,12 @@ elseif($role === 'admin') {
     switch($page) {
         case 'dashboard':
             require_once 'views/admin/dashboard.php';
+            break;
+        case 'analytics':
+            require_once 'views/admin/analytics.php';
+            break;
+        case 'map':
+            require_once 'views/shared/map_page.php';
             break;
         case 'all-reports':
             require_once 'views/admin/all_reports.php';

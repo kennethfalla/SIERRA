@@ -41,6 +41,29 @@ $ft_in_header = $ft['in_header'] ?? isset($app_page_title);
 if ($ft_in_header) $ft_compact_breakpoint = max(1400, $ft_compact_breakpoint);
 $ft_more_icon          = $ft['more_icon'] ?? 'fa-ellipsis-vertical';
 
+// Every report toolbar uses the same two primary controls: Search and Filter By.
+// Preserve the IDs used by each page's existing filtering code.
+foreach ($ft_inline_selects as $sel) {
+    $options = $sel['options'] ?? [];
+    $firstOption = reset($options);
+    $ft_popover_fields[] = [
+        'kind' => 'select', 'id' => $sel['id'] ?? '',
+        'label' => $sel['label'] ?? preg_replace('/^All\s+/i', '', (string)$firstOption),
+        'value' => $sel['value'] ?? '', 'default' => (string)array_key_first($options ?: ['' => '']),
+        'options' => $options,
+    ];
+}
+if ($ft_trailing_select) {
+    $ft_popover_fields[] = [
+        'kind' => 'select', 'id' => $ft_trailing_select['id'] ?? '',
+        'label' => $ft_trailing_select['label'] ?? 'Items per page',
+        'value' => $ft_trailing_select['value'] ?? '',
+        'default' => (string)array_key_first($ft_trailing_select['options'] ?? ['' => '']),
+        'options' => $ft_trailing_select['options'] ?? [],
+    ];
+}
+$ft_filter_count = $ft_active_filters;
+
 // Fallback chip-clearing map (used when the host page does not provide chip_clear_map):
 //   'search' -> search input, 'category' -> first inline select that has an "all" option,
 //   plus popover date fields mapped by normalizing their label ("Date From" -> date_from).
@@ -714,6 +737,37 @@ foreach ($ft_popover_fields as $pf) {
             display: none;
         }
     }
+    /* Same compact control pattern on desktop, tablet, and mobile. */
+    .ft-toolbar .ft-more-btn,
+    .ft-toolbar .ft-more-controls-header,
+    .ft-toolbar .ft-more-backdrop,
+    .ft-toolbar .ft-more-grab { display: none !important; }
+    .ft-toolbar .ft-more-controls { display: contents !important; }
+    .ft-toolbar .reports-toolbar { flex-wrap: wrap; }
+    .ft-toolbar .toolbar-search { flex: 1 1 240px; min-width: 0; }
+    .ft-toolbar .filter-popover-wrapper { flex: 0 0 auto; }
+    .ft-toolbar .filter-popover .date-range-wrapper { margin-top: 14px; }
+    .ft-toolbar #ftDateRangeBtn { display: none !important; }
+    .ft-toolbar #ftDateRangePopover {
+        display: block !important; position: static !important;
+        border: 0; box-shadow: none; padding: 0; min-width: 0;
+        max-width: none; max-height: none; overflow: visible; animation: none;
+    }
+    @media (max-width: 1400px) {
+        .ft-toolbar .reports-toolbar { flex-direction: row; }
+        .ft-toolbar .toolbar-search { flex: 1 1 160px; min-width: 0; }
+        .ft-toolbar .toolbar-results { width: 100%; justify-content: flex-start; }
+    }
+
+.table-section-header { display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.table-section-header > div:first-child { text-align:left; }
+.table-section-header h2 { font-size:14px; font-weight:800; color:#244c3d; }
+.table-section-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-left:auto; flex-wrap:wrap; }
+.table-section-header .table-section-actions .export-dropdown,.table-section-header .table-section-actions .btn-export-trigger { width:auto; }
+.table-section-actions .table-filter-controls { margin:0; padding:0; border:0; box-shadow:none; background:none; width:auto; }
+.table-filter-portal { position:static!important; margin:0!important; padding:0!important; }
+.table-filter-portal .filter-popover { z-index:10010; max-width:calc(100vw - 16px); max-height:calc(100dvh - 24px); overflow-y:auto; }
+@media(max-width:520px){.table-section-actions{gap:6px}.table-section-actions button{font-size:11px!important}}
 </style>
 
 <div class="ft-toolbar">
@@ -730,15 +784,6 @@ foreach ($ft_popover_fields as $pf) {
         </div>
         <?php endif; ?>
 
-        <?php if ($ft_view_toggle): ?>
-            <!-- View choices stay visible at every screen size. -->
-            <div class="view-toggle" id="ftViewToggle">
-                <button type="button" id="gridViewBtn" aria-label="Grid view" title="Grid view" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'grid' ? 'active' : ''; ?>"
-                        onclick="<?php echo htmlspecialchars($ft_view_toggle['grid'] ?? ''); ?>"><i class="fas fa-th"></i></button>
-                <button type="button" id="listViewBtn" aria-label="List view" title="List view" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'list' ? 'active' : ''; ?>"
-                        onclick="<?php echo htmlspecialchars($ft_view_toggle['list'] ?? ''); ?>"><i class="fas fa-list"></i></button>
-            </div>
-        <?php endif; ?>
         <!-- Mobile-only "more filters" trigger (3 dots) -->
         <button type="button" class="ft-more-btn" id="ftMoreBtn" aria-label="More filters" aria-expanded="false">
             <i class="fas <?php echo htmlspecialchars($ft_more_icon, ENT_QUOTES); ?>"></i>
@@ -755,28 +800,8 @@ foreach ($ft_popover_fields as $pf) {
                 <button type="button" class="ft-more-close" id="ftMoreClose" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
 
-            <!-- Inline selects -->
-            <?php foreach ($ft_inline_selects as $sel): ?>
-                <?php
-                $sel_id   = $sel['id'] ?? '';
-                $sel_value = (string)($sel['value'] ?? '');
-                $sel_min   = !empty($sel['min_width']) ? 'min-width:' . htmlspecialchars($sel['min_width']) . ';' : '';
-                $sel_onchange = !empty($sel['onchange']) ? $sel['onchange'] : ($ft_callback . '()');
-                $sel_options  = $sel['options'] ?? [];
-                ?>
-                <select id="<?php echo htmlspecialchars($sel_id); ?>" class="toolbar-select"
-                        style="<?php echo $sel_min; ?>" onchange="<?php echo htmlspecialchars($sel_onchange); ?>">
-                    <?php foreach ($sel_options as $opt_value => $opt_label): ?>
-                        <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
-                            <?php echo ($sel_value === (string)$opt_value) ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars((string)$opt_label); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            <?php endforeach; ?>
-
             <!-- Filter By popover -->
-            <?php if (!empty($ft_popover_fields) || $ft_sort_select): ?>
+            <?php if (!empty($ft_popover_fields) || $ft_sort_select || $ft_date_range || $ft_view_toggle): ?>
             <div class="filter-popover-wrapper">
                 <button type="button" class="toolbar-filter-btn <?php echo $ft_filter_count > 0 ? 'active' : ''; ?>" id="filterByBtn">
                     <i class="fas fa-sliders-h"></i> Filter By
@@ -819,6 +844,33 @@ foreach ($ft_popover_fields as $pf) {
                             </div>
                         <?php endif; ?>
                     </div>
+                    <?php if ($ft_view_toggle): ?>
+                    <div class="popover-field span-full" style="margin-top:12px">
+                        <label>View</label>
+                        <div class="view-toggle" id="ftViewToggle">
+                            <button type="button" id="gridViewBtn" aria-label="Grid view" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'grid' ? 'active' : ''; ?>" onclick="<?php echo htmlspecialchars($ft_view_toggle['grid'] ?? ''); ?>"><i class="fas fa-th"></i> Grid</button>
+                            <button type="button" id="listViewBtn" aria-label="List view" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'list' ? 'active' : ''; ?>" onclick="<?php echo htmlspecialchars($ft_view_toggle['list'] ?? ''); ?>"><i class="fas fa-list"></i> List</button>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($ft_date_range)): ?>
+                    <div class="date-range-wrapper">
+                        <button type="button" id="ftDateRangeBtn" hidden>Date Range</button>
+                        <div class="filter-popover open" id="ftDateRangePopover">
+                            <div class="popover-title">Date Range</div>
+                            <div class="dr-presets" id="ftRangePresets">
+                                <?php foreach (($ft_date_range['presets'] ?? []) as $dr_value => $dr_label): ?>
+                                <button type="button" class="dr-preset <?php echo ((string)($ft_date_range['preset'] ?? '') === (string)$dr_value) ? 'active' : ''; ?>" data-preset="<?php echo htmlspecialchars((string)$dr_value, ENT_QUOTES); ?>"><?php echo htmlspecialchars((string)$dr_label); ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="popover-grid full-width dr-custom">
+                                <div class="popover-field"><label for="ftRangeFrom">From</label><input type="date" id="ftRangeFrom" value="<?php echo htmlspecialchars((string)($ft_date_range['from'] ?? ''), ENT_QUOTES); ?>"></div>
+                                <div class="popover-field"><label for="ftRangeTo">To</label><input type="date" id="ftRangeTo" value="<?php echo htmlspecialchars((string)($ft_date_range['to'] ?? ''), ENT_QUOTES); ?>"></div>
+                            </div>
+                            <input type="hidden" id="ftRangePreset" value="<?php echo htmlspecialchars((string)($ft_date_range['preset'] ?? ''), ENT_QUOTES); ?>">
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     <div class="popover-actions">
                         <button type="button" class="popover-btn-reset" id="popoverReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
                         <button type="button" class="popover-btn-apply" id="popoverApply"><i class="fas fa-check" style="font-size:0.7rem; margin-right:4px"></i>Apply Filters</button>
@@ -827,72 +879,13 @@ foreach ($ft_popover_fields as $pf) {
             </div>
             <?php endif; ?>
 
-            <!-- Merged Date Range picker (opt-in via $ft['date_range']) -->
-            <?php if (!empty($ft_date_range)): ?>
-            <div class="date-range-wrapper">
-                <button type="button" class="toolbar-filter-btn <?php echo !empty($ft_date_range['active']) ? 'active' : ''; ?>" id="ftDateRangeBtn">
-                    <i class="far fa-calendar-alt"></i>
-                    <span><?php echo htmlspecialchars($ft_date_range['button_label'] ?? 'Date Range', ENT_QUOTES); ?></span>
-                    <i class="fas fa-chevron-down text-xs"></i>
-                    <?php if (!empty($ft_date_range['count'])): ?>
-                        <span class="filter-count-badge"><?php echo (int)$ft_date_range['count']; ?></span>
-                    <?php endif; ?>
-                </button>
-                <div class="filter-popover" id="ftDateRangePopover">
-                    <div class="popover-title">Filter by Date</div>
-                    <div class="dr-presets" id="ftRangePresets">
-                        <?php foreach (($ft_date_range['presets'] ?? []) as $dr_value => $dr_label): ?>
-                            <button type="button"
-                                class="dr-preset <?php echo ((string)($ft_date_range['preset'] ?? '') === (string)$dr_value) ? 'active' : ''; ?>"
-                                data-preset="<?php echo htmlspecialchars((string)$dr_value, ENT_QUOTES); ?>">
-                                <?php echo htmlspecialchars((string)$dr_label); ?>
-                            </button>
-                        <?php endforeach; ?>
-                    </div>
-                    <div class="popover-grid full-width dr-custom">
-                        <div class="popover-field">
-                            <label>From</label>
-                            <input type="date" id="ftRangeFrom" value="<?php echo htmlspecialchars((string)($ft_date_range['from'] ?? ''), ENT_QUOTES); ?>">
-                        </div>
-                        <div class="popover-field">
-                            <label>To</label>
-                            <input type="date" id="ftRangeTo" value="<?php echo htmlspecialchars((string)($ft_date_range['to'] ?? ''), ENT_QUOTES); ?>">
-                        </div>
-                    </div>
-                    <input type="hidden" id="ftRangePreset" value="<?php echo htmlspecialchars((string)($ft_date_range['preset'] ?? ''), ENT_QUOTES); ?>">
-                    <div class="popover-actions">
-                        <button type="button" class="popover-btn-reset" id="ftRangeReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
-                        <button type="button" class="popover-btn-apply" id="ftRangeApply"><i class="fas fa-check" style="font-size:0.7rem; margin-right:4px"></i>Apply</button>
-                    </div>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <?php if ($ft_results_text !== '' || $ft_trailing_select): ?>
+            <?php if ($ft_results_text !== ''): ?>
             <div class="toolbar-divider"></div>
             <div class="toolbar-results">
                 <?php if ($ft_results_text !== ''): ?>
                     <span class="toolbar-results-text"><?php echo $ft_results_text; ?></span>
                 <?php endif; ?>
 
-                <?php if ($ft_trailing_select): ?>
-                    <?php
-                    $ts_id   = $ft_trailing_select['id'] ?? '';
-                    $ts_value = (string)($ft_trailing_select['value'] ?? '');
-                    $ts_min   = !empty($ft_trailing_select['min_width']) ? 'min-width:' . htmlspecialchars($ft_trailing_select['min_width']) . ';' : '';
-                    $ts_onchange = $ft_trailing_select['onchange'] ?? ($ft_callback . '()');
-                    $ts_options  = $ft_trailing_select['options'] ?? [];
-                    ?>
-                    <select id="<?php echo htmlspecialchars($ts_id); ?>" class="toolbar-select"
-                            style="<?php echo $ts_min; ?>" onchange="<?php echo htmlspecialchars($ts_onchange); ?>">
-                        <?php foreach ($ts_options as $opt_value => $opt_label): ?>
-                            <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
-                                <?php echo ($ts_value === (string)$opt_value) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars((string)$opt_label); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                <?php endif; ?>
             </div>
             <?php endif; ?>
         </div>
@@ -1157,6 +1150,40 @@ foreach ($ft_popover_fields as $pf) {
         if (e.key === 'Enter') { clearTimeout(searchTimer); ftRun(); }
     });
 
+    // Keep Search in the page header and place Filter By beside the table export.
+    document.addEventListener('DOMContentLoaded', function () {
+        const explicitActions = document.querySelector('[data-filter-actions]');
+        const heading = explicitActions || document.querySelector('.table-section-header');
+        const wrapper = filterBtn && filterBtn.closest('.filter-popover-wrapper');
+        if (!heading || !wrapper) return;
+        let actions = explicitActions || heading.querySelector('.table-section-actions');
+        if (!actions) {
+            actions = document.createElement('div');
+            actions.className = 'table-section-actions';
+            const exportControl = heading.querySelector('.export-dropdown, .export-dropdown-wrapper, [id="exportDropdownWrap"]');
+            if (exportControl) actions.appendChild(exportControl);
+            else {
+                const exportButton = Array.from(heading.querySelectorAll('button,a')).find(el => /export/i.test(el.textContent));
+                if (exportButton) actions.appendChild(exportButton);
+            }
+            heading.appendChild(actions);
+        }
+        const slot = document.createElement('div');
+        slot.className = 'ft-toolbar table-filter-controls';
+        slot.appendChild(wrapper);
+        const exportControl = actions.querySelector('.export-dropdown, .export-dropdown-wrapper');
+        if (explicitActions && exportControl) actions.insertBefore(slot, exportControl);
+        else actions.prepend(slot);
+        // A body portal prevents tables and animated cards clipping the popover.
+        const portal = document.createElement('div');
+        portal.className = 'ft-toolbar table-filter-portal';
+        portal.appendChild(filterPopover);
+        document.body.appendChild(portal);
+        filterBtn.setAttribute('aria-controls', filterPopover.id);
+        filterBtn.setAttribute('aria-expanded', 'false');
+        new MutationObserver(function () { filterBtn.setAttribute('aria-expanded', String(filterPopover.classList.contains('open'))); }).observe(filterPopover,{attributes:true,attributeFilter:['class']});
+    });
+
     // Popover toggle + viewport clamping (keep fully on screen)
     filterBtn && filterBtn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -1221,6 +1248,13 @@ foreach ($ft_popover_fields as $pf) {
             if (el) el.value = f.default;
         });
         if (typeof window.ftResetPopover === 'function') window.ftResetPopover();
+        var drFrom = document.getElementById('ftRangeFrom');
+        var drTo = document.getElementById('ftRangeTo');
+        var drPreset = document.getElementById('ftRangePreset');
+        if (drFrom) drFrom.value = '';
+        if (drTo) drTo.value = '';
+        if (drPreset) drPreset.value = '';
+        document.querySelectorAll('#ftRangePresets .dr-preset').forEach(function (button) { button.classList.remove('active'); });
         filterPopover.classList.remove('open');
         filterPopover.style.position = '';
         filterPopover.style.left = '';

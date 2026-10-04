@@ -348,7 +348,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
     <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
     <link rel="dns-prefetch" href="https://photon.komoot.io">
-    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-layers.js'); ?>"></script>
     <script src="<?php echo BASE_URL; ?>assets/vendor/confetti/confetti.browser.min.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -1343,11 +1343,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <?php if($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
             <div class="rounded-xl overflow-hidden border border-emerald-100 relative">
                 <div id="reportMap" class="h-64 md:h-80"></div>
-                <div id="mapTapOverlay" class="absolute inset-0 bg-black/0 active:bg-black/5 flex items-center justify-center md:hidden">
-                    <span class="bg-white/95 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-full shadow flex items-center gap-1.5">
-                        <i class="fas fa-hand-pointer text-[#10A37F]"></i> <?php echo t('Tap to interact with map'); ?>
-                    </span>
-                </div>
+
             </div>
             <p class="text-xs text-gray-400 mt-2 text-center">
                 <i class="fas fa-map-pin mr-1 text-[#10A37F]"></i>
@@ -1939,16 +1935,10 @@ function showToast(message, type) {
 // Initialize map
 document.addEventListener('DOMContentLoaded', function() {
     <?php if($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
-    var pinColor = '<?php echo strtolower($report['decision_pin'] ?? 'Green'); ?>';
-    var colorMap = { 'green': '#10A37F', 'yellow': '#F59E0B', 'orange': '#F97316', 'red': '#EF4444' };
-    var color = colorMap[pinColor] || '#10A37F';
-
-    var isMobileViewport = window.matchMedia('(max-width: 767px)').matches;
     var map = L.map('reportMap', {
-        dragging: !isMobileViewport,
-        tap: !isMobileViewport,
-        scrollWheelZoom: !isMobileViewport,
-        touchZoom: !isMobileViewport
+        dragging:true,
+        scrollWheelZoom:true,
+        touchZoom:true
     }).setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], 16);
     MapLayers.addControl(map);
     
@@ -1990,13 +1980,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    var customIcon = L.divIcon({
-        html: '<div style="background-color: ' + color + '; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 3px solid white;">' +
-                '<i class="fas fa-map-pin" style="color: white; font-size: 20px;"></i>' +
-              '</div>',
-        iconSize: [45, 45],
-        className: 'custom-marker'
-    });
+    var customIcon = SierraMapClusters.icon(<?php echo (int)($report['severity_score'] ?? 0); ?>, <?php echo json_encode($report['category_name'] ?? 'Report', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>);
 
     L.marker([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], { icon: customIcon })
         .addTo(map)
@@ -2009,15 +1993,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `);
 
-    var mapTapOverlay = document.getElementById('mapTapOverlay');
-    if (mapTapOverlay && isMobileViewport) {
-        mapTapOverlay.addEventListener('click', function () {
-            map.dragging.enable();
-            map.tap && map.tap.enable();
-            map.touchZoom.enable();
-            mapTapOverlay.remove();
-        }, { once: true });
-    }
     <?php endif; ?>
 });
 

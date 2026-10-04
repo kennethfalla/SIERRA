@@ -9,16 +9,24 @@
         var startX = 0;
         var count = card.querySelector('[data-ann-count]');
         var timer = null;
+        var transitions = new Map();
         function show(next, manual) {
+            next = (next + slides.length) % slides.length;
             if (next === index) return;
+            if (transitions.has(slides[next])) {
+                window.clearTimeout(transitions.get(slides[next]));
+                transitions.delete(slides[next]);
+                slides[next].classList.remove('is-leaving');
+            }
             var current = slides[index];
             current.classList.remove('is-active');
             current.classList.add('is-leaving');
-            window.setTimeout(function () {
+            transitions.set(current, window.setTimeout(function () {
                 current.hidden = true;
                 current.classList.remove('is-leaving');
-            }, 420);
-            index = (next + slides.length) % slides.length;
+                transitions.delete(current);
+            }, reduceMotion ? 0 : 420));
+            index = next;
             slides[index].hidden = false;
             slides[index].classList.add('is-active');
             if (count) count.setAttribute('aria-live', manual ? 'polite' : 'off');
@@ -28,7 +36,7 @@
             if (timer) window.clearInterval(timer);
             if (reduceMotion) return;
             timer = window.setInterval(function () {
-                if (!document.hidden) show(index + 1, false);
+                if (!document.hidden && !touching) show(index + 1, false);
             }, 5200);
         }
         slides[0].classList.add('is-active');

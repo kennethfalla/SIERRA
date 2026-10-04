@@ -672,6 +672,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
 </head>
 <body class="relative min-h-screen" style="background: linear-gradient(135deg, #f0f7f4 0%, #e6f0ec 100%);">
     <div class="floating-shape top-[-100px] right-[-100px] w-[300px] h-[300px] opacity-15" style="background: #10A37F;"></div>
@@ -973,7 +974,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                             </div>
                             
                             <!-- Next Button -->
-                            <button type="button" onclick="validateAndProceed()" class="w-full mt-6 text-white font-semibold py-3 rounded-xl transition-all hover:scale-[0.98] hover:shadow-lg text-base" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
+                            <button type="button" onclick="validateAndProceed()" class="btn-primary w-full mt-6 text-white font-semibold py-3 rounded-xl transition-all hover:scale-[0.98] hover:shadow-lg text-base" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
                                 <span>Continue <i class="fas fa-arrow-right ml-2"></i></span>
                             </button>
                         </form>
@@ -1051,10 +1052,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                         </div>
                         
                         <div class="flex gap-3 mt-6">
-                            <button onclick="goToStep1()" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium text-sm">
+                            <button onclick="goToStep1()" class="btn-secondary flex-1 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium text-sm">
                                 <i class="fas fa-arrow-left mr-2"></i>Back
                             </button>
-                            <button onclick="verifyOTP()" class="flex-1 px-4 py-2.5 text-white rounded-xl font-semibold text-sm transition-all hover:scale-[0.98]" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
+                            <button onclick="verifyOTP()" class="btn-primary flex-1 px-4 py-2.5 text-white rounded-xl font-semibold text-sm transition-all hover:scale-[0.98]" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
                                 <span id="verifyBtnText">Verify</span>
                                 <span id="verifySpinner" class="hidden">
                                     <i class="fas fa-spinner fa-spin mr-1"></i> Verifying...
@@ -2464,10 +2465,10 @@ function maskEmail(email) {
             </div>
 
             <div class="px-6 py-4 border-t border-gray-200 flex items-center gap-3">
-                <button type="button" onclick="agreeTerms()" class="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:scale-[0.98]" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
+                <button type="button" onclick="agreeTerms()" class="btn-primary flex-1 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:scale-[0.98]" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
                     <i class="fas fa-check mr-1"></i> I Agree
                 </button>
-                <button type="button" onclick="closeTermsModal()" class="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50">
+                <button type="button" onclick="closeTermsModal()" class="btn-secondary flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50">
                     Close
                 </button>
             </div>
@@ -2492,10 +2493,10 @@ function maskEmail(email) {
             </div>
 
             <div class="px-6 py-4 border-t border-gray-200 flex items-center gap-3">
-                <button type="button" onclick="agreePrivacy()" class="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:scale-[0.98]" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
+                <button type="button" onclick="agreePrivacy()" class="btn-primary flex-1 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:scale-[0.98]" style="background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);">
                     <i class="fas fa-check mr-1"></i> I Agree
                 </button>
-                <button type="button" onclick="closePrivacyModal()" class="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50">
+                <button type="button" onclick="closePrivacyModal()" class="btn-secondary flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-semibold text-sm hover:bg-gray-50">
                     Close
                 </button>
             </div>

@@ -48,7 +48,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-layers.js'); ?>"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; overflow-x: hidden; }
@@ -1892,10 +1892,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     var map = L.map('map').setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], 16);
     MapLayers.addControl(map);
     L.marker([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], {
-        icon: L.divIcon({
-            html: '<div style="background:#10A37F;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"><i class="fas fa-map-pin" style="color:white;font-size:14px;"></i></div>',
-            iconSize: [32, 32]
-        })
+        icon: SierraMapClusters.icon(<?php echo (int)($report['severity_score'] ?? 0); ?>, <?php echo json_encode($report['category_name'] ?? 'Report', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>)
     }).addTo(map);
 <?php endif; ?>
 

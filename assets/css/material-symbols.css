@@ -139,6 +139,7 @@
 .fa-cloud-upload-alt { --app-icon: "\e2c3"; }
 .fa-cogs { --app-icon: "\e726"; }
 .fa-comment-dots { --app-icon: "\e0c9"; }
+.fa-comments { --app-icon: "\e0b7"; }
 .fa-compress-arrows-alt { --app-icon: "\f1cf"; }
 .fa-copy { --app-icon: "\e14d"; }
 .fa-crop-alt { --app-icon: "\e3be"; }
@@ -156,6 +157,7 @@
 .fa-eye-slash { --app-icon: "\e8f5"; }
 .fa-facebook-f { --app-icon: "\e80b"; }
 .fa-file-alt { --app-icon: "\e873"; }
+.fa-file-lines { --app-icon: "\e873"; }
 .fa-file-contract { --app-icon: "\f5a0"; }
 .fa-flag-checkered { --app-icon: "\f06e"; }
 .fa-flask { --app-icon: "\ea4b"; }
@@ -178,6 +180,10 @@
 .fa-keyboard { --app-icon: "\e312"; }
 .fa-landmark { --app-icon: "\e84f"; }
 .fa-layer-group { --app-icon: "\e53b"; }
+.fa-list-check { --app-icon: "\e6b1"; }
+.fa-location-crosshairs { --app-icon: "\e55c"; }
+.fa-repeat { --app-icon: "\e627"; }
+.fa-up-right-and-down-left-from-center { --app-icon: "\f1ce"; }
 .fa-list-ul { --app-icon: "\e241"; }
 .fa-location-dot { --app-icon: "\f1db"; }
 .fa-lock { --app-icon: "\e899"; }

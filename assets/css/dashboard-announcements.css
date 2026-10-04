@@ -16,7 +16,11 @@
 .announce-controls button { width: 32px; height: 32px; border: 1px solid #dce8e1; border-radius: 8px; background: #f4faf6; color: #0d8568; cursor: pointer; }
 .announce-controls button:hover { background: #e0f5e8; }
 .announce-empty { padding: 1rem 0; font-size: .8rem; color: #64776d; }
+.announce-slides:has(.announce-empty) { min-height:0; }
+.dashboard-page .dash-reveal-visible .announce-carousel-heading { animation:announcement-reveal .65s ease both; }
+.dashboard-page .dash-reveal-visible .announce-slides { animation:announcement-reveal .75s .1s ease both; }
+@keyframes announcement-reveal { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 @keyframes announcement-enter { from { opacity: 0; transform: translateX(18px); filter: blur(5px); } to { opacity: 1; transform: translateX(0); filter: blur(0); } }
 @keyframes announcement-leave { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-14px); filter: blur(4px); } }
 @media (max-width: 640px) { .announce-slides { min-height: 100px; } .announce-photo { width: 88px; height: 100px; flex-basis: 88px; } .announce-slide { gap: .8rem; } }
-@media (prefers-reduced-motion: reduce) { .announce-slide, .announce-slide.is-leaving { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .announce-slide, .announce-slide.is-leaving, .dashboard-page .dash-reveal-visible .announce-carousel-heading, .dashboard-page .dash-reveal-visible .announce-slides { animation: none; } }

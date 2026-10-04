@@ -105,7 +105,7 @@ if (is_dir($barangays_dir)) {
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
     <title><?php echo t('Submit Report - EnviroTrack'); ?></title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
@@ -120,7 +120,7 @@ if (is_dir($barangays_dir)) {
     <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
     <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
     <link rel="dns-prefetch" href="https://photon.komoot.io">
-    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-layers.js'); ?>"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -2950,19 +2950,10 @@ if (is_dir($barangays_dir)) {
         // Clear any existing nearby markers
         clearNearbyMarkers();
         
-        // Create a custom icon for nearby reports
-        const nearbyIcon = L.divIcon({
-            html: '<div class="nearby-marker-icon"><i class="fas fa-exclamation-triangle"></i></div>',
-            className: 'nearby-marker-wrapper',
-            iconSize: [40, 40],
-            iconAnchor: [20, 40],
-            popupAnchor: [0, -40]
-        });
-        
         // Add marker for each nearby report
         reports.forEach(function(report) {
             const marker = L.marker([report.latitude, report.longitude], {
-                icon: nearbyIcon,
+                icon: SierraMapClusters.icon(report.severity_score, report.category_name || 'Nearby report'),
                 zIndexOffset: 100
             });
             
@@ -3777,11 +3768,7 @@ if (is_dir($barangays_dir)) {
         return null;
     }
 
-    const customIcon = L.divIcon({
-        html: '<div style="background-color: #10A37F; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(16, 163, 127, 0.4); border: 3px solid white;"><i class="fas fa-map-pin" style="color: white; font-size: 18px;"></i></div>',
-        iconSize: [40, 40],
-        className: 'custom-div-icon'
-    });
+    const customIcon = SierraMapClusters.icon(0, 'Selected location');
 
     function extractPolygonCoordinates(geojson) {
         if (!geojson || !geojson.features) return null;

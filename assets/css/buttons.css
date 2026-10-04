@@ -1,0 +1,126 @@
+/* Shared dashboard button branding. Width and placement remain owned by each page. */
+:root {
+    --sierra-button-accent:#0d8568;
+    --sierra-button-hover:#086e57;
+    --sierra-button-border:#cde2d7;
+    --sierra-button-radius:10px;
+}
+body :is(.sd-btn,.btn-generate,.btn-track-supported,.delete-btn,.btn-light,.btn-outline-light,.btn,.btn-primary,.btn-success,.btn-indigo,.btn-warning,.btn-secondary,
+    .btn-danger,.btn-cancel,.btn-outline,.btn-back,.report-back-btn,.btn-add-report,
+    .btn-report,.btn-submit,.btn-create,.btn-apply,.btn-reset,.btn-restore,
+    .btn-view,.app-view-btn,.view-btn,.verify-btn,.btn-manage,.btn-action,.btn-announce,
+    .btn-export-trigger,.btn-edit-profile,.btn-add-barangay,.barangay-btn-save,
+    .gb-btn,.popover-btn-apply,.popover-btn-reset,.sierra-map-full-link,.map-fullscreen-btn,
+    .map-popup-view-btn,.view-details-btn,.nearby-popup-btn,.track-report-btn,
+    .lb-view-all,.save-btn,.edit-btn,.copy-btn) {
+    box-sizing:border-box;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.45rem;
+    min-height:40px;
+    padding:.55rem .9rem;
+    border:1px solid var(--sierra-button-border);
+    border-radius:var(--sierra-button-radius) !important;
+    font-family:'Manrope',sans-serif !important;
+    font-size:.8rem;
+    font-weight:750 !important;
+    line-height:1.35;
+    text-decoration:none !important;
+    cursor:pointer;
+    transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease;
+}
+body :is(.btn-primary,.btn-success,.btn-indigo,.btn-warning,.btn-add-report,.btn-report,
+    .btn-submit,.btn-create,.btn-apply,.btn-restore,.btn-view,.app-view-btn,.view-btn,
+    .sd-btn.save,.btn-generate,.btn-track-supported,.verify-btn,.btn-manage,.btn-action,.btn-export-trigger,.btn-edit-profile,
+    .btn-add-barangay,.barangay-btn-save,.gb-btn-primary,.popover-btn-apply,
+    .map-popup-view-btn,.view-details-btn,.nearby-popup-btn,.track-report-btn,.save-btn) {
+    background:var(--sierra-button-accent) !important;
+    border-color:var(--sierra-button-accent) !important;
+    color:#fff !important;
+    box-shadow:0 4px 10px rgba(13,133,104,.14) !important;
+}
+body :is(.btn-secondary,.btn-outline,.btn-back,.report-back-btn,.btn-reset,.btn-announce,
+    .btn-cancel,.gb-btn-cancel,.popover-btn-reset,.sierra-map-full-link,.map-fullscreen-btn,
+    .sd-btn.discard,.lb-view-all,.edit-btn,.copy-btn) {
+    background:#f0f8f4 !important;
+    border-color:var(--sierra-button-border) !important;
+    color:#0d7057 !important;
+    box-shadow:none !important;
+}
+body :is(.btn-danger,.gb-btn-danger,.btn-action.danger,.btn-action.reject,.delete-btn) {
+    background:#dc2626 !important;
+    border-color:#dc2626 !important;
+    color:#fff !important;
+    box-shadow:0 4px 10px rgba(220,38,38,.12) !important;
+}
+body :is(.btn-primary,.btn-success,.btn-indigo,.btn-warning,.btn-add-report,.btn-report,
+    .btn-submit,.btn-create,.btn-apply,.btn-restore,.btn-view,.app-view-btn,.view-btn,
+    .sd-btn.save,.btn-generate,.btn-track-supported,.verify-btn,.btn-manage,.btn-action,.btn-export-trigger,.btn-edit-profile,
+    .btn-add-barangay,.barangay-btn-save,.gb-btn-primary,.popover-btn-apply,
+    .map-popup-view-btn,.view-details-btn,.nearby-popup-btn,.track-report-btn,.save-btn):hover:not(:disabled):not([aria-disabled="true"]) {
+    background:var(--sierra-button-hover) !important;
+    border-color:var(--sierra-button-hover) !important;
+    box-shadow:0 6px 14px rgba(13,133,104,.2) !important;
+    transform:translateY(-1px);
+}
+body :is(.btn-secondary,.btn-outline,.btn-back,.report-back-btn,.btn-reset,.btn-announce,
+    .btn-cancel,.gb-btn-cancel,.popover-btn-reset,.sierra-map-full-link,.map-fullscreen-btn,
+    .sd-btn.discard,.lb-view-all,.edit-btn,.copy-btn):hover:not(:disabled):not([aria-disabled="true"]) {
+    background:#e3f2ea !important;
+    border-color:#a4cbb5 !important;
+    transform:translateY(-1px);
+}
+body :is(.btn-danger,.gb-btn-danger,.btn-action.danger,.btn-action.reject,.delete-btn):hover:not(:disabled):not([aria-disabled="true"]) {
+    background:#b91c1c !important;
+    border-color:#b91c1c !important;
+}
+/* Table, pagination, map and carousel controls keep their compact dimensions. */
+body :is(.action-btn,.page-btn,.pagination-btn,.rec-info-btn,.ctrl-btn,.map-control-btn,
+    .announce-controls button,.leaflet-bar a) {
+    border-radius:8px !important;
+    font-family:'Manrope',sans-serif;
+    transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+body :is(.barangay-btn-edit,.role-action-btn:not(.danger),.action-btn-view,.action-btn-edit,.action-btn-activate,.page-btn.active,.pagination-btn.active) {
+    background:#e8f5ed !important;
+    border-color:#cde2d7 !important;
+    color:#0d7057 !important;
+}
+body :is(.role-action-btn.danger,.barangay-btn-delete,.action-btn-delete,.action-btn-deactivate) {
+    background:#fef2f2 !important;
+    border-color:#fecaca !important;
+    color:#b91c1c !important;
+}
+body :is(.btn,.btn-primary,.btn-success,.btn-indigo,.btn-warning,.btn-secondary,.btn-danger,
+    .btn-export-trigger,.btn-view,.app-view-btn,.popover-btn-apply,.popover-btn-reset,
+    .action-btn,.page-btn,.pagination-btn,.sierra-map-full-link,.map-fullscreen-btn):focus-visible {
+    outline:3px solid #10a37f66 !important;
+    outline-offset:3px;
+}
+body :is(button,.btn,.page-btn,.pagination-btn)[disabled],
+body :is(.btn,.page-btn,.pagination-btn,.action-btn)[aria-disabled="true"],
+body :is(.page-btn.disabled,.pagination-btn.disabled,.action-btn-disabled) {
+    opacity:.55 !important;
+    cursor:not-allowed !important;
+    transform:none !important;
+    box-shadow:none !important;
+}
+body .app-mobile-header :is(.btn,.btn-export-trigger,.popover-btn-apply,.popover-btn-reset) { min-height:36px; }
+body :is(button,a,input[type="submit"]):is(.hidden,[hidden]) { display:none !important; }
+@media(min-width:768px) { body .lb-view-all { display:none; } }
+body a.map-fullscreen-btn:has(span) { width:auto; padding-inline:.75rem; white-space:nowrap; }
+/* Older forms express their actions with utility classes rather than named variants. */
+body :is(button,a):is([class~="bg-[#10A37F]"],[class~="bg-emerald-600"],[class~="bg-green-600"]) {
+    display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
+    min-height:40px; padding:.55rem .9rem; border-radius:var(--sierra-button-radius) !important;
+    background:var(--sierra-button-accent) !important; border-color:var(--sierra-button-accent) !important;
+    color:#fff !important; font-family:'Manrope',sans-serif; font-weight:750;
+    box-shadow:0 4px 10px rgba(13,133,104,.14);
+}
+body :is(button,a):is([class~="bg-[#10A37F]"],[class~="bg-emerald-600"],[class~="bg-green-600"]):hover:not(:disabled) {
+    background:var(--sierra-button-hover) !important;
+}
+@media(prefers-reduced-motion:reduce) {
+    body :is(button,.btn,.btn-primary,.btn-secondary,.btn-view,.app-view-btn,.sierra-map-full-link,.map-fullscreen-btn) { transition:none; }
+}

@@ -154,6 +154,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
     <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/leaflet-stub.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-layers.js'); ?>"></script>
     <!-- Network hints for slow connections (map tiles / reverse geocoding) -->
     <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
     <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>

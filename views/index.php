@@ -159,7 +159,7 @@ if ($isLoggedIn && $is_staff) {
     <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
     <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
     <link rel="dns-prefetch" href="https://photon.komoot.io">
-    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-layers.js'); ?>"></script>
     <script src="<?php echo BASE_URL; ?>assets/vendor/gsap/gsap.min.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
@@ -870,6 +870,7 @@ if ($isLoggedIn && $is_staff) {
     <script defer src="<?php echo BASE_URL; ?>assets/js/landing-reveal.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/landing-reveal.js'); ?>"></script>
     <script defer src="<?php echo BASE_URL; ?>assets/js/landing-motion.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/landing-motion.js'); ?>"></script>
     <script defer src="<?php echo BASE_URL; ?>assets/js/custom-cursor.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/custom-cursor.js'); ?>"></script>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
 </head>
 <body class="bg-[#F5FBF6] splash-lock">
 

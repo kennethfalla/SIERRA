@@ -650,17 +650,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
     }
 
     if ($action === 'get_full' && $report_id > 0) {
+        // Persist authentication updates and release the session lock before
+        // querying details, so map clicks cannot block other page requests.
+        if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
         $stmt = $db->prepare("
-            SELECT r.*, c.name as category_name, 
-                   CONCAT(u.first_name, ' ', u.last_name) as user_name, 
+            SELECT r.*, COALESCE(c.name, 'Uncategorized') as category_name,
+                   COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), 'Unavailable account') as user_name,
                    u.email as user_email,
                    b.name as barangay_name,
                    (SELECT GROUP_CONCAT(image_path) FROM report_images WHERE report_id = r.id) as image_paths,
                    (SELECT GROUP_CONCAT(image_path) FROM resolution_evidence WHERE report_id = r.id) as resolution_evidence_paths
             FROM reports r
-            JOIN categories c ON r.category_id = c.id
-            JOIN users u ON r.user_id = u.id
-            JOIN barangays b ON r.barangay_id = b.id
+            LEFT JOIN categories c ON r.category_id = c.id
+            LEFT JOIN users u ON r.user_id = u.id
+            LEFT JOIN barangays b ON r.barangay_id = b.id
             WHERE r.id = ?
         ");
         $stmt->execute([$report_id]);
@@ -668,7 +671,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
         if ($result) {
             $result['token'] = IdGuard::enc((int)$result['id']);
         }
-        echo json_encode($result);
+        echo json_encode($result, JSON_INVALID_UTF8_SUBSTITUTE);
         exit();
     }
 

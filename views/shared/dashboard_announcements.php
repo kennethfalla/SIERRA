@@ -37,7 +37,7 @@ foreach ($dashAnnouncements as $dashAnn) {
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-announcements.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-announcements.css'); ?>">
 <section class="announce-carousel" aria-label="Community announcements" aria-roledescription="carousel" tabindex="0">
     <div class="announce-carousel-heading">
-        <span><i class="fas fa-bullhorn" aria-hidden="true"></i> <?php echo t('Announcements'); ?></span>
+        <span><i class="fas fa-bullhorn" aria-hidden="true"></i> <?php echo t($dashAnnHeading ?? 'Announcements'); ?></span>
         <a href="<?php echo BASE_URL; ?>index.php?page=announcements"><?php echo t('View all'); ?> <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
     </div>
     <div class="announce-slides">

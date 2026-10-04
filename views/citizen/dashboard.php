@@ -71,8 +71,8 @@ try {
                IF(r.user_id = :current_user_id, 1, 0) AS is_mine,
                GROUP_CONCAT(ri.image_path ORDER BY ri.is_primary DESC, ri.id ASC SEPARATOR '||') AS images
         FROM reports r
-        JOIN categories c ON r.category_id = c.id
-        JOIN barangays b ON r.barangay_id = b.id
+        LEFT JOIN categories c ON r.category_id = c.id
+        LEFT JOIN barangays b ON r.barangay_id = b.id
         LEFT JOIN report_images ri ON ri.report_id = r.id
         WHERE r.status NOT IN ('cancelled', 'rejected')
           AND r.is_archived = 0
@@ -141,7 +141,7 @@ if (is_dir($barangays_dir)) {
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
     <title><?php echo t('Citizen Dashboard - EnviroTrack'); ?></title>
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
@@ -157,7 +157,7 @@ if (is_dir($barangays_dir)) {
     <link rel="preconnect" href="https://tile.openstreetmap.appspot.com" crossorigin>
     <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
     <link rel="dns-prefetch" href="https://photon.komoot.io">
-    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-layers.js'); ?>"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -1046,21 +1046,6 @@ if (is_dir($barangays_dir)) {
             align-items: center;
             justify-content: center;
         }
-        /* pulsing ring for own-report markers */
-        @keyframes mine-pulse {
-            0%   { transform: scale(1);   opacity: 0.7; }
-            70%  { transform: scale(2.2); opacity: 0; }
-            100% { transform: scale(2.2); opacity: 0; }
-        }
-        .mine-marker-wrap { position: relative; display: inline-block; }
-        .mine-marker-ring {
-            position: absolute;
-            inset: -4px;
-            border-radius: 50%;
-            border: 2px solid #10A37F;
-            animation: mine-pulse 1.8s ease-out infinite;
-        }
-
         /* Category label under each community hotspot dot (shown when zoomed in) */
         .sev-marker-wrap {
             display: flex;
@@ -1084,8 +1069,8 @@ if (is_dir($barangays_dir)) {
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
             border: 1px solid rgba(16,163,127,0.25);
         }
-        .community-report-marker .sev-marker-label { display: none; }
-        .communityMap-zoomed .community-report-marker .sev-marker-label { display: block; }
+        .severity-marker .sev-marker-label { display: none; }
+        .communityMap-zoomed .severity-marker .sev-marker-label { display: block; }
 
         .notification-bell { 
             cursor: pointer; 
@@ -1889,17 +1874,17 @@ text-decoration: underline;
                 </div>
 
                 <div class="flex flex-wrap gap-3 text-xs mb-3">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> <?php echo t('Pending'); ?></span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#3B82F6;"></span> <?php echo t('Verified'); ?></span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#8B5CF6;"></span> <?php echo t('In Progress'); ?></span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> <?php echo t('Escalated'); ?></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#10B981;"></span> <?php echo t('Low'); ?></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> <?php echo t('Medium'); ?></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#F97316;"></span> <?php echo t('High'); ?></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#EF4444;"></span> <?php echo t('Critical'); ?></span>
                 </div>
 
                 <div id="communityMap"></div>
 
                 <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
                     <i class="fas fa-info-circle"></i>
-                    <?php echo t('Click any marker to view details.'); ?> <span class="inline-flex items-center gap-1 ml-1"><span class="w-2.5 h-2.5 rounded-full border-2 border-[#10A37F] bg-[#10A37F]"></span> = your report.</span>
+                    <?php echo t('Click any marker to view details.'); ?> <span class="inline-flex items-center gap-1 ml-1"><i class="fas fa-star text-[#10A37F]" aria-hidden="true"></i> <?php echo t('Your report'); ?></span>
                 </p>
 
         <!-- ===== REPORT DETAIL MODAL ===== -->
@@ -2344,7 +2329,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var mapEl = document.getElementById('communityMap');
     if (!mapEl) return;
 
-    var communityMap = L.map('communityMap', { scrollWheelZoom: true }).setView([15.3092, 120.9033], 13);
+    var communityMap = L.map('communityMap', { scrollWheelZoom: true }).setView([SierraMapSettings.default_lat, SierraMapSettings.default_lng], SierraMapSettings.default_zoom);
 
     MapLayers.addControl(communityMap, { position: 'bottomright' });
 
@@ -2363,24 +2348,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     }
 
-    if (boundaryData && boundaryData.features) {
-        try {
-            var coords = extractPolygonCoords(boundaryData);
-            if (coords) {
-                L.polygon(coords, MapLayers.whiteCasingStyle(1.5)).addTo(communityMap);
-                L.polygon(coords, MapLayers.dashedBoundaryStyle(1.5)).addTo(communityMap);
-            }
-        } catch(e) {}
-    }
+    if (boundaryData && boundaryData.features) MapLayers.addBoundary(communityMap,boundaryData,{interactive:false});
 
     var barangayStyle = MapLayers.dashedBoundaryStyle(1.5);
     var barangayLayer = null;
     var citizenSpotlight = null;
     var citizenSelected = null;
     if (barangayData && barangayData.features) {
-        L.geoJSON(barangayData, { style: MapLayers.whiteCasingStyle(1.5), interactive: false }).addTo(communityMap);
-        barangayLayer = L.geoJSON(barangayData, {
-            style: barangayStyle,
+        barangayLayer = MapLayers.addBoundary(communityMap, barangayData, {
             onEachFeature: function(feature, layer) {
                 var name = (feature.properties && feature.properties.name) ? feature.properties.name : 'Barangay';
                 layer.bindTooltip(name, { sticky:true });
@@ -2404,12 +2379,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             }
-        }).addTo(communityMap);
+        });
     }
 
     var statusColors = {
-        pending:'#F59E0B', under_review:'#F59E0B', verified:'#3B82F6',
-        in_progress:'#8B5CF6', escalated_pending:'#F97316', escalated:'#EF4444',
+        pending:'#F59E0B', under_review:'#3B82F6', verified:'#3B82F6',
+        in_progress:'#6366F1', escalated_pending:'#F97316', escalated:'#EA580C',
         resolved:'#10A37F', closed:'#6B7280', rejected:'#DC2626', cancelled:'#9CA3AF'
     };
     var statusLabels = {
@@ -2429,29 +2404,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     var mapData = <?php echo json_encode($map_reports); ?>;
-    var markersLayer = L.layerGroup();
+    var markersLayer = SierraMapClusters.layer({radiusMeters:SierraMapSettings.clustering_radius_meters});
 
     mapData.forEach(function(r) {
         var lat = parseFloat(r.latitude);
         var lng = parseFloat(r.longitude);
         if (isNaN(lat) || isNaN(lng) || (lat===0 && lng===0)) return;
 
-        var color      = statusColors[r.status] || '#10A37F';
+        var color = SierraMapClusters.color(Number(r.severity_score) || 0);
         var isMine     = parseInt(r.is_mine) === 1;
-        var markerSize = isMine ? 26 : 22;
-        var categoryName = esc(r.category_name || 'General');
-        var dotHtml = isMine
-            ? '<div class="mine-marker-wrap"><div class="mine-marker-ring"></div>'
-              + '<div style="background:'+color+';width:'+markerSize+'px;height:'+markerSize+'px;border-radius:50%;border:3px solid #ffffff;box-shadow:0 2px 8px rgba(16,163,127,0.45);"></div></div>'
-            : '<div style="background:'+color+';width:'+markerSize+'px;height:'+markerSize+'px;border-radius:50%;border:2px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>';
-        var markerHtml = '<div class="sev-marker-wrap">' + dotHtml + '<div class="sev-marker-label">' + categoryName + '</div></div>';
-
-        var icon = L.divIcon({
-            html: markerHtml,
-            iconSize:   [130, markerSize + 18],
-            iconAnchor: [65, markerSize/2],
-            className:  'community-report-marker'
-        });
+        var icon = SierraMapClusters.icon(r.severity_score, r.category_name || 'General', isMine);
 
         // --- Build popup (compact snippet; full details via View Details) ---
         var title       = esc(r.title || 'Untitled Report');
@@ -2461,10 +2423,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isMine) html += '<div class="map-popup-mine-badge"><i class="fas fa-star" style="font-size:0.6rem;"></i> Your Report</div>';
         html += '<div class="map-popup-title">' + title + '</div>';
         html += '<div class="map-popup-meta"><i class="fas fa-tag"></i>' + esc(r.category_name||'General') + '</div>';
-        html += '<div class="map-popup-meta"><i class="fas fa-circle" style="color:'+color+';"></i>' + statusLabel + '</div>';
+        html += '<div class="map-popup-meta"><i class="fas fa-circle" style="color:'+(statusColors[r.status] || '#64748b')+';"></i>' + statusLabel + '</div>';
         html += '<button class="map-popup-view-btn" onclick="openReportDetail('+r.id+')"><i class="fas fa-expand-alt" style="margin-right:5px;"></i>View Details</button>';
 
-        var marker = L.marker([lat, lng], { icon: icon })
+        var marker = L.marker([lat, lng], { icon:icon, reportTitle:r.title, severityScore:Number(r.severity_score)||0 })
             .bindPopup(html, { autoPanPadding:[40,40], minWidth:200 });
         marker.on('click', function(){ this.openPopup(); });
         markersLayer.addLayer(marker);
@@ -2512,7 +2474,7 @@ function openReportDetail(reportId) {
         .then(function(data) {
             if (!data.success) { content.innerHTML = '<p style="color:#ef4444;text-align:center;padding:2rem;">Could not load report details.</p>'; return; }
             var r = data.report;
-            var color       = ({pending:'#F59E0B',under_review:'#3B82F6',verified:'#3B82F6',in_progress:'#8B5CF6',escalated_pending:'#F97316',escalated:'#EF4444',resolved:'#10A37F',closed:'#6B7280'})[r.status] || '#10A37F';
+            var color       = ({pending:'#F59E0B',under_review:'#3B82F6',verified:'#3B82F6',in_progress:'#6366F1',escalated_pending:'#F97316',escalated:'#EA580C',resolved:'#10A37F',closed:'#6B7280'})[r.status] || '#10A37F';
             var bgColor     = ({pending:'#FEF3C7',under_review:'#DBEAFE',verified:'#DBEAFE',in_progress:'#EDE9FE',escalated_pending:'#FFEDD5',escalated:'#FEE2E2',resolved:'#D1FAE5',closed:'#F3F4F6'})[r.status] || '#D1FAE5';
             var statusLabel = ({pending:'Pending',under_review:'Under Review',verified:'Verified',in_progress:'In Progress',escalated_pending:'Escalation Pending',escalated:'Escalated',resolved:'Resolved',closed:'Closed'})[r.status] || r.status;
             var dateStr     = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'}) : 'Unknown date';

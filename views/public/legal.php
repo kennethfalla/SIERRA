@@ -30,6 +30,7 @@ $content_file = BASE_PATH . 'views/shared/legal/' . ($is_privacy ? 'privacy.php'
         a:focus-visible { outline: 3px solid #10a37f; outline-offset: 3px; }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
 </head>
 <body>
     <header><div class="wrap">

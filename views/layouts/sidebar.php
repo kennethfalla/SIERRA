@@ -14,6 +14,8 @@ require_once BASE_PATH . 'helpers/Lang.php';
 $current_page = $_GET['page'] ?? 'dashboard';
 $app_page_titles = [
     'dashboard' => 'Dashboard',
+    'analytics' => 'Analytics',
+    'map' => 'Environmental Map',
     'submit-report' => 'Submit Environmental Report',
     'my-reports' => ($_GET['tab'] ?? '') === 'supported' ? 'Reports I Supported' : 'My Reports',
     'track-status' => !empty($is_supporter) ? 'Track Supported Report' : 'Track Report',
@@ -32,6 +34,8 @@ $app_page_titles = [
 $app_page_title = t($app_page_titles[$current_page] ?? ucwords(str_replace('-', ' ', $current_page)));
 $app_page_subtitles = [
     'dashboard' => 'Your community at a glance.',
+    'analytics' => 'Data analysis and decision support.',
+    'map' => 'Explore environmental hazards.',
     'submit-report' => 'Report an environmental concern.',
     'my-reports' => 'Your reports and support.',
     'track-status' => 'Follow report progress.',
@@ -550,7 +554,15 @@ if ($user_id && isset($db)) {
     .app-mobile-header #dashHeaderExtras .toolbar-search input { height: 34px; }
     .app-mobile-header #dashHeaderExtras form input[type="text"] { min-height: 34px; }
 </style>
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/app-shell.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/app-shell.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/map-theme.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/map-theme.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/analytics-refinements.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/analytics-refinements.css'); ?>">
+<script>window.SierraMapSettings = <?php echo json_encode(array_merge(SettingsHelper::getMapSettings(), ['severityBands'=>getSeverityBands()]), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;</script>
+<script src="<?php echo BASE_URL; ?>assets/js/map-clusters.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-clusters.js'); ?>"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/dashboard-charts.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/dashboard-charts.js'); ?>"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/dashboard-scroll-reveal.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/dashboard-scroll-reveal.js'); ?>" defer></script>
 
 <!-- Page title, filters, notifications and account actions. -->
@@ -654,7 +666,8 @@ if ($user_id && isset($db)) {
     </div>
     
     <!-- Navigation - Scrollable Area -->
-    <nav class="flex-1 overflow-y-auto px-4 py-5" aria-label="Main navigation">
+    <nav class="flex-1 px-4 py-5" aria-label="Main navigation">
+        <div class="sb-menu-scroll">
         
         <p class="sb-label"><?php echo t('Menu'); ?></p>
 
@@ -747,6 +760,13 @@ if ($user_id && isset($db)) {
             </a>
             <?php endif; ?>
 
+            <?php if (PermissionHelper::userHasPermission('can_view_map')): ?>
+            <a href="<?php echo BASE_URL; ?>index.php?page=map" class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'map' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'map' ? 'bg-emerald-100' : 'bg-gray-100'; ?>"><i class="fas fa-map-marked-alt text-sm <?php echo $current_page == 'map' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i></div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Map'); ?></span>
+            </a>
+            <?php endif; ?>
+
             <?php if (PermissionHelper::userHasPermission('can_manage_reports')): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=verify-reports" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'verify-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -820,6 +840,19 @@ if ($user_id && isset($db)) {
             </a>
             <?php endif; ?>
 
+            <?php if (PermissionHelper::userHasPermission('can_view_analytics')): ?>
+            <a href="<?php echo BASE_URL; ?>index.php?page=analytics" class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'analytics' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'analytics' ? 'bg-emerald-100' : 'bg-gray-100'; ?>"><i class="fas fa-chart-line text-sm <?php echo $current_page == 'analytics' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i></div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Analytics'); ?></span>
+            </a>
+            <?php endif; ?>
+            <?php if (PermissionHelper::userHasPermission('can_view_map')): ?>
+            <a href="<?php echo BASE_URL; ?>index.php?page=map" class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'map' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center <?php echo $current_page == 'map' ? 'bg-emerald-100' : 'bg-gray-100'; ?>"><i class="fas fa-map-marked-alt text-sm <?php echo $current_page == 'map' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i></div>
+                <span class="ml-3 text-sm font-medium"><?php echo t('Map'); ?></span>
+            </a>
+            <?php endif; ?>
+
             <?php if (PermissionHelper::userHasPermission('can_view_reports')): ?>
             <a href="<?php echo BASE_URL; ?>index.php?page=all-reports" 
                class="flex items-center px-3 py-2.5 rounded-xl mb-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 <?php echo $current_page == 'all-reports' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'; ?>">
@@ -890,6 +923,7 @@ if ($user_id && isset($db)) {
         </div>
         <?php endif; ?>
 
+        </div>
         <!-- GENERAL -->
         <div class="sb-general pt-3" style="border-top:1px solid rgba(255,255,255,.09);">
             <p class="sb-label"><?php echo t('General'); ?></p>

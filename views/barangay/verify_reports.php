@@ -48,7 +48,6 @@ $search_keyword = isset($_GET['search']) ? trim($_GET['search']) : '';
 $sort_order = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
-$view_mode = isset($_COOKIE['report_view_mode']) && $_COOKIE['report_view_mode'] === 'list' ? 'list' : 'grid';
 
 // ============================================================
 // AUTO-OPEN UNDER REVIEW CONFIRMATION (arriving from barangay
@@ -1280,6 +1279,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/report-list.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/report-list.css'); ?>">
 </head>
 <body class="bg-[#F5FBF6]">
 
@@ -1376,11 +1376,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 ['kind' => 'select', 'id' => 'popoverResidency', 'label' => 'Reported By', 'value' => $residency_filter, 'default' => '',
                  'options' => ['' => 'All Reporters', 'resident' => 'Resident', 'non_resident' => 'Non-Resident']],
             ],
-            'view_toggle'        => [
-                'active' => $view_mode,
-                'grid'   => "setViewMode('grid')",
-                'list'   => "setViewMode('list')",
-            ],
+            'view_toggle' => null,
             'trailing_select'    => null,
             'sort_select'        => [
                 'id'        => 'toolbarSort',
@@ -1438,7 +1434,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             <div class="table-section-header">
                 <div class="table-section-title">
                     <h2>Verify Reports List</h2>
-                    <p>Reports matching the current filters and view mode.</p>
+                    <p>Reports matching your filters.</p>
                 </div>
                 <div class="export-dropdown">
                     <button onclick="toggleExportMenu()" class="btn-export-trigger">
@@ -1461,102 +1457,10 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         </div>
 
         <!-- Reports Grid -->
-        <div id="reportsGrid" class="reports-grid <?php echo $view_mode; ?>-view">
+        <div id="reportsGrid" class="reports-grid report-feed">
             <?php if(count($reports) > 0): ?>
-                <?php foreach($reports as $r): 
-                    $isEscalatedPending = ($r['status'] == 'escalated_pending');
-                    $status_class = 'status-' . $r['status'];
-                    $status_icon = '';
-                    if ($r['status'] == 'pending') $status_icon = 'fa-clock';
-                    elseif ($r['status'] == 'under_review') $status_icon = 'fa-search';
-                    elseif ($r['status'] == 'in_progress') $status_icon = 'fa-spinner';
-                    elseif ($r['status'] == 'escalated_pending') $status_icon = 'fa-hourglass-half';
-                    elseif ($r['status'] == 'escalated') $status_icon = 'fa-shield-alt';
-                    elseif ($r['status'] == 'resolved') $status_icon = 'fa-check-circle';
-                    elseif ($r['status'] == 'rejected') $status_icon = 'fa-times-circle';
-                    elseif ($r['status'] == 'cancelled') $status_icon = 'fa-ban';
-                    $status_label = ucfirst(str_replace('_', ' ', $r['status']));
-                    $needs_attention = $isEscalatedPending || in_array($r['status'], ['pending', 'under_review']);
-                ?>
-                <div class="report-card-grid <?php echo $isEscalatedPending ? 'border-2 border-orange-300' : ''; ?>" data-report-id="<?php echo $r['id']; ?>">
-                    <?php
-                    $cover_src = !empty($r['cover_image']) ? BASE_URL . htmlspecialchars($r['cover_image'], ENT_QUOTES, 'UTF-8') : '';
-                    $cover_inline = $cover_src ? " style=\"background-image:linear-gradient(to bottom, rgba(15,23,42,0.28) 0%, rgba(15,23,42,0.88) 100%), url('" . $cover_src . "'); background-size:cover; background-position:center;\"" : '';
-                    ?>
-                    <div class="report-card-header rounded-t-2xl<?php echo $cover_src ? ' has-cover' : ''; ?>"<?php echo $cover_inline; ?>>
-                        <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
-                            <div class="space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-file-alt text-white/80 text-[10px] md:text-xs"></i>
-                                    </div>
-                                    <span class="header-label">Report Summary</span>
-                                </div>
-                                <h3 class="header-title"><?php echo htmlspecialchars($r['title']); ?></h3>
-                            </div>
-                            <div class="text-right">
-                                <div class="header-meta">#<?php echo str_pad($r['id'], 6, '0', STR_PAD_LEFT); ?></div>
-                                <div class="header-meta mt-2"><?php echo date('M d, Y', strtotime($r['created_at'])); ?></div>
-                            </div>
-                        </div>
-                        <div class="header-badges">
-                            <span class="status-badge header-badge <?php echo $status_class; ?>">
-                                <i class="fas <?php echo $status_icon; ?> text-[10px] sm:text-xs"></i>
-                                <?php echo $status_label; ?>
-                            </span>
-                            <?php if ($r['status'] != 'cancelled' && $r['status'] != 'rejected'): ?>
-                            <span class="risk-badge header-badge risk-<?php echo $r['risk_level']; ?>">
-                                <i class="fas <?php echo $r['risk_level'] == 'low' ? 'fa-seedling' : ($r['risk_level'] == 'medium' ? 'fa-exclamation-triangle' : ($r['risk_level'] == 'high' ? 'fa-fire' : 'fa-skull-crossbones')); ?> text-[10px] sm:text-xs"></i>
-                                <?php echo ucfirst($r['risk_level']); ?>
-                            </span>
-                            <?php endif; ?>
-                            <?php if(isset($r['decision_classification']) && $r['decision_classification'] && $r['status'] != 'cancelled' && $r['status'] != 'rejected'): ?>
-                            <span class="severity-badge header-badge severity-<?php echo strtolower($r['decision_pin'] ?? 'Green'); ?>">
-                                <i class="fas fa-chart-line text-[10px] sm:text-xs"></i>
-                                <?php echo $r['decision_classification']; ?>
-                            </span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <div class="p-4 sm:p-5">
-                        <p class="text-gray-500 mb-3 sm:mb-4 line-clamp-3"><?php echo htmlspecialchars(substr($r['description'], 0, 80)); ?><?php echo strlen($r['description']) > 80 ? '...' : ''; ?></p>
+                <?php $reportListContext = 'verify'; foreach ($reports as $listReport) { include BASE_PATH . 'views/shared/report_list_item.php'; } ?>
 
-                        <div class="flex flex-wrap gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-gray-100">
-                            <div class="meta-item">
-                                <div class="meta-icon"><i class="fas fa-user text-gray-400 text-[10px] sm:text-xs"></i></div>
-                                <span><?php echo htmlspecialchars($r['user_name'] ?? 'Unknown'); ?></span>
-                            </div>
-                            <div class="meta-item">
-                                <div class="meta-icon"><i class="fas fa-tag text-gray-400 text-[10px] sm:text-xs"></i></div>
-                                <span><?php echo htmlspecialchars($r['category_name']); ?></span>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-3">
-                            <div>
-                                <?php if ($needs_attention): ?>
-                                <span class="text-[10px] text-amber-600 font-medium"><i class="fas fa-exclamation-triangle mr-1"></i>Needs your attention</span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <?php if ($r['status'] === 'resolved'): ?>
-                                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="btn-manage">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                                <?php elseif (PermissionHelper::canManageReport($r)): ?>
-                                <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$r['id']); ?>" class="btn-manage" data-report-status="<?php echo htmlspecialchars($r['status']); ?>" data-report-id="<?php echo str_pad((int)$r['id'], 6, '0', STR_PAD_LEFT); ?>" data-report-title="<?php echo htmlspecialchars($r['title']); ?>" onclick="return confirmUnderReview(event, this)">
-                                    <i class="fas fa-edit"></i> Manage
-                                </a>
-                                <?php else: ?>
-                                <span class="btn-manage opacity-50 cursor-not-allowed" title="You are not permitted to manage this report">
-                                    <i class="fas fa-lock"></i> Manage
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php endforeach; ?>
             <?php else: ?>
                 <div class="empty-state">
                     <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
@@ -1614,29 +1518,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
 </div>
 
 <script>
-let currentViewMode = '<?php echo $view_mode; ?>';
-
-// ===== VIEW MODE =====
-function setViewMode(mode) {
-    currentViewMode = mode;
-    const container = document.getElementById('reportsGrid');
-    const gridBtn = document.getElementById('gridViewBtn');
-    const listBtn = document.getElementById('listViewBtn');
-
-    container.classList.remove('grid-view', 'list-view');
-    container.classList.add(mode + '-view');
-
-    if (mode === 'grid') {
-        gridBtn.classList.add('active');
-        listBtn.classList.remove('active');
-    } else {
-        listBtn.classList.add('active');
-        gridBtn.classList.remove('active');
-    }
-
-    document.cookie = "report_view_mode=" + mode + "; path=/; max-age=" + (365 * 24 * 60 * 60);
-}
-
 // ===== LOADING =====
 function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
