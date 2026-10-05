@@ -1178,8 +1178,8 @@ if ($broadcast_barangay > 0) $active_filters++;
         @media (max-width: 640px) {
             body.announcements-page { padding-top: 118px !important; }
             .announcements-page .app-mobile-header { flex-wrap: wrap; height: auto; min-height: 110px; padding: 8px 14px; }
-            .announcements-page .app-page-title-wrap { flex: 1 1 180px; }
-            .announcements-page .app-header-actions { margin-left: auto; }
+            .announcements-page .app-page-title-wrap { flex: 1 1 0; }
+            .announcements-page .app-mobile-header .app-header-actions { order: 2; margin-left: auto; }
             .announcements-page .app-mobile-header #dashHeaderExtras { order: 4; margin: 0; flex: 1 1 100%; }
             .announcement-post-body, .announcement-composer { padding: 1rem; }
             .announcement-side-column { grid-template-columns: minmax(0, 1fr); }

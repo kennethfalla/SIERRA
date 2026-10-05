@@ -53,3 +53,12 @@ html.map-report-opened,body.map-report-opened { overflow:hidden; }
 @media(prefers-reduced-motion:reduce){.map-report-panel{transition:none}}
 /* Leaflet panes stay below the navigation drawer and its backdrop. */
 .leaflet-container { isolation:isolate; z-index:0; }
+
+.map-report-panel-head { padding-top: max(18px, env(safe-area-inset-top)); }
+.map-report-panel-head button { flex-shrink: 0; }
+.map-report-panel .drill-body { padding-bottom: max(22px, env(safe-area-inset-bottom)); }
+@media(max-width:640px) {
+    .map-report-panel-head { padding-inline: 16px; }
+    .map-report-panel-head button { width: 44px; height: 44px; }
+    .leaflet-container .leaflet-control-layers-expanded { max-width: calc(100vw - 64px); max-height: 45dvh; overflow-y: auto; }
+}

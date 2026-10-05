@@ -578,6 +578,7 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
         }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
 </head>
 <body>
     <div class="page-wrap">

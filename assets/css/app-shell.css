@@ -864,3 +864,78 @@ body.barangay-dashboard-page .dash-title-actions .export-dropdown { margin-left:
 .dashboard-page .dashboard-packed-grid > * { align-self:start; min-height:0; }
 #sidebar .sb-menu-scroll { scrollbar-color:#66ad8e transparent; }
 #sidebar .sb-menu-scroll::-webkit-scrollbar-thumb { background:#66ad8e; border-color:transparent; }
+
+/* Keep shared page content within the space left by the app navigation. */
+@media screen {
+    body:has(.app-mobile-header) { padding-top: var(--sierra-header-space, 56px) !important; }
+    #main-content, .app-main, .main-container { min-width: 0; }
+    #main-content :is(.grid, .flex, .bento, .two-col, .analytics-grid, .menro-dash-middle) > * { min-width: 0; }
+    #main-content :is(.card, .chart-card, .table-container, .profile-menu-card, .announcement-card, .notif-card) { min-width: 0; max-width: 100%; }
+    #main-content :is(.card-header, .chart-header, .page-header, .dash-head, .table-section-actions) { flex-wrap: wrap; gap: .75rem; }
+    #main-content :is(.info-value, .report-title, .report-feed-copy, .profile-hero-name, .note-text) { overflow-wrap: anywhere; }
+    #main-content :is(.table-container, .overflow-x-auto) { max-width: 100%; }
+    #main-content canvas { max-width: 100%; }
+    .app-mobile-header .app-page-title-wrap { flex: 1 1 0; }
+    .app-mobile-header .app-header-actions { flex: 0 0 auto; }
+    .app-mobile-header #dashHeaderExtras { max-width: 100%; }
+    .app-mobile-header #dashHeaderExtras :is(.ft-toolbar, .reports-toolbar, .toolbar-search, .dashboard-toolbar-row, .dashboard-toolbar-filters) { min-width: 0; }
+    .app-mobile-header #dashHeaderExtras .toolbar-search { flex: 1 1 140px; width: auto; }
+    .app-mobile-header #dashHeaderExtras .toolbar-search input { width: 100%; min-width: 0; }
+    .app-mobile-header #dashHeaderExtras .reports-toolbar { flex-wrap: nowrap; }
+    :is(.action-panel, .resolution-confirm-float, .track-cancel-float) { padding-bottom: max(.75rem, env(safe-area-inset-bottom)); }
+    :is(.action-panel-bar, .resolution-confirm-bar, .track-cancel-bar) { min-width: 0; max-height: 50dvh; overflow-y: auto; }
+    :is(.modal-content, .action-modal-card, .confirm-modal-card, .crop-modal-content, .fb-modal) { max-height: calc(100dvh - 24px); }
+}
+@media (min-width: 1024px) {
+    body:has(.app-mobile-header) { --sierra-header-space: 100px; }
+    :is(.action-panel, .resolution-confirm-float, .track-cancel-float) { left: 300px; }
+}
+@media (min-width: 1024px) and (max-width: 1399px) {
+    .dashboard-page .bento:not(.analytics-sections) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dashboard-page .bento :is(.b-hero, .b-wide, .b-narrow) { grid-column: 1 / -1; grid-row: auto; }
+    .menro-dashboard-page .menro-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .menro-dashboard-page .menro-dash-middle { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .menro-dashboard-page .menro-map-span { grid-column: 1 / -1; }
+    .menro-analytics-page :is(.analytics-environment-overview, .analytics-patterns-grid, .analytics-card-stack) { grid-template-columns: minmax(0, 1fr); }
+    .menro-analytics-page .analytics-hotspots .indicator-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #main-content .two-col { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 1023px) {
+    #main-content { margin-left: 0 !important; }
+    #sidebar { width: min(280px, calc(100vw - 40px)) !important; height: 100dvh; }
+    #main-content .settings-sidebar { top: calc(var(--sierra-header-space, 56px) + 8px); }
+    :is(.action-panel, .resolution-confirm-float, .track-cancel-float) { left: 0; }
+    body.admin-data-page .app-data-table td::before { min-width: 0; overflow-wrap: normal; }
+    body.admin-data-page .app-data-table td > :is(.flex, .inline-flex) { flex-wrap: wrap; }
+}
+@media (max-width: 767px) {
+    .app-mobile-header { flex-wrap: wrap; height: auto; min-height: 56px; padding: 8px 12px; gap: 8px; }
+    .app-mobile-header .app-page-title-wrap { order: 1; }
+    .app-mobile-header .app-header-actions { order: 2; }
+    .app-mobile-header #dashHeaderExtras { order: 3 !important; flex: 1 0 100% !important; width: 100%; margin: 0 !important; }
+    .app-mobile-header #dashHeaderExtras :is(.dashboard-toolbar-row, .dashboard-toolbar-filters, .ft-toolbar, .reports-toolbar) { width: 100%; }
+    .app-mobile-header #dashHeaderExtras .reports-toolbar { justify-content: flex-end; gap: 8px; }
+    .app-mobile-header #dashHeaderExtras .toolbar-search { flex: 1 1 0 !important; min-width: 0 !important; }
+    .app-mobile-header #dashHeaderExtras .toolbar-search input { width: 100% !important; }
+    #main-content :is(.page-header, .dash-head, .dash-title-actions, .table-section-actions) { min-width: 0; max-width: 100%; }
+    .table-section-actions { flex: 1 1 100%; margin-left: 0; }
+    .table-section-actions > :is(.export-dropdown, .table-filter-controls) { flex: 1 1 auto; }
+    .table-section-actions :is(.btn-export-trigger, .toolbar-filter-btn) { width: 100%; justify-content: center; }
+    #main-content :is(.profile-summary, .note-composer, .notif-toolbar) { flex-wrap: wrap; }
+    #main-content .nt-chips { flex-wrap: wrap; gap: 4px; }
+    #main-content :is(.profile-summary, .note-composer) > .flex-1 { min-width: 0; }
+    #main-content :is(.form-input, .form-select, .toolbar-search input, textarea) { font-size: 16px; }
+    :is(.crop-modal, .modal-overlay, .action-modal-overlay, .fb-modal-overlay) { padding: 12px; }
+    :is(.modal-content, .action-modal-card, .confirm-modal-card, .crop-modal-content, .fb-modal) { width: min(100%, calc(100vw - 24px)); }
+    :is(.crop-modal-body, .action-modal-body) { min-height: 0; overflow-y: auto; }
+    :is(.modal-footer, .action-modal-footer, .crop-modal-footer) { flex-wrap: wrap; }
+    #main-content .timeline-step { min-width: 0; }
+    #main-content .timeline-step :is(.step-title, .step-text) { overflow-wrap: anywhere; }
+}
+@media (max-width: 380px) {
+    .menro-analytics-page .analytics-summary-grid { grid-template-columns: minmax(0, 1fr); }
+    .app-page-logo { width: 32px; height: 32px; }
+    .app-page-title-wrap { gap: 8px; }
+    #main-content .severity-stat { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .resolution-confirm-bar, .track-cancel-bar { padding: .75rem; }
+}

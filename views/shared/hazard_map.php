@@ -5,7 +5,39 @@ $hazardMapFull = $hazardMapFull ?? false;
 <section class="sierra-map-panel <?php echo $hazardMapFull ? 'sierra-map-panel-full' : ''; ?>" aria-label="Environmental hazard map">
     <div class="sierra-map-heading">
         <div><h2><i class="fas fa-map-marked-alt" aria-hidden="true"></i><?php echo t('Environmental Hazard Map'); ?></h2></div>
-        <?php if (!$hazardMapFull): ?><a class="sierra-map-full-link" href="<?php echo BASE_URL; ?>index.php?page=map"><i class="fas fa-expand" aria-hidden="true"></i> <?php echo t('View Full Map'); ?></a><?php endif; ?>
+        <div class="sierra-map-heading-actions">
+            <?php if ($hazardMapFull): ?>
+            <?php
+            $mapCategoryOptions = ['' => t('All Hazards')];
+            foreach ($hazardMapCategories as $mapCat) { $mapCategoryOptions[(string)$mapCat['id']] = $mapCat['name']; }
+            $mapBarangayOptions = ['' => t('All Barangays')];
+            foreach (($hazardMapBarangays ?: []) as $mapBarangay) { $mapBarangayOptions[(string)$mapBarangay['id']] = $mapBarangay['name']; }
+            $ft = [
+                'search_id'          => 'searchInput',
+                'search_value'       => '',
+                'show_search'        => false,
+                'in_header'          => false,
+                'results_text'       => '',
+                'inline_selects'     => [],
+                'filter_by'          => ['active' => false, 'count' => 0],
+                'popover_fields'     => [
+                    ['kind' => 'select', 'id' => 'popoverCategory', 'label' => t('Hazard Category'), 'value' => '', 'default' => '', 'multi' => true, 'options' => $mapCategoryOptions],
+                    ['kind' => 'select', 'id' => 'popoverRisk', 'label' => t('Severity'), 'value' => '', 'default' => '', 'multi' => true, 'options' => ['' => t('All Severities'), 'low' => t('Low'), 'medium' => t('Medium'), 'high' => t('High'), 'critical' => t('Critical')]],
+                ],
+                'active_filters'     => 0,
+                'chips'              => [],
+                'callback'           => 'applyMapFilters',
+                'compact_breakpoint' => 1199,
+                'more_icon'          => 'fa-sliders-h',
+            ];
+            if ($hazardMapBarangays) {
+                $ft['popover_fields'][] = ['kind' => 'select', 'id' => 'popoverBarangay', 'label' => t('Barangay'), 'value' => '', 'default' => '', 'multi' => true, 'options' => $mapBarangayOptions];
+            }
+            ?>
+            <div class="map-filter-toolbar"><?php include __DIR__ . '/report_filter_toolbar.php'; ?></div>
+            <?php endif; ?>
+            <?php if (!$hazardMapFull): ?><a class="sierra-map-full-link" href="<?php echo BASE_URL; ?>index.php?page=map"><i class="fas fa-expand" aria-hidden="true"></i> <?php echo t('View Full Map'); ?></a><?php endif; ?>
+        </div>
     </div>
     <?php if ($hazardMapFull): ?>
     <div class="sierra-map-controls">
@@ -17,11 +49,6 @@ $hazardMapFull = $hazardMapFull ?? false;
             <select id="sierraMapPeriod" hidden aria-label="Date range"><option value="all">All dates</option><option value="today">Today</option><option value="week">This week</option><option value="month">This month</option><option value="year">This year</option><option value="custom">Custom</option></select>
             <div class="sierra-map-periods" role="group" aria-label="Date range"><?php foreach (['all'=>'All Dates','today'=>'Today','week'=>'Week','month'=>'Month','year'=>'Year','custom'=>'Custom'] as $mapPeriod=>$mapPeriodLabel): ?><button type="button" data-map-period="<?php echo $mapPeriod; ?>" class="<?php echo $mapPeriod === 'all' ? 'active' : ''; ?>"><?php echo t($mapPeriodLabel); ?></button><?php endforeach; ?></div>
         </div>
-    </div>
-    <div class="sierra-map-filter-row sierra-map-selects">
-            <label><span class="sr-only">Hazard category</span><select id="sierraMapCategory"><option value=""><?php echo t('All Hazards'); ?></option><?php foreach ($hazardMapCategories as $mapCat): ?><option value="<?php echo (int)$mapCat['id']; ?>"><?php echo htmlspecialchars($mapCat['name'], ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?></select></label>
-            <label><span class="sr-only">Severity</span><select id="sierraMapRisk"><option value=""><?php echo t('All Severities'); ?></option><option value="low"><?php echo t('Low'); ?></option><option value="medium"><?php echo t('Medium'); ?></option><option value="high"><?php echo t('High'); ?></option><option value="critical"><?php echo t('Critical'); ?></option></select></label>
-            <?php if ($hazardMapBarangays): ?><label><span class="sr-only">Barangay</span><select id="sierraMapBarangay"><option value=""><?php echo t('All Barangays'); ?></option><?php foreach ($hazardMapBarangays as $mapBarangay): ?><option value="<?php echo (int)$mapBarangay['id']; ?>"><?php echo htmlspecialchars($mapBarangay['name'], ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?></select></label><?php endif; ?>
     </div>
     <div class="sierra-map-dates" id="sierraMapDates" hidden><label><?php echo t('From'); ?> <input type="date" id="sierraMapFrom"></label><label><?php echo t('To'); ?> <input type="date" id="sierraMapTo"></label></div>
     <?php endif; ?>

@@ -1,12 +1,59 @@
 // Landing scroll motion (Alethia-inspired, original implementation):
 // progress bar, parallax, hero fade/lift, fly-in step cards, a pinned
-// "cover" stack (Map slides over How It Works), a stats number-storm that
+// independent map zoom journey, a stats number-storm that
 // resolves into the real stat cards, and a scroll-scrubbed word reveal.
 (function () {
     'use strict';
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    var motionMQ = window.matchMedia('(min-width: 900px)');
+    // Cards move along a shallow arc, always facing the viewer. Their position
+    // comes from the duplicated track, so looping does not reset card angles.
+    var orbit = document.querySelector('.hero-orbit');
+    var ring = orbit && orbit.querySelector('.hero-orbit-ring');
+    if (ring) {
+        var orbitCards = Array.prototype.slice.call(ring.querySelectorAll('.hero-orbit-card'));
+        var orbitWidth = 0;
+        var cardPositions = [];
+        var orbitFrame = null;
+        var orbitVisible = true;
+        function measureOrbit() {
+            orbitWidth = orbit.clientWidth;
+            cardPositions = orbitCards.map(function (card) {
+                return card.offsetLeft + card.parentElement.offsetLeft + card.offsetWidth / 2;
+            });
+        }
+        function curveOrbit() {
+            orbitFrame = null;
+            var transform = getComputedStyle(ring).transform;
+            var offset = 0;
+            if (transform !== 'none') {
+                var values = transform.slice(transform.indexOf('(') + 1, -1).split(',');
+                offset = parseFloat(values[values.length === 16 ? 12 : 4]) || 0;
+            }
+            orbitCards.forEach(function (card, index) {
+                var position = Math.max(-1, Math.min(1, (cardPositions[index] + offset - orbitWidth / 2) / (orbitWidth * .55)));
+                var curve = position * position;
+                card.style.transform = 'translate3d(0,' + (curve * 28).toFixed(2) + 'px,0) perspective(900px) rotateY(' + (-position * 42).toFixed(2) + 'deg) scale(' + (1 - curve * .12).toFixed(4) + ')';
+            });
+            if (orbitVisible && !document.hidden && !reducedMotion.matches) orbitFrame = requestAnimationFrame(curveOrbit);
+        }
+        function refreshOrbit() {
+            measureOrbit();
+            if (orbitFrame === null) curveOrbit();
+        }
+        if (window.IntersectionObserver) {
+            new IntersectionObserver(function (entries) {
+                orbitVisible = entries[0].isIntersecting;
+                if (orbitVisible) refreshOrbit();
+            }).observe(orbit);
+        }
+        window.addEventListener('resize', refreshOrbit, { passive: true });
+        document.addEventListener('visibilitychange', function () { if (!document.hidden && orbitVisible) refreshOrbit(); });
+        reducedMotion.addEventListener('change', refreshOrbit);
+        refreshOrbit();
+    }
+    if (reducedMotion.matches) return;
+
     var clamp = function (v, min, max) { return Math.min(max, Math.max(min, v)); };
 
     document.body.classList.add('lp-motion');
@@ -20,7 +67,6 @@
     var parallaxEls = Array.prototype.slice.call(document.querySelectorAll('[data-parallax]'));
     var hero = document.getElementById('home');
     var heroContent = document.querySelector('.hero-content-wrap');
-    var featureSection = document.getElementById('features');
     var mapSection = document.getElementById('map-section');
     var statsSection = document.getElementById('stats');
     var storm = document.querySelector('.lp-stats-storm');
@@ -102,6 +148,7 @@
     });
 
     var ticking = false;
+    var lastMapProgress = -1;
 
     // Transform-independent document position (offsetTop ignores CSS transforms),
     // so parallaxed elements never feed their own movement back into the math.
@@ -123,7 +170,6 @@
         var vh = window.innerHeight || document.documentElement.clientHeight;
         var scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
         var maxScroll = document.documentElement.scrollHeight - vh;
-        var desktop = motionMQ.matches;
 
         if (bar) {
             var p = maxScroll > 0 ? scrollTop / maxScroll : 0;
@@ -145,27 +191,21 @@
             heroContent.style.opacity = (1 - progress * 0.85).toFixed(3);
         }
 
-        // Pinned cover: as the Map rises, shrink/fade How It Works behind it and
-        // ease the Map in with a soft lift. The Map's base position is measured
-        // transform-independently so its own transform can't feed back.
-        if (featureSection && mapSection) {
-            if (desktop) {
-                var mapTop = (mapSection._baseTop || 0) - scrollTop;
-                var cover = clamp((vh - mapTop) / vh, 0, 1);
-                featureSection.style.transform = 'scale(' + (1 - cover * 0.12).toFixed(4) + ')';
-                featureSection.style.opacity = (1 - cover * 0.6).toFixed(3);
-                if (cover >= 0.995) {
-                    mapSection.style.transform = '';
-                    mapSection.style.opacity = '';
-                } else {
-                    mapSection.style.transform = 'translateY(' + ((1 - cover) * 46).toFixed(1) + 'px) scale(' + (1 + (1 - cover) * 0.02).toFixed(4) + ')';
-                    mapSection.style.opacity = (0.7 + cover * 0.3).toFixed(3);
-                }
-            } else {
-                featureSection.style.transform = '';
-                featureSection.style.opacity = '';
-                mapSection.style.transform = '';
-                mapSection.style.opacity = '';
+        // The map starts after How It Works. Scroll within its own sticky stage
+        // zooms toward San Isidro, reveals details, then releases into Statistics.
+        if (mapSection) {
+            var mapRect = mapSection.getBoundingClientRect();
+            var travel = Math.max(1, mapSection.offsetHeight - (vh - 64));
+            var mapProgress = clamp((64 - mapRect.top) / travel, 0, 1);
+            var reveal = clamp((mapProgress - 0.1) / 0.18, 0, 1);
+            mapSection.style.setProperty('--map-reveal', reveal.toFixed(4));
+            mapSection.classList.toggle('map-details-visible', reveal > 0);
+            var reportPanel = mapSection.querySelector('.lp-map-reports');
+            if (reportPanel) reportPanel.inert = reveal === 0;
+            mapSection.dataset.journeyProgress = mapProgress.toFixed(4);
+            if (Math.abs(mapProgress - lastMapProgress) > 0.0005) {
+                mapSection.dispatchEvent(new CustomEvent('sierra:map-progress', { detail: { progress: mapProgress } }));
+                lastMapProgress = mapProgress;
             }
         }
 

@@ -1388,6 +1388,17 @@ if ($user_id && isset($db)) {
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', liftExtras);
     else liftExtras();
+
+    // Reserve the actual header height when phone filters need a second row.
+    function syncHeaderSpace() {
+        var space = Math.ceil(header.getBoundingClientRect().bottom);
+        if (window.matchMedia('(min-width: 1024px)').matches) space += 14;
+        document.body.style.setProperty('--sierra-header-space', space + 'px');
+    }
+    if ('ResizeObserver' in window) new ResizeObserver(syncHeaderSpace).observe(header);
+    window.addEventListener('resize', syncHeaderSpace, { passive: true });
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncHeaderSpace);
+    else syncHeaderSpace();
 })();
 </script>
 

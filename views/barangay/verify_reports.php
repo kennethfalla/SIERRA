@@ -42,6 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $risk_filter = isset($_GET['risk']) ? $_GET['risk'] : '';
 $category_filter = isset($_GET['category']) ? (int)$_GET['category'] : 0;
+$risk_list = ((string)$risk_filter !== '') ? array_values(array_filter(array_map('trim', explode(',', (string)$risk_filter)), function ($v) { return in_array($v, ['low', 'medium', 'high', 'critical'], true); })) : [];
+$category_raw = isset($_GET['category']) ? trim((string)$_GET['category']) : '';
+$category_list = [];
+foreach (explode(',', $category_raw) as $ci) { $ci = (int)trim($ci); if ($ci > 0) $category_list[] = $ci; }
 $date_range = isset($_GET['date_range']) ? (int)$_GET['date_range'] : 0;
 $residency_filter = in_array($_GET['residency'] ?? '', ['resident', 'non_resident'], true) ? $_GET['residency'] : '';
 $search_keyword = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -87,13 +91,15 @@ if ($status_filter != '') {
         $params[':status'] = $status_filter;
     }
 }
-if ($risk_filter != '') {
-    $where .= " AND r.risk_level = :risk";
-    $params[':risk'] = $risk_filter;
+if ($risk_list) {
+    $placeholders = [];
+    foreach ($risk_list as $i => $rv) { $key = ':risk' . $i; $placeholders[] = $key; $params[$key] = $rv; }
+    $where .= " AND r.risk_level IN (" . implode(',', $placeholders) . ")";
 }
-if ($category_filter > 0) {
-    $where .= " AND r.category_id = :category";
-    $params[':category'] = $category_filter;
+if ($category_list) {
+    $placeholders = [];
+    foreach ($category_list as $i => $cid) { $key = ':cat' . $i; $placeholders[] = $key; $params[$key] = $cid; }
+    $where .= " AND r.category_id IN (" . implode(',', $placeholders) . ")";
 }
 if ($date_range > 0) {
     $where .= " AND r.created_at >= DATE_SUB(NOW(), INTERVAL :date_range DAY)";
@@ -1368,9 +1374,9 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 'count'  => $ft_popover_count,
             ],
             'popover_fields'     => [
-                ['kind' => 'select', 'id' => 'popoverRisk', 'label' => 'Risk Level', 'value' => $risk_filter, 'default' => '',
+                ['kind' => 'select', 'id' => 'popoverRisk', 'label' => 'Risk Level', 'value' => $risk_filter, 'default' => '', 'multi' => true,
                  'options' => ['' => 'All Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical']],
-                ['kind' => 'select', 'id' => 'popoverCategory', 'label' => 'Category', 'value' => $category_filter, 'default' => '0', 'options' => $ft_cat_options],
+                ['kind' => 'select', 'id' => 'popoverCategory', 'label' => 'Category', 'value' => ($category_raw !== '' ? $category_raw : '0'), 'default' => '0', 'multi' => true, 'options' => $ft_cat_options],
                 ['kind' => 'select', 'id' => 'popoverDateRange', 'label' => 'Date Range', 'value' => $date_range, 'default' => '0',
                  'options' => ['0' => 'All Time', '7' => 'Last 7 Days', '30' => 'Last 30 Days', '90' => 'Last 90 Days']],
                 ['kind' => 'select', 'id' => 'popoverResidency', 'label' => 'Reported By', 'value' => $residency_filter, 'default' => '',

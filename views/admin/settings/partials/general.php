@@ -16,6 +16,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <form method="POST" enctype="multipart/form-data" action="<?php echo BASE_URL; ?>index.php?page=settings&tab=general" id="generalSettingsForm">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
     
+    <section class="settings-card">
+    <h3 class="settings-card-title"><?php echo t('System & Institutional Identity'); ?></h3>
+    <p class="settings-card-sub"><?php echo t('Core identity and branding shown across the platform.'); ?></p>
     <!-- ============================================ -->
     <!-- SYSTEM NAME -->
     <!-- ============================================ -->
@@ -31,13 +34,18 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <p class="text-xs text-gray-400 mt-1"><?php echo t('This name appears throughout the system and in email notifications.'); ?></p>
     </div>
     
+    </section>
+
+    <section class="settings-card">
+    <h3 class="settings-card-title"><?php echo t('Citizen Inquiries & Emergency Escalation'); ?></h3>
+    <p class="settings-card-sub"><?php echo t('Contact surfaces shown to citizens for inquiries and high-severity environmental hazards.'); ?></p>
     <!-- ============================================ -->
     <!-- CONTACT EMAIL -->
     <!-- ============================================ -->
     <div class="form-group">
         <label class="form-label" for="contact_email">
-            <?php echo t('Contact Email'); ?> <span class="text-red-500">*</span>
-            <span class="text-xs font-normal text-gray-400 ml-1"><?php echo t('(Displayed in footer and notifications)'); ?></span>
+            <?php echo t('Official Contact Email'); ?> <span class="text-red-500">*</span>
+            <?php if ($contact_email): ?><span class="settings-verified"><i class="fas fa-check-circle"></i> <?php echo t('Verified'); ?></span><?php endif; ?>
         </label>
         <input type="email" name="contact_email" id="contact_email" 
                value="<?php echo htmlspecialchars($contact_email); ?>" 
@@ -49,10 +57,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <!-- ============================================ -->
     <!-- EMERGENCY HOTLINE -->
     <!-- ============================================ -->
-    <div class="form-group">
+    <div class="form-group settings-callout">
         <label class="form-label" for="emergency_hotline">
-            <?php echo t('Emergency Hotline'); ?>
-            <span class="text-xs font-normal text-gray-400 ml-1"><?php echo t('(Displayed in footer)'); ?></span>
+            <i class="fas fa-phone-volume text-[#0d8568]" aria-hidden="true"></i> <?php echo t('24/7 Environmental Emergency Hotline'); ?>
+            <span class="settings-callout-badge"><i class="fas fa-triangle-exclamation"></i> <?php echo t('Priority One Emergency'); ?></span>
         </label>
         <input type="text" name="emergency_hotline" id="emergency_hotline" 
                value="<?php echo htmlspecialchars($emergency_hotline); ?>" 
@@ -61,6 +69,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <p class="text-xs text-gray-400 mt-1"><?php echo t('This number is shown in the footer for emergency contact purposes.'); ?></p>
     </div>
     
+    </section>
+
+    <section class="settings-card">
+    <h3 class="settings-card-title"><?php echo t('Branding'); ?></h3>
+    <p class="settings-card-sub"><?php echo t('Logo used in the sidebar, header, and login pages.'); ?></p>
     <!-- ============================================ -->
     <!-- LGU LOGO -->
     <!-- ============================================ -->
@@ -102,9 +115,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </div>
     </div>
     
-    <!-- ============================================ -->
-    <!-- PREVIEW SECTION -->
-    <!-- ============================================ -->
+    </section>
+
+    <section class="settings-card">
+    <h3 class="settings-card-title"><?php echo t('Live Preview'); ?></h3>
+    <p class="settings-card-sub"><?php echo t('Changes take effect immediately after saving. Preview updates in real-time.'); ?></p>
     <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
         <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <i class="fas fa-eye text-[#10A37F]"></i>
@@ -140,17 +155,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </p>
     </div>
     
-    <!-- ============================================ -->
-    <!-- FORM ACTIONS -->
-    <!-- ============================================ -->
-    <div class="flex flex-wrap gap-3 justify-end pt-2 border-t border-gray-100">
-        <button type="button" onclick="resetForm()" class="btn-secondary flex items-center gap-2">
-            <i class="fas fa-undo"></i> <?php echo t('Reset'); ?>
-        </button>
-        <button type="submit" class="btn-primary flex items-center gap-2">
-            <i class="fas fa-save"></i> <?php echo t('Save Changes'); ?>
-        </button>
-    </div>
+    </section>
 </form>
 
 <!-- ============================================ -->

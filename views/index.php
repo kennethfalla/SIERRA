@@ -19,7 +19,8 @@ $resolved_reports = (int)($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 // San Isidro Statistics (editable in Settings > Landing Page)
 $lp = function($key, $default = '') {
     $value = SettingsHelper::get($key, $default);
-    return ($value === null || $value === '') ? $default : $value;
+    $value = ($value === null || $value === '') ? $default : $value;
+    return trim(preg_replace('/Working together for a cleaner(?:,? greener)? community[.!]?/i', '', (string)$value));
 };
 
 $san_isidro_stats = [
@@ -117,13 +118,13 @@ $show_hero_overlay = false;
 if ($hero_bg_type === 'video' && $hero_bg_video) {
     $show_hero_video = true;
     // Green brand gradient behind the video while it loads; the overlay div
-    // above the content adds a complementary brand-green tint on the video.
+    // above the content keeps the text readable without tinting the video green.
     $show_hero_overlay = true;
     $hero_bg_style = "background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%);";
 } elseif ($hero_bg_type === 'image' && $hero_bg_image) {
-    // Brand-green gradient layered over the hero image for a green tint while
+    // Neutral shading layered over the hero image while
     // keeping the white hero text readable.
-    $hero_bg_style = "background-image: linear-gradient(180deg, rgba(6,78,59,0.42) 0%, rgba(4,120,87,0.20) 40%, rgba(6,78,59,0.45) 70%, rgba(6,20,14,0.78) 100%), url('" . htmlspecialchars($hero_bg_image) . "'); background-size: cover; background-position: center;";
+    $hero_bg_style = "background-image: linear-gradient(180deg, rgba(12,22,26,0.28) 0%, rgba(12,22,26,0.12) 40%, rgba(12,22,26,0.35) 70%, rgba(8,17,21,0.65) 100%), url('" . htmlspecialchars($hero_bg_image) . "'); background-size: cover; background-position: center;";
 } else {
     // 'none' or a video type with no video URL: rich brand-green gradient
     $hero_bg_style = "background: linear-gradient(135deg, #064e3b 0%, #047857 45%, #0f766e 100%);";
@@ -135,7 +136,12 @@ if ($isLoggedIn && $is_staff) {
 } elseif ($isLoggedIn) {
     $hero_subtitle = $lp('lp_hero_subtitle_user', "Your voice matters. Report environmental issues like illegal dumping, flooding, or pollution —\nand we'll help track them until they're resolved.");
 } else {
-    $hero_subtitle = $lp('lp_hero_subtitle_guest', "See something wrong in your neighborhood? Drainage blockage, illegal dumping, or uncollected garbage?\nReport it here, and your barangay will take action. It's free, fast, and easy.");
+    $new_guest_subtitle = "Notice an environmental problem in your neighborhood? Report it here for free, and your barangay will take fast, easy action to resolve it.";
+    $hero_subtitle = $lp('lp_hero_subtitle_guest', $new_guest_subtitle);
+    // Replace the previous default even when that copy was saved in Settings.
+    if (stripos($hero_subtitle, 'See something wrong in your neighborhood?') === 0) {
+        $hero_subtitle = $new_guest_subtitle;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -305,7 +311,7 @@ if ($isLoggedIn && $is_staff) {
         /* ============================================ */
         .hero-bg {
             background-image:
-                linear-gradient(180deg, rgba(6,78,59,0.42) 0%, rgba(4,120,87,0.20) 40%, rgba(6,78,59,0.45) 70%, rgba(6,20,14,0.78) 100%),
+                linear-gradient(180deg, rgba(12,22,26,.28) 0%, rgba(12,22,26,.12) 40%, rgba(12,22,26,.35) 70%, rgba(8,17,21,.65) 100%),
                 url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2069&q=80');
             background-size: cover;
             background-position: center;
@@ -1000,7 +1006,7 @@ if ($isLoggedIn && $is_staff) {
 <!-- ============================================ -->
 <!-- SECTION 1: HOME (HERO) -->
 <!-- ============================================ -->
-<section id="home" class="relative min-h-screen overflow-hidden hero-bg flex flex-col justify-end" style="<?php echo $hero_bg_style; ?>">
+<section id="home" class="hero-orbit-layout relative overflow-hidden hero-bg" style="<?php echo $hero_bg_style; ?>">
     <?php if ($show_hero_video): ?>
         <video class="hero-media-video" id="heroVideo" autoplay muted loop playsinline src="<?php echo htmlspecialchars($hero_bg_video); ?>"></video>
     <?php endif; ?>
@@ -1009,22 +1015,14 @@ if ($isLoggedIn && $is_staff) {
     <?php endif; ?>
         <div class="hero-content-wrap relative z-10 flex flex-col gap-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-24 sm:pb-28 pt-24">
 
-            <!-- Left: eyebrow + heading + subtitle + CTAs (left aligned) -->
-            <div class="max-w-3xl animate-fade-up">
-                <p class="hero-eyebrow inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold mb-6">
-                    <span class="relative flex h-2 w-2 flex-shrink-0">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                    </span>
-                    <?php echo htmlspecialchars($lp('lp_hero_badge', "Environmental care is more than a policy. It protects your barangay and keeps San Isidro clean today.")); ?>
-                </p>
-
+            <!-- Existing role-aware copy and actions stay together over the landscape. -->
+            <div class="hero-copy max-w-3xl animate-fade-up">
                 <h1 class="hero-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-6">
                     <?php if($isLoggedIn): ?>
                         Good to see you,<br>
                         <span class="text-white"><?php echo htmlspecialchars($user_name); ?>!</span>
                     <?php else: ?>
-                        <?php echo htmlspecialchars($lp('lp_hero_headline_1', 'Sama-sama nating')); ?><br>
+                        <span class="hero-headline-first"><?php echo htmlspecialchars($lp('lp_hero_headline_1', 'Sama-sama nating')); ?></span>
                         <span class="hero-headline-second"><?php
     $hero_line2 = nl2br(htmlspecialchars($lp('lp_hero_headline_2', "pangalagaan ang\nSan Isidro.")));
     $hero_line2 = str_ireplace('san isidro', 'San Isidro', $hero_line2);
@@ -1064,29 +1062,91 @@ if ($isLoggedIn && $is_staff) {
             </div>
     </div>
 
+    <!-- A visual overview of the system; these cards do not expose report details. -->
+    <div class="hero-orbit" aria-hidden="true">
+        <div class="hero-orbit-ring">
+            <?php for ($orbit_copy = 0; $orbit_copy < 2; $orbit_copy++): ?>
+            <div class="hero-orbit-group">
+            <div class="hero-orbit-card orbit-community">
+                <span class="orbit-card-kicker">SIERRA / COMMUNITY</span>
+                <i class="fas fa-leaf orbit-card-icon"></i>
+                <strong>Green San Isidro</strong>
+                <span>A cleaner community starts with us.</span>
+                <div class="orbit-card-tags"><span>Care</span><span>Act</span><span>Protect</span></div>
+            </div>
+            <div class="hero-orbit-card">
+                <span class="orbit-card-kicker">COMMUNITY REPORTS</span>
+                <i class="fas fa-clipboard-list orbit-card-icon"></i>
+                <strong class="orbit-card-number"><?php echo number_format((int)$total_reports); ?></strong>
+                <span>Environmental concerns reported</span>
+                <div class="orbit-card-bars"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="hero-orbit-card orbit-dark">
+                <span class="orbit-card-kicker">CLEAN AIR</span>
+                <i class="fas fa-cloud orbit-card-icon"></i>
+                <strong>Room to breathe.</strong>
+                <span>Help keep our air clean and our neighborhoods healthy.</span>
+            </div>
+            <div class="hero-orbit-card">
+                <span class="orbit-card-kicker">CLEAN WATER</span>
+                <i class="fas fa-water orbit-card-icon"></i>
+                <strong>Protect our waterways.</strong>
+                <span>Report pollution and blocked drainage in your barangay.</span>
+            </div>
+            <div class="hero-orbit-card orbit-community">
+                <span class="orbit-card-kicker">WASTE MANAGEMENT</span>
+                <i class="fas fa-recycle orbit-card-icon"></i>
+                <strong>Clean streets. Better days.</strong>
+                <span>Speak up about illegal dumping and uncollected waste.</span>
+            </div>
+            <div class="hero-orbit-card">
+                <span class="orbit-card-kicker">REPORTS RESOLVED</span>
+                <i class="fas fa-check-circle orbit-card-icon"></i>
+                <strong class="orbit-card-number"><?php echo number_format((int)$resolved_reports); ?></strong>
+                <span>Community reports marked resolved</span>
+                <div class="orbit-card-tags"><span>Reported</span><span>Reviewed</span><span>Resolved</span></div>
+            </div>
+            <div class="hero-orbit-card orbit-dark">
+                <span class="orbit-card-kicker">TREE PLANTING</span>
+                <i class="fas fa-seedling orbit-card-icon"></i>
+                <strong>Grow a greener future.</strong>
+                <span>Small actions today help protect San Isidro tomorrow.</span>
+            </div>
+            <div class="hero-orbit-card">
+                <span class="orbit-card-kicker">YOUR BARANGAY</span>
+                <i class="fas fa-map-marker-alt orbit-card-icon"></i>
+                <strong>Local concerns. Local action.</strong>
+                <span>Report an issue and follow its progress through SIERRA.</span>
+            </div>
+            <div class="hero-orbit-card orbit-community">
+                <span class="orbit-card-kicker">REPORT AN ISSUE</span>
+                <i class="fas fa-camera orbit-card-icon"></i>
+                <strong>See it. Share it.</strong>
+                <span>A photo and an exact location help your barangay take action.</span>
+            </div>
+            <div class="hero-orbit-card orbit-dark">
+                <span class="orbit-card-kicker">FOLLOW THE PROGRESS</span>
+                <i class="fas fa-list-check orbit-card-icon"></i>
+                <strong>Stay informed.</strong>
+                <span>Track your report from submission through resolution.</span>
+            </div>
+            <div class="hero-orbit-card">
+                <span class="orbit-card-kicker">ENVIRONMENTAL MAP</span>
+                <i class="fas fa-map-marked-alt orbit-card-icon"></i>
+                <strong>See the bigger picture.</strong>
+                <span>Explore environmental reports across San Isidro.</span>
+            </div>
+            </div>
+            <?php endfor; ?>
+        </div>
+    </div>
+
     <!-- Scroll cue -->
     <a href="#features" class="hero-scroll-cue hidden sm:flex flex-col items-center gap-1.5 absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 hover:text-white transition" aria-label="Scroll to explore">
         <span class="text-[10px] uppercase tracking-widest">Scroll</span>
         <i class="fas fa-chevron-down text-sm animate-bounce"></i>
     </a>
 </section>
-
-<!-- ============================================ -->
-<!-- MARQUEE TICKER -->
-<!-- ============================================ -->
-<?php $marquee_items = ['Clean Air', 'Clean Water', 'Waste Management', 'Tree Planting', 'Coastal Care', 'Green San Isidro']; ?>
-<div class="lp-marquee" aria-hidden="true">
-    <div class="lp-marquee-track">
-        <?php for ($m = 0; $m < 2; $m++): ?>
-        <div class="lp-marquee-group">
-            <?php foreach ($marquee_items as $mi): ?>
-            <span class="lp-marquee-item"><?php echo htmlspecialchars($mi); ?></span>
-            <span class="lp-marquee-sep">&#10022;</span>
-            <?php endforeach; ?>
-        </div>
-        <?php endfor; ?>
-    </div>
-</div>
 
 <!-- ============================================ -->
 <!-- SECTION 2: HOW IT WORKS (+ pinned stack with the Map) -->
@@ -1192,15 +1252,13 @@ if ($isLoggedIn && $is_staff) {
     </div>
 </section>
 
-<!-- Scroll hold: lets the full How It Works stay on screen before the Map covers it -->
-<div class="lp-cover-hold" aria-hidden="true"></div>
-
 <!-- ============================================ -->
 <!-- SECTION 3: MAP (LIVE ENVIRONMENTAL REPORTS) -->
 <!-- ============================================ -->
-<section id="map-section" class="py-20 bg-[#F5FBF6]">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center lp-section-head-wrap">
+<section id="map-section" class="lp-map-journey" aria-label="Environmental reports map">
+    <div class="lp-map-stage">
+        <div id="map"></div>
+        <div class="lp-map-story lp-section-head-wrap">
             <span class="text-emerald-600 text-sm font-semibold uppercase tracking-wider"><?php echo htmlspecialchars($lp('lp_map_kicker', 'Live Map')); ?></span>
             <div class="section-divider"></div>
             <h2 class="lp-section-head">
@@ -1216,22 +1274,21 @@ if ($isLoggedIn && $is_staff) {
             <?php endif; ?>
         </div>
         
-        <div class="lp-live-map-card bg-white rounded-2xl shadow-sm border border-emerald-50 p-4">
+        <div class="lp-map-reports" inert>
             <div class="lp-live-map-top">
                 <span><i class="fas fa-location-crosshairs"></i> San Isidro live view</span>
                 <strong><?php echo count($reports_for_map); ?> active pins</strong>
             </div>
-            <div class="lp-map-frame">
-                <div id="map"></div>
-            </div>
-            <div class="lp-map-legend flex flex-wrap gap-3 mt-4 text-xs text-gray-500">
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#16A34A;"></span> Low Risk</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#F59E0B;"></span> Medium Risk</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#EA580C;"></span> High Risk</span>
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full" style="background:#DC2626;"></span> Critical Risk</span>
-                <span class="flex items-center gap-1.5 ml-auto text-emerald-600 font-medium">
-                    <i class="fas fa-map-pin"></i> <?php echo count($reports_for_map); ?> reports shown
-                </span>
+            <h3>Recent reports</h3>
+            <div class="lp-map-recent-list">
+                <?php foreach (array_slice($reports_for_map, 0, 3) as $map_report): ?>
+                <a class="lp-map-recent-report" href="<?php echo BASE_URL; ?>index.php?page=<?php echo $isLoggedIn ? 'track-status&id=' . urlencode($map_report['token']) : 'login'; ?>">
+                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                    <span><strong><?php echo $isLoggedIn ? htmlspecialchars($map_report['title']) : 'Environmental report'; ?></strong><small><?php echo htmlspecialchars(ucfirst($map_report['risk_level'] ?? 'low')); ?> risk · <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $map_report['status']))); ?></small></span>
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+                <?php endforeach; ?>
+                <?php if (empty($reports_for_map)): ?><p>No recent reports to display.</p><?php endif; ?>
             </div>
         </div>
     </div>
@@ -1475,6 +1532,23 @@ if ($isLoggedIn && $is_staff) {
             </a>
         </div>
     </div>
+
+    <!-- ============================================ -->
+    <!-- MARQUEE TICKER -->
+    <!-- ============================================ -->
+    <?php $marquee_items = ['Clean Air', 'Clean Water', 'Waste Management', 'Tree Planting', 'Coastal Care', 'Green San Isidro']; ?>
+    <div class="lp-marquee" aria-hidden="true">
+        <div class="lp-marquee-track">
+            <?php for ($m = 0; $m < 2; $m++): ?>
+            <div class="lp-marquee-group">
+                <?php foreach ($marquee_items as $mi): ?>
+                <span class="lp-marquee-item"><?php echo htmlspecialchars($mi); ?></span>
+                <span class="lp-marquee-sep">&#10022;</span>
+                <?php endforeach; ?>
+            </div>
+            <?php endfor; ?>
+        </div>
+    </div>
 </section>
 
 <!-- ============================================ -->
@@ -1683,7 +1757,7 @@ if ($isLoggedIn && $is_staff) {
                     <?php endif; ?>
                     <span class="text-lg font-bold"><?php echo htmlspecialchars($system_name); ?></span>
                 </div>
-                <p class="text-gray-400 text-sm"><?php echo nl2br(htmlspecialchars($lp('lp_footer_about', 'Environmental reporting system for San Isidro, Nueva Ecija. Working together for a cleaner, greener community.'))); ?></p>
+                <p class="text-gray-400 text-sm"><?php echo nl2br(htmlspecialchars($lp('lp_footer_about', 'Environmental reporting system for San Isidro, Nueva Ecija.'))); ?></p>
                 <div class="mt-4 text-sm text-gray-400">
                     <p><i class="fas fa-envelope mr-2"></i> <?php echo htmlspecialchars($contact_email); ?></p>
                     <p><i class="fas fa-phone mr-2"></i> <?php echo htmlspecialchars($emergency_hotline); ?></p>
@@ -1790,9 +1864,22 @@ heroScrollState();
 const mapReports = <?php echo json_encode($reports_for_map); ?>;
 
 function initMap() {
-    const map = L.map('map').setView([15.3092, 120.9033], 13);
+    const map = L.map('map', { zoomControl: false, scrollWheelZoom: false, zoomAnimation: false, fadeAnimation: false, dragging: false, touchZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false }).setView([15.3092, 120.9033], 13);
     
-    MapLayers.addControl(map);
+    MapLayers.getLayers().Satellite.addTo(map);
+    const mapSection = document.getElementById('map-section');
+    const reducedMapMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reportPanel = mapSection.querySelector('.lp-map-reports');
+    if (reportPanel && !document.body.classList.contains('lp-motion')) reportPanel.inert = false;
+    function updateJourneyZoom(progress) {
+        // Scale the same oversized map canvas. Repeated Leaflet zoom changes
+        // discard tile levels mid-scroll, briefly exposing a blank background.
+        const scale = reducedMapMotion.matches ? 1 : 0.5 + Math.min(1, progress / 0.8) * 0.9;
+        mapSection.style.setProperty('--map-scale', scale.toFixed(5));
+    }
+    mapSection.addEventListener('sierra:map-progress', function(event) { updateJourneyZoom(event.detail.progress); });
+    updateJourneyZoom(Number(mapSection.dataset.journeyProgress || 0));
+    if (window.ResizeObserver) new ResizeObserver(function() { map.invalidateSize({ pan: false }); }).observe(map.getContainer());
     
     // Add San Isidro boundary
     <?php 

@@ -8,6 +8,25 @@
    ============================================ */
 .export-dropdown { position: relative; display: inline-block; }
 
+/* Screen previews fit the device; print media retains the existing A4 layout. */
+@media screen {
+    .page-wrap > .page-main { min-width: 0; max-width: 100%; }
+    .page-wrap .report { box-sizing: border-box; width: min(210mm, 100%); }
+    .page-wrap .report canvas { max-width: 100%; }
+    .page-wrap :is(.toolbar, .controls, .filter-summary-bar) { min-width: 0; max-width: 100%; }
+    .page-wrap :is(.toolbar, .controls) > * { max-width: 100%; }
+    .export-dropdown-menu { max-width: calc(100vw - 24px); max-height: 75dvh; overflow-y: auto; }
+}
+@media screen and (max-width: 640px) {
+    .page-wrap .report { padding: 20px 16px; min-height: 0; }
+    .page-wrap .report-header { flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .page-wrap .report :is(.report-title, .report-subtitle, .report-meta) { overflow-wrap: anywhere; }
+    .page-wrap .report table { display: block; max-width: 100%; overflow-x: auto; }
+    .page-wrap .report .charts-row { grid-template-columns: minmax(0, 1fr) !important; }
+    .page-wrap .report .signature-block { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    .page-wrap :is(.toolbar, .controls) :is(button, a, select) { min-height: 44px; }
+}
+
 /* ============================================
    DROPDOWN MENU
    ============================================ */
@@ -288,8 +307,8 @@
 }
 @media (max-width: 640px) {
     .export-dropdown-menu {
-        right: -40px;
-        min-width: 260px;
+        right: 0;
+        min-width: min(260px, calc(100vw - 24px));
     }
     .print-toolbar {
         flex-direction: column;

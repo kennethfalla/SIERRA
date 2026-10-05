@@ -38,12 +38,23 @@
     layer.addTo(map);
     const controls = {
         period: document.getElementById('sierraMapPeriod'),
-        category: document.getElementById('sierraMapCategory'),
-        risk: document.getElementById('sierraMapRisk'),
-        barangay: document.getElementById('sierraMapBarangay'),
         from: document.getElementById('sierraMapFrom'),
         to: document.getElementById('sierraMapTo')
     };
+    function activeValues(id) {
+        const input = document.getElementById(id);
+        if (!input || !input.value) return [];
+        return String(input.value).split(',').filter(function (v) { return v !== ''; });
+    }
+    function updateFilterCount() {
+        const badge = document.getElementById('sierraMapFilterCount');
+        const btn = document.getElementById('sierraMapFilterBtn');
+        if (!badge) return;
+        const count = document.querySelectorAll('.sierra-map-filter-panel .sierra-map-chip.active').length;
+        badge.textContent = count;
+        badge.hidden = count === 0;
+        if (btn) btn.classList.toggle('active', count > 0);
+    }
     let mode = 'active';
     function dateMatch(report) {
         const date = String((mode === 'historical' ? report.resolved_at : report.created_at) || '').slice(0, 10);
@@ -82,9 +93,12 @@
             const active = !['resolved', 'rejected', 'cancelled'].includes(report.status);
             if (mode === 'historical' && report.status !== 'resolved') return;
             if ((mode === 'active') !== active || !dateMatch(report)) return;
-            if (controls.category && controls.category.value && String(report.category_id) !== controls.category.value) return;
-            if (controls.risk && controls.risk.value && risk(report) !== controls.risk.value) return;
-            if (controls.barangay && controls.barangay.value && String(report.barangay_id) !== controls.barangay.value) return;
+            const cats = activeValues('popoverCategory');
+            if (cats.length && cats.indexOf(String(report.category_id)) === -1) return;
+            const risks = activeValues('popoverRisk');
+            if (risks.length && risks.indexOf(risk(report)) === -1) return;
+            const brgys = activeValues('popoverBarangay');
+            if (brgys.length && brgys.indexOf(String(report.barangay_id)) === -1) return;
             const lat = Number(report.latitude), lng = Number(report.longitude);
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
             const color = colors[risk(report)];
@@ -100,6 +114,8 @@
         const count = markers.length;
         document.getElementById('sierraMapCount').textContent = count + (count === 1 ? ' report shown' : ' reports shown');
     }
+    // The shared report-filter toolbar calls this when "Apply Filter" is clicked.
+    window.applyMapFilters = function () { refresh(); };
     document.querySelectorAll('[data-map-mode]').forEach(function (button) {
         button.addEventListener('click', function () {
             mode = button.dataset.mapMode;
@@ -119,5 +135,38 @@
         if (dates) dates.hidden = controls.period.value !== 'custom';
         refresh();
     }); });
+
+    // ===== Filter By (multi-select chips) =====
+    const filterBtn = document.getElementById('sierraMapFilterBtn');
+    const filterPanel = document.getElementById('sierraMapFilterPanel');
+    document.querySelectorAll('.sierra-map-filter-group').forEach(function (group) {
+        group.querySelectorAll('.sierra-map-chip').forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                chip.classList.toggle('active');
+                updateFilterCount();
+                refresh();
+            });
+        });
+    });
+    filterBtn && filterPanel && filterBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const willOpen = filterPanel.hidden;
+        filterPanel.hidden = !willOpen;
+        filterBtn.setAttribute('aria-expanded', String(willOpen));
+    });
+    filterPanel && filterPanel.addEventListener('click', function (e) { e.stopPropagation(); });
+    const filterReset = document.getElementById('sierraMapFilterReset');
+    filterReset && filterReset.addEventListener('click', function () {
+        document.querySelectorAll('.sierra-map-filter-panel .sierra-map-chip.active').forEach(function (chip) { chip.classList.remove('active'); });
+        updateFilterCount();
+        refresh();
+    });
+    document.addEventListener('click', function () {
+        if (filterPanel && !filterPanel.hidden) {
+            filterPanel.hidden = true;
+            if (filterBtn) filterBtn.setAttribute('aria-expanded', 'false');
+        }
+    });
+    updateFilterCount();
     refresh();
 })();

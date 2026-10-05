@@ -199,7 +199,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         /* ===== SETTINGS LAYOUT ===== */
         .settings-layout {
             display: grid;
-            grid-template-columns: 280px 1fr;
+            grid-template-columns: 280px minmax(0, 1fr);
             gap: 1.5rem;
         }
         @media (max-width: 768px) {
@@ -672,6 +672,346 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @media (max-width: 480px) {
             .main-container { padding: 0.75rem; }
         }
+
+        /* ===== SETTINGS REDESIGN (screenshot-style, on-brand) ===== */
+        #main-content { background: #f3f6f4; }
+        .settings-layout { grid-template-columns: 300px minmax(0, 1fr); gap: 1.25rem; }
+
+        .settings-sidebar {
+            background: #fff;
+            border: 1px solid #e6efe9;
+            border-radius: 1.1rem;
+            padding: 0.75rem 0.6rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+        }
+        .category-header {
+            font-size: .62rem;
+            letter-spacing: .12em;
+            color: #93a59c;
+            padding: 1rem 0.85rem .45rem;
+            margin-top: 0;
+        }
+        .category-spacer { height: .35rem; }
+        .settings-tab {
+            display: flex;
+            align-items: flex-start;
+            gap: .7rem;
+            padding: .6rem .65rem;
+            border-radius: .8rem;
+            color: #3f5349;
+            font-weight: 600;
+            font-size: .82rem;
+            transition: background .18s ease, color .18s ease;
+        }
+        .settings-tab .tab-icon {
+            width: 34px;
+            height: 34px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            background: #f1f6f3;
+            color: #5b7a6c;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .85rem;
+            transition: background .18s ease, color .18s ease;
+            text-align: center;
+        }
+        .settings-tab .tab-copy { display: flex; flex-direction: column; min-width: 0; gap: .1rem; flex: 1; }
+        .settings-tab .tab-label { font-weight: 700; color: inherit; }
+        .settings-tab .tab-description {
+            display: block;
+            font-size: .68rem;
+            font-weight: 500;
+            color: #93a59c;
+            line-height: 1.35;
+            white-space: normal;
+        }
+        .settings-tab .tab-badge { align-self: center; background: #e6f6ee; color: #0d8568; font-weight: 700; }
+        .settings-tab:hover { background: #f2f8f5; color: #0d8568; }
+        .settings-tab:hover .tab-icon { background: #e2f3ea; color: #0d8568; }
+        .settings-tab.active { background: #e7f6ee; color: #0d8568; box-shadow: none; }
+        .settings-tab.active .tab-icon { background: #0d8568; color: #fff; }
+        .settings-tab.active .tab-description { color: #4e8f77; }
+        .settings-tab.active .tab-badge { background: #d8f0e6; color: #0d8568; }
+
+        .settings-content { background: transparent; border: 0; padding: 0; border-radius: 0; }
+        #main-content .settings-content { padding: 0 0 5rem; }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            gap: .9rem;
+            background: #fff;
+            border: 1px solid #e6efe9;
+            border-radius: 1.1rem;
+            padding: 1.1rem 1.25rem;
+            margin-bottom: 1.1rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+        }
+        .settings-header .settings-header-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: #e7f6ee;
+            color: #0d8568;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+        }
+        .settings-header .settings-header-copy { min-width: 0; flex: 1; }
+        .settings-header h2 { font-size: 1.15rem; font-weight: 800; color: #16271f; border: 0; padding: 0; }
+        .settings-header p { margin: .15rem 0 0; color: #7c8f87; font-size: .82rem; }
+        .settings-sync-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            padding: .5rem .85rem;
+            border-radius: 999px;
+            background: #f2f8f5;
+            color: #0d8568;
+            font-size: .72rem;
+            font-weight: 700;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .settings-sync-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #10A37F; box-shadow: 0 0 0 3px #d8f0e6; }
+
+        .settings-card {
+            background: #fff;
+            border: 1px solid #e6efe9;
+            border-radius: 1.1rem;
+            padding: 1.25rem 1.35rem;
+            margin-bottom: 1.1rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+        }
+        .settings-card > h3,
+        .settings-card .settings-card-title { margin: 0; font-size: 1rem; font-weight: 800; color: #16271f; }
+        .settings-card .settings-card-sub { margin: .25rem 0 1.1rem; color: #7c8f87; font-size: .82rem; line-height: 1.5; }
+
+        .settings-content .form-group { margin-bottom: 1.1rem; }
+        .settings-content .form-label { display: block; font-size: .82rem; font-weight: 700; color: #35473e; margin-bottom: .35rem; }
+        .settings-content .form-input {
+            width: 100%;
+            padding: .68rem .85rem;
+            border: 1.5px solid #e2ece6;
+            border-radius: .8rem;
+            font-size: .88rem;
+            background: #fbfdfc;
+            color: #1a2e1a;
+        }
+        .settings-content .form-input:focus { border-color: #10A37F; background: #fff; box-shadow: 0 0 0 3px rgba(16, 163, 127, .1); }
+        .settings-content .form-group > p { color: #93a59c; }
+
+        .settings-callout { border: 1.5px solid #cdeadd; background: #f2fbf6; border-radius: .9rem; padding: 1rem 1.1rem; }
+        .settings-callout .settings-callout-badge {
+            display: inline-flex; align-items: center; gap: .35rem;
+            background: #fde9e7; color: #c2410c;
+            font-size: .62rem; font-weight: 800; letter-spacing: .04em;
+            padding: .2rem .5rem; border-radius: 999px; text-transform: uppercase;
+        }
+        .settings-verified {
+            display: inline-flex; align-items: center; gap: .3rem;
+            background: #e7f6ee; color: #0d8568;
+            font-size: .64rem; font-weight: 800;
+            padding: .18rem .5rem; border-radius: 999px;
+        }
+
+        .settings-footer {
+            position: sticky;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-top: 1.2rem;
+            padding: .85rem 1.1rem;
+            background: #fff;
+            border: 1px solid #e6efe9;
+            border-radius: 1rem;
+            box-shadow: 0 -8px 30px -22px rgba(15, 23, 42, .5);
+            flex-wrap: wrap;
+            z-index: 20;
+        }
+        .settings-footer[hidden] { display: none; }
+        .settings-footer-msg { display: inline-flex; align-items: center; gap: .5rem; color: #7c8f87; font-size: .8rem; font-weight: 600; }
+        .settings-footer-msg i { color: #f59e0b; }
+        .settings-footer-actions { display: flex; align-items: center; gap: .6rem; margin-left: auto; }
+        .settings-btn-ghost {
+            display: inline-flex; align-items: center; gap: .4rem;
+            padding: .6rem 1rem; border-radius: .8rem;
+            border: 1px solid #dbe8e0; background: #fff; color: #4b5f57;
+            font-weight: 700; font-size: .82rem; cursor: pointer;
+        }
+        .settings-btn-ghost:hover { background: #f3f7f5; }
+        .settings-btn-primary {
+            display: inline-flex; align-items: center; gap: .45rem;
+            padding: .6rem 1.15rem; border-radius: .8rem;
+            border: 0; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
+            color: #fff; font-weight: 700; font-size: .82rem; cursor: pointer;
+            box-shadow: 0 10px 20px -12px rgba(16, 163, 127, .8);
+        }
+        .settings-btn-primary:hover { transform: translateY(-1px); }
+
+        /* ===== Card look for EVERY partial's content sections ===== */
+        .settings-content :is(
+            .card-info, .barangay-section, .ks-card, .template-card, .perm-card,
+            .rl-card, .map-card, .stat-card, .ckw-stats, .qnt-stats, .settings-section,
+            .settings-card, .seg-card, .security-card, .sec-card
+        ) {
+            background: #fff;
+            border: 1px solid #e6efe9;
+            border-radius: 1.1rem;
+            padding: 1.25rem 1.35rem;
+            margin-bottom: 1.1rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+        }
+        .settings-content :is(.stat-cards, .ckw-stats, .qnt-stats) { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .85rem; }
+
+        /* ===== RESPONSIVE: tablets & phones ===== */
+        @media (max-width: 1023px) {
+            .settings-layout { grid-template-columns: 1fr; gap: .9rem; }
+            #main-content { height: auto; min-height: 100vh; overflow: visible; }
+            #main-content .main-container { height: auto; display: block; }
+            .settings-sidebar {
+                position: sticky;
+                top: 60px;
+                z-index: 30;
+                display: flex;
+                flex-wrap: nowrap;
+                gap: .4rem;
+                padding: .5rem;
+                overflow-x: auto;
+                overflow-y: hidden;
+                border-radius: .9rem;
+                scrollbar-width: none;
+                -webkit-overflow-scrolling: touch;
+            }
+            .settings-sidebar::-webkit-scrollbar { display: none; }
+            .category-header, .category-spacer { display: none; }
+            .settings-tab {
+                width: auto;
+                flex: 0 0 auto;
+                padding: .45rem .65rem;
+                align-items: center;
+                font-size: .76rem;
+                gap: .45rem;
+                white-space: nowrap;
+            }
+            .settings-tab .tab-copy { flex-direction: row; align-items: center; }
+            .settings-tab .tab-description { display: none; }
+            .settings-tab .tab-icon { width: 28px; height: 28px; border-radius: 8px; font-size: .72rem; }
+            #main-content .settings-content { height: auto; max-height: none; overflow: visible; padding: 0 0 4.5rem; }
+        }
+
+        @media (max-width: 768px) {
+            .main-container { padding: .85rem !important; }
+            .settings-header { padding: .9rem 1rem; gap: .7rem; }
+            .settings-header .settings-header-icon { width: 40px; height: 40px; border-radius: 12px; font-size: 1rem; }
+            .settings-header h2 { font-size: 1rem; }
+            .settings-header p { font-size: .76rem; }
+            .settings-sync-pill { display: none; }
+            .settings-card, .settings-content :is(.card-info, .barangay-section, .ks-card, .template-card, .perm-card, .rl-card, .map-card, .stat-card, .ckw-stats, .qnt-stats, .settings-section) {
+                padding: 1rem;
+                border-radius: .9rem;
+            }
+            .settings-footer { position: sticky; bottom: .5rem; padding: .7rem .85rem; }
+            .settings-footer-actions { width: 100%; margin-left: 0; }
+            .settings-footer-actions .settings-btn-ghost,
+            .settings-footer-actions .settings-btn-primary { flex: 1 1 auto; justify-content: center; }
+            /* Let wide tables/sections scroll instead of overflowing the phone */
+            .settings-content table { width: 100%; }
+            .settings-content :is(.table-wrap, .table-responsive, .overflow-x-auto) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .settings-content img { max-width: 100%; height: auto; }
+            .settings-content input,
+            .settings-content select,
+            .settings-content textarea { max-width: 100%; }
+            .settings-content :is(.grid, .flex) { min-width: 0; }
+        }
+
+        @media (max-width: 480px) {
+            .main-container { padding: .6rem !important; }
+            .settings-header { flex-wrap: wrap; }
+            .settings-footer { flex-direction: column; align-items: stretch; }
+            .settings-footer-msg { justify-content: center; text-align: center; }
+            .settings-footer-actions { flex-direction: column; align-items: stretch; gap: .5rem; }
+            .settings-footer-actions button { width: 100%; }
+            .settings-content :is(.stat-cards, .ckw-stats, .qnt-stats) { grid-template-columns: 1fr; }
+        }
+
+        /* Shared partial sizing: use the space available beside both sidebars. */
+        .settings-layout, .settings-sidebar, .settings-content { min-width: 0; max-width: 100%; }
+        .settings-content :is(form, section, .grid, .flex, [class*="-row"]) { min-width: 0; }
+        .settings-content :is(.grid, .flex, [class*="-row"]) > * { min-width: 0; }
+        .settings-content :is(p, li, label, a, h1, h2, h3, h4, .file-label) { overflow-wrap: anywhere; }
+        .settings-content :is(input, select, textarea, img, canvas) { max-width: 100%; }
+        .settings-content :is(.form-input, .rl-input, .barangay-input) { min-width: 0; box-sizing: border-box; }
+        .settings-content :is(.toggle-switch, .perm-switch, .ks-toggle-icon, .role-item-icon, .create-role-icon) { flex-shrink: 0; }
+        .settings-content :is(.btn-primary, .btn-secondary, .settings-btn-primary, .settings-btn-ghost) { max-width: 100%; white-space: normal; }
+        .settings-content :is(.create-role-fields, .perm-option-grid) {
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, max(220px, calc((100% - 1rem) / 2))), 1fr));
+        }
+        @media (min-width: 640px) {
+            .settings-content .grid:is(.sm\:grid-cols-2, .sm\:grid-cols-3, .sm\:grid-cols-4, .md\:grid-cols-2) {
+                grid-template-columns: repeat(auto-fit, minmax(min(100%, max(200px, calc((100% - (var(--settings-columns) - 1) * 1rem) / var(--settings-columns)))), 1fr));
+            }
+            .settings-content .grid.sm\:grid-cols-2 { --settings-columns: 2; }
+            .settings-content .grid.sm\:grid-cols-3 { --settings-columns: 3; }
+            .settings-content .grid.sm\:grid-cols-4 { --settings-columns: 4; }
+            .settings-content .grid.md\:grid-cols-2 { --settings-columns: 2; }
+        }
+        .settings-content :is(
+            .table-container, .barangay-table-wrap, .archive-table-wrap,
+            [class*="table-wrap"], [class*="table-container"]
+        ) { min-width: 0; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .settings-content :is(.ckw-toolbar, .qnt-toolbar, .create-role-actions, .boundary-actions) { flex-wrap: wrap; }
+        .settings-content :is(.ckw-toolbar, .qnt-toolbar) .stat-cards { flex: 1 1 260px; }
+        .settings-content :is(.ckw-toolbar, .qnt-toolbar) ~ .table-container table { min-width: 560px; }
+        .settings-content .table-container:has(.qnt-chip) table { min-width: 680px; }
+        .settings-content :is(.ckw-modal-header, .qnt-modal-header) h3 { min-width: 0; overflow-wrap: anywhere; }
+        .settings-content :is(.ckw-modal-close, .qnt-modal-close, .modal-close) { flex-shrink: 0; }
+        .settings-content :is(.modal-overlay, [class*="modal-overlay"]) { padding: 12px; }
+        .settings-content :is(.modal-content, .ckw-modal, .qnt-modal) {
+            box-sizing: border-box; width: min(100%, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain;
+        }
+        @media (min-width: 1024px) and (max-width: 1399px) {
+            .settings-layout { grid-template-columns: 230px minmax(0, 1fr); gap: 1rem; }
+            .settings-content .settings-sync-pill { display: none; }
+            .settings-content .setting-row { flex-wrap: wrap; gap: .75rem; }
+            .settings-content .setting-row > form { flex-wrap: wrap; max-width: 100%; }
+            .settings-content .role-item-head { flex-wrap: wrap; }
+            .settings-content .role-item-info { flex-basis: calc(100% - 60px); }
+            .settings-content .role-item-actions { margin-left: auto; }
+        }
+
+        @media (max-width: 640px) {
+            .settings-content :is(.grid, .create-role-fields, .perm-option-grid) { grid-template-columns: minmax(0, 1fr); }
+            .settings-content :is(.ckw-toolbar, .qnt-toolbar, .create-role-actions, .boundary-actions, .setting-row) { gap: .75rem; }
+            .settings-content :is(.ckw-toolbar, .qnt-toolbar) > .btn-primary { width: 100%; justify-content: center; }
+            .settings-content :is(.setting-row > form, .boundary-actions) { flex-wrap: wrap; max-width: 100%; }
+            .settings-content :is(.setting-row > form, .boundary-actions) > :is(button, label, select) { flex: 1 1 140px; }
+            .settings-content :is(.ks-toggle-body, .perm-option-text) { overflow-wrap: anywhere; }
+            .settings-content .ks-toggle-body h4 { flex-wrap: wrap; }
+            .settings-content .sms-gateway-card .flex-1 { min-width: 0 !important; flex-basis: 100%; }
+            .settings-content .pdf-preview-head { flex-wrap: wrap; gap: .75rem; }
+            .settings-content :is(#mapSettingsPreview, #barangayBoundaryMap) { height: clamp(240px, 55dvh, 360px) !important; }
+            .settings-content :is(.archive-table, .barangay-table) { white-space: normal; }
+            .settings-content :is(.archive-table, .barangay-table) td::before { max-width: 40%; white-space: normal; overflow-wrap: normal; }
+            .settings-content :is(.archive-table, .barangay-table) td { min-width: 0; overflow-wrap: anywhere; }
+            .settings-content :is(.btn-primary, .btn-secondary, .barangay-btn, .barangay-btn-delete, .btn-add-barangay) { min-height: 44px; }
+            .settings-content :is(.ckw-modal-close, .qnt-modal-close, .role-action-btn, .modal-close) { width: 44px; height: 44px; }
+            .settings-content :is(.form-input, .rl-input, .barangay-input) { font-size: 16px; }
+            .settings-content :is(.modal-overlay, [class*="modal-overlay"]) { align-items: center; }
+            .settings-content :is(.modal-content, .ckw-modal, .qnt-modal) { border-radius: 16px; }
+        }
+        @media (max-width: 576px) {
+            .settings-content .table-container:has(.cat-actions),
+            .settings-content .table-container:has(.cat-actions) .overflow-x-auto { overflow: visible; }
+            .settings-content .table-container:has(.cat-actions) table { min-width: 0; white-space: normal; }
+            .settings-content .cat-actions { width: 100%; }
+        }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
@@ -751,7 +1091,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                            class="settings-tab <?php echo $active_tab === $tab_key ? 'active' : ''; ?>"
                            title="<?php echo htmlspecialchars($tab['description']); ?>">
                             <span class="tab-icon"><i class="fas <?php echo $tab['icon']; ?>"></i></span>
-                            <span class="tab-label"><?php echo htmlspecialchars($tab['label']); ?></span>
+                            <span class="tab-copy">
+                                <span class="tab-label"><?php echo htmlspecialchars($tab['label']); ?></span>
+                                <span class="tab-description"><?php echo htmlspecialchars($tab['description']); ?></span>
+                            </span>
                         </a>
                     <?php endforeach; ?>
                     
@@ -763,11 +1106,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <!-- ===== CONTENT AREA ===== -->
             <div class="settings-content">
                 <div class="settings-header">
-                    <h2>
-                        <i class="fas <?php echo $tabs[$active_tab]['icon']; ?> text-[#10A37F]"></i>
-                        <?php echo $tabs[$active_tab]['label']; ?>
-                    </h2>
-                    <p><?php echo $tabs[$active_tab]['description']; ?></p>
+                    <span class="settings-header-icon"><i class="fas <?php echo $tabs[$active_tab]['icon']; ?>"></i></span>
+                    <div class="settings-header-copy">
+                        <h2><?php echo $tabs[$active_tab]['label']; ?></h2>
+                        <p><?php echo $tabs[$active_tab]['description']; ?></p>
+                    </div>
+                    <span class="settings-sync-pill"><span class="dot"></span> <?php echo t('Synced with database'); ?></span>
                 </div>
 
                 <?php 
@@ -786,11 +1130,47 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     ';
                 }
                 ?>
+
+                <!-- ===== STICKY SAVE BAR ===== -->
+                <div class="settings-footer" id="settingsFooter" hidden>
+                    <span class="settings-footer-msg"><i class="fas fa-circle-exclamation"></i> <span id="settingsFooterText"><?php echo t('You have unsaved changes.'); ?></span></span>
+                    <div class="settings-footer-actions">
+                        <button type="button" class="settings-btn-ghost" onclick="settingsDiscard()"><i class="fas fa-rotate-left"></i> <?php echo t('Discard Changes'); ?></button>
+                        <button type="button" class="settings-btn-primary" onclick="settingsSave()"><i class="fas fa-check"></i> <?php echo t('Save Configuration'); ?></button>
+                    </div>
+                </div>
             </div>
             
         </div>
     </div>
 </div>
+
+<!-- ===== STICKY SAVE BAR LOGIC ===== -->
+<script>
+(function () {
+    'use strict';
+    var footer = document.getElementById('settingsFooter');
+    var content = document.querySelector('.settings-content');
+    if (!footer || !content) return;
+    function activeForm() { return content.querySelector('form'); }
+    content.addEventListener('input', function (e) { if (e.target.closest && e.target.closest('form')) footer.hidden = false; });
+    content.addEventListener('change', function (e) { if (e.target.closest && e.target.closest('form')) footer.hidden = false; });
+    content.addEventListener('submit', function () { footer.hidden = true; });
+    window.settingsSave = function () {
+        var form = activeForm();
+        if (!form) return;
+        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+        else form.submit();
+    };
+    window.settingsDiscard = function () {
+        if (window.GB && window.GB.confirm) {
+            window.GB.confirm({ message: 'Discard unsaved changes?', onConfirm: function () { location.reload(); } });
+        } else if (confirm('Discard unsaved changes?')) {
+            location.reload();
+        }
+    };
+})();
+</script>
 
 <!-- ===== SCRIPTS ===== -->
 <script>

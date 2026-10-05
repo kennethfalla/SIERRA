@@ -902,19 +902,13 @@ foreach ($ft_popover_fields as $pf) {
                     </div>
                     <?php foreach ($ft_popover_fields as $pf): ?>
                         <?php if (($pf['kind'] ?? 'date') !== 'select') continue; ?>
+                        <?php $pf_multi = !empty($pf['multi']); ?>
                         <div class="pf-group">
                             <div class="pf-group-title"><?php echo htmlspecialchars($pf['label'] ?? ''); ?></div>
-                            <select id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>" class="pf-field-hidden" tabindex="-1" aria-hidden="true">
+                            <input type="hidden" id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>" value="<?php echo htmlspecialchars((string)($pf['value'] ?? '')); ?>">
+                            <div class="pf-chips" role="group" aria-label="<?php echo htmlspecialchars($pf['label'] ?? 'Filter'); ?>" data-input="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>" data-multi="<?php echo $pf_multi ? '1' : '0'; ?>">
                                 <?php foreach (($pf['options'] ?? []) as $opt_value => $opt_label): ?>
-                                    <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
-                                        <?php echo ((string)($pf['value'] ?? '') === (string)$opt_value) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars((string)$opt_label); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <div class="pf-chips" role="group" aria-label="<?php echo htmlspecialchars($pf['label'] ?? 'Filter'); ?>" data-select="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>">
-                                <?php foreach (($pf['options'] ?? []) as $opt_value => $opt_label): ?>
-                                <button type="button" class="pf-chip<?php echo ((string)($pf['value'] ?? '') === (string)$opt_value) ? ' active' : ''; ?>" data-value="<?php echo htmlspecialchars((string)$opt_value); ?>">
+                                <button type="button" class="pf-chip" data-value="<?php echo htmlspecialchars((string)$opt_value); ?>">
                                     <span class="pf-check"><i class="fas fa-check"></i></span><?php echo htmlspecialchars((string)$opt_label); ?>
                                 </button>
                                 <?php endforeach; ?>
@@ -942,17 +936,10 @@ foreach ($ft_popover_fields as $pf) {
                     <?php if ($ft_sort_select): ?>
                     <div class="pf-group">
                         <div class="pf-group-title"><?php echo htmlspecialchars($ft_sort_select['label'] ?? 'Sort By'); ?></div>
-                        <select id="<?php echo htmlspecialchars($ft_sort_select['id'] ?? ''); ?>" class="pf-field-hidden" tabindex="-1" aria-hidden="true">
+                        <input type="hidden" id="<?php echo htmlspecialchars($ft_sort_select['id'] ?? ''); ?>" value="<?php echo htmlspecialchars((string)($ft_sort_select['value'] ?? '')); ?>">
+                        <div class="pf-chips" data-input="<?php echo htmlspecialchars($ft_sort_select['id'] ?? ''); ?>" data-multi="0">
                             <?php foreach (($ft_sort_select['options'] ?? []) as $so_value => $so_label): ?>
-                                <option value="<?php echo htmlspecialchars((string)$so_value); ?>"
-                                    <?php echo ((string)($ft_sort_select['value'] ?? '') === (string)$so_value) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars((string)$so_label); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div class="pf-chips" data-select="<?php echo htmlspecialchars($ft_sort_select['id'] ?? ''); ?>">
-                            <?php foreach (($ft_sort_select['options'] ?? []) as $so_value => $so_label): ?>
-                            <button type="button" class="pf-chip<?php echo ((string)($ft_sort_select['value'] ?? '') === (string)$so_value) ? ' active' : ''; ?>" data-value="<?php echo htmlspecialchars((string)$so_value); ?>">
+                            <button type="button" class="pf-chip" data-value="<?php echo htmlspecialchars((string)$so_value); ?>">
                                 <span class="pf-check"><i class="fas fa-check"></i></span><?php echo htmlspecialchars((string)$so_label); ?>
                             </button>
                             <?php endforeach; ?>
@@ -1317,12 +1304,15 @@ foreach ($ft_popover_fields as $pf) {
             button.classList.toggle('active', selected);
             button.setAttribute('aria-pressed', String(selected));
         });
-        filterPopover.querySelectorAll('.pf-chips[data-select]').forEach(function(group) {
-            var select = document.getElementById(group.dataset.select);
+        filterPopover.querySelectorAll('.pf-chips[data-input]').forEach(function(group) {
+            var input = document.getElementById(group.dataset.input);
+            var raw = (input && input.value) ? String(input.value) : '';
+            var values = raw.split(',').filter(function(v) { return v !== ''; });
+            if (!values.length) values = [''];
             group.querySelectorAll('.pf-chip').forEach(function(chip) {
-                var selected = select && select.value === chip.dataset.value;
-                chip.classList.toggle('active', !!selected);
-                chip.setAttribute('aria-pressed', String(!!selected));
+                var selected = values.indexOf(chip.dataset.value) !== -1;
+                chip.classList.toggle('active', selected);
+                chip.setAttribute('aria-pressed', String(selected));
             });
         });
     }
@@ -1388,11 +1378,24 @@ foreach ($ft_popover_fields as $pf) {
         clearDatePresetChips();
         syncFilterChips();
     });
-    document.querySelectorAll('.pf-chips[data-select]').forEach(function(group) {
-        var select = document.getElementById(group.dataset.select);
+    document.querySelectorAll('.pf-chips[data-input]').forEach(function(group) {
+        var input = document.getElementById(group.dataset.input);
+        var multi = group.dataset.multi === '1';
+        var allChip = group.querySelector('.pf-chip[data-value=""], .pf-chip[data-value="0"]');
+        var allValue = allChip ? allChip.dataset.value : '';
         group.querySelectorAll('.pf-chip').forEach(function(chip) {
             chip.addEventListener('click', function() {
-                if (select) select.value = chip.dataset.value;
+                if (!input) return;
+                var value = chip.dataset.value;
+                var isAll = value === '' || value === '0';
+                if (!multi || isAll) {
+                    input.value = value;
+                } else {
+                    var values = input.value ? String(input.value).split(',').filter(function(v) { return v !== '' && v !== '0'; }) : [];
+                    var idx = values.indexOf(value);
+                    if (idx === -1) values.push(value); else values.splice(idx, 1);
+                    input.value = values.length ? values.join(',') : allValue;
+                }
                 syncFilterChips();
             });
         });

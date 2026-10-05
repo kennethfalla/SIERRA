@@ -29,6 +29,12 @@ $sort_order = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 
+// Multi-select support (comma-separated GET values)
+$filter_risks = $filter_risk !== '' ? array_values(array_filter(array_map('trim', explode(',', $filter_risk)), fn($v) => in_array($v, ['low', 'medium', 'high', 'critical'], true))) : [];
+$filter_categories = [];
+$filter_category_raw = isset($_GET['category']) ? trim((string)$_GET['category']) : '';
+foreach (explode(',', $filter_category_raw) as $cat_item) { $cat_item = (int)trim($cat_item); if ($cat_item > 0) $filter_categories[] = $cat_item; }
+
 // Get categories for dropdowns
 $categories = $db->query("SELECT id, name FROM categories ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -50,11 +56,11 @@ $params = [];
 if ($filter_status != '') {
     $where_conditions[] = "r.status = '$filter_status'";
 }
-if ($filter_risk != '') {
-    $where_conditions[] = "r.risk_level = '$filter_risk'";
+if ($filter_risks) {
+    $where_conditions[] = "r.risk_level IN ('" . implode("','", array_map('addslashes', $filter_risks)) . "')";
 }
-if ($filter_category > 0) {
-    $where_conditions[] = "r.category_id = $filter_category";
+if ($filter_categories) {
+    $where_conditions[] = "r.category_id IN (" . implode(',', $filter_categories) . ")";
 }
 if ($filter_date > 0) {
     $where_conditions[] = "r.created_at >= DATE_SUB(NOW(), INTERVAL $filter_date DAY)";
@@ -76,11 +82,11 @@ $supported_where = ["rv.user_id = $user_id"];
 if ($filter_status != '') {
     $supported_where[] = "r.status = '$filter_status'";
 }
-if ($filter_risk != '') {
-    $supported_where[] = "r.risk_level = '$filter_risk'";
+if ($filter_risks) {
+    $supported_where[] = "r.risk_level IN ('" . implode("','", array_map('addslashes', $filter_risks)) . "')";
 }
-if ($filter_category > 0) {
-    $supported_where[] = "r.category_id = $filter_category";
+if ($filter_categories) {
+    $supported_where[] = "r.category_id IN (" . implode(',', $filter_categories) . ")";
 }
 if ($filter_date > 0) {
     $supported_where[] = "rv.created_at >= DATE_SUB(NOW(), INTERVAL $filter_date DAY)";
@@ -1416,9 +1422,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 'count'  => $ft_popover_count,
             ],
             'popover_fields'     => [
-                ['kind' => 'select', 'id' => 'popoverRisk', 'label' => 'Risk Level', 'value' => $filter_risk, 'default' => '',
+                ['kind' => 'select', 'id' => 'popoverRisk', 'label' => 'Risk Level', 'value' => $filter_risk, 'default' => '', 'multi' => true,
                  'options' => ['' => 'All Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical']],
-                ['kind' => 'select', 'id' => 'popoverCategory', 'label' => 'Category', 'value' => $filter_category, 'default' => '0', 'options' => $ft_cat_options],
+                ['kind' => 'select', 'id' => 'popoverCategory', 'label' => 'Category', 'value' => ($filter_category_raw !== '' ? $filter_category_raw : '0'), 'default' => '0', 'multi' => true, 'options' => $ft_cat_options],
                 ['kind' => 'select', 'id' => 'popoverDateRange', 'label' => 'Date Range', 'value' => $filter_date, 'default' => '0',
                  'options' => ['0' => 'All Time', '7' => 'Last 7 Days', '30' => 'Last 30 Days', '90' => 'Last 90 Days']],
             ],
@@ -1507,7 +1513,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 $pag_params = ['page' => 'my-reports', 'tab' => $active_tab];
                 if ($filter_status) $pag_params['status'] = $filter_status;
                 if ($filter_risk) $pag_params['risk'] = $filter_risk;
-                if ($filter_category > 0) $pag_params['category'] = $filter_category;
+                if ($filter_category_raw !== '' && $filter_category_raw !== '0') $pag_params['category'] = $filter_category_raw;
                 if ($filter_date > 0) $pag_params['date_range'] = $filter_date;
                 if ($search_keyword) $pag_params['search'] = $search_keyword;
                 if ($sort_order) $pag_params['sort'] = $sort_order;

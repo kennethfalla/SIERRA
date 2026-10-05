@@ -19,6 +19,10 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $category_filter = isset($_GET['category']) ? (int)$_GET['category'] : 0;
 $barangay_filter = isset($_GET['barangay']) ? (int)$_GET['barangay'] : 0;
 $risk_filter = isset($_GET['risk']) ? $_GET['risk'] : '';
+$risk_list = ((string)$risk_filter !== '') ? array_values(array_filter(array_map('trim', explode(',', (string)$risk_filter)), function ($v) { return in_array($v, ['low', 'medium', 'high', 'critical'], true); })) : [];
+$category_raw = isset($_GET['category']) ? trim((string)$_GET['category']) : '';
+$category_list = [];
+foreach (explode(',', $category_raw) as $ci) { $ci = (int)trim($ci); if ($ci > 0) $category_list[] = $ci; }
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : '';
 $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
@@ -42,17 +46,19 @@ if ($status_filter != '') {
         $params[':status'] = $status_filter;
     }
 }
-if ($category_filter > 0) {
-    $where .= " AND r.category_id = :category";
-    $params[':category'] = $category_filter;
+if ($category_list) {
+    $placeholders = [];
+    foreach ($category_list as $i => $cid) { $key = ':cat' . $i; $placeholders[] = $key; $params[$key] = $cid; }
+    $where .= " AND r.category_id IN (" . implode(',', $placeholders) . ")";
 }
 if ($barangay_filter > 0) {
     $where .= " AND r.barangay_id = :barangay";
     $params[':barangay'] = $barangay_filter;
 }
-if ($risk_filter != '') {
-    $where .= " AND r.risk_level = :risk";
-    $params[':risk'] = $risk_filter;
+if ($risk_list) {
+    $placeholders = [];
+    foreach ($risk_list as $i => $rv) { $key = ':risk' . $i; $placeholders[] = $key; $params[$key] = $rv; }
+    $where .= " AND r.risk_level IN (" . implode(',', $placeholders) . ")";
 }
 if ($search != '') {
     $search_like = "%$search%";
@@ -1008,9 +1014,9 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                 'count'  => $ft_popover_count,
             ],
             'popover_fields'     => [
-                ['kind' => 'select', 'id' => 'popoverCategory', 'label' => 'Category', 'value' => $category_filter, 'default' => '0', 'options' => $ft_cat_options],
+                ['kind' => 'select', 'id' => 'popoverCategory', 'label' => 'Category', 'value' => ($category_raw !== '' ? $category_raw : '0'), 'default' => '0', 'multi' => true, 'options' => $ft_cat_options],
                 ['kind' => 'select', 'id' => 'popoverBarangay', 'label' => 'Barangay', 'value' => $barangay_filter, 'default' => '0', 'options' => $ft_barangay_options],
-                ['kind' => 'select', 'id' => 'popoverRisk', 'label' => 'Risk Level', 'value' => $risk_filter, 'default' => '',
+                ['kind' => 'select', 'id' => 'popoverRisk', 'label' => 'Risk Level', 'value' => $risk_filter, 'default' => '', 'multi' => true,
                  'options' => ['' => 'All Levels', 'low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'critical' => 'Critical']],
                 ['kind' => 'date', 'id' => 'popoverDateFrom', 'label' => 'Date From', 'value' => $date_from, 'default' => ''],
                 ['kind' => 'date', 'id' => 'popoverDateTo', 'label' => 'Date To', 'value' => $date_to, 'default' => ''],
@@ -1171,17 +1177,17 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <?php if($total_pages > 1): ?>
             <div class="pagination">
                 <?php if($page > 1): ?>
-                <a href="?page=all-reports&page_num=<?php echo $page-1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_filter; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></a>
+                <a href="?page=all-reports&page_num=<?php echo $page-1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_raw; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></a>
                 <?php else: ?>
                 <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></span>
                 <?php endif; ?>
                 
                 <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
-                <a href="?page=all-reports&page_num=<?php echo $i; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_filter; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn <?php echo $i==$page?'active':''; ?>"><?php echo $i; ?></a>
+                <a href="?page=all-reports&page_num=<?php echo $i; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_raw; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn <?php echo $i==$page?'active':''; ?>"><?php echo $i; ?></a>
                 <?php endfor; ?>
                 
                 <?php if($page < $total_pages): ?>
-                <a href="?page=all-reports&page_num=<?php echo $page+1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_filter; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></a>
+                <a href="?page=all-reports&page_num=<?php echo $page+1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_raw; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></a>
                 <?php else: ?>
                 <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></span>
                 <?php endif; ?>
