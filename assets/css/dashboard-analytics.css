@@ -178,3 +178,9 @@ body:is(.barangay-dashboard-page,.citizen-dashboard-page) .bento .kpi-sm { justi
 body:is(.barangay-dashboard-page,.citizen-dashboard-page) .bento .indicator-list { flex:none; grid-auto-rows:auto; }
 body.barangay-dashboard-page .bento .chart-card { padding:1rem; }
 body.barangay-dashboard-page .bento .b-narrow:has(#severityChart) .severity-layout { flex:none; justify-content:flex-start; }
+/* Empty summaries should take only the space their message needs. */
+.dashboard-page .bento .chart-card > .h-48 { height:auto; min-height:80px; padding:1rem 0; }
+.citizen-dashboard-page .citizen-overview { align-items:stretch; }
+.citizen-dashboard-page .citizen-overview .hero-kpi { align-self:stretch; }
+.citizen-dashboard-page .citizen-overview .hero-kpi .indicator-list { flex:1; grid-auto-rows:1fr; }
+.citizen-dashboard-page .citizen-overview #map-container { align-self:stretch; }

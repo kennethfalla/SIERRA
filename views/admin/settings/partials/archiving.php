@@ -535,12 +535,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     form.addEventListener('input', function() { formChanged = true; });
     form.addEventListener('change', function() { formChanged = true; });
     form.addEventListener('submit', function() { formChanged = false; });
-    window.addEventListener('beforeunload', function(e) {
-        if (formChanged) {
-            e.preventDefault();
-            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        }
-    });
+
 
     // ===== ARCHIVE TABLE SEARCH =====
     const searchInput = document.getElementById('archiveSearch');

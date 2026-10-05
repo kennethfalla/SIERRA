@@ -29,6 +29,14 @@ foreach ($notifications as $n) {
     else if (($n['type'] ?? '') === 'announcement') { $announcements_count++; }
 }
 $has_notifications = count($notifications) > 0;
+$notification_groups = ['Today' => [], 'This Week' => [], 'Earlier' => []];
+$today_start = strtotime('today');
+$week_start = strtotime('monday this week');
+foreach ($notifications as $notification) {
+    $created = strtotime($notification['created_at']);
+    $group = $created >= $today_start ? 'Today' : ($created >= $week_start ? 'This Week' : 'Earlier');
+    $notification_groups[$group][] = $notification;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,7 +53,7 @@ $has_notifications = count($notifications) > 0;
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <style>
         * { font-family: 'Manrope', sans-serif; }
-        body { background: #F5FBF6; overflow-x: hidden; }
+        body { background: #f0f5f3; overflow-x: hidden; }
 
         @media (max-width: 768px) {
             .ml-72 { margin-left: 0 !important; width: 100%; padding: 0; }
@@ -55,52 +63,62 @@ $has_notifications = count($notifications) > 0;
 
         .main-container {
             padding: 1rem;
-            max-width: 1280px;
+            max-width: 1440px;
             margin: 0 auto;
         }
         @media (min-width: 640px) { .main-container { padding: 1.5rem; } }
         @media (min-width: 768px) { .main-container { padding: 2rem; } }
 
-        .page-title { font-size: 1.5rem; }
-
-        .notif-card {
-            background: white;
-            border: 1px solid rgba(16, 163, 127, 0.1);
-            border-radius: 1rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-            overflow: hidden;
-        }
+        .notif-card { min-width: 0; }
+        .notif-group { margin-top: 1.4rem; }
+        .notif-group-title { margin: 0 0 .65rem .15rem; color: #7b8a86; font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+        .notif-group-list { overflow: hidden; background: #fff; border: 1px solid #e8eeeb; border-radius: 1rem; }
 
         .notif-item {
             display: flex;
             align-items: flex-start;
-            gap: 0.875rem;
-            padding: 0.875rem 1rem;
-            border-bottom: 1px solid #F3F4F6;
+            gap: 0.75rem;
+            padding: 1.1rem 1.2rem;
+            border-bottom: 1px solid #f3f5f4;
             cursor: pointer;
             transition: background 0.15s ease;
         }
-        .notif-item:hover { background: #F8FDFA; }
-        .notif-item.unread { background: #F0FDF4; }
-        .notif-item.unread:hover { background: #E8FAF0; }
+        .notif-item:last-child { border-bottom: 0; }
+        .notif-item:hover, .notif-item:focus-within { background: #f7fbf9; }
+        .notif-item:focus-visible { outline: 2px solid #10a37f; outline-offset: -3px; }
+        .notif-item.unread .notif-title { color: #1e293b; }
+        .notif-item:not(.unread) .notif-title { color: #5a6675; }
 
         .notif-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
         }
         .notif-content { flex: 1; min-width: 0; }
-        .notif-title { font-weight: 600; color: #1a2e1a; font-size: 0.85rem; }
-        .notif-message { color: #6B7280; font-size: 0.78rem; line-height: 1.4; margin-top: 2px; }
+        .notif-title { font-weight: 700; color: #1e293b; font-size: 0.85rem; }
+        .notif-message { color: #85919e; font-size: 0.78rem; line-height: 1.6; margin-top: 3px; overflow-wrap: anywhere; }
         .notif-time { color: #9CA3AF; font-size: 0.7rem; display: flex; align-items: center; gap: 4px; margin-top: 6px; }
         .notif-dot {
             width: 8px; height: 8px; border-radius: 50%;
-            background: #10A37F; flex-shrink: 0; margin-top: 4px;
+            background: #10A37F; flex-shrink: 0; margin-top: 14px; box-shadow: 0 0 0 3px #e6faf1;
         }
+        .notif-delete { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex-shrink: 0; margin-left: auto; border: 1px solid transparent; border-radius: 10px; background: transparent; color: #94a3a0; opacity: 0; cursor: pointer; transition: opacity .18s ease, background .18s ease, color .18s ease; }
+        .notif-item:hover .notif-delete, .notif-item:focus-within .notif-delete { opacity: 1; }
+        .notif-delete:hover { color: #dc2626; background: #fff1f2; border-color: #fecdd3; }
+        .notif-delete:focus-visible { opacity: 1; outline: 2px solid #10a37f; outline-offset: 2px; }
+        .notif-delete:disabled { cursor: wait; opacity: .5; }
+        .notif-text-action { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .55rem; border: 0; background: transparent; color: #6e8079; font-size: .72rem; font-weight: 600; cursor: pointer; border-radius: 8px; }
+        .notif-text-action:hover { background: #e5f3ed; color: #0d8568; }
+        .notif-text-action.danger:hover { background: #fff1f2; color: #dc2626; }
+        .notif-text-action:disabled { opacity: .4; cursor: default; }
+        .notif-text-action:focus-visible { outline: 2px solid #10a37f; outline-offset: 2px; }
+        .notif-caught-up { display: flex; align-items: center; justify-content: center; gap: .5rem; margin-top: 1.6rem; color: #8b9992; font-size: .72rem; }
+        .notif-caught-up i { color: #10a37f; }
+        .notif-group[hidden], .notif-text-action[hidden], .nt-chip-count[hidden] { display: none; }
 
         .empty-state { padding: 3.5rem 1rem; text-align: center; }
         .empty-icon {
@@ -109,46 +127,44 @@ $has_notifications = count($notifications) > 0;
             margin: 0 auto 1rem;
         }
 
-        .btn-action {
-            display: inline-flex; align-items: center; gap: 0.4rem;
-            padding: 0.5rem 0.9rem; border-radius: 0.75rem;
-            font-size: 0.75rem; font-weight: 600; cursor: pointer;
-            transition: all 0.2s; border: 1px solid #E5E7EB; background: white; color: #4B5563;
-        }
-        .btn-action:hover { border-color: #10A37F; color: #10A37F; }
-        .btn-action.danger:hover { border-color: #EF4444; color: #EF4444; }
-        .btn-action:disabled { opacity: 0.6; cursor: not-allowed; }
-
         /* ---- Filter chips toolbar ---- */
         .notif-toolbar {
-            padding: 0.875rem 1rem;
-            border-bottom: 1px solid #F3F4F6;
+            padding: 0;
             display: flex;
             flex-direction: row;
             align-items: center;
             gap: 0.65rem;
             flex-wrap: wrap;
         }
-        .nt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .nt-chips { display: flex; flex-wrap: wrap; gap: 3px; background: white; border-radius: 999px; padding: 4px; }
         .nt-toolbar-clear { margin-left: auto; flex-shrink: 0; }
         .nt-chip {
             display: inline-flex; align-items: center; gap: 5px;
             padding: 5px 14px; border-radius: 9999px;
             font-size: 0.72rem; font-weight: 600; line-height: 1;
-            border: 1px solid #E5E7EB; background: #F3F4F6; color: #6B7280;
+            border: 1px solid transparent; background: transparent; color: #85919e;
             cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
         }
         .nt-chip:hover { border-color: #10A37F; color: #10A37F; background: #F0FDF4; }
         .nt-chip.active {
-            background: #10A37F; border-color: #10A37F; color: #FFFFFF;
-            box-shadow: 0 2px 8px rgba(16, 163, 127, 0.25);
+            background: #0d8568; border-color: #0d8568; color: #FFFFFF;
         }
         .nt-chip-count {
             display: inline-flex; align-items: center; justify-content: center;
             min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
             background: rgba(255, 255, 255, 0.25); font-size: 0.58rem; font-weight: 700;
         }
-        .nt-chip:not(.active) .nt-chip-count { background: #E5E7EB; color: #6B7280; }
+        .nt-chip:not(.active) .nt-chip-count { background: #e1f7ec; color: #0d8568; }
+        @media (hover: none) { .notif-delete { opacity: 1; } }
+        @media (max-width: 640px) {
+            .notif-item { padding: 1rem .75rem; gap: .5rem; }
+            .notif-dot { width: 6px; height: 6px; }
+            .notif-icon { width: 30px; height: 30px; }
+            .notif-title { font-size: .8rem; }
+            .notif-message { font-size: .73rem; }
+            .nt-chips { width: 100%; justify-content: space-between; }
+            .nt-chip { padding: 6px 9px; font-size: .67rem; }
+        }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
@@ -157,18 +173,7 @@ $has_notifications = count($notifications) > 0;
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
-    <div class="main-container max-w-4xl mx-auto">
-
-        <div class="page-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            
-            <div class="flex flex-wrap gap-2">
-                <?php if ($unread_count > 0): ?>
-                <button type="button" class="btn-action" id="markAllBtn" onclick="markAllAsRead()">
-                    <i class="fas fa-check-double"></i> Mark all as read
-                </button>
-                <?php endif; ?>
-            </div>
-        </div>
+    <div class="main-container mx-auto">
 
         <div class="notif-card" id="notifCard">
             <div class="notif-toolbar">
@@ -178,19 +183,23 @@ $has_notifications = count($notifications) > 0;
                     <button type="button" class="nt-chip" data-filter="reports">Reports<?php if ($reports_count > 0): ?> <span class="nt-chip-count"><?php echo $reports_count; ?></span><?php endif; ?></button>
                     <button type="button" class="nt-chip" data-filter="announcements">Announcements<?php if ($announcements_count > 0): ?> <span class="nt-chip-count"><?php echo $announcements_count; ?></span><?php endif; ?></button>
                 </div>
-                <?php if (count($notifications) > 0): ?>
-                <button type="button" class="btn-action danger nt-toolbar-clear" id="clearAllBtn" onclick="clearAllNotifications()">
-                    <i class="fas fa-trash-alt"></i> Clear all
+                <button type="button" class="notif-text-action nt-toolbar-clear" id="markAllBtn" onclick="markAllAsRead()" <?php echo $unread_count === 0 ? 'disabled' : ''; ?>>
+                    <i class="fas fa-check-double"></i> Mark all as read
                 </button>
-                <?php endif; ?>
             </div>
             <div id="notifList">
-                <?php if ($has_notifications): ?>
-                    <?php foreach ($notifications as $notif): ?>
+                <?php foreach ($notification_groups as $group_title => $group_notifications): ?>
+                <?php if (!$group_notifications) continue; ?>
+                <section class="notif-group" aria-label="<?php echo $group_title; ?>">
+                    <h2 class="notif-group-title"><?php echo $group_title; ?></h2>
+                    <div class="notif-group-list">
+                    <?php foreach ($group_notifications as $notif): ?>
                     <div class="notif-item <?php echo $notif['is_read'] ? '' : 'unread'; ?>"
+                         tabindex="0"
                          data-link="<?php echo htmlspecialchars($notif['link'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                          data-id="<?php echo (int)$notif['id']; ?>"
                          data-type="<?php echo htmlspecialchars($notif['type'] ?? 'info', ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php if (!$notif['is_read']): ?><span class="notif-dot" aria-label="Unread"></span><?php endif; ?>
                         <div class="notif-icon" style="background: <?php echo $notif['color'] ?? '#10A37F'; ?>20;">
                             <i class="fas <?php echo $notif['icon'] ?? 'fa-bell'; ?>" style="color: <?php echo $notif['color'] ?? '#10A37F'; ?>; font-size: 1rem;"></i>
                         </div>
@@ -209,12 +218,12 @@ $has_notifications = count($notifications) > 0;
                                 ?>
                             </div>
                         </div>
-                        <?php if (!$notif['is_read']): ?>
-                        <div class="notif-dot"></div>
-                        <?php endif; ?>
+                        <button type="button" class="notif-delete" aria-label="Delete notification: <?php echo htmlspecialchars($notif['title'], ENT_QUOTES, 'UTF-8'); ?>" title="Delete notification"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
                     </div>
                     <?php endforeach; ?>
-                <?php endif; ?>
+                    </div>
+                </section>
+                <?php endforeach; ?>
                 <div class="empty-state" id="notifEmpty" style="<?php echo $has_notifications ? 'display:none' : ''; ?>">
                     <div class="empty-icon">
                         <i class="fas fa-bell-slash text-2xl text-gray-400"></i>
@@ -224,6 +233,7 @@ $has_notifications = count($notifications) > 0;
                 </div>
             </div>
         </div>
+        <p class="notif-caught-up" id="notifSummary" aria-live="polite"><i class="far fa-check-circle" aria-hidden="true"></i><span><?php echo $unread_count > 0 ? $unread_count . ' unread notifications' : 'You are all caught up with your notifications'; ?></span></p>
 
     </div>
 </div>
@@ -272,6 +282,7 @@ $has_notifications = count($notifications) > 0;
 
     window.markAllAsRead = function () {
         var btn = document.getElementById('markAllBtn');
+        if (!btn || btn.disabled) return;
         if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Working...'; }
         post('mark_all_read').then(function (data) {
             if (data && data.success) {
@@ -280,10 +291,7 @@ $has_notifications = count($notifications) > 0;
                     var dot = el.querySelector('.notif-dot');
                     if (dot) dot.remove();
                 });
-                var markBtn = document.getElementById('markAllBtn');
-                if (markBtn) { markBtn.remove(); }
-                var clearBtn = document.getElementById('clearAllBtn');
-                if (clearBtn) clearBtn.remove();
+                btn.innerHTML = '<i class="fas fa-check-double"></i> Mark all as read';
                 updateSummary(0, document.querySelectorAll('.notif-item').length);
                 ntApply();
                 showToast('All notifications marked as read.', 'success');
@@ -300,45 +308,11 @@ $has_notifications = count($notifications) > 0;
         });
     };
 
-    window.clearAllNotifications = function () {
-        window.GB.confirm({
-            message: 'Clear all notifications? This cannot be undone.',
-            onConfirm: function () {
-                var btn = document.getElementById('clearAllBtn');
-                if (btn) { btn.disabled = true; }
-                post('clear_all').then(function (data) {
-                    if (data && data.success) {
-                        var list = document.getElementById('notifList');
-                        list.innerHTML = '<div class="empty-state">'
-                            + '<div class="empty-icon"><i class="fas fa-bell-slash text-2xl text-gray-400"></i></div>'
-                            + '<p class="text-gray-500 font-medium">No notifications</p>'
-                            + '<p class="text-sm text-gray-400 mt-1">Notifications for your reports, status updates, and announcements will appear here.</p>'
-                            + '</div>';
-                        var markBtn = document.getElementById('markAllBtn');
-                        if (markBtn) markBtn.remove();
-                        var clearBtn = document.getElementById('clearAllBtn');
-                        if (clearBtn) clearBtn.remove();
-                        updateSummary(0, 0);
-                        ntApply();
-                        showToast('All notifications cleared.', 'success');
-                    } else if (data && data.error) {
-                        showToast(data.error, 'error');
-                        if (btn) btn.disabled = false;
-                    }
-                }).catch(function () {
-                    showToast('Failed to clear notifications.', 'error');
-                    if (btn) btn.disabled = false;
-                });
-            }
-        });
-    };
-
     function updateSummary(unread, total) {
-        var p = document.querySelector('.page-header p');
-        if (p) {
-            p.innerHTML = (unread > 0 ? unread + ' unread' : 'You are all caught up')
-                + ' &middot; ' + total + ' total';
-        }
+        var markBtn = document.getElementById('markAllBtn');
+        if (markBtn) markBtn.disabled = unread === 0;
+        var summary = document.querySelector('#notifSummary span');
+        if (summary) summary.textContent = unread > 0 ? unread + ' unread notifications' : 'You are all caught up with your notifications';
     }
 
     // ===== Pill filter chips =====
@@ -346,10 +320,30 @@ $has_notifications = count($notifications) > 0;
     var ntChips = Array.prototype.slice.call(document.querySelectorAll('.nt-chip'));
     var activeFilter = 'all';
 
+    function deleteNotifications(ids, button) {
+        if (!ids.length) return;
+        window.GB.confirm({message: 'Delete this notification?', onConfirm: function() {
+            button.disabled = true;
+            post('delete_selected', {ids: JSON.stringify(ids)}).then(function(data) {
+                if (!data || !data.success) throw new Error((data && data.error) || 'Unable to delete notifications.');
+                document.querySelectorAll('.notif-item').forEach(function(row) { if (ids.includes(row.dataset.id)) row.remove(); });
+                updateSummary(data.unread_count, document.querySelectorAll('.notif-item').length);
+                ntApply();
+                showToast('Notification deleted.', 'success');
+            }).catch(function(error) { showToast(error.message, 'error'); }).finally(function() { button.disabled = false; });
+        }});
+    }
+    document.querySelectorAll('.notif-delete').forEach(function(button) {
+        button.addEventListener('click', function(event) {
+            event.stopPropagation();
+            deleteNotifications([button.closest('.notif-item').dataset.id], button);
+        });
+    });
+
     function ntApply() {
-        var items = ntList ? ntList.querySelectorAll('.notif-item') : [];
+        var items = Array.prototype.slice.call(ntList ? ntList.querySelectorAll('.notif-item') : []);
         var visible = 0;
-        Array.prototype.forEach.call(items, function (item) {
+        items.forEach(function (item) {
             var show = true;
             if (activeFilter === 'unread' && !item.classList.contains('unread')) show = false;
             else if (activeFilter === 'reports' && item.getAttribute('data-type') !== 'report') show = false;
@@ -359,6 +353,19 @@ $has_notifications = count($notifications) > 0;
         });
         var emptyEl = document.getElementById('notifEmpty');
         if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
+        document.querySelectorAll('.notif-group').forEach(function(group) {
+            group.hidden = !Array.from(group.querySelectorAll('.notif-item')).some(function(row) { return row.style.display !== 'none'; });
+        });
+        ntChips.forEach(function (chip) {
+            var kind = chip.getAttribute('data-filter');
+            if (kind === 'all') return;
+            var count = items.filter(function (row) {
+                return kind === 'unread' ? row.classList.contains('unread') : row.getAttribute('data-type') === (kind === 'reports' ? 'report' : 'announcement');
+            }).length;
+            var badge = chip.querySelector('.nt-chip-count');
+            if (badge) { badge.textContent = count; badge.hidden = count === 0; }
+        });
+        updateSummary(document.querySelectorAll('.notif-item.unread').length, items.length);
     }
 
     ntChips.forEach(function (chip) {
@@ -373,7 +380,11 @@ $has_notifications = count($notifications) > 0;
 
     // Click a notification -> mark read + follow link
     document.querySelectorAll('.notif-item').forEach(function (item) {
+        item.addEventListener('keydown', function(event) {
+            if (event.target === item && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); item.click(); }
+        });
         item.addEventListener('click', function (e) {
+            if (e.target.closest('input,button,label')) return;
             e.stopPropagation();
             var id = item.getAttribute('data-id');
             var link = item.getAttribute('data-link');
@@ -383,6 +394,7 @@ $has_notifications = count($notifications) > 0;
                         item.classList.remove('unread');
                         var dot = item.querySelector('.notif-dot');
                         if (dot) dot.remove();
+                        ntApply();
                     }
                 }).catch(function () {});
             }

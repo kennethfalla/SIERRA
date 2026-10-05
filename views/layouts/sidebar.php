@@ -564,6 +564,7 @@ if ($user_id && isset($db)) {
 <script src="<?php echo BASE_URL; ?>assets/js/map-clusters.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-clusters.js'); ?>"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/dashboard-charts.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/dashboard-charts.js'); ?>"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/dashboard-scroll-reveal.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/dashboard-scroll-reveal.js'); ?>" defer></script>
+<script src="<?php echo BASE_URL; ?>assets/js/dashboard-layout.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/dashboard-layout.js'); ?>" defer></script>
 
 <!-- Page title, filters, notifications and account actions. -->
 <header class="app-mobile-header" role="banner">

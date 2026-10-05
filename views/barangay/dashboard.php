@@ -1028,119 +1028,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         }
         .map-toggle button:hover:not(.active) { color: #10A37F; }
 
-        /* ENHANCED DRILL-DOWN PANEL (matches MENRO dashboard) */
-        #drillPanel {
-            position: fixed;
-            top: 0;
-            right: -520px;
-            width: 520px;
-            height: 100%;
-            background: white;
-            box-shadow: -4px 0 24px rgba(0,0,0,0.1);
-            z-index: 1000;
-            transition: right 0.3s ease;
-            overflow-y: auto;
-            padding: 0;
-        }
-        #drillPanel.open { right: 0; }
-        #drillPanel .drill-body { padding: 1rem 1.5rem 1.5rem; }
-        #drillPanel .close-btn {
-            position: sticky;
-            top: 0;
-            float: right;
-            margin: 1rem 1rem 0 0;
-            background: #f1f5f9;
-            border: none;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.2s;
-            z-index: 10;
-        }
-        #drillPanel .close-btn:hover { background: #e2e8f0; }
-
-        .drill-photo-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-            margin-top: 8px;
-        }
-        .drill-photo-grid img {
-            width: 100%;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            border: 1px solid #e5e7eb;
-            transition: transform 0.2s;
-        }
-        .drill-photo-grid video {
-            width: 100%;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            border: 1px solid #e5e7eb;
-            transition: transform 0.2s;
-            background: #111827;
-        }
-        .drill-photo-grid img:hover,
-        .drill-photo-grid video:hover { transform: scale(1.02); }
-        .drill-photo-grid .no-photo {
-            grid-column: 1 / -1;
-            text-align: center;
-            color: #9ca3af;
-            font-size: 0.8rem;
-            padding: 1.5rem 0;
-            background: #f9fafb;
-            border-radius: 0.5rem;
-        }
-
-        .drill-score-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.4rem 0;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 0.9rem;
-        }
-        .drill-score-row .label { color: #64748b; }
-        .drill-score-row .value { font-weight: 600; }
-
-        .drill-rec-box {
-            padding: 0.75rem 1rem;
-            border-radius: 0.75rem;
-            margin-top: 0.75rem;
-            font-weight: 500;
-            font-size: 0.85rem;
-        }
-        .drill-rec-low { background: #D1FAE5; color: #065F46; border-left: 4px solid #10B981; }
-        .drill-rec-medium { background: #FEF3C7; color: #92400E; border-left: 4px solid #F59E0B; }
-        .drill-rec-high { background: #FFEDD5; color: #9A3412; border-left: 4px solid #F97316; }
-        .drill-rec-critical { background: #FEE2E2; color: #991B1B; border-left: 4px solid #EF4444; }
-
-        .drill-open-btn {
-            display: inline-block;
-            margin-top: 1rem;
-            padding: 0.5rem 1.25rem;
-            background: #10A37F;
-            color: white;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        .drill-open-btn:hover {
-            background: #0D8568;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16,163,127,0.25);
-        }
-
         /* Risk badges (drill panel) */
         .risk-badge {
             display: inline-flex;
@@ -1376,7 +1263,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         @media (max-width: 768px) {
             .ml-72 { margin-left: 0; }
             .notification-dropdown { right: 8px; left: 8px; width: auto; max-width: none; }
-            #drillPanel { width: 100%; right: -100%; }
             .kpi-card .kpi-value { font-size: 1.5rem; }
             .map-toggle button { padding: 0.3rem 0.8rem; font-size: 0.7rem; }
             /* greeting: hide clock on tiny screens */
@@ -2083,10 +1969,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             </div>
         </div>
 </div>
-<div id="drillPanel">
-            <button class="close-btn" onclick="closeDrillPanel()"><i class="fas fa-times"></i></button>
-            <div id="drillContent" class="drill-body"></div>
-        </div>
+<?php include BASE_PATH . 'views/shared/map_report_panel.php'; ?>
 <?php include BASE_PATH . 'views/shared/decision_support_popover.php'; ?>
         
     </div>
@@ -2568,7 +2451,7 @@ function loadMapData(mode) {
 
         const marker = L.marker([lat, lng], { icon: icon, severityScore: score, reportTitle: report.title }).bindPopup(popupContent);
         marker.on('click', function() {
-            if (!isPending) openDrillPanel(report.id);
+            openDrillPanel(report.token || report.id);
         });
         clusterGroup.addLayer(marker);
     });
@@ -2585,214 +2468,7 @@ function loadMapData(mode) {
     initialFitApplied = true;
 }
 
-// ========== DRILL-DOWN PANEL (reuses the existing ReportController endpoint) ==========
-function openDrillPanel(reportId) {
-    document.getElementById('drillContent').innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-[#10A37F]"></i><p class="mt-2 text-gray-500">Loading analysis...</p></div>';
-    document.getElementById('drillPanel').classList.add('open');
-
-    fetch('<?php echo BASE_URL; ?>controllers/ReportController.php?action=get_full&id=' + reportId)
-        .then(response => response.json())
-        .then(data => {
-            if (!data || data.error) {
-                document.getElementById('drillContent').innerHTML = '<p class="text-red-500">Error loading report details.</p>';
-                return;
-            }
-            renderDrillPanel(data);
-        })
-        .catch(err => {
-            document.getElementById('drillContent').innerHTML = '<p class="text-red-500">Failed to load data.</p>';
-            console.error(err);
-        });
-}
-
-function renderDrillPanel(report) {
-    const score = parseInt(report.severity_score) || 0;
-    const riskLevel = getRiskLevelFromScore(score);
-    const recClass = 'drill-rec-' + riskLevel;
-    const recText = getRiskRecommendation(score);
-
-    // Get category name
-    const categoryName = report.category_name || 'Uncategorized';
-
-    // Build photo gallery HTML
-    const baseUrl = '<?php echo BASE_URL; ?>';
-    const isVideoFile = p => /\.(mp4|webm|mov|m4v|avi)$/i.test(p);
-    const buildMediaHtml = p => {
-        const mediaUrl = baseUrl + p.trim();
-        if (isVideoFile(mediaUrl)) {
-            return `<video src="${mediaUrl}" muted playsinline preload="metadata" onclick="window.open('${mediaUrl}','_blank')"></video>`;
-        }
-        return `<img src="${mediaUrl}" onclick="window.open('${mediaUrl}','_blank')" alt="Evidence photo" loading="lazy" onerror="this.style.display='none'">`;
-    };
-    let photoHtml = '';
-    if (report.image_paths) {
-        const paths = report.image_paths.split(',').filter(p => p && p.trim());
-        const maxPhotos = 3;
-        const displayPhotos = paths.slice(0, maxPhotos);
-        photoHtml = displayPhotos.map(buildMediaHtml).join('');
-        if (displayPhotos.length === 0) {
-            photoHtml = '<div class="no-photo"><i class="fas fa-image text-2xl block mb-1"></i>No photos available</div>';
-        } else if (displayPhotos.length < paths.length) {
-            photoHtml += `<div class="flex items-center justify-center bg-gray-100 rounded-lg text-gray-500 text-sm font-bold">+${paths.length - displayPhotos.length}</div>`;
-        }
-    } else {
-        photoHtml = '<div class="no-photo"><i class="fas fa-image text-2xl block mb-1"></i>No photos available</div>';
-    }
-
-    // Build resolution evidence gallery HTML
-    let resolutionHtml = '';
-    if (report.resolution_evidence_paths) {
-        const resPaths = report.resolution_evidence_paths.split(',').filter(p => p && p.trim());
-        resolutionHtml = resPaths.map(buildMediaHtml).join('');
-        if (resPaths.length === 0) {
-            resolutionHtml = '<div class="no-photo"><i class="fas fa-check-circle text-2xl block mb-1"></i>No resolution evidence</div>';
-        }
-    } else {
-        resolutionHtml = '<div class="no-photo"><i class="fas fa-check-circle text-2xl block mb-1"></i>No resolution evidence</div>';
-    }
-
-    // Build location text
-    let locationText = '';
-    if (report.location_address) {
-        locationText = report.location_address;
-    } else if (report.latitude && report.longitude) {
-        locationText = `${parseFloat(report.latitude).toFixed(6)}, ${parseFloat(report.longitude).toFixed(6)}`;
-    } else {
-        locationText = 'No location data';
-    }
-
-    const html = `
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-800">${escapeHtml(report.title)}</h3>
-            <span class="text-sm bg-gray-100 px-2 py-1 rounded">#${String(report.id).padStart(6,'0')}</span>
-        </div>
-
-        <!-- Status Badges -->
-        <div class="flex flex-wrap gap-2 mb-4">
-            ${getStatusBadgeHTML(report.status)}
-            ${getRiskBadgeHTML(report.risk_level || 'low')}
-        </div>
-
-        <!-- Quick Overview -->
-        <div class="space-y-3 mb-4">
-            <div class="flex items-start gap-2">
-                <span class="text-gray-500 text-sm w-24 flex-shrink-0 font-medium">Category:</span>
-                <span class="text-gray-800 font-semibold">${escapeHtml(categoryName)}</span>
-            </div>
-            <div class="flex items-start gap-2">
-                <span class="text-gray-500 text-sm w-24 flex-shrink-0 font-medium">Description:</span>
-                <span class="text-gray-700 text-sm">${escapeHtml(report.description ? report.description.substring(0, 150) : 'No description')}${report.description && report.description.length > 150 ? '...' : ''}</span>
-            </div>
-            <div class="flex items-start gap-2">
-                <span class="text-gray-500 text-sm w-24 flex-shrink-0 font-medium">Location:</span>
-                <span class="text-gray-700 text-sm">${escapeHtml(locationText)}</span>
-            </div>
-        </div>
-
-        <!-- Photo Evidence -->
-        <div class="mb-4">
-            <p class="text-sm font-semibold text-gray-700 mb-2">Photo Evidence</p>
-            <div class="drill-photo-grid">
-                ${photoHtml}
-            </div>
-        </div>
-
-        <!-- Resolution Evidence -->
-        <div class="mb-4">
-            <p class="text-sm font-semibold text-gray-700 mb-2">
-                <i class="fas fa-check-circle text-emerald-500 mr-1"></i>Resolution Evidence
-            </p>
-            <div class="drill-photo-grid">
-                ${resolutionHtml}
-            </div>
-        </div>
-
-        <!-- Severity Score -->
-        <div class="bg-gray-50 rounded-xl p-4 mb-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-semibold text-gray-700">Severity Score</p>
-                    <p class="text-2xl font-extrabold ${riskLevel === 'critical' ? 'text-red-600' : (riskLevel === 'high' ? 'text-orange-600' : (riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600'))}">${score} / 20</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-gray-400">Classification</p>
-                    <p class="text-sm font-semibold text-gray-700">${report.decision_classification || 'Pending'}</p>
-                </div>
-            </div>
-            <div class="mt-2 flex gap-1">
-                ${Array.from({length: 20}, (_, i) => {
-                    const filled = i < score;
-                    return `<div class="h-2 flex-1 rounded-full ${filled ? (riskLevel === 'critical' ? 'bg-red-500' : (riskLevel === 'high' ? 'bg-orange-500' : (riskLevel === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'))) : 'bg-gray-200'}"></div>`;
-                }).join('')}
-            </div>
-        </div>
-
-        <!-- Recommendation -->
-        <div class="drill-rec-box ${recClass}">
-            <i class="fas fa-lightbulb mr-2"></i>
-            <strong>Recommendation:</strong> ${recText}
-        </div>
-
-        <!-- Open Full Report -->
-        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=${report.token}" class="drill-open-btn">
-            <i class="fas fa-external-link-alt mr-2"></i> Open Full Report
-        </a>
-
-        <div class="mt-4 text-xs text-gray-400 flex gap-4">
-            <span><i class="far fa-calendar-alt mr-1"></i>Reported: ${new Date(report.created_at).toLocaleString()}</span>
-            <span><i class="far fa-clock mr-1"></i>${timeAgo(report.created_at)}</span>
-        </div>
-    `;
-
-    document.getElementById('drillContent').innerHTML = html;
-}
-
-// Helper: Get status badge HTML
-function getStatusBadgeHTML(status) {
-    const statusMap = {
-        'pending': { label: 'Pending', class: 'status-pending', icon: 'fa-clock' },
-        'under_review': { label: 'Under Review', class: 'status-under_review', icon: 'fa-search' },
-        'verified': { label: 'Verified', class: 'status-verified', icon: 'fa-check-circle' },
-        'in_progress': { label: 'In Progress', class: 'status-in_progress', icon: 'fa-spinner' },
-        'escalated_pending': { label: 'Escalated Pending', class: 'status-escalated_pending', icon: 'fa-hourglass-half' },
-        'escalated': { label: 'Escalated', class: 'status-escalated', icon: 'fa-shield-alt' },
-        'resolved': { label: 'Resolved', class: 'status-resolved', icon: 'fa-check-circle' },
-        'rejected': { label: 'Rejected', class: 'status-rejected', icon: 'fa-times-circle' },
-        'cancelled': { label: 'Cancelled', class: 'status-cancelled', icon: 'fa-ban' }
-    };
-    const info = statusMap[status] || { label: status, class: 'status-pending', icon: 'fa-circle' };
-    return `<span class="status-badge ${info.class}"><i class="fas ${info.icon} text-xs"></i> ${info.label}</span>`;
-}
-
-// Helper: Get risk badge HTML
-function getRiskBadgeHTML(risk) {
-    const riskMap = {
-        'low': { label: 'Low', class: 'risk-low', icon: 'fa-seedling' },
-        'medium': { label: 'Medium', class: 'risk-medium', icon: 'fa-exclamation-triangle' },
-        'high': { label: 'High', class: 'risk-high', icon: 'fa-fire' },
-        'critical': { label: 'Critical', class: 'risk-critical', icon: 'fa-skull-crossbones' }
-    };
-    const info = riskMap[risk] || { label: risk, class: 'risk-low', icon: 'fa-circle' };
-    return `<span class="risk-badge ${info.class}"><i class="fas ${info.icon} text-xs"></i> ${info.label}</span>`;
-}
-
-// Time ago helper
-function timeAgo(dateStr) {
-    const now = new Date();
-    const then = new Date(dateStr);
-    const diff = Math.floor((now - then) / 1000);
-    if (diff < 60) return 'Just now';
-    if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
-    if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
-    return Math.floor(diff / 86400) + ' days ago';
-}
-
-function closeDrillPanel() {
-    document.getElementById('drillPanel').classList.remove('open');
-}
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeDrillPanel();
-});
+function openDrillPanel(reportId) { window.SierraMapReportPanel.open(reportId); }
 
 // ========== DASHBOARD DATE RANGE FILTER ==========
 

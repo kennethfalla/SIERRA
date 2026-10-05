@@ -66,6 +66,17 @@ if ($action === 'mark_read') {
 // ============================================
 // CLEAR ALL (permanently delete)
 // ============================================
+if ($action === 'delete_selected') {
+    $ids = json_decode($_POST['ids'] ?? '[]', true);
+    if (!is_array($ids) || !$ids || count($ids) > 100 || array_filter($ids, fn($id) => !is_scalar($id) || !ctype_digit((string)$id) || (int)$id <= 0)) {
+        echo json_encode(['error' => 'Select valid notifications to delete.']);
+        exit();
+    }
+    $deleted = $notif->deleteSelected($user_id, $ids);
+    echo json_encode(['success' => true, 'deleted' => $deleted, 'unread_count' => $notif->getUnreadCount($user_id)]);
+    exit();
+}
+
 if ($action === 'clear_all') {
     $deleted = $notif->clearAll($user_id);
     echo json_encode(['success' => true, 'deleted' => $deleted]);

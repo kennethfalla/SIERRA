@@ -357,12 +357,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     form.addEventListener('submit', function() {
         formChanged = false;
     });
-    window.addEventListener('beforeunload', function(e) {
-        if (formChanged) {
-            e.preventDefault();
-            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        }
-    });
+
 
 })();
 </script>

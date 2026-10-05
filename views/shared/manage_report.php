@@ -1290,6 +1290,15 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                     <span class="note-time"><?php echo date('M d, h:i A', strtotime($note['created_at'])); ?></span>
                                 </div>
                                 <p class="note-text"><?php echo htmlspecialchars($note['note']); ?></p>
+                                <?php if ($user_role === 'barangay_official' && $can_manage && $report['status'] === 'in_progress' && (int)$note['user_id'] === (int)$_SESSION['user_id']): ?>
+                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="mt-2" onsubmit="return handleReportFormSubmit(event, this)" data-confirm="Delete this investigation note?">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                                    <input type="hidden" name="action" value="delete_note">
+                                    <input type="hidden" name="report_id" value="<?php echo (int)$report['id']; ?>">
+                                    <input type="hidden" name="note_id" value="<?php echo (int)$note['id']; ?>">
+                                    <button type="submit" class="btn-secondary text-xs"><i class="fas fa-trash-alt" aria-hidden="true"></i> Delete note</button>
+                                </form>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -1302,14 +1311,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
             <!-- Quick note form -->
             <?php
-            // Barangay officials and admins can add follow-up investigation
-            // notes — and see quick suggestions — even AFTER a report is
-            // resolved (closed), so the audit trail can always be extended.
-            // (A resolved report is terminal, so this does not unlock any
-            // status-changing actions — those stay gated by can_manage.)
+            // Closed reports retain their history but cannot accept new notes.
             $note_composer_allowed = $report_verified
                 && ($user_role == 'barangay_official' || $user_role == 'admin')
-                && ($can_manage || $report['status'] == 'resolved');
+                && $can_manage && in_array($report['status'], ['verified', 'in_progress', 'escalated_pending', 'escalated'], true);
             ?>
             <?php if ($note_composer_allowed): ?>
             <?php if (!empty($note_templates)): ?>
@@ -1386,7 +1391,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <i class="fas fa-check-double mt-0.5"></i>
                     <div>
                         <p class="callout-title">Report resolved</p>
-                        <p class="callout-sub"><?php if (!empty($report['resolved_at'])): ?>Closed on <?php echo date('F d, Y h:i A', strtotime($report['resolved_at'])); ?>.<?php endif; ?> The case is closed — follow-up notes can still be added below.</p>
+                        <p class="callout-sub"><?php if (!empty($report['resolved_at'])): ?>Closed on <?php echo date('F d, Y h:i A', strtotime($report['resolved_at'])); ?>.<?php endif; ?> Investigation notes are read-only.</p>
                     </div>
                 </div>
             <?php elseif ($report['status'] == 'rejected'): ?>

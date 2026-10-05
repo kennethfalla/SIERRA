@@ -268,12 +268,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         formChanged = false;
     });
     
-    window.addEventListener('beforeunload', function(e) {
-        if (formChanged) {
-            e.preventDefault();
-            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        }
-    });
+
     
     // ===== INITIAL VALIDATION STATE =====
     // Show placeholder styling for empty previews

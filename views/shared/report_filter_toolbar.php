@@ -81,7 +81,7 @@ foreach ($ft_popover_fields as $pf) {
 ?>
 <style>
     .ft-toolbar {
-        --ft-forest: #2D5A27;
+        --ft-forest: #0d8568;
         --ft-forest-light: #E8F0E7;
         --ft-forest-mid: #3A7332;
         --ft-border: #D1D5DB;
@@ -302,6 +302,92 @@ foreach ($ft_popover_fields as $pf) {
         border-color: var(--ft-forest);
         box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.10);
     }
+
+    /* ===== Centered chip-based filter modal (photo-style) ===== */
+    .filter-popover-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(15, 23, 42, .45);
+        display: none;
+    }
+    .filter-popover-backdrop.open { display: block; }
+    .ft-toolbar .popover-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .ft-toolbar .popover-close {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid var(--ft-border-light);
+        background: #fff;
+        color: #334155;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background .18s ease;
+    }
+    .ft-toolbar .popover-close:hover { background: #f1f5f4; }
+    .ft-toolbar .popover-reset-all {
+        border: 0;
+        background: transparent;
+        color: var(--ft-forest);
+        font-weight: 700;
+        font-size: .82rem;
+        cursor: pointer;
+        padding: 6px 4px;
+    }
+    .ft-toolbar .pf-group { padding: 14px 0; border-top: 1px solid #eef2f0; }
+    .ft-toolbar .pf-group:first-of-type { border-top: 0; padding-top: 0; }
+    .ft-toolbar .pf-group-title { font-size: .95rem; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+    .ft-toolbar .pf-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .ft-toolbar .pf-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 14px;
+        border: 1.5px solid #dbe7e0;
+        border-radius: 999px;
+        background: #fff;
+        color: #334155;
+        font-size: .8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: border-color .15s ease, color .15s ease;
+    }
+    .ft-toolbar .pf-chip:hover { border-color: #a9d8c6; }
+    .ft-toolbar .pf-chip.active { border-color: var(--ft-forest); color: var(--ft-forest); }
+    .ft-toolbar .pf-chip .pf-check {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        border: 1.5px solid #cbd5d0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: transparent;
+        font-size: .55rem;
+        flex-shrink: 0;
+        transition: background .15s ease, border-color .15s ease, color .15s ease;
+    }
+    .ft-toolbar .pf-chip.active .pf-check { background: var(--ft-forest); border-color: var(--ft-forest); color: #fff; }
+    .ft-toolbar .pf-field-hidden { position: absolute !important; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .ft-toolbar .pf-date-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1.5px solid #dbe7e0;
+        border-radius: 14px;
+        padding: 12px 14px;
+    }
+    .ft-toolbar .pf-date-box label { margin: 0; text-transform: none; letter-spacing: 0; font-size: .82rem; color: #64748b; }
+    .ft-toolbar .pf-date-box input[type="date"] { border: 0; background: transparent; padding: 0; flex: 1; }
+    .ft-toolbar .popover-actions { position: sticky; bottom: 0; background: var(--ft-white); padding-top: 14px; border-top: 1px solid #eef2f0; margin-top: 4px; }
+    .ft-toolbar .popover-btn-apply { width: 100%; justify-content: center; border-radius: 999px; padding: 14px; font-size: .95rem; }
     .ft-toolbar .date-range-wrapper {
         position: relative;
     }
@@ -809,44 +895,73 @@ foreach ($ft_popover_fields as $pf) {
                         <span class="filter-count-badge"><?php echo (int)$ft_filter_count; ?></span>
                     <?php endif; ?>
                 </button>
-                <div class="filter-popover" id="filterPopover">
-                    <div class="popover-title">Refine Results</div>
-                    <div class="popover-grid<?php echo count($ft_popover_fields) <= 1 ? ' full-width' : ''; ?>">
-                        <?php foreach ($ft_popover_fields as $pf): ?>
-                            <div class="popover-field<?php echo (($pf['span'] ?? '') === 'full') ? ' span-full' : ''; ?>">
-                                <label><?php echo htmlspecialchars($pf['label'] ?? ''); ?></label>
-                                <?php if (($pf['kind'] ?? 'date') === 'select'): ?>
-                                    <select id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>">
-                                        <?php foreach (($pf['options'] ?? []) as $opt_value => $opt_label): ?>
-                                            <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
-                                                <?php echo ((string)($pf['value'] ?? '') === (string)$opt_value) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars((string)$opt_label); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                <?php else: ?>
-                                    <input type="date" id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>"
-                                           value="<?php echo htmlspecialchars($pf['value'] ?? ''); ?>">
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
-                        <?php if ($ft_sort_select): ?>
-                            <div class="popover-field span-full">
-                                <label><?php echo htmlspecialchars($ft_sort_select['label'] ?? 'Sort By'); ?></label>
-                                <select id="<?php echo htmlspecialchars($ft_sort_select['id'] ?? ''); ?>">
-                                    <?php foreach (($ft_sort_select['options'] ?? []) as $so_value => $so_label): ?>
-                                        <option value="<?php echo htmlspecialchars((string)$so_value); ?>"
-                                            <?php echo ((string)($ft_sort_select['value'] ?? '') === (string)$so_value) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)$so_label); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        <?php endif; ?>
+                <div class="filter-popover" id="filterPopover" role="dialog" aria-modal="true" aria-label="Filter results" tabindex="-1">
+                    <div class="popover-head">
+                        <button type="button" class="popover-close" id="popoverClose" aria-label="Close filters"><i class="fas fa-times"></i></button>
+                        <button type="button" class="popover-reset-all" id="popoverReset">Reset all</button>
                     </div>
+                    <?php foreach ($ft_popover_fields as $pf): ?>
+                        <?php if (($pf['kind'] ?? 'date') !== 'select') continue; ?>
+                        <div class="pf-group">
+                            <div class="pf-group-title"><?php echo htmlspecialchars($pf['label'] ?? ''); ?></div>
+                            <select id="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>" class="pf-field-hidden" tabindex="-1" aria-hidden="true">
+                                <?php foreach (($pf['options'] ?? []) as $opt_value => $opt_label): ?>
+                                    <option value="<?php echo htmlspecialchars((string)$opt_value); ?>"
+                                        <?php echo ((string)($pf['value'] ?? '') === (string)$opt_value) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars((string)$opt_label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="pf-chips" role="group" aria-label="<?php echo htmlspecialchars($pf['label'] ?? 'Filter'); ?>" data-select="<?php echo htmlspecialchars($pf['id'] ?? ''); ?>">
+                                <?php foreach (($pf['options'] ?? []) as $opt_value => $opt_label): ?>
+                                <button type="button" class="pf-chip<?php echo ((string)($pf['value'] ?? '') === (string)$opt_value) ? ' active' : ''; ?>" data-value="<?php echo htmlspecialchars((string)$opt_value); ?>">
+                                    <span class="pf-check"><i class="fas fa-check"></i></span><?php echo htmlspecialchars((string)$opt_label); ?>
+                                </button>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                    <?php $ft_dates = array_values(array_filter($ft_popover_fields, fn($field) => ($field['kind'] ?? 'date') === 'date')); ?>
+                    <?php if ($ft_dates): ?>
+                    <section class="pf-group">
+                        <h2 class="pf-group-title">Timeframe</h2>
+                        <?php if (count($ft_dates) === 2): ?>
+                        <div class="pf-chips pf-date-presets" data-from="<?php echo htmlspecialchars($ft_dates[0]['id']); ?>" data-to="<?php echo htmlspecialchars($ft_dates[1]['id']); ?>">
+                            <?php foreach (['today' => 'Today', 'week' => 'Last 7 Days', 'month' => 'Last 30 Days', 'year' => 'YTD'] as $preset => $label): ?>
+                            <button type="button" class="pf-chip" data-period="<?php echo $preset; ?>" aria-pressed="false"><span class="pf-check"><i class="fas fa-check" aria-hidden="true"></i></span><?php echo $label; ?></button>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                        <div class="pf-date-grid">
+                            <?php foreach ($ft_dates as $field): ?>
+                            <div class="pf-date-box"><label for="<?php echo htmlspecialchars($field['id']); ?>"><?php echo htmlspecialchars($field['label'] ?? 'Date'); ?></label><input type="date" id="<?php echo htmlspecialchars($field['id']); ?>" value="<?php echo htmlspecialchars($field['value'] ?? ''); ?>"></div>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                    <?php endif; ?>
+                    <?php if ($ft_sort_select): ?>
+                    <div class="pf-group">
+                        <div class="pf-group-title"><?php echo htmlspecialchars($ft_sort_select['label'] ?? 'Sort By'); ?></div>
+                        <select id="<?php echo htmlspecialchars($ft_sort_select['id'] ?? ''); ?>" class="pf-field-hidden" tabindex="-1" aria-hidden="true">
+                            <?php foreach (($ft_sort_select['options'] ?? []) as $so_value => $so_label): ?>
+                                <option value="<?php echo htmlspecialchars((string)$so_value); ?>"
+                                    <?php echo ((string)($ft_sort_select['value'] ?? '') === (string)$so_value) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars((string)$so_label); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="pf-chips" data-select="<?php echo htmlspecialchars($ft_sort_select['id'] ?? ''); ?>">
+                            <?php foreach (($ft_sort_select['options'] ?? []) as $so_value => $so_label): ?>
+                            <button type="button" class="pf-chip<?php echo ((string)($ft_sort_select['value'] ?? '') === (string)$so_value) ? ' active' : ''; ?>" data-value="<?php echo htmlspecialchars((string)$so_value); ?>">
+                                <span class="pf-check"><i class="fas fa-check"></i></span><?php echo htmlspecialchars((string)$so_label); ?>
+                            </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($ft_view_toggle): ?>
-                    <div class="popover-field span-full" style="margin-top:12px">
-                        <label>View</label>
+                    <div class="pf-group">
+                        <div class="pf-group-title">View</div>
                         <div class="view-toggle" id="ftViewToggle">
                             <button type="button" id="gridViewBtn" aria-label="Grid view" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'grid' ? 'active' : ''; ?>" onclick="<?php echo htmlspecialchars($ft_view_toggle['grid'] ?? ''); ?>"><i class="fas fa-th"></i> Grid</button>
                             <button type="button" id="listViewBtn" aria-label="List view" class="view-btn <?php echo ($ft_view_toggle['active'] ?? '') === 'list' ? 'active' : ''; ?>" onclick="<?php echo htmlspecialchars($ft_view_toggle['list'] ?? ''); ?>"><i class="fas fa-list"></i> List</button>
@@ -854,26 +969,28 @@ foreach ($ft_popover_fields as $pf) {
                     </div>
                     <?php endif; ?>
                     <?php if (!empty($ft_date_range)): ?>
-                    <div class="date-range-wrapper">
-                        <button type="button" id="ftDateRangeBtn" hidden>Date Range</button>
-                        <div class="filter-popover open" id="ftDateRangePopover">
-                            <div class="popover-title">Date Range</div>
-                            <div class="dr-presets" id="ftRangePresets">
-                                <?php foreach (($ft_date_range['presets'] ?? []) as $dr_value => $dr_label): ?>
-                                <button type="button" class="dr-preset <?php echo ((string)($ft_date_range['preset'] ?? '') === (string)$dr_value) ? 'active' : ''; ?>" data-preset="<?php echo htmlspecialchars((string)$dr_value, ENT_QUOTES); ?>"><?php echo htmlspecialchars((string)$dr_label); ?></button>
-                                <?php endforeach; ?>
+                    <div class="pf-group">
+                        <div class="pf-group-title">Timeframe</div>
+                        <div class="date-range-wrapper">
+                            <button type="button" id="ftDateRangeBtn" hidden>Date Range</button>
+                            <div class="filter-popover open" id="ftDateRangePopover">
+                                <div class="popover-title">Date Range</div>
+                                <div class="dr-presets" id="ftRangePresets">
+                                    <?php foreach (($ft_date_range['presets'] ?? []) as $dr_value => $dr_label): ?>
+                                    <button type="button" class="dr-preset <?php echo ((string)($ft_date_range['preset'] ?? '') === (string)$dr_value) ? 'active' : ''; ?>" data-preset="<?php echo htmlspecialchars((string)$dr_value, ENT_QUOTES); ?>"><?php echo htmlspecialchars((string)$dr_label); ?></button>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="popover-grid full-width dr-custom">
+                                    <div class="popover-field"><label for="ftRangeFrom">From</label><input type="date" id="ftRangeFrom" value="<?php echo htmlspecialchars((string)($ft_date_range['from'] ?? ''), ENT_QUOTES); ?>"></div>
+                                    <div class="popover-field"><label for="ftRangeTo">To</label><input type="date" id="ftRangeTo" value="<?php echo htmlspecialchars((string)($ft_date_range['to'] ?? ''), ENT_QUOTES); ?>"></div>
+                                </div>
+                                <input type="hidden" id="ftRangePreset" value="<?php echo htmlspecialchars((string)($ft_date_range['preset'] ?? ''), ENT_QUOTES); ?>">
                             </div>
-                            <div class="popover-grid full-width dr-custom">
-                                <div class="popover-field"><label for="ftRangeFrom">From</label><input type="date" id="ftRangeFrom" value="<?php echo htmlspecialchars((string)($ft_date_range['from'] ?? ''), ENT_QUOTES); ?>"></div>
-                                <div class="popover-field"><label for="ftRangeTo">To</label><input type="date" id="ftRangeTo" value="<?php echo htmlspecialchars((string)($ft_date_range['to'] ?? ''), ENT_QUOTES); ?>"></div>
-                            </div>
-                            <input type="hidden" id="ftRangePreset" value="<?php echo htmlspecialchars((string)($ft_date_range['preset'] ?? ''), ENT_QUOTES); ?>">
                         </div>
                     </div>
                     <?php endif; ?>
                     <div class="popover-actions">
-                        <button type="button" class="popover-btn-reset" id="popoverReset"><i class="fas fa-undo" style="font-size:0.7rem"></i> Reset</button>
-                        <button type="button" class="popover-btn-apply" id="popoverApply"><i class="fas fa-check" style="font-size:0.7rem; margin-right:4px"></i>Apply Filters</button>
+                        <button type="button" class="popover-btn-apply" id="popoverApply"><i class="fas fa-check" style="margin-right:4px"></i>Apply Filter</button>
                     </div>
                 </div>
             </div>
@@ -929,6 +1046,16 @@ foreach ($ft_popover_fields as $pf) {
     var filterBtn = document.getElementById('filterByBtn');
     var filterPopover = document.getElementById('filterPopover');
     var searchTimer = null;
+    // Every page uses the same body-level dialog, including header-only pages.
+    if (filterPopover) {
+        var filterPortal = document.createElement('div');
+        filterPortal.className = 'ft-toolbar table-filter-portal';
+        filterPortal.appendChild(filterPopover);
+        document.body.appendChild(filterPortal);
+        filterBtn.setAttribute('aria-controls', filterPopover.id);
+        filterBtn.setAttribute('aria-expanded', 'false');
+        filterBtn.setAttribute('aria-haspopup', 'dialog');
+    }
 
     // ===== Mobile "3 dots" more menu (bottom sheet) =====
     var moreBtn = document.getElementById('ftMoreBtn');
@@ -978,8 +1105,7 @@ foreach ($ft_popover_fields as $pf) {
         moreBackdrop && moreBackdrop.classList.remove('open');
         moreBtn && moreBtn.classList.remove('active');
         moreBtn && moreBtn.setAttribute('aria-expanded', 'false');
-        filterPopover && filterPopover.classList.remove('open');
-        if (filterPopover) { filterPopover.style.position = ''; filterPopover.style.left = ''; filterPopover.style.top = ''; }
+        closeFilterPopover(false);
         var drPopInline = document.getElementById('ftDateRangePopover');
         if (drPopInline) { drPopInline.classList.remove('open'); drPopInline.style.position = ''; drPopInline.style.left = ''; drPopInline.style.top = ''; }
     }
@@ -1174,94 +1300,120 @@ foreach ($ft_popover_fields as $pf) {
         const exportControl = actions.querySelector('.export-dropdown, .export-dropdown-wrapper');
         if (explicitActions && exportControl) actions.insertBefore(slot, exportControl);
         else actions.prepend(slot);
-        // A body portal prevents tables and animated cards clipping the popover.
-        const portal = document.createElement('div');
-        portal.className = 'ft-toolbar table-filter-portal';
-        portal.appendChild(filterPopover);
-        document.body.appendChild(portal);
-        filterBtn.setAttribute('aria-controls', filterPopover.id);
-        filterBtn.setAttribute('aria-expanded', 'false');
-        new MutationObserver(function () { filterBtn.setAttribute('aria-expanded', String(filterPopover.classList.contains('open'))); }).observe(filterPopover,{attributes:true,attributeFilter:['class']});
     });
 
-    // Popover toggle + viewport clamping (keep fully on screen)
-    filterBtn && filterBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var willOpen = !filterPopover.classList.contains('open');
-        var inSheet = moreControls && moreControls.classList.contains('open');
-        filterPopover.classList.toggle('open');
-        if (willOpen && filterPopover) {
-            if (inSheet) {
-                // Inside the mobile bottom sheet: render inline, full width.
-                filterPopover.style.position = '';
-                filterPopover.style.left = '';
-                filterPopover.style.top = '';
-            } else {
-                // Show first, then measure so height is real (not 0 from display:none)
-                // and clamp fully inside the viewport.
-                filterPopover.style.position = 'fixed';
-                var btnRect = filterBtn.getBoundingClientRect();
-                var popW = filterPopover.offsetWidth || 320;
-                var popH = filterPopover.offsetHeight;
-                var viewW = window.innerWidth || document.documentElement.clientWidth;
-                var viewH = window.innerHeight || document.documentElement.clientHeight;
-                var left = btnRect.left;
-                if (left + popW > viewW - 8) left = Math.max(8, viewW - popW - 8);
-                var top = btnRect.bottom + 8;
-                if (top + popH > viewH - 8) top = Math.max(8, btnRect.top - popH - 8);
-                filterPopover.style.left = left + 'px';
-                filterPopover.style.top = top + 'px';
-            }
-        }
-    });
-    document.addEventListener('click', function (e) {
-        if (filterPopover && !filterPopover.contains(e.target) && e.target !== filterBtn) {
-            filterPopover.classList.remove('open');
-            filterPopover.style.position = '';
-            filterPopover.style.left = '';
-            filterPopover.style.top = '';
-        }
-    });
-    filterPopover && filterPopover.addEventListener('click', function (e) { e.stopPropagation(); });
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && filterPopover && filterPopover.classList.contains('open')) {
-            filterPopover.classList.remove('open');
-            filterPopover.style.position = '';
-            filterPopover.style.left = '';
-            filterPopover.style.top = '';
-        }
-    });
+    // One dialog lifecycle for header and table filters on every screen size.
+    var popBackdrop = document.createElement('div');
+    popBackdrop.className = 'filter-popover-backdrop';
+    document.body.appendChild(popBackdrop);
+    var previousOverflow = '';
+    var filterDraft = [];
 
-    // Popover apply / reset
-    var applyBtn = document.getElementById('popoverApply');
-    applyBtn && applyBtn.addEventListener('click', function () {
-        filterPopover.classList.remove('open');
-        filterPopover.style.position = '';
-        filterPopover.style.left = '';
-        filterPopover.style.top = '';
-        ftRun();
-    });
-    var resetBtn = document.getElementById('popoverReset');
-    resetBtn && resetBtn.addEventListener('click', function () {
-        FT.popoverFields.forEach(function (f) {
-            var el = document.getElementById(f.id);
-            if (el) el.value = f.default;
+    function syncFilterChips() {
+        if (!filterPopover) return;
+        var rangePreset = document.getElementById('ftRangePreset');
+        filterPopover.querySelectorAll('.dr-preset').forEach(function(button) {
+            var selected = !!rangePreset && rangePreset.value === button.dataset.preset;
+            button.classList.toggle('active', selected);
+            button.setAttribute('aria-pressed', String(selected));
         });
-        if (typeof window.ftResetPopover === 'function') window.ftResetPopover();
-        var drFrom = document.getElementById('ftRangeFrom');
-        var drTo = document.getElementById('ftRangeTo');
-        var drPreset = document.getElementById('ftRangePreset');
-        if (drFrom) drFrom.value = '';
-        if (drTo) drTo.value = '';
-        if (drPreset) drPreset.value = '';
-        document.querySelectorAll('#ftRangePresets .dr-preset').forEach(function (button) { button.classList.remove('active'); });
+        filterPopover.querySelectorAll('.pf-chips[data-select]').forEach(function(group) {
+            var select = document.getElementById(group.dataset.select);
+            group.querySelectorAll('.pf-chip').forEach(function(chip) {
+                var selected = select && select.value === chip.dataset.value;
+                chip.classList.toggle('active', !!selected);
+                chip.setAttribute('aria-pressed', String(!!selected));
+            });
+        });
+    }
+    function clearDatePresetChips() {
+        filterPopover.querySelectorAll('.pf-date-presets .pf-chip').forEach(function(chip) {
+            chip.classList.remove('active'); chip.setAttribute('aria-pressed', 'false');
+        });
+    }
+    function closeFilterPopover(apply) {
+        if (!filterPopover || !filterPopover.classList.contains('open')) return;
+        if (!apply) {
+            filterDraft.forEach(function(field) { field.element.value = field.value; });
+            syncFilterChips();
+            clearDatePresetChips();
+        }
         filterPopover.classList.remove('open');
-        filterPopover.style.position = '';
-        filterPopover.style.left = '';
-        filterPopover.style.top = '';
-        ftRun();
+        popBackdrop.classList.remove('open');
+        filterBtn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = previousOverflow;
+        filterBtn.focus();
+    }
+    filterBtn && filterBtn.addEventListener('click', function(event) {
+        event.stopPropagation();
+        if (filterPopover.classList.contains('open')) { closeFilterPopover(false); return; }
+        filterDraft = Array.from(filterPopover.querySelectorAll('input,select')).map(function(element) {
+            return {element: element, value: element.value};
+        });
+        previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        syncFilterChips();
+        filterPopover.classList.add('open');
+        popBackdrop.classList.add('open');
+        filterBtn.setAttribute('aria-expanded', 'true');
+        document.getElementById('popoverClose').focus();
     });
-
+    popBackdrop.addEventListener('click', function() { closeFilterPopover(false); });
+    var popCloseBtn = document.getElementById('popoverClose');
+    popCloseBtn && popCloseBtn.addEventListener('click', function() { closeFilterPopover(false); });
+    document.addEventListener('keydown', function(event) {
+        if (!filterPopover || !filterPopover.classList.contains('open')) return;
+        if (event.key === 'Escape') { event.preventDefault(); closeFilterPopover(false); }
+        if (event.key !== 'Tab') return;
+        var controls = Array.from(filterPopover.querySelectorAll('button:not(:disabled),input:not([type="hidden"]),a[href]')).filter(function(el) { return el.getClientRects().length; });
+        if (!controls.length) return;
+        var first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+    var applyBtn = document.getElementById('popoverApply');
+    applyBtn && applyBtn.addEventListener('click', function() { closeFilterPopover(true); ftRun(); });
+    var resetBtn = document.getElementById('popoverReset');
+    resetBtn && resetBtn.addEventListener('click', function() {
+        FT.popoverFields.forEach(function(field) {
+            var element = document.getElementById(field.id);
+            if (!element) return;
+            element.value = field.default;
+            if (element.tagName === 'SELECT' && element.selectedIndex < 0) element.selectedIndex = 0;
+        });
+        ['ftRangeFrom', 'ftRangeTo', 'ftRangePreset'].forEach(function(id) {
+            var element = document.getElementById(id); if (element) element.value = '';
+        });
+        filterPopover.querySelectorAll('.dr-preset').forEach(function(button) { button.classList.remove('active'); });
+        clearDatePresetChips();
+        syncFilterChips();
+    });
+    document.querySelectorAll('.pf-chips[data-select]').forEach(function(group) {
+        var select = document.getElementById(group.dataset.select);
+        group.querySelectorAll('.pf-chip').forEach(function(chip) {
+            chip.addEventListener('click', function() {
+                if (select) select.value = chip.dataset.value;
+                syncFilterChips();
+            });
+        });
+    });
+    document.querySelectorAll('.pf-date-presets').forEach(function(group) {
+        var from = document.getElementById(group.dataset.from), to = document.getElementById(group.dataset.to);
+        group.querySelectorAll('[data-period]').forEach(function(chip) {
+            chip.addEventListener('click', function() {
+                var end = new Date(), start = new Date(end);
+                if (chip.dataset.period === 'week') start.setDate(start.getDate() - 6);
+                if (chip.dataset.period === 'month') start.setDate(start.getDate() - 29);
+                if (chip.dataset.period === 'year') start = new Date(end.getFullYear(), 0, 1);
+                var format = function(date) { return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0'); };
+                from.value = format(start); to.value = format(end);
+                clearDatePresetChips();
+                chip.classList.add('active'); chip.setAttribute('aria-pressed', 'true');
+            });
+        });
+        [from, to].forEach(function(input) { input.addEventListener('change', clearDatePresetChips); });
+    });
+    syncFilterChips();
     // ===== Optional merged Date Range picker (rendered when $ft['date_range'] is set) =====
     var drBtn = document.getElementById('ftDateRangeBtn');
     var drPop = document.getElementById('ftDateRangePopover');
@@ -1312,7 +1464,11 @@ foreach ($ft_popover_fields as $pf) {
         });
 
         function drFillPreset(v) {
-            drPresets.forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-preset') === v); });
+            drPresets.forEach(function (p) {
+                var selected = p.getAttribute('data-preset') === v;
+                p.classList.toggle('active', selected);
+                p.setAttribute('aria-pressed', String(selected));
+            });
             drPreset.value = v;
             if (v && v !== 'all') {
                 var today = new Date();
@@ -1330,6 +1486,12 @@ foreach ($ft_popover_fields as $pf) {
         }
         drPresets.forEach(function (p) {
             p.addEventListener('click', function () { drFillPreset(p.getAttribute('data-preset')); });
+        });
+        [drFrom, drTo].forEach(function (input) {
+            input.addEventListener('change', function () {
+                drPreset.value = '';
+                syncFilterChips();
+            });
         });
         var drApplyBtn = document.getElementById('ftRangeApply');
         drApplyBtn && drApplyBtn.addEventListener('click', function () { drClose(); ftRun(); });

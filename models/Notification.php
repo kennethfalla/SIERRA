@@ -109,6 +109,15 @@ class Notification {
     /**
      * Permanently clear all notifications for a user.
      */
+    public function deleteSelected($user_id, array $ids) {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn($id) => $id > 0)));
+        if (!$ids) return 0;
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->conn->prepare("DELETE FROM {$this->table} WHERE user_id = ? AND id IN ($placeholders)");
+        $stmt->execute(array_merge([(int)$user_id], $ids));
+        return $stmt->rowCount();
+    }
+
     public function clearAll($user_id) {
         $stmt = $this->conn->prepare("DELETE FROM {$this->table} WHERE user_id = :user_id");
         $stmt->execute([':user_id' => (int)$user_id]);

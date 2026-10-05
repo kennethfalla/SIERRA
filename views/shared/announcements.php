@@ -57,6 +57,7 @@ $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
 $category_filter = isset($_GET['category']) ? trim($_GET['category']) : 'all';
 $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : '';
 $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
+$broadcast_barangay = $is_admin ? max(0, (int)($_GET['barangay'] ?? 0)) : 0;
 
 if($limit < 1) $limit = 10;
 if($page < 1) $page = 1;
@@ -115,6 +116,14 @@ if($date_from != '') {
 if($date_to != '') {
     $where .= " AND DATE(a.created_at) <= ?";
     $params[] = $date_to;
+}
+
+// Coverage keeps the current search/category/date scope, across all barangays.
+$coverage_where = $where;
+$coverage_params = $params;
+if ($broadcast_barangay > 0) {
+    $where .= " AND a.barangay_id = ?";
+    $params[] = $broadcast_barangay;
 }
 
 // Get total count for pagination
@@ -220,7 +229,7 @@ function getAudienceBadge($announcement) {
 }
 
 function getSourceBadge($role, $barangay_name = null) {
-    if ($role == 'menro') {
+    if (in_array($role, ['menro', 'admin'], true) || !$barangay_name) {
         return '<span class="fb-tag"><i class="fas fa-building-columns"></i> MENRO</span>';
     } else {
         return '<span class="fb-tag"><i class="fas fa-map-pin"></i> ' . htmlspecialchars($barangay_name) . '</span>';
@@ -234,13 +243,16 @@ $base_query_params = [
     'search' => $search_query,
     'category' => $category_filter,
     'date_from' => $date_from,
-    'date_to' => $date_to
+    'date_to' => $date_to,
+    'barangay' => $broadcast_barangay,
 ];
 $base_query_string = buildQueryString($base_query_params); // global function
 
 // Get barangays list for admin broadcast-target selectors
 $barangays = [];
 $barangay_admins = [];
+$broadcast_coverage = [];
+$barangay_post_total = 0;
 if ($is_admin) {
     $barangays = $db->query("SELECT id, name FROM barangays ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
     $barangay_admins = $db->query("
@@ -250,6 +262,26 @@ if ($is_admin) {
         WHERE u.user_type = 'barangay_personnel' AND u.is_active = 1
         ORDER BY b.name, u.first_name
     ")->fetchAll(PDO::FETCH_ASSOC);
+    $coverage_latest_where = str_replace('a.', 'recent.', $coverage_where);
+    $coverage_stmt = $db->prepare("
+        SELECT b.id, b.name, summary.post_count, latest.id AS latest_id,
+               latest.title, latest.category, latest.created_at
+        FROM (
+            SELECT a.barangay_id, COUNT(*) AS post_count,
+                   (SELECT recent.id FROM announcements recent
+                    WHERE recent.barangay_id = a.barangay_id AND $coverage_latest_where
+                    ORDER BY recent.created_at DESC, recent.id DESC LIMIT 1) AS latest_id
+            FROM announcements a
+            WHERE $coverage_where AND a.barangay_id IS NOT NULL
+            GROUP BY a.barangay_id
+        ) summary
+        JOIN barangays b ON b.id = summary.barangay_id
+        JOIN announcements latest ON latest.id = summary.latest_id
+        ORDER BY latest.created_at DESC, latest.id DESC
+    ");
+    $coverage_stmt->execute(array_merge($coverage_params, $coverage_params));
+    $broadcast_coverage = $coverage_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $barangay_post_total = array_sum(array_column($broadcast_coverage, 'post_count'));
 }
 
 // Generate CSRF token for forms
@@ -261,6 +293,7 @@ if ($search_query != '') $active_filters++;
 if ($category_filter != 'all') $active_filters++;
 if ($date_from != '') $active_filters++;
 if ($date_to != '') $active_filters++;
+if ($broadcast_barangay > 0) $active_filters++;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -281,7 +314,7 @@ if ($date_to != '') $active_filters++;
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
-        body { background: #F5FBF6; overflow-x: hidden; }
+        body { background: #f0f5f3; overflow-x: hidden; }
 
         /* ===== CONTAINER ===== */
         .main-container {
@@ -359,8 +392,9 @@ if ($date_to != '') $active_filters++;
         /* ===== FEED CARDS ===== */
         .announcement-card {
             background: white;
-            border: 1px solid rgba(16, 163, 127, 0.08);
-            border-radius: 1rem;
+            border: 1px solid #e6eeea;
+            border-radius: 1.25rem;
+            box-shadow: 0 2px 3px rgba(23, 59, 44, .025);
             overflow: hidden;
             transition: all 0.25s ease;
         }
@@ -395,7 +429,7 @@ if ($date_to != '') $active_filters++;
             display: grid;
             grid-template-columns: 1fr;
             align-items: start;
-            gap: 1rem;
+            gap: 1.25rem;
         }
         .announcement-card {
             display: flex;
@@ -434,13 +468,13 @@ if ($date_to != '') $active_filters++;
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 3px 9px;
+            padding: 5px 10px;
             border-radius: 9999px;
-            border: 1px solid #E4E6EB;
-            background: #F0F2F5;
-            color: #65676B;
+            border: 1px solid #e7eeeb;
+            background: #f3f6f8;
+            color: #6b7a89;
             font-size: 0.68rem;
-            font-weight: 500;
+            font-weight: 600;
             line-height: 1;
             white-space: nowrap;
             max-width: 100%;
@@ -448,6 +482,7 @@ if ($date_to != '') $active_filters++;
             text-overflow: ellipsis;
         }
         .fb-tag i { font-size: 0.58rem; color: #8A8D91; }
+        .fb-tag-dot { background: #ecfcf5; color: #0d8568; border-color: #cef1e3; }
         .fb-tag-dot::before {
             content: '';
             width: 6px;
@@ -489,7 +524,7 @@ if ($date_to != '') $active_filters++;
             border: none;
             background: none;
             padding: 0;
-            color: #1877F2;
+            color: #0d8568;
             font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
@@ -500,12 +535,12 @@ if ($date_to != '') $active_filters++;
         /* ===== FACEBOOK-STYLE PHOTO GRID ===== */
         .fb-photo-grid {
             display: grid;
-            gap: 2px;
-            border-radius: 8px;
+            gap: 12px;
+            border-radius: 12px;
             overflow: hidden;
             margin-top: 10px;
             cursor: pointer;
-            background: #e5e7eb;
+            background: transparent;
         }
         .fb-photo-grid.grid-1 { grid-template-columns: 1fr; max-height: 400px; }
         .fb-photo-grid.grid-1 .fb-photo-item { aspect-ratio: auto; max-height: 400px; min-height: 200px; }
@@ -531,6 +566,7 @@ if ($date_to != '') $active_filters++;
             background: #d1d5db;
             width: 100%;
             height: 100%;
+            border-radius: 12px;
         }
         .fb-photo-item img {
             width: 100%;
@@ -1067,10 +1103,97 @@ if ($date_to != '') $active_filters++;
             .stat-card { padding: 1rem; }
             .page-title { font-size: 1.25rem; }
         }
+        .announcement-post-body { padding: 1.4rem; }
+        .announcement-author-row { margin: 1.1rem 0 .9rem; gap: .75rem; }
+        .announcement-author-row .announcement-author-avatar { width: 42px; height: 42px; font-size: .95rem; flex-shrink: 0; }
+        .announcement-card .content-preview { color: #6b7787; line-height: 1.7; }
+        .announcement-card h3 { font-size: 1.15rem; font-weight: 800; letter-spacing: -.025em; }
+        .announcements-admin .main-container { max-width: 1600px; }
+        .announcements-page .app-mobile-header .app-page-title-wrap { order: 1; }
+        .announcements-page .app-mobile-header #dashHeaderExtras { order: 2; flex: 0 1 440px; margin: 0 0.55rem 0 auto; }
+        .announcements-page .app-mobile-header .app-header-actions { order: 3; }
+        .announcements-page .app-mobile-header #dashHeaderExtras :is(.dashboard-toolbar-row, .dashboard-toolbar-filters, .ft-toolbar) { width: 100%; min-width: 0; }
+        .announcements-page .app-mobile-header #dashHeaderExtras .reports-toolbar { width: 100%; justify-content: flex-end; flex-wrap: nowrap; gap: 8px; }
+        .announcements-page .app-mobile-header #dashHeaderExtras .toolbar-search { flex: 1 1 auto; width: auto; min-width: 0; }
+        .announcements-page .app-mobile-header #dashHeaderExtras .ft-more-controls .toolbar-search { flex: 1 1 auto; width: auto; min-width: 0; }
+        .announcement-admin-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1.4rem; align-items: start; }
+        .announcement-main-column, .announcement-side-column { min-width: 0; }
+        .announcement-side-column { display: grid; gap: 1rem; }
+        .announcements-admin .announcement-stats { grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(180px, 1fr); }
+        .announcement-create-card { display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; padding: 1.2rem; border-radius: 1.25rem; background: linear-gradient(130deg, #08795d, #0b4434); }
+        .announcement-create-card > span { display: flex; justify-content: space-between; align-items: center; color: #82dfbd; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+        .announcement-create-card > span i { width: 8px; height: 8px; border-radius: 50%; background: #34d399; }
+        .announcement-create-card .btn-primary { display: inline-flex; gap: .5rem; align-items: center; justify-content: center; width: 100%; }
+        .announcement-composer { display: block; width: 100%; padding: 1.4rem; margin-bottom: 1.2rem; text-align: left; background: white; border: 1px solid #e6eeea; border-radius: 1.25rem; color: #243443; cursor: pointer; box-shadow: 0 2px 3px rgba(23, 59, 44, .025); transition: border-color .2s, box-shadow .2s; }
+        .announcement-composer:hover { border-color: #a9d8c6; box-shadow: 0 5px 16px rgba(23, 59, 44, .05); }
+        .announcement-composer:focus-visible { outline: 3px solid #10a37f66; outline-offset: 3px; }
+        .announcement-composer-author { display: flex; gap: .75rem; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid #f0f3f2; }
+        .announcement-composer-name { display: flex; flex-direction: column; min-width: 0; gap: .2rem; }
+        .announcement-composer-name strong { font-size: .9rem; }
+        .announcement-composer-name > span { font-size: .73rem; color: #94a0ae; }
+        .announcement-public-tag { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .6rem; border: 1px solid #d2f0e3; border-radius: 999px; background: #edfcf5; color: #0d8568; font-size: .68rem; font-weight: 700; line-height: 1.3; }
+        .announcement-composer-author > .announcement-public-tag { margin-left: auto; flex-shrink: 0; }
+        .announcement-composer-title { display: block; margin: 1.1rem 0 .45rem; font-size: 1.05rem; font-weight: 700; color: #80929e; }
+        .announcement-composer-prompt { display: block; margin-bottom: 1.4rem; font-size: .82rem; color: #94a0ae; }
+        .announcement-composer-footer { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: space-between; align-items: center; padding-top: .9rem; border-top: 1px solid #f0f3f2; }
+        .announcement-composer-footer > span:first-child { color: #81918d; font-size: .73rem; display: inline-flex; align-items: center; gap: .55rem; }
+        .announcement-compose-cta { display: inline-flex; align-items: center; gap: .65rem; padding: .65rem 1rem; border-radius: 10px; background: #0d8568; color: white; font-size: .8rem; font-weight: 700; }
+        .announcement-category-tabs, .announcement-barangay-tabs { display: flex; gap: .5rem; overflow-x: auto; padding: 0 0 .5rem; scrollbar-width: thin; }
+        .announcement-category-tabs { margin-bottom: 1rem; }
+        .announcement-category-tabs a, .announcement-barangay-tabs a { padding: .5rem .85rem; border: 1px solid #e0e8e4; background: #fff; border-radius: 999px; color: #6b7787; font-size: .75rem; font-weight: 600; white-space: nowrap; text-decoration: none; }
+        .announcement-category-tabs a.active, .announcement-barangay-tabs a.active { background: #0b4434; color: white; border-color: #0b4434; }
+        .announcement-category-tabs a:hover, .announcement-barangay-tabs a:hover { border-color: #10a37f; }
+        .announcement-side-card { background: white; border: 1px solid #e6eeea; border-radius: 1.25rem; padding: 1.15rem; min-width: 0; box-shadow: 0 2px 3px rgba(23, 59, 44, .025); }
+        .announcement-side-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; margin-bottom: 1rem; }
+        .announcement-side-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: #ebfcf4; border: 1px solid #d2f0e3; border-radius: 12px; color: #0d8568; font-size: 1.25rem; }
+        .announcement-side-heading > div { flex: 1; min-width: 120px; }
+        .announcement-side-heading h2 { font-size: .9rem; font-weight: 800; color: #243443; }
+        .announcement-side-heading p { font-size: .72rem; color: #94a0ae; margin-top: .2rem; }
+        .announcement-broadcast-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .65rem; border: 1px solid #d2f0e3; background: #edfcf5; border-radius: 10px; color: #0d8568; font-size: .72rem; font-weight: 700; cursor: pointer; }
+        .announcement-broadcast-btn:hover { background: #d8f5e7; }
+        .announcement-coverage-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .announcement-coverage-heading h2 { display: flex; align-items: center; gap: .45rem; font-size: .72rem; font-weight: 800; color: #52616b; text-transform: uppercase; letter-spacing: .04em; }
+        .announcement-coverage-heading h2 > span { width: 7px; height: 7px; background: #10a37f; border-radius: 50%; }
+        .announcement-coverage-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; max-height: 300px; overflow-y: auto; }
+        .announcement-coverage-grid a { display: flex; flex-direction: column; gap: .4rem; padding: .85rem; background: #f7f9fb; border: 1px solid #eff2f5; border-radius: 12px; text-decoration: none; }
+        .announcement-coverage-grid a:hover { background: #f0faf5; border-color: #cef1e3; }
+        .announcement-coverage-grid a > span { font-size: .66rem; font-weight: 700; text-transform: uppercase; color: #8c9aaa; overflow-wrap: anywhere; }
+        .announcement-coverage-grid strong { font-size: .95rem; color: #243443; }
+        .announcement-recent-heading { margin: .3rem .3rem .9rem; color: #52616b; font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+        .announcement-recent-card { margin-bottom: .75rem; }
+        .announcement-recent-meta { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+        .announcement-recent-meta time { color: #94a0ae; font-size: .66rem; white-space: nowrap; }
+        .announcement-recent-card h3 { margin: .8rem 0 1rem; font-size: .86rem; font-weight: 800; color: #243443; line-height: 1.5; overflow-wrap: anywhere; }
+        .announcement-recent-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding-top: .65rem; border-top: 1px solid #f0f3f2; font-size: .7rem; color: #94a0ae; }
+        .announcement-recent-footer a { color: #0d8568; font-weight: 700; text-decoration: none; }
+        .announcement-side-empty { color: #94a0ae; font-size: .75rem; padding: .65rem 0; }
+        @media (max-width: 1279px) {
+            .announcement-admin-layout { grid-template-columns: minmax(0, 1fr); }
+            .announcement-side-column { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .announcement-recent-section { grid-column: 1 / -1; }
+            .announcements-admin .announcement-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .announcement-create-card { grid-column: 1 / -1; flex-direction: row; align-items: center; }
+            .announcement-create-card .btn-primary { width: auto; }
+        }
+        @media (max-width: 640px) {
+            body.announcements-page { padding-top: 118px !important; }
+            .announcements-page .app-mobile-header { flex-wrap: wrap; height: auto; min-height: 110px; padding: 8px 14px; }
+            .announcements-page .app-page-title-wrap { flex: 1 1 180px; }
+            .announcements-page .app-header-actions { margin-left: auto; }
+            .announcements-page .app-mobile-header #dashHeaderExtras { order: 4; margin: 0; flex: 1 1 100%; }
+            .announcement-post-body, .announcement-composer { padding: 1rem; }
+            .announcement-side-column { grid-template-columns: minmax(0, 1fr); }
+            .announcement-composer-author { flex-wrap: wrap; }
+            .announcement-composer-author > .announcement-public-tag { margin-left: 0; }
+            .announcement-composer-prompt { font-size: .75rem; }
+            .announcement-card h3 { font-size: 1rem; }
+            .announcement-card .content-preview { font-size: .82rem !important; }
+            .fb-photo-grid { gap: 6px; }
+        }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body>
+<body class="announcements-page <?php echo $is_admin ? 'announcements-admin' : ''; ?>">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -1097,7 +1220,7 @@ if ($date_to != '') $active_filters++;
 
         <?php if ($is_admin || $is_barangay): ?>
         <!-- ===== STATISTICS CARDS ===== -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-6 stat-cards">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-6 stat-cards announcement-stats">
             <div class="stat-card">
                 <div class="flex justify-between items-start">
                     <div>
@@ -1134,18 +1257,39 @@ if ($date_to != '') $active_filters++;
             <div class="stat-card">
                 <div class="flex justify-between items-start">
                     <div>
-                        <div class="stat-value"><?php echo count($announcements); ?></div>
-                        <div class="stat-label">Showing</div>
+                        <div class="stat-value"><?php echo $is_admin ? count($broadcast_coverage) : count($announcements); ?></div>
+                        <div class="stat-label"><?php echo $is_admin ? 'Active Barangays' : 'Showing'; ?></div>
                     </div>
                     <div class="stat-icon bg-amber-50">
                         <i class="fas fa-eye text-amber-500 text-base md:text-lg"></i>
                     </div>
                 </div>
             </div>
+            <?php if ($is_admin): ?>
+            <div class="announcement-create-card">
+                <span>Action <i aria-hidden="true"></i></span>
+                <button type="button" class="btn-primary" onclick="openCreateModal()"><i class="fas fa-plus" aria-hidden="true"></i> Create Notice</button>
+            </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
 
+        <?php if ($is_admin): ?><div class="announcement-admin-layout"><div class="announcement-main-column"><?php endif; ?>
         <?php if ($can_create): ?>
+        <?php if ($is_admin): ?>
+        <button type="button" onclick="openCreateModal()" class="announcement-composer" aria-label="Create announcement">
+            <span class="announcement-composer-author">
+                <span class="composer-avatar">
+                    <?php if ($current_profile_picture !== ''): ?><img src="<?php echo BASE_URL . htmlspecialchars($current_profile_picture); ?>" alt="Your profile photo"><?php else: ?><?php echo htmlspecialchars($initials); ?><?php endif; ?>
+                </span>
+                <span class="announcement-composer-name"><strong><?php echo htmlspecialchars($display_name); ?></strong><span>Broadcasting to your community</span></span>
+                <span class="announcement-public-tag">New announcement</span>
+            </span>
+            <span class="announcement-composer-title">What's happening?</span>
+            <span class="announcement-composer-prompt">Share an environmental program or community update.</span>
+            <span class="announcement-composer-footer"><span><i class="fas fa-images" aria-hidden="true"></i> Add photos &amp; choose audience</span><span class="announcement-compose-cta">Create Post <i class="fas fa-arrow-right" aria-hidden="true"></i></span></span>
+        </button>
+        <?php else: ?>
         <button type="button" onclick="openCreateModal()" class="composer-trigger-card" aria-label="Create announcement">
             <span class="composer-avatar">
                 <?php if ($current_profile_picture !== ''): ?>
@@ -1157,6 +1301,7 @@ if ($date_to != '') $active_filters++;
             <span class="composer-trigger-placeholder">What's happening?</span>
             <span class="composer-trigger-icon"><i class="fas fa-images"></i></span>
         </button>
+        <?php endif; ?>
         <?php endif; ?>
 
         <!-- ===== FILTER TOOLBAR ===== -->
@@ -1195,6 +1340,22 @@ if ($date_to != '') $active_filters++;
             'compact_breakpoint' => 1199,
             'more_icon'          => 'fa-sliders-h',
         ];
+        if ($is_admin) {
+            $ft['popover_fields'][] = ['kind' => 'select', 'id' => 'toolbarBarangay', 'label' => 'Barangay', 'value' => (string)$broadcast_barangay, 'default' => '0', 'options' => ['0' => 'All Barangays'] + array_column($barangays, 'name', 'id')];
+            $ft['chip_clear_map'] = [
+                'search' => ['el' => 'searchInput', 'clear' => ''],
+                'category' => ['el' => 'toolbarCategory', 'clear' => 'all'],
+                'date_from' => ['el' => 'popoverDateFrom', 'clear' => ''],
+                'date_to' => ['el' => 'popoverDateTo', 'clear' => ''],
+                'barangay' => ['el' => 'toolbarBarangay', 'clear' => '0'],
+            ];
+            if ($broadcast_barangay > 0) {
+                $ft['filter_by']['active'] = true;
+                $ft['filter_by']['count']++;
+                $selected_barangay_name = array_column($barangays, 'name', 'id')[$broadcast_barangay] ?? 'Barangay';
+                $ft['chips'][] = '<span class="filter-chip">' . htmlspecialchars($selected_barangay_name) . ' <span class="chip-remove" data-filter="barangay"><i class="fas fa-times"></i></span></span>';
+            }
+        }
         ?>
         <div id="dashHeaderExtras" class="dash-header-extras">
             <div class="dashboard-toolbar-row dash-topbar">
@@ -1204,6 +1365,13 @@ if ($date_to != '') $active_filters++;
             </div>
         </div>
 
+        <?php if ($is_admin): ?>
+        <nav class="announcement-category-tabs" aria-label="Announcement categories">
+            <?php foreach (['all' => 'All Updates', 'Tree Planting' => 'Tree Planting', 'Clean-up Drive' => 'Clean-up Drive', 'Waste Management' => 'Waste Management', 'Advisory' => 'Advisories'] as $tab_value => $tab_label): ?>
+            <a class="<?php echo $category_filter === $tab_value ? 'active' : ''; ?>" <?php echo $category_filter === $tab_value ? 'aria-current="page"' : ''; ?> href="<?php echo BASE_URL . 'index.php?' . htmlspecialchars(buildQueryString(array_merge($base_query_params, ['category' => $tab_value, 'page_num' => 1])), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $tab_label; ?></a>
+            <?php endforeach; ?>
+        </nav>
+        <?php endif; ?>
         <!-- ===== FEED ===== -->
         <div id="announcementsGrid" class="feed-container">
             <?php if(count($announcements) > 0): ?>
@@ -1222,8 +1390,8 @@ if ($date_to != '') $active_filters++;
                     $can_edit_this = $can_edit($announcement);
                     $can_delete_this = $can_delete($announcement);
                 ?>
-                <div class="announcement-card">
-                    <div class="p-4 sm:p-5">
+                <article class="announcement-card" id="announcement-<?php echo (int)$announcement['id']; ?>">
+                    <div class="announcement-post-body">
                         <!-- Top Row: Badges + Actions -->
                         <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
                             <div class="flex flex-wrap items-center gap-1.5">
@@ -1258,7 +1426,7 @@ if ($date_to != '') $active_filters++;
                         </div>
 
                         <!-- Author & Date -->
-                        <div class="flex items-center gap-2 mb-2">
+                        <div class="flex items-center announcement-author-row">
                             <?php
                             $name = $announcement['author_name'] ?? 'A';
                             $author_profile_picture = trim($announcement['author_profile_picture'] ?? '');
@@ -1326,7 +1494,7 @@ if ($date_to != '') $active_filters++;
                         </div>
                         <?php endif; ?>
                     </div>
-                </div>
+                </article>
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="empty-state" style="grid-column: 1 / -1;">
@@ -1365,6 +1533,45 @@ if ($date_to != '') $active_filters++;
         </div>
         <?php endif; ?>
 
+        <?php if ($is_admin): ?>
+            </div>
+            <aside class="announcement-side-column" aria-label="Barangay broadcasts">
+                <section class="announcement-side-card">
+                    <div class="announcement-side-heading">
+                        <span class="announcement-side-icon"><i class="fas fa-location-dot" aria-hidden="true"></i></span>
+                        <div><h2>Barangay Broadcasts</h2><p>Local community notices</p></div>
+                        <button type="button" class="announcement-broadcast-btn" onclick="openCreateModal('localized_public')"><i class="fas fa-plus" aria-hidden="true"></i> Broadcast</button>
+                    </div>
+                    <nav class="announcement-barangay-tabs" aria-label="Filter by barangay">
+                        <a class="<?php echo $broadcast_barangay === 0 ? 'active' : ''; ?>" href="<?php echo BASE_URL . 'index.php?' . htmlspecialchars(buildQueryString(array_merge($base_query_params, ['barangay' => 0, 'page_num' => 1])), ENT_QUOTES, 'UTF-8'); ?>">All (<?php echo $barangay_post_total; ?>)</a>
+                        <?php foreach ($broadcast_coverage as $coverage): ?>
+                        <a class="<?php echo $broadcast_barangay === (int)$coverage['id'] ? 'active' : ''; ?>" href="<?php echo BASE_URL . 'index.php?' . htmlspecialchars(buildQueryString(array_merge($base_query_params, ['barangay' => $coverage['id'], 'page_num' => 1])), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($coverage['name']); ?> (<?php echo (int)$coverage['post_count']; ?>)</a>
+                        <?php endforeach; ?>
+                    </nav>
+                </section>
+                <section class="announcement-side-card">
+                    <div class="announcement-coverage-heading"><h2><span></span> Coverage Activity</h2><span class="announcement-public-tag"><?php echo count($broadcast_coverage); ?> <?php echo count($broadcast_coverage) === 1 ? 'Barangay' : 'Barangays'; ?> Active</span></div>
+                    <div class="announcement-coverage-grid">
+                        <?php foreach ($broadcast_coverage as $coverage): ?>
+                        <a href="<?php echo BASE_URL . 'index.php?' . htmlspecialchars(buildQueryString(array_merge($base_query_params, ['barangay' => $coverage['id'], 'page_num' => 1])), ENT_QUOTES, 'UTF-8'); ?>"><span>Brgy. <?php echo htmlspecialchars($coverage['name']); ?></span><strong><?php echo (int)$coverage['post_count']; ?> <?php echo (int)$coverage['post_count'] === 1 ? 'Post' : 'Posts'; ?></strong></a>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if (!$broadcast_coverage): ?><p class="announcement-side-empty">No barangay broadcasts in this view.</p><?php endif; ?>
+                </section>
+                <section class="announcement-recent-section">
+                    <h2 class="announcement-recent-heading">Recent by Barangay</h2>
+                    <?php foreach (array_slice($broadcast_coverage, 0, 4) as $coverage): ?>
+                    <article class="announcement-side-card announcement-recent-card">
+                        <div class="announcement-recent-meta"><span class="announcement-public-tag"><i class="fas fa-location-dot" aria-hidden="true"></i> <?php echo htmlspecialchars($coverage['name']); ?></span><time datetime="<?php echo htmlspecialchars(date('c', strtotime($coverage['created_at']))); ?>"><?php echo date('M d', strtotime($coverage['created_at'])); ?></time></div>
+                        <h3><?php echo htmlspecialchars($coverage['title']); ?></h3>
+                        <div class="announcement-recent-footer"><span><?php echo htmlspecialchars($coverage['category'] ?? 'General'); ?></span><a href="<?php echo BASE_URL . 'index.php?' . htmlspecialchars(buildQueryString(array_merge($base_query_params, ['barangay' => $coverage['id'], 'page_num' => 1])), ENT_QUOTES, 'UTF-8'); ?>">View Posts (<?php echo (int)$coverage['post_count']; ?>) <i class="fas fa-chevron-right" aria-hidden="true"></i></a></div>
+                    </article>
+                    <?php endforeach; ?>
+                    <?php if (!$broadcast_coverage): ?><p class="announcement-side-empty">New barangay notices will appear here.</p><?php endif; ?>
+                </section>
+            </aside>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -1804,19 +2011,22 @@ document.addEventListener('keydown', function(e) {
 // ===== FILTER FUNCTIONS =====
 
 function applyFilters() {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(window.location.search);
     const search = document.getElementById('searchInput').value;
     const category = document.getElementById('toolbarCategory').value;
     const dateFrom = document.getElementById('popoverDateFrom').value;
     const dateTo = document.getElementById('popoverDateTo').value;
 
-    params.append('search', search);
-    params.append('category', category);
-    params.append('date_from', dateFrom);
-    params.append('date_to', dateTo);
-    params.append('page_num', 1);
+    params.set('page', 'announcements');
+    params.set('search', search);
+    params.set('category', category);
+    params.set('date_from', dateFrom);
+    params.set('date_to', dateTo);
+    params.set('page_num', 1);
+    const barangay = document.getElementById('toolbarBarangay');
+    if (barangay) params.set('barangay', barangay.value);
 
-    window.location.href = '<?php echo BASE_URL; ?>index.php?page=announcements&' + params.toString();
+    window.location.href = '<?php echo BASE_URL; ?>index.php?' + params.toString();
 }
 
 function goToPage(page) {
@@ -1832,6 +2042,8 @@ function goToPage(page) {
 window.ftResetPopover = function() {
     document.getElementById('popoverDateFrom').value = '';
     document.getElementById('popoverDateTo').value = '';
+    const barangay = document.getElementById('toolbarBarangay');
+    if (barangay) barangay.value = '0';
 };
 
 // ===== QUILL EDITORS =====
@@ -1908,10 +2120,14 @@ if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(initSeeMore);
 }
 
-function openCreateModal() {
+function openCreateModal(target) {
     document.getElementById('createModal').classList.add('active');
     document.body.style.overflow = 'hidden';
     resetCreateBroadcast();
+    if (target === 'localized_public') {
+        var broadcast = document.getElementById('broadcastTarget');
+        if (broadcast) { broadcast.value = target; updateBroadcastTarget(); }
+    }
     setTimeout(function() {
         if (!createQuill) initQuill();
         if (createQuill) createQuill.setContents([{ insert: '\n' }]);

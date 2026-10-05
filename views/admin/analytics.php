@@ -1415,7 +1415,7 @@ function getDecisionBadge($classification) {
 
         <div class="bento analytics-sections">
 <h2 class="analytics-section-heading b-full"><?php echo t('Environmental Situation'); ?></h2>
-<div class="analytics-grid analytics-overview-grid">
+<div class="analytics-grid analytics-environment-overview">
 <div id="map-container" class="b-wide analytics-map">
             <div class="map-head">
                 <div class="map-title-wrap">
@@ -1530,8 +1530,7 @@ function getDecisionBadge($classification) {
                     </div>
                 </dl>
             </section>
-</div>
-<div class="analytics-grid analytics-environment-grid">
+
 <div class="chart-card b-narrow analytics-severity">
                 <div class="chart-head">
                     <div class="chart-title"><i class="fas fa-chart-pie text-[#10A37F] mr-2"></i><?php echo t('Severity Distribution'); ?></div>

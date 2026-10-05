@@ -768,7 +768,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
                             <?php echo htmlspecialchars($location_display); ?>
                         <?php endif; ?>
                     </p>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=profile&section=personal-information" class="btn-edit-profile">
+                    <a href="<?php echo BASE_URL; ?>index.php?page=profile&section=personal-information&edit=1" class="btn-edit-profile">
                         <i class="fas fa-pen" aria-hidden="true"></i> <?php echo t('Edit Profile'); ?>
                     </a>
                 </div>
@@ -1355,12 +1355,14 @@ require_once BASE_PATH . 'helpers/Lang.php';
         editToggleBtn.addEventListener('click', function() {
             viewSection.style.display = 'none';
             editSection.style.display = 'block';
+            editToggleBtn.style.display = 'none';
         });
     }
     if (cancelEditBtn && viewSection && editSection) {
         cancelEditBtn.addEventListener('click', function() {
             editSection.style.display = 'none';
             viewSection.style.display = 'block';
+            if (editToggleBtn) editToggleBtn.style.display = '';
         });
     }
 

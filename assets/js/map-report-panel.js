@@ -5,6 +5,8 @@
     const backdrop = document.getElementById('mapReportBackdrop');
     const closeButton = document.getElementById('mapReportClose');
     if (!panel || !content || !backdrop || !closeButton) return;
+    // Fixed panels must not inherit a dashboard card's animation/stacking context.
+    document.body.append(backdrop, panel);
     const cache = new Map();
     let request = null, selected = null, previousFocus = null;
     function element(tag, value, className) {
@@ -29,7 +31,7 @@
     }
     function media(title, paths) {
         const box = section(title), grid = element('div', null, 'map-report-photos');
-        String(paths || '').split(',').filter(Boolean).slice(0, 3).forEach(path => {
+        String(paths || '').split(',').filter(Boolean).forEach(path => {
             let url;
             try { url = new URL(path.trim(), panel.dataset.assetUrl); } catch (_) { return; }
             if (url.origin !== new URL(panel.dataset.detailUrl).origin) return;
@@ -56,7 +58,7 @@
         content.append(badges);
         section('Category', report.category_name || 'Uncategorized');
         section('Description', report.description || 'No description available.');
-        section('Location', report.location_address || [report.latitude, report.longitude].filter(value => value != null).join(', ') || 'No location available.');
+        section('Location', report.location_address || report.barangay_name || [report.latitude, report.longitude].filter(value => value != null).join(', ') || 'No location available.');
         media('Photo Evidence', report.image_paths);
         if (report.status === 'resolved' || report.resolution_evidence_paths) media('Resolution Evidence', report.resolution_evidence_paths);
         const score = section('Severity Score', (Number(report.severity_score) || 0) + ' / 20 · ' + (labels[risk] || 'Low'));
@@ -68,11 +70,15 @@
             high:'Send to MENRO. Clear the hazard now before it spreads or causes flooding.',
             critical:'Act now. Send MENRO crews and equipment to this location right away.'
         };
-        const recommendation = section('Recommendation', recommendations[risk]);
-        recommendation.classList.add('map-report-recommendation', 'map-report-recommendation-' + risk);
-        const link = element('a', 'Open Full Report', 'map-report-open');
-        link.href = panel.dataset.reportUrl + encodeURIComponent(report.token || report.id);
-        content.append(link);
+        if (panel.dataset.public !== 'true') {
+            const recommendation = section('Recommendation', recommendations[risk]);
+            recommendation.classList.add('map-report-recommendation', 'map-report-recommendation-' + risk);
+        }
+        if (panel.dataset.public !== 'true' || Number(report.is_mine) === 1) {
+            const link = element('a', 'Open Full Report', 'map-report-open');
+            link.href = panel.dataset.reportUrl + encodeURIComponent(report.token || report.id);
+            content.append(link);
+        }
         const date = new Date(String(report.created_at || '').replace(' ', 'T'));
         if (!isNaN(date)) content.append(element('p', 'Reported: ' + date.toLocaleString(), 'map-report-muted'));
     }
@@ -113,7 +119,9 @@
         try {
             const response = await fetch(panel.dataset.detailUrl + encodeURIComponent(key), {credentials:'same-origin',signal:controller.signal});
             if (!response.ok) throw new Error('Request failed');
-            const report = await response.json();
+            const payload = await response.json();
+            const report = panel.dataset.public === 'true' && payload.success
+                ? Object.assign({}, payload.report, {image_paths:(payload.images || []).join(',')}) : payload;
             if (!report || report.error || !report.id) throw new Error('Report unavailable');
             if (selected !== key || request !== controller) return;
             if (cache.size >= 50) cache.delete(cache.keys().next().value);

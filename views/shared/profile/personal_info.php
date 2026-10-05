@@ -1,5 +1,6 @@
 ﻿<?php
 // views/shared/profile/personal_info.php - partial, included by views/shared/profile/profile.php
+$startEditing = ($_GET['edit'] ?? '') === '1';
 ?>
                     <!-- ========== PERSONAL INFORMATION ========== -->
                     <div id="section-personal-info">
@@ -8,13 +9,13 @@
                                 <i class="fas fa-id-card text-[#10A37F]"></i>
                                 <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('Personal Information'); ?></h3>
                             </div>
-                            <button id="editToggleBtn" class="btn-secondary inline-flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-center flex-shrink-0">
+                            <button id="editToggleBtn"<?php echo $startEditing ? ' style="display:none"' : ''; ?> class="btn-secondary inline-flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-center flex-shrink-0">
                                 <i class="fas fa-pen text-xs md:text-sm"></i> <?php echo t('Edit Profile'); ?>
                             </button>
                         </div>
                         
                         <!-- View Mode -->
-                        <div id="viewSection">
+                        <div id="viewSection"<?php echo $startEditing ? ' style="display:none"' : ''; ?>>
                             <div class="space-y-5">
                                 <!-- Profile Header with Avatar -->
                                 <div class="bg-white rounded-lg border border-gray-100 p-4">
@@ -163,7 +164,7 @@
                         </div>
                         
                         <!-- Edit Mode -->
-                        <div id="editSection" style="display: none;">
+                        <div id="editSection" style="display: <?php echo $startEditing ? 'block' : 'none'; ?>;">
 
                             <!-- Centered avatar + name, mockup-style -->
                             <div class="flex flex-col items-center text-center gap-2 mb-6">

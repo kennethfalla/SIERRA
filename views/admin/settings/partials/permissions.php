@@ -906,12 +906,7 @@ $permissionRisk = [
         if (indicator) indicator.style.display = 'none';
     });
 
-    window.addEventListener('beforeunload', function (e) {
-        if (countChanges() > 0) {
-            e.preventDefault();
-            e.returnValue = 'You have unsaved permission changes. Are you sure you want to leave?';
-        }
-    });
+
 
     window.resetPermissionsForm = function () {
         if (countChanges() === 0) {

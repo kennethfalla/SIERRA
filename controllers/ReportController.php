@@ -1481,12 +1481,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
-        // A resolved (closed) report is terminal, so barangay officials and
-        // admins may still attach follow-up investigation notes even when they
-        // no longer hold active manage rights (e.g. after an escalation).
-        $resolved_followup = ($report_data['status'] === Report::STATUS_RESOLVED
-            && in_array($user_role, ['barangay_official', 'admin'], true));
-        if (!PermissionHelper::canManageReport($report_data) && !$resolved_followup) {
+        if (!PermissionHelper::canManageReport($report_data)) {
             if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'You are not permitted to manage this report.']); exit(); }
             $_SESSION['error'] = "You are not permitted to manage this report.";
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
@@ -1503,10 +1498,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Report::STATUS_IN_PROGRESS,
             Report::STATUS_ESCALATED_PENDING,
             Report::STATUS_ESCALATED,
-            Report::STATUS_RESOLVED,
         ])) {
-            if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'Notes can only be added to active or resolved reports.']); exit(); }
-            $_SESSION['error'] = "Notes can only be added to active or resolved reports.";
+            if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'Notes can only be added to active reports.']); exit(); }
+            $_SESSION['error'] = "Notes can only be added to active reports.";
             header("Location: " . manageReportUrl($report_id));
             exit();
         }
@@ -1516,8 +1510,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
-        $stmt = $db->prepare("INSERT INTO report_notes (report_id, user_id, note, created_at) VALUES (?, ?, ?, NOW())");
-        $stmt->execute([$report_id, $user_id, $note]);
+        // Recheck status at write time so a just-resolved report cannot receive a note.
+        $stmt = $db->prepare("INSERT INTO report_notes (report_id, user_id, note, created_at) SELECT id, ?, ?, NOW() FROM reports WHERE id = ? AND status = ?");
+        $stmt->execute([$user_id, $note, $report_id, $report_data['status']]);
+        if (!$stmt->rowCount()) {
+            if ($is_ajax) { echo json_encode(['success' => false, 'error' => 'The report changed. Refresh before adding a note.']); exit(); }
+            $_SESSION['error'] = 'The report changed. Refresh before adding a note.';
+            header("Location: " . manageReportUrl($report_id));
+            exit();
+        }
         $activityLog->log($user_id, 'Add Note', "Added note to report #$report_id");
         if ($is_ajax) {
             echo json_encode(['success' => true]);
@@ -1529,6 +1530,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ============================================
+    // Delete only the signed-in barangay official's notes on an in-progress report.
+    if ($action === 'delete_note') {
+        $report_id = (int)($_POST['report_id'] ?? 0);
+        $note_id = (int)($_POST['note_id'] ?? 0);
+        $check = $db->prepare('SELECT id, barangay_id, status FROM reports WHERE id = ?');
+        $check->execute([$report_id]);
+        $current = $check->fetch(PDO::FETCH_ASSOC);
+        $allowed = $current && $user_role === 'barangay_official'
+            && $current['status'] === Report::STATUS_IN_PROGRESS
+            && (int)$current['barangay_id'] === (int)($_SESSION['barangay_id'] ?? 0)
+            && PermissionHelper::canManageReport($current);
+        $deleted = false;
+        if ($allowed) {
+            $stmt = $db->prepare("DELETE FROM report_notes WHERE id = ? AND report_id = ? AND user_id = ? AND EXISTS (SELECT 1 FROM reports WHERE id = ? AND status = 'in_progress' AND barangay_id = ?)");
+            $stmt->execute([$note_id, $report_id, $user_id, $report_id, $_SESSION['barangay_id']]);
+            $deleted = $stmt->rowCount() > 0;
+        }
+        if ($deleted) $activityLog->log($user_id, 'Delete Note', "Deleted own investigation note #$note_id from report #$report_id");
+        $message = $deleted ? 'Investigation note deleted.' : 'You can only delete your own notes while the report is in progress.';
+        if ($is_ajax) { echo json_encode(['success' => $deleted, 'message' => $message]); exit(); }
+        $_SESSION[$deleted ? 'success' : 'error'] = $message;
+        header('Location: ' . ($report_id > 0 ? manageReportUrl($report_id) : BASE_URL . 'index.php?page=verify-reports'));
+        exit();
+    }
+
     // DELETE REPORT (AJAX or Non-AJAX)
     // ============================================
     if ($action === 'delete' || $action === 'ajax_delete') {

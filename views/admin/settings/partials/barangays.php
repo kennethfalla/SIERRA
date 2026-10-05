@@ -801,12 +801,7 @@ if (!isset($csrf_token)) {
         }
     });
 
-    window.addEventListener('beforeunload', function(e) {
-        if (formChanged && activeEditId !== null) {
-            e.preventDefault();
-            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        }
-    });
+
 
     // Reset form changed flag on submit
     document.getElementById('barangayForm').addEventListener('submit', function() {

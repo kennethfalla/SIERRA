@@ -588,42 +588,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .settings-toast.success { background: #059669; }
         .settings-toast.error   { background: #ef4444; }
 
-        /* ===== UNSAVED CHANGES BAR ===== */
-        .settings-dirty-bar {
-            display: none;
-            align-items: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            padding: 0.7rem 1rem;
-            margin-bottom: 1rem;
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-radius: 0.75rem;
-            color: #92400e;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        body.settings-dirty .settings-dirty-bar { display: flex; }
-        .settings-dirty-bar .sd-actions {
-            margin-left: auto;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .sd-btn {
-            padding: 0.45rem 0.9rem;
-            border-radius: 0.5rem;
-            font-size: 0.78rem;
-            font-weight: 600;
-            border: 1px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .sd-btn.save { background: #10A37F; color: white; }
-        .sd-btn.save:hover { background: #0D8568; }
-        .sd-btn.discard { background: white; border-color: #d1d5db; color: #4b5563; }
-        .sd-btn.discard:hover { background: #f8fafc; }
-
         /* ===== UNSAVED CHANGES MODAL ===== */
         .settings-unsaved-modal-overlay {
             position: fixed;
@@ -636,6 +600,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             padding: 1rem;
         }
         .settings-unsaved-modal-overlay.show { display: flex; }
+        #unsavedModal { align-items:flex-end; background:rgba(17,24,39,.18); }
+        #unsavedModal .settings-unsaved-modal { max-width:680px; padding:1.1rem 1.25rem; border:1px solid #cde5d7; box-shadow:0 12px 40px rgba(21,65,43,.2); }
+        #unsavedModal .sum-actions { flex-wrap:wrap; }
+        @media(max-width:600px) { #unsavedModal .sum-actions button { flex:1 1 130px; } }
         .settings-unsaved-modal {
             background: #ffffff;
             border-radius: 1rem;
@@ -672,8 +640,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             gap: 0.35rem;
         }
         @media (max-width: 480px) {
-            .settings-dirty-bar .sd-actions { margin-left: 0; width: 100%; }
-            .settings-dirty-bar .sd-btn { flex: 1 1 auto; }
         }
 
         /* ===== SAVE VALIDATION ===== */
@@ -741,16 +707,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <span><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></span>
             </div>
         <?php endif; ?>
-
-        <!-- ===== UNSAVED CHANGES WARNING BAR ===== -->
-        <div class="settings-dirty-bar" id="unsavedBar" role="alert" aria-live="polite">
-            <span><i class="fas fa-exclamation-triangle mr-1" aria-hidden="true"></i><?php echo t('You have unsaved changes in this tab.'); ?></span>
-            <span class="text-xs text-amber-700"><?php echo t('Changes only apply after you click'); ?> <strong><?php echo t('Save'); ?></strong>.</span>
-            <span class="sd-actions">
-                <button type="button" class="sd-btn save" onclick="unsavedSaveNow()"><i class="fas fa-save mr-1" aria-hidden="true"></i><?php echo t('Save Changes'); ?></button>
-                <button type="button" class="sd-btn discard" onclick="unsavedDiscard()"><i class="fas fa-undo mr-1" aria-hidden="true"></i><?php echo t('Discard Changes'); ?></button>
-            </span>
-        </div>
 
         <!-- ===== UNSAVED CHANGES MODAL (shown before leaving) ===== -->
         <div class="settings-unsaved-modal-overlay" id="unsavedModal" role="dialog" aria-modal="true" aria-labelledby="unsavedModalTitle" onclick="if(event.target===this) unsavedStay()">
@@ -952,8 +908,7 @@ window.addEventListener('beforeunload', function() {
 });
 
 // ===== UNSAVED CHANGES PROTECTION =====
-// 1. Tracks edits across every settings form in the active tab and shows an
-//    amber "unsaved changes" bar as soon as you edit anything.
+// 1. Tracks edits silently until the user tries to leave.
 // 2. Intercepts clicks on navigation links while edits are pending and opens
 //    a modal offering: Save Changes / Discard Changes / Stay Here.
 // 3. Blocks the browser's hidden implicit submit (pressing Enter inside a
@@ -963,15 +918,25 @@ window.addEventListener('beforeunload', function() {
 
     var dirty = false;
     var pendingHref = null;
+    var dirtyForms = new Set();
+    var initialValues = new Map();
+    var promptFocus = null;
+    function formValue(form) {
+        return JSON.stringify(Array.from(new FormData(form).entries()).map(function(entry) {
+            var value = entry[1];
+            return [entry[0], typeof value === 'string' ? value : (value.name ? [value.name, value.size, value.lastModified] : null)];
+        }));
+    }
 
     function setDirty(v) {
         dirty = v;
-        document.body.classList.toggle('settings-dirty', v);
+        window.settingsHasUnsavedChanges = v;
     }
 
     // Pick the "main" save form of the active tab: prefer a form whose submit
     // button text includes "Save", then fall back to the first form with one.
     function findSavableForm() {
+        if (dirtyForms.size) return dirtyForms.values().next().value;
         var forms = document.querySelectorAll('.settings-content form');
         var fallback = null;
         for (var i = 0; i < forms.length; i++) {
@@ -983,15 +948,37 @@ window.addEventListener('beforeunload', function() {
         return fallback;
     }
 
+    window.addEventListener('beforeunload', function(event) {
+        if (!dirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+    document.addEventListener('keydown', function(event) {
+        var modal = document.getElementById('unsavedModal');
+        if (!modal || !modal.classList.contains('show')) return;
+        if (event.key === 'Escape') window.unsavedStay();
+        if (event.key === 'Tab') {
+            var buttons = modal.querySelectorAll('button');
+            var first = buttons[0], last = buttons[buttons.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+    });
+
     // ---- Track edits ----
     document.querySelectorAll('.settings-content form').forEach(function(form) {
+        initialValues.set(form, formValue(form));
         var mark = function(e) {
-            if (!e.isTrusted) return; // ignore script-driven resets
-            setDirty(true);
+            if (formValue(form) !== initialValues.get(form)) dirtyForms.add(form);
+            else dirtyForms.delete(form);
+            setDirty(dirtyForms.size > 0);
         };
         form.addEventListener('input', mark, true);
         form.addEventListener('change', mark, true);
-        form.addEventListener('submit', function() { setDirty(false); });
+        form.addEventListener('reset', function() { setTimeout(mark, 0); });
+        form.addEventListener('submit', function(event) {
+            queueMicrotask(function() { if (!event.defaultPrevented) setDirty(false); });
+        });
 
         // Explicit-save only: pressing Enter inside a text field must not
         // silently submit the form (this was auto-saving edits in the past).
@@ -1017,20 +1004,21 @@ window.addEventListener('beforeunload', function() {
 
         var href = a.getAttribute('href') || '';
         if (href.indexOf('#') === 0) return;                        // in-page anchors
-        if (a.classList.contains('btn-secondary')) return;          // reset-form links discard by design
+        if (!/^https?:/i.test(a.href) || e.ctrlKey || e.metaKey || e.shiftKey) return;
         if (a.getAttribute('target') === '_blank') return;          // open-new-tab links
-        if (/^https?:/i.test(a.href) && a.href.indexOf(window.location.origin) !== 0 && a.href.indexOf(window.location.hostname) === -1) return; // external
 
         e.preventDefault();
+        promptFocus = document.activeElement;
         pendingHref = a.href;
         var modal = document.getElementById('unsavedModal');
-        if (modal) modal.classList.add('show');
+        if (modal) { modal.classList.add('show'); modal.querySelector('button').focus(); }
     });
 
     // ---- Modal actions (exposed globally for the inline onclick handlers) ----
     window.unsavedStay = function() {
         var modal = document.getElementById('unsavedModal');
         if (modal) modal.classList.remove('show');
+        if (promptFocus && promptFocus.isConnected) promptFocus.focus();
         pendingHref = null;
     };
 
@@ -1038,7 +1026,6 @@ window.addEventListener('beforeunload', function() {
         var form = findSavableForm();
         window.unsavedStay();
         if (!form) return;
-        setDirty(false);
         if (typeof form.requestSubmit === 'function') {
             form.requestSubmit();
         } else {
@@ -1049,6 +1036,7 @@ window.addEventListener('beforeunload', function() {
     window.unsavedDiscard = function() {
         var goto = pendingHref || window.location.href.split('#')[0];
         window.unsavedStay();
+        setDirty(false);
         window.location.href = goto;
     };
 })();

@@ -21,8 +21,7 @@
 .analytics-section-heading { margin:.65rem 0 0; color:#244c3d; font-size:1rem; font-weight:800; letter-spacing:-.02em; }
 .analytics-section-heading:first-child { margin-top:0; }
 .analytics-grid { display:grid; gap:.85rem; align-items:start; min-width:0; }
-.analytics-overview-grid,.analytics-response-grid,.analytics-recurring-grid { grid-template-columns:minmax(0,1.8fr) minmax(0,1fr); }
-.analytics-environment-grid { grid-template-columns:minmax(0,1fr) minmax(0,1.8fr); }
+.analytics-response-grid,.analytics-recurring-grid { grid-template-columns:minmax(0,1.8fr) minmax(0,1fr); }
 .analytics-patterns-grid { grid-template-columns:minmax(0,1fr) minmax(0,1.4fr); }
 .analytics-card-stack { display:grid; gap:.85rem; min-width:0; }
 .menro-analytics-page .analytics-sections :is(.b-hero,.b-wide,.b-narrow,.b-full) { grid-column:auto; grid-row:auto; }
@@ -65,8 +64,8 @@
     .menro-analytics-page .analytics-resolution-trends .analytics-bar-row { grid-template-columns:85px minmax(0,1fr) 30px; }
 }
 @media(max-width:1100px) {
-    .analytics-overview-grid,.analytics-response-grid,.analytics-recurring-grid { grid-template-columns:minmax(0,1fr); }
-    .analytics-environment-grid,.analytics-patterns-grid,.analytics-card-stack { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .analytics-response-grid,.analytics-recurring-grid { grid-template-columns:minmax(0,1fr); }
+    .analytics-patterns-grid,.analytics-card-stack { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .menro-analytics-page .analytics-hotspots .indicator-list { grid-template-columns:repeat(4,minmax(0,1fr)); }
 }
 @media(max-width:1200px) {
@@ -78,9 +77,13 @@
 }
 @media(max-width:750px) {
     .menro-analytics-page .analytics-summary-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .analytics-environment-grid,.analytics-patterns-grid,.analytics-card-stack { grid-template-columns:minmax(0,1fr); }
+    .analytics-patterns-grid,.analytics-card-stack { grid-template-columns:minmax(0,1fr); }
     .menro-analytics-page .analytics-hotspots .indicator-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .menro-analytics-page .analytics-demographics .demo-row { justify-content:space-between; }
     .analytics-bar-row { grid-template-columns:90px minmax(0,1fr) 30px; }
     .analytics-page-intro { padding-top:.5rem; }
 }
+.analytics-environment-overview { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.menro-analytics-page .analytics-environment-overview > #map-container.analytics-map,.menro-analytics-page .analytics-environment-overview > .analytics-hazard-categories { grid-column:span 2; }
+@media(max-width:1100px) { .analytics-environment-overview { grid-template-columns:repeat(2,minmax(0,1fr)); } .menro-analytics-page .analytics-environment-overview > #map-container.analytics-map { grid-column:1/-1; } .menro-analytics-page .analytics-environment-overview > .analytics-hazard-categories { grid-column:auto; } }
+@media(max-width:750px) { .analytics-environment-overview { grid-template-columns:minmax(0,1fr); } .menro-analytics-page .analytics-environment-overview > #map-container.analytics-map,.menro-analytics-page .analytics-environment-overview > .analytics-hazard-categories { grid-column:auto; } }

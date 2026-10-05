@@ -113,3 +113,53 @@ body :is(.btn-filter-by, .btn-date-range, .ft-more-btn) { border-radius: 8px !im
 @media print {
     body select { box-shadow: none !important; background-image: none !important; }
 }
+
+/* Shared Filter By dialog: identical in headers and table toolbars. */
+body .table-filter-portal #filterPopover {
+    position: fixed !important;
+    inset: 50% auto auto 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: min(720px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 40px) !important;
+    padding: 22px 26px 0 !important;
+    border: 1px solid #e8eeeb !important;
+    border-radius: 26px !important;
+    box-shadow: 0 28px 80px rgba(17, 49, 38, .2) !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 10010;
+    animation: none !important;
+    --ft-forest: #087f65;
+}
+body .filter-popover-backdrop.open { display: block; background: rgba(15, 34, 27, .36); z-index: 10000; }
+body .table-filter-portal #filterPopover .popover-head { margin-bottom: 8px; }
+body .table-filter-portal .popover-close { background: #f1f5f7; border: 0; color: #617582; }
+body .table-filter-portal .popover-reset-all { color: #087f65; font-size: .85rem; }
+body .table-filter-portal .pf-group { padding: 20px 0; border-top: 1px solid #f0f2f4; }
+body .table-filter-portal .popover-head + .pf-group { border-top: 0; }
+body .table-filter-portal .pf-group-title { color: #18222f; margin-bottom: 14px; font-size: 1rem; font-weight: 800; }
+body .table-filter-portal .pf-chips { gap: 8px; }
+body .table-filter-portal :is(.pf-chip, .dr-preset) { min-height: 36px; padding: 7px 14px; border: 1px solid #dfe5e9; background: #fff; border-radius: 999px; color: #3e4b59; font-size: .82rem; font-weight: 600; }
+body .table-filter-portal :is(.pf-chip, .dr-preset).active { border-color: #087f65; color: #263a35; box-shadow: inset 0 0 0 .5px #087f65; background: #fff; }
+body .table-filter-portal .pf-check { width: 19px; height: 19px; border-color: #d6dee4; }
+body .table-filter-portal .pf-chip.active .pf-check { color: white; background: #087f65; border-color: #087f65; }
+body .table-filter-portal .pf-field-hidden { display: none !important; }
+body .table-filter-portal :is(.pf-date-grid, .dr-custom) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+body .table-filter-portal .pf-date-box { min-width: 0; background: #fafbfd; border: 1px solid #e2e7ec; padding: 12px; gap: 8px; }
+body .table-filter-portal .pf-date-box label { flex-shrink: 0; color: #81909f; font-size: .76rem; }
+body .table-filter-portal .pf-date-box input { min-width: 0; width: 100%; color: #263340; font-size: .8rem; }
+body .table-filter-portal #ftDateRangePopover { border: 0 !important; box-shadow: none !important; }
+body .table-filter-portal #ftDateRangePopover .popover-title { display: none; }
+body .table-filter-portal #ftDateRangePopover .dr-custom { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body .table-filter-portal .popover-actions { position: sticky; bottom: 0; margin: 0 -2px; padding: 16px 2px 20px; border-top: 1px solid #f0f2f4; background: #fff; z-index: 2; }
+body .table-filter-portal #popoverApply { width: 100%; min-height: 48px; border-radius: 999px !important; background: #0d684c !important; color: white !important; justify-content: center; font-size: .9rem; }
+body .table-filter-portal :is(button,input):focus-visible { outline: 2px solid #10a37f; outline-offset: 3px; }
+@media (max-width: 600px) {
+    body .table-filter-portal #filterPopover { width: calc(100vw - 20px) !important; max-height: calc(100dvh - 24px) !important; padding: 16px 18px 0 !important; border-radius: 22px !important; }
+    body .table-filter-portal .pf-group { padding: 16px 0; }
+    body .table-filter-portal :is(.pf-chip,.dr-preset) { min-height: 40px; padding: 7px 10px; font-size: .76rem; }
+    body .table-filter-portal :is(.pf-date-grid,.dr-custom) { grid-template-columns: minmax(0, 1fr); }
+    body .table-filter-portal #ftDateRangePopover .dr-custom { grid-template-columns: minmax(0, 1fr); }
+}

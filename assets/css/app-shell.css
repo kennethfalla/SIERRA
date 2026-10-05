@@ -860,3 +860,7 @@ body.barangay-dashboard-page .dash-title-actions .export-dropdown { margin-left:
         transition: none !important;
     }
 }
+.dashboard-page .dashboard-packed-grid { grid-auto-rows:1px; grid-auto-flow:row dense; row-gap:0; align-items:start; }
+.dashboard-page .dashboard-packed-grid > * { align-self:start; min-height:0; }
+#sidebar .sb-menu-scroll { scrollbar-color:#66ad8e transparent; }
+#sidebar .sb-menu-scroll::-webkit-scrollbar-thumb { background:#66ad8e; border-color:transparent; }

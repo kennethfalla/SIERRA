@@ -18,6 +18,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id   = (int) $_SESSION['user_id'];
+if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
 $report_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 if ($report_id <= 0) {
@@ -37,8 +38,8 @@ try {
                b.name  AS barangay_name,
                IF(r.user_id = :uid, 1, 0) AS is_mine
         FROM reports r
-        JOIN categories c ON r.category_id = c.id
-        JOIN barangays  b ON r.barangay_id = b.id
+        LEFT JOIN categories c ON r.category_id = c.id
+        LEFT JOIN barangays  b ON r.barangay_id = b.id
         WHERE r.id = :rid
           AND r.is_archived = 0
           AND r.status NOT IN ('cancelled')
@@ -73,6 +74,7 @@ try {
     $img_stmt->execute();
     $images = $img_stmt->fetchAll(PDO::FETCH_COLUMN);
 
+    if ($report['is_mine']) $report['token'] = IdGuard::enc((int)$report['id']);
     echo json_encode([
         'success' => true,
         'report'  => $report,

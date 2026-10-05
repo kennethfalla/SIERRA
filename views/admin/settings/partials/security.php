@@ -189,12 +189,7 @@ $otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
     });
 
     // Warn before leaving with unsaved changes
-    window.addEventListener('beforeunload', function(e) {
-        if (formChanged) {
-            e.preventDefault();
-            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        }
-    });
+
 
     // Reset function (reloads page to discard changes)
     window.resetForm = function() {

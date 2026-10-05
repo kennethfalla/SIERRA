@@ -1367,7 +1367,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <div id="loadingOverlay" class="loading-overlay">
             <div class="loading-spinner"></div>
         </div>
-        
+
         <!-- Header: tabs on the left, New Report on the right -->
         <div class="my-reports-topbar">
             <div class="tab-switcher">
@@ -1383,13 +1383,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 </a>
             </div>
             <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 sm:w-auto justify-center">
-                <i class="fas fa-plus-circle text-xs md:text-sm"></i> 
+                <i class="fas fa-plus-circle text-xs md:text-sm"></i>
                 <span class="text-xs md:text-sm"><?php echo t('New Report'); ?></span>
             </a>
         </div>
-        
-       
-        
+
         <!-- ===== FILTER TOOLBAR (shared partial) ===== -->
         <?php
         $ft_popover_count = 0;

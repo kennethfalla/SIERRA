@@ -15,9 +15,8 @@
 .menro-stat-urgent > i { color:#dc2626; background:#fff1f0; }
 .menro-stat-pending > i { color:#b66b00; background:#fff7e8; }
 .menro-stat-ongoing > i { color:#4f46e5; background:#f0efff; }
-.menro-dash-middle { display:grid; grid-template-columns:minmax(0,1.8fr) minmax(0,1fr); gap:.9rem; margin-bottom:.9rem; align-items:start; }
-.menro-barangay-card { grid-column:1/-1; }
-.menro-situation-aside { display:grid; gap:.9rem; min-width:0; }
+.menro-dash-middle { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.9rem; margin-bottom:.9rem; align-items:start; }
+.menro-map-span,.menro-barangay-card { grid-column:span 2; }
 .menro-barangay-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:2rem; }
 .menro-dash-card { min-width:0; padding:1rem; border:1px solid #dce9e1; border-radius:1rem; background:#fff; box-shadow:0 3px 12px rgba(21,65,43,.045); transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease; }
 .menro-card-title { display:flex; align-items:center; gap:.6rem; padding-bottom:.8rem; border-bottom:1px solid #edf2ee; margin-bottom:.7rem; }
@@ -39,7 +38,6 @@ a.menro-list-row:hover { background:#f6fbf7; }
 .menro-barangay-row div { height:8px; overflow:hidden; border-radius:99px; background:#eaf1ed; }
 .menro-barangay-row i { display:block; height:100%; border-radius:99px; background:#0d8568; }
 .menro-barangay-row strong { text-align:right; }
-.menro-dash-bottom { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.9rem; align-items:start; padding-bottom:1rem; }
 .menro-announcements { min-width:0; }
 .menro-announcements > .announce-carousel { margin:0; padding:1rem; }
 .menro-announcements .announce-slide { flex-direction:column; align-items:stretch; gap:.65rem; }
@@ -48,7 +46,6 @@ a.menro-list-row:hover { background:#f6fbf7; }
 .menro-announcements .announce-carousel-heading > span { display:flex; align-items:center; gap:.6rem; }
 .menro-announcements .announce-carousel-heading > span > i { display:flex; align-items:center; justify-content:center; flex-shrink:0; width:32px; height:32px; border-radius:.55rem; background:#e9f6ed; color:#0d8568; font-size:.85rem; }
 .menro-empty { padding:1rem 0; color:#718176; font-size:.78rem; }
-@media(max-width:1050px){.menro-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.menro-dash-middle{grid-template-columns:1fr}.menro-situation-aside{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.menro-dash-bottom{grid-template-columns:repeat(2,minmax(0,1fr))}.menro-dash-bottom > :last-child{grid-column:1/-1}}
-@media(max-width:700px){.menro-dash-heading{align-items:start;flex-direction:column}.menro-stat-grid{display:flex;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:.35rem}.menro-stat-card{flex:0 0 150px;scroll-snap-align:start}.menro-dash-middle,.menro-dash-bottom{grid-template-columns:1fr}.menro-map-span,.menro-barangay-card,.menro-dash-bottom > :last-child{grid-column:auto}.menro-barangay-row{grid-template-columns:100px minmax(0,1fr) 30px}.menro-dash-card{padding:1rem}}
+@media(max-width:1050px){.menro-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.menro-dash-middle{grid-template-columns:repeat(2,minmax(0,1fr))}.menro-map-span{grid-column:1/-1}.menro-barangay-card{grid-column:auto}}
+@media(max-width:700px){.menro-dash-heading{align-items:start;flex-direction:column}.menro-stat-grid{display:flex;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:.35rem}.menro-stat-card{flex:0 0 160px;scroll-snap-align:start}.menro-dash-middle,.menro-barangay-grid{grid-template-columns:minmax(0,1fr)}.menro-map-span,.menro-barangay-card{grid-column:auto}.menro-barangay-row{grid-template-columns:100px minmax(0,1fr) 30px}.menro-dash-card{padding:1rem}.menro-stat-card > strong{font-size:1.6rem}}
 @media(prefers-reduced-motion:reduce){.menro-stat-card,.menro-dash-card{transition:none}}
-@media(max-width:700px){.menro-situation-aside,.menro-barangay-grid{grid-template-columns:minmax(0,1fr)}.menro-stat-card{flex-basis:160px}.menro-stat-card > strong{font-size:1.6rem}}
