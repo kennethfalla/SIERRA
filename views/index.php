@@ -297,15 +297,6 @@ if ($isLoggedIn && $is_staff) {
             background: transparent;
         }
         
-        .login-prompt {
-            background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
-            border: 2px dashed #059669;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            text-align: center;
-            margin-top: 1rem;
-        }
-
         /* ============================================ */
         /* HERO REDESIGN */
         /* ============================================ */
@@ -616,12 +607,6 @@ if ($isLoggedIn && $is_staff) {
 
         @media (max-width: 768px) {
             #map { height: 300px; }
-            .login-prompt .btn-primary {
-                padding: 0.5rem 1.5rem;
-                font-size: 0.9rem;
-                margin: 0.25rem;
-                display: block;
-            }
         }
         
         /* Logo styling */
@@ -808,9 +793,6 @@ if ($isLoggedIn && $is_staff) {
             .feature-card h3.text-xl { font-size: 0.95rem !important; margin-bottom: 0.4rem !important; }
             .feature-card p.text-sm { font-size: 0.78rem !important; }
             /* Login prompt */
-            .login-prompt { padding: 1rem !important; }
-            .login-prompt p.text-lg  { font-size: 0.95rem !important; }
-            .login-prompt p.text-sm  { font-size: 0.78rem !important; }
 
             /* ── Map section ── */
             #map { height: 230px !important; border-radius: 0.75rem; }
@@ -918,10 +900,10 @@ if ($isLoggedIn && $is_staff) {
 <!-- ============================================ -->
 <!-- NAVIGATION -->
 <!-- ============================================ -->
-<nav class="fixed w-full z-50 nav-landing">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-            <div class="landing-brand flex items-center gap-2">
+<nav class="fixed w-full z-50 nav-landing" aria-label="Main navigation">
+    <div class="nav-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="nav-row flex justify-between items-center h-16">
+            <a href="#home" class="landing-brand flex items-center gap-2" aria-label="<?php echo htmlspecialchars($system_name); ?> home">
                 <?php if ($logo_url): ?>
                     <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="<?php echo htmlspecialchars($system_name); ?> Logo" class="brand-logo">
                 <?php else: ?>
@@ -931,10 +913,10 @@ if ($isLoggedIn && $is_staff) {
                 <?php endif; ?>
                 <span class="landing-brand-name text-xl font-bold text-gray-800"><?php echo htmlspecialchars($system_name); ?></span>
                 <span class="landing-brand-badge text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full hidden sm:inline-block">San Isidro</span>
-            </div>
+            </a>
             
             <div class="nav-links">
-                <a href="#home" class="nav-link"><?php echo t('Home'); ?></a>
+                <a href="#home" class="nav-link is-active" aria-current="location"><?php echo t('Home'); ?></a>
                 <a href="#features" class="nav-link"><?php echo t('How It Works'); ?></a>
                 <a href="#map-section" class="nav-link"><?php echo t('Map'); ?></a>
                 <a href="#stats" class="nav-link"><?php echo t('Stats'); ?></a>
@@ -946,21 +928,21 @@ if ($isLoggedIn && $is_staff) {
                 <div class="nav-desktop-lang"><?php echo lang_icon_widget(); ?></div>
                 <div class="nav-mobile-auth">
                     <?php if($isLoggedIn): ?>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-dashboard-btn"><i class="fas fa-tachometer-alt" aria-hidden="true"></i><?php echo t('Dashboard'); ?></a>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-dashboard-btn"><?php echo t('Dashboard'); ?><span class="nav-cta-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span></a>
                     <?php else: ?>
                         <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><i class="fas fa-sign-in-alt" aria-hidden="true"></i><?php echo t('Sign In'); ?></a>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white"><i class="fas fa-user-plus" aria-hidden="true"></i><?php echo t('Register'); ?></a>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white"><?php echo t('Register'); ?><span class="nav-cta-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span></a>
                     <?php endif; ?>
                 </div>
                 <div class="nav-auth">
                 <?php if($isLoggedIn): ?>
                     <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-dashboard-btn">
-                        <i class="fas fa-tachometer-alt" aria-hidden="true"></i><?php echo t('Dashboard'); ?>
+                        <?php echo t('Dashboard'); ?><span class="nav-cta-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
                     </a>
                 <?php else: ?>
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><i class="fas fa-sign-in-alt"></i><?php echo t('Sign In'); ?></a>
                     <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white">
-                        <i class="fas fa-user-plus"></i><?php echo t('Register'); ?>
+                        <?php echo t('Register'); ?><span class="nav-cta-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
                     </a>
                 <?php endif; ?>
                 </div>
@@ -991,11 +973,11 @@ if ($isLoggedIn && $is_staff) {
             <div class="nav-menu-cta">
                 <?php if($isLoggedIn): ?>
                     <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="nav-dashboard-btn">
-                        <i class="fas fa-tachometer-alt" aria-hidden="true"></i><?php echo t('Dashboard'); ?>
+                        <?php echo t('Dashboard'); ?><span class="nav-cta-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
                     </a>
                 <?php else: ?>
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" class="nav-login-btn"><i class="fas fa-sign-in-alt"></i><?php echo t('Sign In'); ?></a>
-                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white"><i class="fas fa-user-plus"></i><?php echo t('Register'); ?></a>
+                    <a href="<?php echo BASE_URL; ?>index.php?page=register" class="nav-register btn-primary text-white"><?php echo t('Register'); ?><span class="nav-cta-arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span></a>
                 <?php endif; ?>
             </div>
         </div>
@@ -1232,23 +1214,6 @@ if ($isLoggedIn && $is_staff) {
             </div>
         </div>
         
-        <?php if(!$isLoggedIn): ?>
-        <div class="login-prompt mt-12">
-            <p class="text-gray-700 text-lg font-semibold mb-3">
-                <i class="fas fa-lock text-emerald-600 mr-2"></i>
-                Want to report an issue?
-            </p>
-            <p class="text-gray-500 text-sm mb-4">Login or create an account to start reporting environmental concerns in your community.</p>
-            <div class="flex flex-wrap justify-center gap-3">
-                <a href="<?php echo BASE_URL; ?>index.php?page=login" class="btn-primary px-6 py-2.5 text-white rounded-lg font-medium">
-                    <i class="fas fa-sign-in-alt mr-2"></i>Login
-                </a>
-                <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-outline px-6 py-2.5 rounded-lg font-medium">
-                    <i class="fas fa-user-plus mr-2"></i>Register
-                </a>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
 </section>
 
@@ -1838,6 +1803,31 @@ if ($isLoggedIn && $is_staff) {
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') close();
     });
+    window.addEventListener('resize', function () {
+        if (window.innerWidth >= 1280) close();
+    }, { passive: true });
+})();
+
+// Keep the desktop navigation pill in step with the section being viewed.
+(function () {
+    var links = Array.from(document.querySelectorAll('.nav-links .nav-link'));
+    var sections = links.map(function (link) { return document.querySelector(link.getAttribute('href')); }).filter(Boolean);
+    function activate(id) {
+        links.forEach(function (link) {
+            var active = link.getAttribute('href') === '#' + id;
+            link.classList.toggle('is-active', active);
+            if (active) link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+        });
+    }
+    links.forEach(function (link) {
+        link.addEventListener('click', function () { activate(link.getAttribute('href').slice(1)); });
+    });
+    if (!window.IntersectionObserver) return;
+    var observer = new IntersectionObserver(function (entries) {
+        entries.filter(function (entry) { return entry.isIntersecting; }).forEach(function (entry) { activate(entry.target.id); });
+    }, { rootMargin: '-15% 0px -65% 0px', threshold: 0 });
+    sections.forEach(function (section) { observer.observe(section); });
 })();
 
 // ============================================
