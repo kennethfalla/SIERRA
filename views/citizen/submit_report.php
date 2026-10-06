@@ -22,6 +22,7 @@ $mapDefaults = SettingsHelper::getMapSettings();
 
 $database = new Database();
 $db = $database->getConnection();
+$submissionAvailability = SettingsHelper::getReportSubmissionAvailability($db, $_SESSION['user_id']);
 
 $categories = $db->query("SELECT * FROM categories WHERE is_active = 1 ORDER BY name");
 
@@ -463,10 +464,6 @@ if (is_dir($barangays_dir)) {
         .map-control-btn {
             z-index: 10 !important;
         }
-        .map-tip-tooltip {
-            z-index: 20 !important;
-        }
-
         /* ===== UPLOAD AREA ===== */
         .upload-area {
             transition: all 0.2s ease;
@@ -586,37 +583,6 @@ if (is_dir($barangays_dir)) {
                 right: 10px;
                 left: 10px;
                 max-width: none;
-            }
-        }
-
-        /* ===== MAP TIP ===== */
-        .map-tip-tooltip {
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(6px);
-            color: white;
-            padding: 10px 18px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            display: none;
-            max-width: 90%;
-            text-align: center;
-            pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.1);
-            z-index: 20;
-        }
-        .map-tip-tooltip.show {
-            display: block;
-            animation: fadeSlideDown 0.4s ease;
-        }
-        @media (max-width: 480px) {
-            .map-tip-tooltip {
-                font-size: 0.7rem;
-                padding: 8px 12px;
-                bottom: 70px;
             }
         }
 
@@ -762,11 +728,6 @@ if (is_dir($barangays_dir)) {
             backdrop-filter: blur(10px);
         }
         
-        /* Hide map tip in fullscreen */
-        .custom-map-container.fullscreen #mapTipTooltip {
-            bottom: 40px !important;
-        }
-
         /* Push Leaflet layer control below the fullscreen button */
         #mapContainer .leaflet-top.leaflet-right {
             top: 58px;
@@ -1685,14 +1646,6 @@ if (is_dir($barangays_dir)) {
                                 <i class="fas fa-expand" id="fullscreenIcon"></i>
                             </button>
 
-                            <!-- Map Smart Tip Tooltip -->
-                            <div id="mapTipTooltip" class="map-tip-tooltip">
-                                <div class="tip-close" onclick="closeMapTip()" style="position:absolute; top:-6px; right:-6px; background:rgba(255,255,255,0.15); border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; color:#aaa;">✕</div>
-                                <i class="fas fa-hand-pointer"></i>
-                                <span><strong><?php echo t('Tip:'); ?></strong> <?php echo t('Click anywhere on the map to pin the exact location of the environmental issue.'); ?></span>
-                                <span style="display:block;font-size:0.7rem;color:#94a3b8;margin-top:4px;"><?php echo t('You can also use "My Location" to auto-detect.'); ?></span>
-                            </div>
-
                             <div class="absolute bottom-4 right-4 z-[10] flex flex-col space-y-2">
                                 <button type="button" id="getLocationBtn" 
                                         class="map-control-btn bg-white shadow-lg rounded-xl px-3 py-1.5 text-xs font-medium text-[#10A37F] hover:bg-[#10A37F] hover:text-white transition-all flex items-center space-x-2">
@@ -1765,6 +1718,7 @@ if (is_dir($barangays_dir)) {
                     </div>
 
                     <!-- FORM ACTIONS -->
+                    <p id="submissionCountdown" role="status" class="text-sm text-amber-800 rounded-xl bg-amber-50 p-3 mb-3" hidden></p>
                     <div class="form-actions pt-3 border-t border-emerald-50 flex justify-end gap-3">
                         <button type="button" id="resetBtn" class="btn-secondary">
                             <i class="fas fa-redo mr-2"></i><?php echo t('Reset'); ?>
@@ -1907,6 +1861,7 @@ if (is_dir($barangays_dir)) {
 <!-- ============================================================ -->
 <!-- JAVASCRIPT -->
 <!-- ============================================================ -->
+<script src="<?php echo BASE_URL; ?>assets/js/report-submission.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/report-submission.js'); ?>"></script>
 <script>
 (function() {
     'use strict';
@@ -1927,6 +1882,12 @@ if (is_dir($barangays_dir)) {
     const closeCameraBtn = document.getElementById('closeCameraBtn');
     const captureBtn = document.getElementById('captureBtn');
     const submitBtn = document.getElementById('submitBtn');
+    const submissionLimit = SierraReportSubmission({
+        button: submitBtn,
+        node: document.getElementById('submissionCountdown'),
+        url: <?php echo json_encode(BASE_URL . 'controllers/ReportController.php?action=submission_availability'); ?>,
+        initial: <?php echo json_encode($submissionAvailability); ?>
+    });
     const resetBtn = document.getElementById('resetBtn');
     const getLocationBtn = document.getElementById('getLocationBtn');
     const clearLocationBtn = document.getElementById('clearLocationBtn');
@@ -1956,7 +1917,6 @@ if (is_dir($barangays_dir)) {
     let currentMarker = null;
     let boundaryLayer = null;
     let sanIsidroPolygon = null;
-    let mapTipTimer = null;
     let cameraTipTimer = null;
     let facingMode = 'environment';
     let flashMode = false;
@@ -2143,23 +2103,6 @@ if (is_dir($barangays_dir)) {
     }
 
     // ============================================================
-    // MAP TOOLTIP
-    // ============================================================
-    function showMapTip() {
-        const tip = document.getElementById('mapTipTooltip');
-        tip.classList.add('show');
-        clearTimeout(mapTipTimer);
-        mapTipTimer = setTimeout(function() {
-            tip.classList.remove('show');
-        }, 8000);
-    }
-
-    function closeMapTip() {
-        document.getElementById('mapTipTooltip').classList.remove('show');
-        clearTimeout(mapTipTimer);
-    }
-    
-    // ============================================================
     // MAP FULLSCREEN TOGGLE
     // ============================================================
     window.toggleMapFullscreen = function() {
@@ -2185,9 +2128,6 @@ if (is_dir($barangays_dir)) {
             fullscreenIcon.className = 'fas fa-compress';
             document.body.classList.add('map-fullscreen');
             document.body.style.overflow = 'hidden'; // Prevent body scroll
-            
-            // Close map tip if open
-            closeMapTip();
             
             // Show instruction toast
             showToast('Pin a location to check nearby reports you can support.', 'info');
@@ -3001,7 +2941,7 @@ if (is_dir($barangays_dir)) {
             const allLatLngs = reports.map(r => [r.latitude, r.longitude]);
             allLatLngs.push([selectedLat, selectedLng]);
             const bounds = L.latLngBounds(allLatLngs);
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: MAP_DEFAULT_ZOOM });
         }
     }
     
@@ -3418,7 +3358,7 @@ if (is_dir($barangays_dir)) {
         selectedFiles = [];
         delete submitBtn.dataset.optimizing;
         delete submitBtn.dataset.originalHtml;
-        submitBtn.disabled = false;
+        submissionLimit.setBusy(false);
         updatePhotoPreviews();
         updateFileInput();
         if (currentMarker && map) map.removeLayer(currentMarker);
@@ -3506,6 +3446,7 @@ if (is_dir($barangays_dir)) {
     }
 
     reportForm.addEventListener('submit', function(e) {
+        if (!submissionLimit.canSubmit()) { e.preventDefault(); return false; }
         let isValid = true;
         descriptionInput.value = sanitizeRichText(descriptionInput.value);
         if (!validateCategory()) isValid = false;
@@ -3530,6 +3471,7 @@ if (is_dir($barangays_dir)) {
         submitBtn.dataset.originalHtml = submitBtn.dataset.originalHtml || submitBtn.innerHTML;
         e.preventDefault();
         submitBtn.disabled = true;
+        submissionLimit.setBusy(true);
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Preparing photos...';
 
         prepareFilesForUpload().then(function () {
@@ -3537,8 +3479,7 @@ if (is_dir($barangays_dir)) {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
             reportForm.submit();
         }).catch(function () {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+            submissionLimit.setBusy(false);
             showToast('Photo preparation failed. Please try smaller photos.', 'error');
         });
     });
@@ -3788,7 +3729,7 @@ if (is_dir($barangays_dir)) {
                 sanIsidroPolygon = polygonCoords.map(function(coord) { return [coord[1], coord[0]]; });
                 L.polygon(polygonCoords, MapLayers.whiteCasingStyle(1.5)).addTo(map);
                 boundaryLayer = L.polygon(polygonCoords, MapLayers.dashedBoundaryStyle(1.5)).addTo(map);
-                map.fitBounds(boundaryLayer.getBounds());
+                map.fitBounds(boundaryLayer.getBounds(), {maxZoom: MAP_DEFAULT_ZOOM});
             }
         }
 
@@ -3805,7 +3746,7 @@ if (is_dir($barangays_dir)) {
             }).addTo(map);
             // Frame on the barangays when there is no municipality boundary to fit to
             if (!boundaryLayer) {
-                try { map.fitBounds(brgyLayer.getBounds()); } catch(err) {}
+                try { map.fitBounds(brgyLayer.getBounds(), {maxZoom: MAP_DEFAULT_ZOOM}); } catch(err) {}
             }
         }
     }
@@ -3943,7 +3884,6 @@ if (is_dir($barangays_dir)) {
             const locationText = addressComponents && addressComponents.street ? addressComponents.street + (addressComponents.barangay ? ', ' + addressComponents.barangay : '') : lat.toFixed(6) + ', ' + lng.toFixed(6);
             currentMarker.bindPopup('<div style="text-align:center"><strong><i class="fas fa-map-pin mr-1"></i>Selected Location</strong><br><span style="font-size:11px;">' + locationText + '</span></div>').openPopup();
         }
-        closeMapTip();
 
         // ===== Check for nearby reports after location is set =====
         if (isValid) {
@@ -3998,10 +3938,8 @@ if (is_dir($barangays_dir)) {
         addBoundaryToMap();
         map.on('click', function(e) { 
             setLocation(e.latlng.lat, e.latlng.lng, true); 
-            showMapTip();
         });
         L.control.scale({ imperial: false, metric: true }).addTo(map);
-        setTimeout(showMapTip, 1500);
     }
 
     // ============================================================

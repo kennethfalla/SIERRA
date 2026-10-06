@@ -1,6 +1,6 @@
 <?php
 // controllers/AuthController.php - COMPLETE AUTHENTICATION CONTROLLER
-// Features: Registration with SMS OTP, Login (2-Step for staff), Logout,
+// Features: Registration with email OTP and optional SMS, Login (2-Step for staff), Logout,
 // SMS OTP Forgot Password, Duplicate Check, Session Management
 
 require_once dirname(__DIR__) . '/config/config.php';
@@ -76,7 +76,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 // works fine on InfinityFree's outbound restrictions and
 // costs nothing. It catches typo'd/fake domains like
 // "gmial.com" without requiring a confirmation email.
-// Phone SMS OTP remains the real identity verification;
+// Email or SMS OTP remains the real identity verification;
 // this just keeps the email delivery channel usable.
 // ============================================
 function isEmailDomainValid($email) {
@@ -169,7 +169,7 @@ function suggestEmailDomainFix($email) {
 // Generate a 6-digit registration OTP and store it in verification_codes.
 // user_id = 0 for registrations; $type distinguishes the channel:
 //   'registration'         = SMS OTP
-//   'registration_email'   = email OTP ("Send via Email instead")
+//   'registration_email'   = email OTP (default registration channel)
 // Every code is valid for a flat 60 seconds, and each new send INVALIDATES
 // any previously outstanding code so that only the latest OTP is valid.
 function storeRegistrationOtpCode($db, $type) {
@@ -177,36 +177,19 @@ function storeRegistrationOtpCode($db, $type) {
     $valid_seconds = (int)SettingsHelper::get('otp_cooldown_seconds', 60);
     $expires_at = date('Y-m-d H:i:s', time() + $valid_seconds);
 
-    // Ensure verification_codes schema (legacy ENUM -> VARCHAR)
-    try {
-        $typeCol = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'")->fetch(PDO::FETCH_ASSOC);
-        if (!$typeCol) {
-            $db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
-        } elseif (stripos($typeCol['Type'], 'enum') === 0) {
-            $db->exec("ALTER TABLE verification_codes MODIFY COLUMN type VARCHAR(20) DEFAULT 'forgot'");
-        }
-    } catch (PDOException $e) {
-        $db->exec("CREATE TABLE IF NOT EXISTS verification_codes (
-            id INT(11) AUTO_INCREMENT PRIMARY KEY,
-            user_id INT(11) NOT NULL,
-            code VARCHAR(10) NOT NULL,
-            expires_at DATETIME NOT NULL,
-            used TINYINT(1) DEFAULT 0,
-            type VARCHAR(20) DEFAULT 'forgot',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_user_id (user_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Invalidate only this browser's previous code. A resend must never update
+    // every unregistered person's code or contend on all outstanding OTP rows.
+    if (!empty($_SESSION['registration_otp_id'])) {
+        $db->prepare("UPDATE verification_codes SET used = 1
+                      WHERE id = ? AND user_id = 0 AND used = 0")
+            ->execute([$_SESSION['registration_otp_id']]);
     }
-
-    // Invalidate any outstanding unused registration code so the fresh one below
-    // becomes the ONLY valid code (SMS or email, whichever was sent last).
-    $db->prepare("UPDATE verification_codes SET used = 1
-                  WHERE user_id = 0 AND type IN ('registration', 'registration_email') AND used = 0")
-        ->execute();
+    unset($_SESSION['registration_otp_verified']);
 
     // Store the fresh code
     $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (0, ?, ?, ?)");
     $stmt->execute([$otp, $expires_at, $type]);
+    $_SESSION['registration_otp_id'] = (int)$db->lastInsertId();
 
     return $otp;
 }
@@ -251,57 +234,71 @@ function enforceRegistrationOtpLimit() {
 // Generate, store, and SMS a registration OTP (user_id = 0, type = 'registration').
 // Used by both the initial send and the "Resend" path so they behave identically.
 function sendRegistrationOtpCode($db, $contact_number) {
-    $limit = enforceRegistrationOtpLimit();
-    if ($limit !== false) {
-        return $limit;
+    try {
+        $limit = enforceRegistrationOtpLimit();
+        if ($limit !== false) {
+            return $limit;
+        }
+        $otp = storeRegistrationOtpCode($db, 'registration');
+
+        // Send SMS via iProg
+        $cooldown_seconds = (int)SettingsHelper::get('otp_cooldown_seconds', 60);
+        $minutes = (int)ceil($cooldown_seconds / 60);
+        $duration = $minutes <= 1 ? '1 minute' : "$minutes minutes";
+        $system_name = SettingsHelper::get('system_name', 'Sierra');
+        $message = "Your $system_name registration OTP is: $otp. This code expires in $duration.";
+        // Persist the code and rate limit, then release the session lock before
+        // calling the provider so other requests do not wait behind network I/O.
+        if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+        $sms_sent = SettingsHelper::sendSms($contact_number, $message, null, 10);
+
+        return $sms_sent
+            ? ['success' => true, 'message' => 'OTP sent.', 'cooldown_seconds' => $cooldown_seconds]
+            : ['error' => 'The SMS service did not confirm delivery. Please wait briefly before resending.'];
+    } catch (Throwable $e) {
+        error_log('Registration SMS OTP failed: ' . $e->getMessage());
+        return ['error' => 'Unable to send the verification code right now. Please try again shortly.'];
     }
-    $otp = storeRegistrationOtpCode($db, 'registration');
-
-    // Send SMS via iProg
-    $cooldown_seconds = (int)SettingsHelper::get('otp_cooldown_seconds', 60);
-    $minutes = (int)ceil($cooldown_seconds / 60);
-    $duration = $minutes <= 1 ? '1 minute' : "$minutes minutes";
-    $system_name = SettingsHelper::get('system_name', 'Sierra');
-    $message = "Your $system_name registration OTP is: $otp. This code expires in $duration.";
-    $sms_sent = SettingsHelper::sendSms($contact_number, $message);
-
-    return $sms_sent
-        ? ['success' => true, 'message' => 'OTP sent.', 'cooldown_seconds' => $cooldown_seconds]
-        : ['error' => 'Failed to send OTP. Please check your mobile number and try again.'];
 }
 
 // Generate, store, and email a registration OTP (type = 'registration_email').
 // Sent through the configured email gateway (Brevo or Mailgun).
 function sendRegistrationEmailOtp($db, $email, $first_name = '') {
-    $limit = enforceRegistrationOtpLimit();
-    if ($limit !== false) {
-        return $limit;
+    try {
+        $limit = enforceRegistrationOtpLimit();
+        if ($limit !== false) {
+            return $limit;
+        }
+        $otp = storeRegistrationOtpCode($db, 'registration_email');
+
+        $cooldown_seconds = (int)SettingsHelper::get('otp_cooldown_seconds', 60);
+        $minutes = (int)ceil($cooldown_seconds / 60);
+        $duration = $minutes <= 1 ? '1 minute' : "$minutes minutes";
+        $system_name = SettingsHelper::get('system_name', 'Sierra');
+        $subject = "Your $system_name OTP Code";
+        $html = "<!DOCTYPE html><html><body style='margin:0;padding:0;background:#f4f7f6;font-family:'Manrope',Arial,Helvetica,sans-serif;'>"
+            . "<div style='max-width:420px;margin:0 auto;padding:32px 16px;'>"
+            . "<div style='background:#ffffff;border-radius:14px;padding:28px 24px;text-align:center;'>"
+            . "<h2 style='margin:0 0 6px;color:#0d8568;font-size:20px;'>" . htmlspecialchars($system_name) . "</h2>"
+            . "<p style='margin:0 0 18px;color:#6b7280;font-size:14px;'>Verify your registration.</p>"
+            . "<div style='background:#f0fdf9;border:1px solid #a7f3d0;border-radius:10px;padding:18px;'>"
+            . "<p style='margin:0 0 8px;color:#374151;font-size:14px;'>Your OTP code is:</p>"
+            . "<p style='margin:0;font-size:30px;font-weight:bold;letter-spacing:8px;color:#10a37f;'>" . htmlspecialchars($otp) . "</p>"
+            . "</div>"
+            . "<p style='margin:18px 0 0;color:#9ca3af;font-size:12px;'>This code expires in $duration. "
+            . "If you did not request this, you can ignore this email.</p>"
+            . "</div></div></body></html>";
+
+        if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+        $email_sent = SettingsHelper::sendEmail($email, $first_name, $subject, $html, null, 10);
+
+        return $email_sent
+            ? ['success' => true, 'message' => 'OTP sent via email.', 'cooldown_seconds' => $cooldown_seconds]
+            : ['error' => 'The email service did not confirm delivery. Please wait briefly before resending, or try SMS.'];
+    } catch (Throwable $e) {
+        error_log('Registration email OTP failed: ' . $e->getMessage());
+        return ['error' => 'Unable to send the verification code right now. Please try again shortly.'];
     }
-    $otp = storeRegistrationOtpCode($db, 'registration_email');
-
-    $cooldown_seconds = (int)SettingsHelper::get('otp_cooldown_seconds', 60);
-    $minutes = (int)ceil($cooldown_seconds / 60);
-    $duration = $minutes <= 1 ? '1 minute' : "$minutes minutes";
-    $system_name = SettingsHelper::get('system_name', 'Sierra');
-    $subject = "Your $system_name OTP Code";
-    $html = "<!DOCTYPE html><html><body style='margin:0;padding:0;background:#f4f7f6;font-family:'Manrope',Arial,Helvetica,sans-serif;'>"
-        . "<div style='max-width:420px;margin:0 auto;padding:32px 16px;'>"
-        . "<div style='background:#ffffff;border-radius:14px;padding:28px 24px;text-align:center;'>"
-        . "<h2 style='margin:0 0 6px;color:#0d8568;font-size:20px;'>" . htmlspecialchars($system_name) . "</h2>"
-        . "<p style='margin:0 0 18px;color:#6b7280;font-size:14px;'>Verify your registration.</p>"
-        . "<div style='background:#f0fdf9;border:1px solid #a7f3d0;border-radius:10px;padding:18px;'>"
-        . "<p style='margin:0 0 8px;color:#374151;font-size:14px;'>Your OTP code is:</p>"
-        . "<p style='margin:0;font-size:30px;font-weight:bold;letter-spacing:8px;color:#10a37f;'>" . htmlspecialchars($otp) . "</p>"
-        . "</div>"
-        . "<p style='margin:18px 0 0;color:#9ca3af;font-size:12px;'>This code expires in $duration. "
-        . "If you did not request this, you can ignore this email.</p>"
-        . "</div></div></body></html>";
-
-    $email_sent = SettingsHelper::sendEmail($email, $first_name, $subject, $html);
-
-    return $email_sent
-        ? ['success' => true, 'message' => 'OTP sent via email.', 'cooldown_seconds' => $cooldown_seconds]
-        : ['error' => 'Failed to send OTP via email. Email service may not be configured. Please try SMS or contact the MENRO office.'];
 }
 
 // ============================================
@@ -403,6 +400,10 @@ function maybeNotifyNewDeviceLogin($db, $activityLog, $row) {
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    if (in_array($action, ['check_duplicate', 'check_domain', 'start_registration', 'send_registration_otp', 'send_registration_email_otp', 'verify_registration_otp', 'register'], true)
+        && strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest') {
+        header('Content-Type: application/json; charset=utf-8');
+    }
 
     // ========================================
     // CHECK DUPLICATE EMAIL/NUMBER (AJAX)
@@ -450,7 +451,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ========================================
     // SEND REGISTRATION OTP (Step 1 → Step 2)
     // ========================================
-    if ($action === 'send_registration_otp') {
+    if (in_array($action, ['start_registration', 'send_registration_otp'], true)) {
         // CSRF Protection
         if (!isset($_POST['csrf_token']) || !InputSanitizer::validateCsrfToken($_POST['csrf_token'])) {
             echo json_encode(['error' => 'Invalid security token.']);
@@ -464,7 +465,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // RESEND: just deliver a fresh code to the number already on file
-        if (($_POST['resend'] ?? '') === '1') {
+        if ($action === 'send_registration_otp' && ($_POST['resend'] ?? '') === '1') {
             if (empty($_SESSION['registration_data']['contact_number'])) {
                 echo json_encode(['error' => 'Session expired. Please restart registration.']);
                 exit();
@@ -540,6 +541,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Store validated data in session
+        // A restarted registration must verify its new details, even if a
+        // previous attempt was verified or the next send hits the rate limit.
+        unset($_SESSION['registration_otp_verified'], $_SESSION['registration_otp_id']);
         $_SESSION['registration_data'] = [
             'first_name' => $first_name,
             'last_name' => $last_name,
@@ -554,8 +558,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'non_resident_address' => $is_resident === 'no' ? InputSanitizer::sanitizeString($_POST['non_resident_address'] ?? '') : null,
         ];
 
-        // Deliver the OTP to the validated contact number
-        echo json_encode(sendRegistrationOtpCode($db, $contact_number));
+        // Email is the default. SMS is sent only when explicitly selected in Step 2.
+        $delivery = sendRegistrationEmailOtp($db, $email, $first_name);
+        $delivery['registration_ready'] = true;
+        echo json_encode($delivery);
         exit();
     }
 
@@ -602,7 +608,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $otp = trim($_POST['otp'] ?? '');
-        if (strlen($otp) !== 6) {
+        if (!preg_match('/^[0-9]{6}$/D', $otp)) {
             echo json_encode(['success' => false, 'message' => 'Invalid OTP.']);
             exit();
         }
@@ -612,15 +618,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
 
-        // Verify OTP from DB (user_id=0, type='registration' SMS or 'registration_email', not used, not expired)
-        $stmt = $db->prepare("SELECT id FROM verification_codes 
-                              WHERE user_id = 0 AND code = :code AND type IN ('registration', 'registration_email') 
+        // Consume only this session's latest code, atomically and once.
+        $stmt = $db->prepare("UPDATE verification_codes SET used = 1
+                              WHERE id = :id AND user_id = 0 AND code = :code
+                              AND type IN ('registration', 'registration_email')
                               AND expires_at > NOW() AND used = 0");
-        $stmt->execute([':code' => $otp]);
-        if ($stmt->rowCount() > 0) {
-            // Mark as used
-            $update = $db->prepare("UPDATE verification_codes SET used = 1 WHERE user_id = 0 AND code = :code AND type IN ('registration', 'registration_email')");
-            $update->execute([':code' => $otp]);
+        $stmt->execute([':id' => $_SESSION['registration_otp_id'] ?? 0, ':code' => $otp]);
+        if ($stmt->rowCount() === 1) {
             $_SESSION['registration_otp_verified'] = true;
             echo json_encode(['success' => true]);
         } else {
@@ -748,6 +752,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Clear session data
             unset($_SESSION['registration_data']);
             unset($_SESSION['registration_otp_verified']);
+            unset($_SESSION['registration_otp_id']);
 
             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                 echo json_encode(['success' => true, 'message' => 'Registration successful! You can now login.']);
@@ -1185,32 +1190,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $otp = sprintf("%06d", random_int(100000, 999999));
             $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
-            // Store OTP
-            try {
-                $typeCol = $db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'")->fetch(PDO::FETCH_ASSOC);
-                if (!$typeCol) {
-                    $db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
-                } elseif (stripos($typeCol['Type'], 'enum') === 0) {
-                    // Legacy schema used an ENUM that does not allow 'forgot'. Convert to VARCHAR
-                    // so type='forgot' / 'registration' values are stored instead of silently coerced to ''.
-                    $db->exec("ALTER TABLE verification_codes MODIFY COLUMN type VARCHAR(20) DEFAULT 'forgot'");
-                }
-                $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'forgot')");
-                $stmt->execute([$user['id'], $otp, $expires_at]);
-            } catch (PDOException $e) {
-                $db->exec("CREATE TABLE IF NOT EXISTS verification_codes (
-                    id INT(11) AUTO_INCREMENT PRIMARY KEY,
-                    user_id INT(11) NOT NULL,
-                    code VARCHAR(10) NOT NULL,
-                    expires_at DATETIME NOT NULL,
-                    used TINYINT(1) DEFAULT 0,
-                    type VARCHAR(20) DEFAULT 'forgot',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_user_id (user_id)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-                $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'forgot')");
-                $stmt->execute([$user['id'], $otp, $expires_at]);
-            }
+            // OTP storage is prepared by the versioned database migration.
+            $stmt = $db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, 'forgot')");
+            $stmt->execute([$user['id'], $otp, $expires_at]);
 
             // Send SMS
             $system_name = SettingsHelper::get('system_name', 'Sierra');

@@ -555,5 +555,6 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
         });
     </script>
     <?php endif; ?>
+<script src="<?php echo BASE_URL; ?>assets/js/export-print.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/export-print.js'); ?>"></script>
 </body>
 </html>

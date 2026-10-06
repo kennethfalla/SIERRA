@@ -810,14 +810,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             }
         }
         .track-cancel-float {
-            position: fixed;
-            left: 18rem;
-            right: 0;
-            bottom: 0;
-            z-index: 5000;
-            padding: .75rem 1rem;
-            background: linear-gradient(to top, rgba(245, 251, 246, 1) 0%, rgba(245, 251, 246, .9) 80%, rgba(245, 251, 246, 0) 100%);
-            pointer-events: none;
+            position: static;
+            margin-top: 1.5rem;
         }
         .track-cancel-bar {
             pointer-events: auto;
@@ -841,19 +835,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             font-weight: 700;
             justify-content: center;
         }
-        body:has(.track-cancel-float) .main-container {
-            padding-bottom: 6.5rem;
-        }
-        @media (max-width: 1023px) {
-            .track-cancel-float {
-                left: 0;
-                padding: .75rem .75rem max(.75rem, env(safe-area-inset-bottom));
-            }
-        }
         @media (max-width: 640px) {
             .track-cancel-bar { flex-direction: column; align-items: stretch; gap: .75rem; }
             .track-cancel-bar button { width: 100%; }
-            body:has(.track-cancel-float) .main-container { padding-bottom: 10rem; }
         }
         .resolution-confirm-float {
             position: fixed;
@@ -1248,26 +1232,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         </div>
         
-        <?php if($can_cancel): ?>
-        <div class="track-cancel-float">
-            <div class="track-cancel-bar">
-                <div class="flex items-center gap-3 md:gap-4 min-w-0">
-                    <div class="w-11 h-11 md:w-14 md:h-14 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-times-circle text-red-600 text-xl"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h3 class="font-bold text-gray-800 text-sm md:text-base"><?php echo t('Cancel Report'); ?></h3>
-                        <p class="text-gray-600 text-xs md:text-sm"><?php echo t('You can cancel this report while it is pending.'); ?></p>
-                    </div>
-                </div>
-                <button type="button" onclick="openCancelModal()" class="bg-red-600 hover:bg-red-700 text-white px-5 md:px-6 py-2.5 md:py-3 transition-all flex items-center gap-2 text-sm">
-                    <i class="fas fa-times-circle"></i>
-                    <span><?php echo t('Cancel Report'); ?></span>
-                </button>
-            </div>
-        </div>
-        <?php endif; ?>
-
         <!-- Resolution Confirmation -->
         <?php if($can_confirm_resolution): ?>
         <div class="resolution-confirm-float">
@@ -1458,8 +1422,27 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php endif; ?>
             </div>
         </div>
-        
-        
+
+        <?php if($can_cancel): ?>
+        <div class="track-cancel-float">
+            <div class="track-cancel-bar">
+                <div class="flex items-center gap-3 md:gap-4 min-w-0">
+                    <div class="w-11 h-11 md:w-14 md:h-14 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-times-circle text-red-600 text-xl"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="font-bold text-gray-800 text-sm md:text-base"><?php echo t('Cancel Report'); ?></h3>
+                        <p class="text-gray-600 text-xs md:text-sm"><?php echo t('You can cancel this report while it is pending.'); ?></p>
+                    </div>
+                </div>
+                <button type="button" onclick="openCancelModal()" class="bg-red-600 hover:bg-red-700 text-white px-5 md:px-6 py-2.5 md:py-3 transition-all flex items-center gap-2 text-sm">
+                    <i class="fas fa-times-circle"></i>
+                    <span><?php echo t('Cancel Report'); ?></span>
+                </button>
+            </div>
+        </div>
+        <?php endif; ?>
+
     </div>
 </div>
 
@@ -1548,7 +1531,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
                 <div class="mb-4">
                     <label for="cancel_reason_select" class="block text-sm font-semibold text-gray-700 mb-2"><?php echo t('Reason for cancellation'); ?></label>
-                    <select id="cancel_reason_select" name="cancellation_remarks_select" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition" onchange="toggleCancelOther(this.value)">
+                    <select id="cancel_reason_select" name="cancellation_remarks_select" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition" onchange="toggleCancelOther(this.value)">
                         <option value=""><?php echo t('Select a reason...'); ?></option>
                         <option value="Submitted by mistake"><?php echo t('Submitted by mistake'); ?></option>
                         <option value="Issue already resolved by the community"><?php echo t('Issue already resolved by the community'); ?></option>
@@ -1559,7 +1542,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
                 <div id="cancel_other_container" class="mb-4" style="display: none;">
                     <label for="cancel_remarks_other" class="block text-sm font-semibold text-gray-700 mb-2"><?php echo t('Please specify'); ?></label>
-                    <textarea id="cancel_remarks_other" name="cancellation_remarks" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition" placeholder="<?php echo t("Describe why you're cancelling this report..."); ?>"></textarea>
+                    <textarea id="cancel_remarks_other" name="cancellation_remarks" rows="3" maxlength="1000" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition" placeholder="<?php echo t("Describe why you're cancelling this report..."); ?>"></textarea>
                 </div>
 
                 <div class="flex gap-3 mt-6">
@@ -1939,7 +1922,7 @@ document.addEventListener('DOMContentLoaded', function() {
         dragging:true,
         scrollWheelZoom:true,
         touchZoom:true
-    }).setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], 16);
+    }).setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], MapLayers.getSettings().default_zoom);
     MapLayers.addControl(map);
     
     if (sanIsidroBoundary && sanIsidroBoundary.features) {

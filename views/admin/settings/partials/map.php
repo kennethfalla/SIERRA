@@ -390,7 +390,7 @@ foreach ($barangay_boundaries as $bid => $bb) {
         if (bounds.length > 0) {
             boundaryPreviewMap.fitBounds(L.latLngBounds(bounds).pad(0.15));
         } else {
-            boundaryPreviewMap.setView([15.3092, 120.9033], 13);
+            const defaults = MapLayers.getSettings(); boundaryPreviewMap.setView([defaults.default_lat, defaults.default_lng], defaults.default_zoom);
         }
     }
 

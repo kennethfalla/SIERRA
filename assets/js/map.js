@@ -6,14 +6,19 @@ let marker;
 let currentMarker = null;
 
 // Initialize map
-function initMap(lat = 14.5995, lng = 120.9842, zoom = 13) {
+function initMap(lat, lng, zoom) {
+    const defaults = window.MapLayers ? MapLayers.getSettings() : (window.SierraMapSettings || {default_lat:15.3092, default_lng:120.9033, default_zoom:14});
+    lat = lat ?? defaults.default_lat;
+    lng = lng ?? defaults.default_lng;
+    zoom = zoom ?? defaults.default_zoom;
     if (map) {
         map.remove();
     }
     
     map = L.map('map').setView([lat, lng], zoom);
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    if (window.MapLayers) MapLayers.addControl(map);
+    else L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
     }).addTo(map);

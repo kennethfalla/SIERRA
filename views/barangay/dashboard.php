@@ -1520,7 +1520,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <?php endif; ?>
 
 
-        <div class="bento">
+        <div class="bento" data-dashboard-layout>
             <section class="chart-card b-hero hero-kpi">
                 <div class="chart-head"><div class="chart-title"><i class="fas fa-map-pin" aria-hidden="true"></i>Active Hotspots</div></div>
                 <div class="hotspot-summary">

@@ -702,5 +702,6 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
             });
         })();
     </script>
+<script src="<?php echo BASE_URL; ?>assets/js/export-print.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/export-print.js'); ?>"></script>
 </body>
 </html>

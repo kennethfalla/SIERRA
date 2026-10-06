@@ -447,6 +447,36 @@ class SettingsHelper {
         ];
     }
 
+    // Use the database clock for both the form countdown and the submission gate.
+    public static function getReportSubmissionAvailability($db, $userId) {
+        $limits = self::getReportLimits();
+        if (self::get('enable_report_submission', '1') != '1') {
+            return ['allowed' => false, 'retry_after' => 0, 'message' => 'Report submission is currently disabled.'];
+        }
+        $wait = 0;
+        $message = '';
+        if ($limits['enabled']) {
+            $stmt = $db->prepare("SELECT SUM(created_at >= CURDATE()) AS today_count,
+                TIMESTAMPDIFF(SECOND, MAX(created_at), NOW()) AS elapsed_seconds,
+                TIMESTAMPDIFF(SECOND, NOW(), CURDATE() + INTERVAL 1 DAY) AS midnight_seconds
+                FROM reports WHERE user_id = ? AND status != 'cancelled'");
+            $stmt->execute([(int)$userId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($limits['daily_limit'] > 0 && (int)($row['today_count'] ?? 0) >= $limits['daily_limit']) {
+                $wait = max(1, (int)$row['midnight_seconds']);
+                $message = 'Daily report limit reached. You can submit again when the countdown ends.';
+            }
+            if ($limits['min_interval_minutes'] > 0 && isset($row['elapsed_seconds'])) {
+                $intervalWait = max(0, $limits['min_interval_minutes'] * 60 - (int)$row['elapsed_seconds']);
+                if ($intervalWait > $wait) {
+                    $wait = $intervalWait;
+                    $message = 'Please wait before submitting another report.';
+                }
+            }
+        }
+        return ['allowed' => $wait === 0, 'retry_after' => $wait, 'message' => $message];
+    }
+
     /**
      * Get OTP anti-spam limits (registration & reset OTPs)
      * @return array [max_requests, window_seconds, cooldown_seconds]
@@ -681,7 +711,7 @@ class SettingsHelper {
      * @param string $message SMS message
      * @return bool True on success
      */
-    public static function sendSms($phone_number, $message, $gatewayOverride = null) {
+    public static function sendSms($phone_number, $message, $gatewayOverride = null, $timeoutSeconds = 10) {
         // Clear cache to ensure we're using the latest settings
         self::clearCache();
 
@@ -738,7 +768,10 @@ class SettingsHelper {
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            // Interactive OTP requests use a shorter budget than background notifications.
+            $timeoutSeconds = max(1, min(30, (int)$timeoutSeconds));
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeoutSeconds);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(3, $timeoutSeconds));
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($ch, CURLOPT_POST, true);
@@ -1013,6 +1046,26 @@ class SettingsHelper {
         }
     }
 
+    /** Same notice, private delivery to each recipient, one provider request. */
+    public static function sendReportEmailMany(array $recipients, $subject, $htmlContent) {
+        $valid = [];
+        foreach ($recipients as $recipient) {
+            $email = trim((string)($recipient['email'] ?? ''));
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $valid[strtolower($email)] = ['email' => $email, 'name' => (string)($recipient['name'] ?? '')];
+            }
+        }
+        if (!$valid) return false;
+        if (defined('EMAIL_QUEUE_ENABLED') && EMAIL_QUEUE_ENABLED === true) {
+            $accepted = true;
+            foreach ($valid as $recipient) {
+                $accepted = self::sendReportEmail($recipient['email'], $recipient['name'], $subject, $htmlContent) && $accepted;
+            }
+            return $accepted;
+        }
+        return self::sendEmail(array_values($valid), '', $subject, $htmlContent);
+    }
+
     /**
      * Send a transactional email through Brevo or Mailgun API.
      *
@@ -1027,7 +1080,7 @@ class SettingsHelper {
      * @param array|null $gatewayOverride Optional inline credentials to test with
      * @return bool True on success
      */
-    public static function sendEmail($to_email, $to_name, $subject, $htmlContent, $gatewayOverride = null) {
+    public static function sendEmail($to_email, $to_name, $subject, $htmlContent, $gatewayOverride = null, $timeoutSeconds = 10) {
         // Settings are cached only for this request; set() keeps them current.
 
         $gateway = $gatewayOverride;
@@ -1045,13 +1098,20 @@ class SettingsHelper {
             return false;
         }
 
-        // Validate recipient email
-        if (!filter_var($to_email, FILTER_VALIDATE_EMAIL)) {
-            error_log("Email not sent: invalid recipient email: $to_email");
-            return false;
+        $recipients = is_array($to_email) ? $to_email : [['email' => $to_email, 'name' => $to_name]];
+        if (!$recipients || count($recipients) > 1000) return false;
+        foreach ($recipients as &$recipient) {
+            if (!filter_var($recipient['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
+                error_log('Email not sent: invalid recipient.');
+                return false;
+            }
+            $recipient = ['email' => $recipient['email'], 'name' => trim((string)($recipient['name'] ?? '')) ?: $recipient['email']];
         }
+        unset($recipient);
+        $recipientLabel = count($recipients) . ' recipient(s)';
 
         $gatewayType = $gateway['gateway'];
+        $timeoutSeconds = max(1, min(30, (int)$timeoutSeconds));
 
         // ============================================
         // BREVO API (formerly Sendinblue)
@@ -1077,22 +1137,23 @@ class SettingsHelper {
                     'name' => $senderName,
                     'email' => $senderEmail
                 ],
-                'to' => [
-                    [
-                        'email' => $to_email,
-                        'name' => $to_name ?: $to_email
-                    ]
-                ],
+                'to' => [$recipients[0]],
                 'subject' => $subject,
                 'htmlContent' => $htmlContent
             ];
+            if (count($recipients) > 1) {
+                unset($payload['to']);
+                $payload['messageVersions'] = array_map(static function ($recipient) {
+                    return ['to' => [$recipient]];
+                }, $recipients);
+            }
 
             $endpoint = 'https://api.brevo.com/v3/smtp/email';
 
             $ch = curl_init($endpoint);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeoutSeconds);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(5, $timeoutSeconds));
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
@@ -1107,7 +1168,7 @@ class SettingsHelper {
             $error = curl_error($ch);
             curl_close($ch);
 
-            error_log("Brevo Email Request: to=" . $to_email . " subject=" . $subject);
+            error_log('Brevo Email Request: ' . $recipientLabel);
             error_log("Brevo Email Response: HTTP " . $http_code . " - " . substr($response, 0, 500));
             if ($error) {
                 error_log("Brevo Email cURL Error: " . $error);
@@ -1145,7 +1206,7 @@ class SettingsHelper {
 
             // Prepare email payload for Mailgun (as form data)
             $from = !empty($senderName) ? "$senderName <$senderEmail>" : $senderEmail;
-            $to = !empty($to_name) ? "$to_name <$to_email>" : $to_email;
+            $to = implode(',', array_column($recipients, 'email'));
 
             $payload = [
                 'from' => $from,
@@ -1153,14 +1214,20 @@ class SettingsHelper {
                 'subject' => $subject,
                 'html' => $htmlContent
             ];
+            if (count($recipients) > 1) {
+                // Mailgun recipient variables ensure separate recipient headers.
+                $variables = [];
+                foreach ($recipients as $recipient) $variables[$recipient['email']] = ['name' => $recipient['name'] ?? ''];
+                $payload['recipient-variables'] = json_encode($variables);
+            }
 
             // Mailgun API endpoint
             $endpoint = $baseUrl . '/v3/' . $domain . '/messages';
 
             $ch = curl_init($endpoint);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeoutSeconds);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(5, $timeoutSeconds));
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload)); // URL-encode for form data
@@ -1172,7 +1239,7 @@ class SettingsHelper {
             $error     = curl_error($ch);
             curl_close($ch);
 
-            error_log("Mailgun Email Request: to=" . $to_email . " subject=" . $subject);
+            error_log('Mailgun Email Request: ' . $recipientLabel);
             error_log("Mailgun Email Response: HTTP " . $http_code . " - " . substr($response, 0, 500));
             if ($error) {
                 error_log("Mailgun Email cURL Error: " . $error);

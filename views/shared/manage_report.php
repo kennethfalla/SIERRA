@@ -255,21 +255,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         /* ===== SMART SUGGESTION CARDS ===== */
         .qn-wrap {
             position: relative;
-            background: linear-gradient(180deg, #FBFDFC 0%, #F6FCF9 100%);
-            border: 1px solid rgba(16, 163, 127, 0.14);
+            background: #f8fbf9;
+            border: 1px solid #dce8e1;
             border-radius: 12px;
             padding: 12px;
             margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(16, 163, 127, 0.05);
-        }
-        .qn-wrap::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 18px; right: 18px;
-            height: 3px;
-            border-radius: 0 0 8px 8px;
-            background: linear-gradient(90deg, #10A37F, #34D399, #A7F3D0);
-            opacity: 0.55;
         }
         .qn-wrap.mb-1\\.5 { margin-bottom: 6px; }
         .qn-suggestions-header {
@@ -282,20 +272,18 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             width: 26px;
             height: 26px;
             border-radius: 8px;
-            background: linear-gradient(135deg, #10A37F, #0D8568);
-            color: #fff;
+            background: #eaf7f0;
+            color: #0d8568;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 0.72rem;
             flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(16, 163, 127, 0.3);
         }
         .qn-suggestions-title {
             font-size: 0.7rem;
             font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
+            letter-spacing: 0;
             color: #334155;
             flex: 1;
         }
@@ -332,8 +320,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .note-template-chip:hover {
             border-color: #34D399;
             background: #F0FDF4;
-            box-shadow: 0 4px 14px rgba(16, 163, 127, 0.12);
-            transform: translateY(-1px);
         }
         .note-template-chip:focus-visible {
             outline: 2px solid #34D399;
@@ -343,8 +329,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             width: 28px;
             height: 28px;
             border-radius: 8px;
-            background: linear-gradient(135deg, #10A37F, #0D8568);
-            color: #fff;
+            background: #eaf7f0;
+            color: #0d8568;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -450,16 +436,19 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             max-height: min(48vh, 410px);
             margin: 0 auto;
             overflow-y: auto;
-            background: linear-gradient(to right, #F0FDF4, #ECFDF5);
+            background: #fff;
             backdrop-filter: blur(8px);
             border-radius: 1rem;
-            border: 2px solid #A7F3D0;
+            border: 1px solid #cfe3d7;
             padding: .75rem 1rem;
-            box-shadow: 0 10px 30px rgba(16, 163, 127, .15);
+            box-shadow: 0 12px 32px -18px rgba(18, 76, 60, .3);
         }
-        .action-panel-bar > .flex:first-child { margin-bottom: .75rem; padding-bottom: .75rem; }
+        .action-panel-bar .action-callout { margin-bottom:12px; padding:10px 12px; border-radius:10px; }
         .action-panel-bar .action-cards { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
         .action-panel-bar .action-card { min-width: 0; }
+        .action-panel-bar .action-card:not(.action-card-btn) { background:#f7fbf8; border-color:#dce8e1; }
+        .escalation-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:auto; }
+        .escalation-actions .action-btn { min-width:0; padding:10px 8px; font-size:12px; white-space:normal; }
         @media (max-width: 1023px) {
             .action-panel {
                 left: 0;
@@ -771,6 +760,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .confirm-modal-overlay.open { display: flex; }
         .confirm-modal-card { background: white; border-radius: 1rem; padding: 1.5rem; max-width: 380px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: fadeUp 0.2s ease; }
         .confirm-modal-icon { width: 44px; height: 44px; border-radius: 9999px; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 12px; }
+        .confirm-modal-card.is-positive { border:1px solid #dce8e1; box-shadow:0 24px 60px -24px #124c3c80; }
+        .confirm-modal-card.is-positive .confirm-modal-icon { background:#eaf7f0; color:#0d8568; border-radius:12px; }
 
         /* ===== COPY BUTTON ===== */
         .copy-btn { display: inline-flex; align-items: center; gap: 4px; color: #6b7280; cursor: pointer; transition: color 0.15s ease; border: none; background: none; font-size: inherit; padding: 0; }
@@ -865,6 +856,15 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .action-modal-body { padding: 1.25rem; overflow-y: auto; }
         .action-modal-body form { display: flex; flex-direction: column; gap: 0.9rem; }
         .action-modal-body .modal-submit { width: 100%; min-height: 46px; justify-content: center; }
+        .action-modal-card > form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+        .action-modal-card > form .action-modal-body { min-height: 0; }
+        .action-modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 1rem 1.25rem; border-top: 1px solid #eef2f0; flex-shrink: 0; }
+        .action-modal-footer button { min-height: 44px; }
+        #reclassifyModal .action-modal-card { border:1px solid #dce8e1; box-shadow:0 24px 60px -24px #124c3c80; }
+        #reclassifyModal .action-modal-header { background:linear-gradient(100deg,#fff,#f2faf5); border-color:#dce8e1; }
+        #reclassifyModal .action-icon { background:#eaf7f0; color:#0d8568; }
+        #reclassifyModal :is(select,textarea) { border-color:#dce8e1; border-radius:10px; background:#f8fbf9; }
+        #reclassifyModal :is(select,textarea):focus { outline:none; border-color:#0d8568; box-shadow:0 0 0 3px #0d85681a; }
         @media (max-width: 480px) {
             .action-modal-card { max-width: none; border-radius: 1rem; }
             .action-modal-header { padding: 0.9rem 1rem; }
@@ -1349,15 +1349,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <!-- 🛠️ ACTION & MANAGEMENT PANEL -->
         <div class="action-panel no-print">
           <div class="action-panel-bar">
-            <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100">
-                <div class="w-9 h-9 rounded-xl bg-[#10A37F]/10 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-tools text-[#10A37F] text-sm"></i>
-                </div>
-                <div>
-                    <p class="font-bold text-gray-800 text-sm">Action &amp; Management Panel</p>
-                    <p class="text-xs text-gray-400">Choose what happens next with this report</p>
-                </div>
-            </div>
 
             <!-- CONTEXT CALLOUTS -->
             <?php if ($report['status'] == 'escalated_pending'): ?>
@@ -1451,22 +1442,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <p class="text-xs text-gray-400 truncate">Refuse this report and notify resident</p>
                         </div>
                     </div>
-                    <button type="button" data-target="rejectFormSection" onclick="toggleExpand(this)" class="action-trigger action-btn btn-danger">
-                        <i class="fas fa-times-circle mr-2"></i> Reject Report
-                    </button>
-                    <div id="rejectFormSection" class="expand-section mt-3 bg-red-50 border-2 border-red-200 rounded-xl"><div>
-                        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="expand-section-inner space-y-3" data-confirm="Are you sure you want to reject this report? This action will notify the resident." onsubmit="return handleReportFormSubmit(event, this)">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                            <input type="hidden" name="action" value="reject_report">
-                            <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
-                            <label class="block text-sm font-semibold text-gray-700"><i class="fas fa-ban text-red-600 mr-1"></i> Reason for rejection</label>
-                            <textarea name="rejection_reason" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" placeholder="Provide a clear reason for rejecting this report..." required></textarea>
-                            <div class="flex gap-2">
-                                <button type="submit" class="btn-danger flex-1 px-4 py-2 text-xs"><i class="fas fa-ban mr-1.5"></i> Confirm Rejection</button>
-                                <button type="button" data-target="rejectFormSection" onclick="toggleExpand(this)" class="btn-secondary px-4 py-2 text-xs">Cancel</button>
-                            </div>
-                        </form>
-                    </div></div>
+                    <button type="button" onclick="openActionModal('rejectReportModal')" class="action-trigger action-btn btn-danger"><i class="fas fa-times-circle mr-2"></i> Reject Report</button>
                 </div>
                 <?php endif; ?>
 
@@ -1506,12 +1482,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <p class="text-xs text-gray-400 truncate">Decide on this pending escalation</p>
                         </div>
                     </div>
-                    <button type="button" onclick="openActionModal('approveEscalModal')" class="action-trigger action-btn btn-success mb-2">
+                    <div class="escalation-actions">
+                    <button type="button" onclick="openActionModal('approveEscalModal')" class="action-trigger action-btn btn-success">
                         <i class="fas fa-check mr-2"></i> Approve Escalation
                     </button>
                     <button type="button" onclick="openActionModal('rejectEscalModal')" class="action-trigger action-btn btn-danger">
                         <i class="fas fa-xmark mr-2"></i> Reject Escalation
                     </button>
+                    </div>
                 </div>
                 <?php endif; ?>
 
@@ -1561,13 +1539,27 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <p class="font-bold text-gray-800 text-base mb-1">Please confirm</p>
         <p class="text-sm text-gray-500 mb-5" id="confirmModalMessage"></p>
         <div class="flex gap-3">
-            <button type="button" class="btn-danger flex-1" onclick="proceedConfirmModal()">Yes, continue</button>
+            <button type="button" id="confirmModalProceed" class="btn-danger flex-1" onclick="proceedConfirmModal()">Yes, continue</button>
             <button type="button" class="btn-secondary flex-1" onclick="closeConfirmModal()">Cancel</button>
         </div>
     </div>
 </div>
 
 <!-- ===== RECLASSIFY RISK MODAL (barangay) ===== -->
+<?php if ($can_reject): ?>
+<div class="action-modal-overlay no-print" id="rejectReportModal" onclick="if(event.target===this)closeActionModal('rejectReportModal')" role="dialog" aria-modal="true" aria-labelledby="rejectReportModalTitle">
+    <div class="action-modal-card">
+        <div class="action-modal-header"><div><h3 id="rejectReportModalTitle" class="font-bold">Reject Report</h3><p class="text-sm text-gray-500">Select a suggested reason or write your own.</p></div><button type="button" class="action-modal-close" onclick="closeActionModal('rejectReportModal')" aria-label="Close"><i class="fas fa-xmark"></i></button></div>
+        <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" onsubmit="return submitReportReason(event,this)">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+            <input type="hidden" name="action" value="reject_report">
+            <input type="hidden" name="report_id" value="<?php echo (int)$report['id']; ?>">
+            <div class="action-modal-body"><?php include BASE_PATH . 'views/shared/report_reason_picker.php'; ?></div>
+            <div class="action-modal-footer"><button type="button" class="btn-secondary" onclick="closeActionModal('rejectReportModal')">Back</button><button type="submit" class="btn-danger">Confirm Rejection</button></div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
 <div class="action-modal-overlay no-print" id="reclassifyModal" onclick="if(event.target===this)closeActionModal('reclassifyModal')" role="dialog" aria-modal="true" aria-labelledby="reclassifyModalTitle">
     <div class="action-modal-card">
         <div class="action-modal-header">
@@ -1756,13 +1748,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <button type="button" class="action-modal-close" onclick="closeActionModal('rejectEscalModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="action-modal-body">
-            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" data-confirm="Reject this escalation and send it back?" onsubmit="return handleReportFormSubmit(event, this)">
+            <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" data-confirm="Reject this escalation and send it back?" onsubmit="return submitReportReason(event,this)">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                 <input type="hidden" name="action" value="reject_escalation">
                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">Reason for rejection <span class="text-red-500">(required)</span></label>
-                    <input type="text" name="rejection_reason" placeholder="Reason for rejection..." class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none" required>
+                    <?php $reasonSuggestions = ['The issue can be handled at barangay level.', 'More evidence or investigation is needed.', 'This issue is already covered by an existing escalation.']; include BASE_PATH . 'views/shared/report_reason_picker.php'; unset($reasonSuggestions); ?>
                 </div>
                 <button type="submit" class="btn-danger modal-submit"><i class="fas fa-xmark mr-1.5"></i> Reject Escalation</button>
             </form>
@@ -1894,7 +1886,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <script>
 // Initialize map
 <?php if ($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
-    var map = L.map('map').setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], 16);
+    var map = L.map('map').setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], MapLayers.getSettings().default_zoom);
     MapLayers.addControl(map);
     L.marker([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], {
         icon: SierraMapClusters.icon(<?php echo (int)($report['severity_score'] ?? 0); ?>, <?php echo json_encode($report['category_name'] ?? 'Report', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>)
@@ -1952,6 +1944,10 @@ function handleReportFormSubmit(evt, form) {
     if (form.dataset.confirmed === 'true') { setLoading(form); return true; }
     evt.preventDefault();
     pendingConfirmForm = form;
+    const positive = ['verify_report','reclassify_impact','approve_escalation','resolve_report'].includes(form.querySelector('[name="action"]')?.value);
+    document.querySelector('#confirmModalOverlay .confirm-modal-card').classList.toggle('is-positive', positive);
+    document.querySelector('#confirmModalOverlay .confirm-modal-icon i').className = positive ? 'fas fa-circle-check' : 'fas fa-triangle-exclamation';
+    document.getElementById('confirmModalProceed').className = (positive ? 'btn-primary' : 'btn-danger') + ' flex-1';
     document.getElementById('confirmModalMessage').textContent = message;
     document.getElementById('confirmModalOverlay').classList.add('open');
     return false;
@@ -2125,6 +2121,24 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ===== ACTION MODALS (barangay popup actions) =====
+function syncReportReason(field) {
+    const form = field.form;
+    const custom = form.querySelector('[name="custom_reason"]');
+    if (field === custom && custom.value.trim()) form.querySelector('[name="reason_choice"][value="Other"]').checked = true;
+    const selected = form.querySelector('[name="reason_choice"]:checked');
+    if (field !== custom && selected && selected.value !== 'Other') custom.value = '';
+    custom.required = !!selected && selected.value === 'Other';
+    form.querySelector('[name="rejection_reason"]').value = selected ? (selected.value === 'Other' ? custom.value.trim() : selected.value) : '';
+}
+function submitReportReason(event, form) {
+    syncReportReason(form.querySelector('[name="custom_reason"]'));
+    if (form.querySelector('[name="rejection_reason"]').value.trim().length < 5) {
+        event.preventDefault();
+        form.querySelector('[name="custom_reason"]').focus();
+        return false;
+    }
+    return handleReportFormSubmit(event, form);
+}
 function openActionModal(id) {
     const m = document.getElementById(id);
     if (!m) return;

@@ -30,6 +30,8 @@ try {
     require_once $sandbox . '/helpers/EmailQueue.php';
     check($db->query("SELECT setting_value FROM system_settings WHERE setting_key = '_app_schema_version'")->fetchColumn() === Database::SCHEMA_VERSION, 'legacy schema migrates and stores completion in the database');
     check(count($db->query("SHOW COLUMNS FROM activity_logs WHERE Field IN ('user_agent', 'status')")->fetchAll()) === 2, 'legacy activity metadata columns migrate');
+    check(count($db->query("SHOW COLUMNS FROM reports WHERE Field IN ('rejected_at', 'rejection_reason', 'cancelled_at', 'cancellation_remarks')")->fetchAll()) === 4, 'report reasons migrate before page and OTP requests');
+    check((int)$db->query("SELECT COUNT(DISTINCT index_name) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'reports' AND index_name IN ('idx_reports_created_status','idx_reports_barangay_created','idx_reports_user_created')")->fetchColumn() === 3, 'dashboard and per-user report scopes have indexes');
     $ran = false;
     SchemaMigration::run($db, Database::SCHEMA_VERSION, function () use (&$ran) { $ran = true; return true; });
     check(!$ran, 'completed version skips schema work without a filesystem marker');

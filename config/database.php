@@ -37,7 +37,7 @@ class Database {
     // Bump this whenever new auto-migrations are added further below. The
     // database stores completion, so normal requests run one version lookup
     // and no schema inspection (important on shared hosting / high-traffic polling).
-    const SCHEMA_VERSION = '2026-10-01-1';
+    const SCHEMA_VERSION = '2026-10-07-1';
 
     // Reuse a single PDO connection per request (see getConnection()).
     private static $sharedConn = null;
@@ -57,7 +57,7 @@ class Database {
         $this->conn = null;
         try {
             $dsn = "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name . ";charset=utf8mb4";
-            $this->conn = new PDO($dsn, $this->username, $this->password);
+            $this->conn = new PDO($dsn, $this->username, $this->password, [PDO::ATTR_TIMEOUT => 5]);
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
@@ -84,7 +84,10 @@ class Database {
 
         } catch(PDOException $exception) {
             if (PHP_SAPI === 'cli') throw $exception;
-            die("Database Connection Error: " . $exception->getMessage());
+            error_log('[Database] Connection/update failed: ' . $exception->getMessage());
+            http_response_code(503);
+            header('Retry-After: 30');
+            die('The system is temporarily unavailable. Please try again shortly.');
         }
         return $this->conn;
     }
@@ -95,6 +98,46 @@ class Database {
      */
     private function ensureColumns() {
         try {
+            // Report reasons are migrated once, rather than on each list load.
+            foreach (['rejected_at' => 'DATETIME NULL', 'rejection_reason' => 'TEXT NULL',
+                      'cancelled_at' => 'DATETIME NULL', 'cancellation_remarks' => 'TEXT NULL'] as $column => $definition) {
+                if (!$this->columnExists('reports', $column)) {
+                    $this->conn->exec("ALTER TABLE reports ADD COLUMN `{$column}` {$definition}");
+                }
+            }
+            // Index the report scopes used by dashboards, maps and rate limits.
+            $reportIndexes = [
+                'idx_reports_created_status' => 'created_at, status',
+                'idx_reports_barangay_created' => 'barangay_id, created_at, status',
+                'idx_reports_user_created' => 'user_id, created_at',
+                'idx_reports_resolved' => 'resolved_at',
+            ];
+            $indexCheck = $this->conn->prepare("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'reports' AND index_name = ?");
+            foreach ($reportIndexes as $name => $columns) {
+                foreach (explode(', ', $columns) as $column) {
+                    if (!$this->columnExists('reports', $column)) continue 2;
+                }
+                $indexCheck->execute([$name]);
+                if (!(int)$indexCheck->fetchColumn()) $this->conn->exec("ALTER TABLE reports ADD INDEX `{$name}` ({$columns})");
+            }
+            // Prepare OTP storage once per schema version, never during sends/resends.
+            $this->conn->exec("CREATE TABLE IF NOT EXISTS verification_codes (
+                id INT(11) AUTO_INCREMENT PRIMARY KEY,
+                user_id INT(11) NOT NULL,
+                code VARCHAR(10) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                used TINYINT(1) DEFAULT 0,
+                type VARCHAR(20) DEFAULT 'forgot',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $typeCol = $this->conn->query("SHOW COLUMNS FROM verification_codes LIKE 'type'")->fetch(PDO::FETCH_ASSOC);
+            if (!$typeCol) {
+                $this->conn->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            } elseif (stripos($typeCol['Type'], 'enum') === 0) {
+                $this->conn->exec("ALTER TABLE verification_codes MODIFY COLUMN type VARCHAR(20) DEFAULT 'forgot'");
+            }
+
             // ============================================
             // 1. CHECK: force_password_reset column in users table
             // ============================================

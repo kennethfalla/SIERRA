@@ -113,7 +113,7 @@ if ($active_tab === 'supported') {
     $sql = "SELECT r.*, c.name as category_name, b.name as barangay_name,
                    r.user_id,
                    r.verification_count,
-                   (SELECT ri.image_path FROM report_images ri WHERE ri.report_id = r.id AND LOWER(ri.image_path) REGEXP '\\.(jpg|jpeg|png|gif|webp)$' ORDER BY ri.is_primary DESC, ri.id ASC LIMIT 1) as cover_image,
+                   (SELECT ri.image_path FROM report_images ri WHERE ri.report_id = r.id AND (LOWER(ri.image_path) LIKE '%.jpg' OR LOWER(ri.image_path) LIKE '%.jpeg' OR LOWER(ri.image_path) LIKE '%.png' OR LOWER(ri.image_path) LIKE '%.gif' OR LOWER(ri.image_path) LIKE '%.webp') ORDER BY ri.is_primary DESC, ri.id ASC LIMIT 1) as cover_image,
                    1 as is_verified_by_user,
                    rv.created_at as supported_at,
                    CONCAT(ou.first_name, ' ', ou.last_name) as owner_name
@@ -129,7 +129,7 @@ if ($active_tab === 'supported') {
     $sql = "SELECT r.*, c.name as category_name, b.name as barangay_name,
                    r.user_id,
                    r.verification_count,
-                   (SELECT ri.image_path FROM report_images ri WHERE ri.report_id = r.id AND LOWER(ri.image_path) REGEXP '\\.(jpg|jpeg|png|gif|webp)$' ORDER BY ri.is_primary DESC, ri.id ASC LIMIT 1) as cover_image,
+                   (SELECT ri.image_path FROM report_images ri WHERE ri.report_id = r.id AND (LOWER(ri.image_path) LIKE '%.jpg' OR LOWER(ri.image_path) LIKE '%.jpeg' OR LOWER(ri.image_path) LIKE '%.png' OR LOWER(ri.image_path) LIKE '%.gif' OR LOWER(ri.image_path) LIKE '%.webp') ORDER BY ri.is_primary DESC, ri.id ASC LIMIT 1) as cover_image,
                    (SELECT COUNT(*) FROM report_verifications WHERE report_id = r.id AND user_id = $user_id) as is_verified_by_user
             FROM reports r
             JOIN categories c ON r.category_id = c.id
@@ -1160,7 +1160,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .my-reports-topbar {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-end;
             gap: 1rem;
             flex-wrap: wrap;
             margin-bottom: 1.25rem;
@@ -1374,20 +1374,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="loading-spinner"></div>
         </div>
 
-        <!-- Header: tabs on the left, New Report on the right -->
+        <!-- New Report action; report/support tabs live in the list header. -->
         <div class="my-reports-topbar">
-            <div class="tab-switcher">
-                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="tab-btn <?php echo $active_tab === 'my' ? 'active' : ''; ?>">
-                    <i class="fas fa-file-alt"></i>
-                    <?php echo t('My Reports'); ?>
-                    <span class="tab-badge"><?php echo $total_reports; ?></span>
-                </a>
-                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported" class="tab-btn supported-tab <?php echo $active_tab === 'supported' ? 'active' : ''; ?>">
-                    <i class="fas fa-heart" style="color: <?php echo $active_tab === 'supported' ? '#0A7E6B' : 'inherit'; ?>;"></i>
-                    <?php echo t('My Support'); ?>
-                    <span class="tab-badge" style="<?php echo $active_tab === 'supported' ? 'background:#0A7E6B; color:white;' : ''; ?>"><?php echo $total_supported; ?></span>
-                </a>
-            </div>
             <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 sm:w-auto justify-center">
                 <i class="fas fa-plus-circle text-xs md:text-sm"></i>
                 <span class="text-xs md:text-sm"><?php echo t('New Report'); ?></span>
@@ -1478,7 +1466,21 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </div>
         
         <!-- Reports Grid -->
-        <div class="table-section-header report-feed-heading"><div class="table-section-copy"><h2><?php echo t($active_tab === 'supported' ? 'My Support' : 'Reports List'); ?></h2></div></div>
+        <div class="table-section-header report-feed-heading">
+            <nav class="tab-switcher report-header-tabs" aria-label="<?php echo t('Report lists'); ?>">
+                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="tab-btn <?php echo $active_tab === 'my' ? 'active' : ''; ?>" <?php if ($active_tab === 'my'): ?>aria-current="page"<?php endif; ?>>
+                    <i class="fas fa-file-alt"></i>
+                    <?php echo t('My Reports'); ?>
+                    <span class="tab-badge"><?php echo $total_reports; ?></span>
+                </a>
+                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported" class="tab-btn supported-tab <?php echo $active_tab === 'supported' ? 'active' : ''; ?>" <?php if ($active_tab === 'supported'): ?>aria-current="page"<?php endif; ?>>
+                    <i class="fas fa-heart"></i>
+                    <?php echo t('My Support'); ?>
+                    <span class="tab-badge"><?php echo $total_supported; ?></span>
+                </a>
+            </nav>
+            <div class="table-section-actions"></div>
+        </div>
         <div id="reportsGrid" class="reports-grid report-feed">
             <?php if(count($reports) > 0): ?>
                 <?php $reportListContext = 'citizen'; foreach ($reports as $listReport) { include BASE_PATH . 'views/shared/report_list_item.php'; } ?>

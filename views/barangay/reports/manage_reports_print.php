@@ -523,5 +523,6 @@ if ($format === 'csv') {
             if (form) { if (form.requestSubmit) form.requestSubmit(); else form.submit(); }
         }
     </script>
+<script src="<?php echo BASE_URL; ?>assets/js/export-print.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/export-print.js'); ?>"></script>
 </body>
 </html>

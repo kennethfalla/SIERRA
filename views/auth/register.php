@@ -194,7 +194,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         .input-icon {
             position: absolute;
             left: 0.875rem;
-            top: 50%;
+            top: 24px;
             transform: translateY(-50%);
             color: #94a3b8;
             font-size: 0.875rem;
@@ -205,7 +205,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         .floating-label {
             position: absolute;
             left: 2.5rem;
-            top: 50%;
+            top: 24px;
             transform: translateY(-50%);
             color: #94a3b8;
             font-size: 0.875rem;
@@ -792,12 +792,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="input-group">
-                                    <i class="fas fa-phone input-icon"></i>
-                                    <input type="tel" name="contact_number" id="contact_number" required class="input-field" placeholder=" " maxlength="11" inputmode="numeric" pattern="09[0-9]{9}">
-                                    <label for="contact_number" class="floating-label">Mobile Number <span class="text-red-400">*</span></label>
-                                    <span class="text-red-500 text-xs mt-1 hidden" id="phoneError"></span>
-                                </div>
-                                <div class="input-group">
                                     <i class="fas fa-envelope input-icon"></i>
                                     <input type="email" name="email" id="email" required class="input-field" placeholder=" " autocomplete="email">
                                     <label for="email" class="floating-label">Email Address <span class="text-red-400">*</span></label>
@@ -806,8 +800,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                     <span class="text-[#10A37F] text-xs mt-1 hidden" id="emailSuccess"><i class="fas fa-check-circle mr-0.5"></i>Email looks good</span>
                                     <span class="text-xs mt-1 flex items-center gap-1 text-gray-400 hidden" id="emailProvider"><i class="fas fa-at mr-0.5"></i>Provider: <span id="emailProviderName"></span></span>
                                 </div>
+                                <div class="input-group">
+                                    <i class="fas fa-phone input-icon"></i>
+                                    <input type="tel" name="contact_number" id="contact_number" required class="input-field" placeholder=" " maxlength="11" inputmode="numeric" pattern="09[0-9]{9}">
+                                    <label for="contact_number" class="floating-label">Mobile Number <span class="text-red-400">*</span></label>
+                                    <span class="text-red-500 text-xs mt-1 hidden" id="phoneError"></span>
+                                </div>
                             </div>
-                            <p class="text-[10px] text-gray-400 mt-[-8px] ml-2 mb-2">Enter 11-digit number starting with 09 (e.g., 09123456789)</p>
+                            <p class="text-[10px] text-gray-400 mt-[-8px] mx-2 mb-2 md:text-right">Enter 11-digit number starting with 09 (e.g., 09123456789)</p>
                             
                             <!-- Account Security -->
                             <div class="flex items-center gap-2 mb-4 mt-6 pb-2 border-b border-gray-100">
@@ -989,14 +989,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                 <i class="fas fa-shield-alt text-blue-500 text-2xl"></i>
                             </div>
                             <h3 class="text-xl font-bold text-gray-800">Verify Your Account</h3>
-                            <p class="text-gray-500 text-sm mt-1" id="otpChannelText">Enter the 6-digit code sent to your mobile number</p>
+                            <p class="text-gray-500 text-sm mt-1" id="otpChannelText">Enter the 6-digit code sent to your email address</p>
                             
                             <!-- Channel indicator (SMS / Email) -->
-                            <div class="inline-flex items-center gap-2 mt-3 px-4 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-600" id="otpChannelBadge">
-                                <i id="otpChannelIcon" class="fas fa-mobile-alt"></i>
-                                <span id="otpChannelLabel">SMS</span>
+                            <div class="inline-flex items-center gap-2 mt-3 px-4 py-1.5 rounded-full text-sm font-medium bg-green-50 text-green-700" id="otpChannelBadge">
+                                <i id="otpChannelIcon" class="fas fa-envelope"></i>
+                                <span id="otpChannelLabel">Email</span>
                                 <span class="text-gray-400">·</span>
-                                <span id="otpPhoneDisplay">+63 912 345 6789</span>
+                                <span id="otpPhoneDisplay"></span>
                             </div>
                         </div>
                         
@@ -1042,11 +1042,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                         
                         <!-- Channel toggle: SMS OTP <-> email OTP -->
                         <div class="text-center mt-3 border-t border-gray-100 pt-3">
-                            <button type="button" onclick="switchOtpChannel('email')" id="useEmailBtn" class="text-sm text-[#10A37F] font-semibold hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:no-underline">
+                            <button type="button" onclick="switchOtpChannel('email')" id="useEmailBtn" class="hidden text-sm text-[#10A37F] font-semibold hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:no-underline">
                                 <i class="fas fa-envelope mr-1"></i>Send via Email instead
                             </button>
-                            <button type="button" onclick="switchOtpChannel('sms')" id="useSmsBtn" class="hidden text-sm text-[#10A37F] font-semibold hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:no-underline">
-                                <i class="fas fa-mobile-alt mr-1"></i>Use SMS instead
+                            <button type="button" onclick="switchOtpChannel('sms')" id="useSmsBtn" class="text-sm text-[#10A37F] font-semibold hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:no-underline">
+                                <i class="fas fa-mobile-alt mr-1"></i>Send OTP to Mobile Number
                             </button>
                             <p class="text-xs text-gray-400 mt-1" id="otpChannelNotice"></p>
                         </div>
@@ -1277,12 +1277,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
 let resendCount = 0;
 let resendTimer = null;
 let otpSending = false; // guard against double/submit spam while a send is in flight
+
+    async function readRegistrationResponse(response) {
+        if (!response.ok) {
+            throw new Error([502, 503, 504].includes(response.status)
+                ? 'The service is temporarily unavailable. Please wait briefly before trying again.'
+                : 'Unable to complete this request. Please try again shortly.');
+        }
+        try {
+            return await response.json();
+        } catch (error) {
+            throw new Error('The server returned an unexpected response. Please try again shortly.');
+        }
+    }
 let currentCooldown = 60; // seconds between sends, from server (configurable in Settings > Security)
-let otpChannel = 'sms'; // 'sms' = SMS OTP, 'email' = email OTP
+let otpChannel = 'email'; // Email is the default; SMS is an optional delivery method.
 let smsRecipient = ''; // formatted mobile number shown in the SMS badge
-// True only right after the initial SMS is sent: the user may immediately fall back to
-// email without waiting out the cooldown. After that, the cooldown blocks resends/switches.
-let emailFallbackAvailable = false;
+// The first email attempt allows an immediate switch to SMS.
+let smsFallbackAvailable = false;
     let timerSeconds = 60;
     
     function showStep(step) {
@@ -1321,7 +1333,7 @@ let emailFallbackAvailable = false;
         document.getElementById('resendBtn').disabled = false;
         document.getElementById('useEmailBtn').disabled = false;
         document.getElementById('useSmsBtn').disabled = false;
-        emailFallbackAvailable = false;
+        smsFallbackAvailable = false;
     }
     
     // ============================================
@@ -1369,6 +1381,7 @@ let emailFallbackAvailable = false;
     // STEP 1: VALIDATION & SEND OTP
     // ============================================
     function validateAndProceed() {
+        if (otpSending) return;
         // Hide duplicate error
         document.getElementById('duplicateError').classList.remove('show');
         
@@ -1471,6 +1484,7 @@ let emailFallbackAvailable = false;
         
         const btn = document.querySelector('#step1 button[onclick="validateAndProceed()"]');
         const originalText = btn.innerHTML;
+        otpSending = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Checking...';
         btn.disabled = true;
         
@@ -1481,8 +1495,9 @@ let emailFallbackAvailable = false;
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => response.json())
+        .then(readRegistrationResponse)
         .then(data => {
+            otpSending = false;
             btn.innerHTML = originalText;
             btn.disabled = false;
             
@@ -1499,10 +1514,11 @@ let emailFallbackAvailable = false;
             sendRegistrationOTP();
         })
         .catch(error => {
+            otpSending = false;
             console.error('Error checking duplicates:', error);
             btn.innerHTML = originalText;
             btn.disabled = false;
-            window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Network error. Please try again.' });
+            window.GB.alert({ type: 'error', title: 'Something went wrong', message: error.message || 'Network error. Please try again.' });
         });
     }
     
@@ -1510,10 +1526,12 @@ let emailFallbackAvailable = false;
     // SEND OTP TO SERVER
     // ============================================
     function sendRegistrationOTP() {
+        if (otpSending) return;
+        otpSending = true;
         const form = document.getElementById('step1Form');
         const formData = new FormData(form);
         formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
-        formData.append('action', 'send_registration_otp');
+        formData.append('action', 'start_registration');
         
         const btn = document.querySelector('#step1 button[onclick="validateAndProceed()"]');
         const originalText = btn.innerHTML;
@@ -1525,27 +1543,29 @@ let emailFallbackAvailable = false;
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-        .then(response => response.json())
+        .then(readRegistrationResponse)
         .then(data => {
+            otpSending = false;
             btn.innerHTML = originalText;
             btn.disabled = false;
             
-            if (data.success) {
-                // Store registration data for Step 2 & 3
+            if (data.success || data.registration_ready) {
+                // Validated details are also retained if the provider is unavailable.
                 currentCooldown = data.cooldown_seconds || 60;
-                proceedToStep2();
+                proceedToStep2(data);
             } else {
                 window.GB.alert({ type: 'error', title: 'Something went wrong', message: data.error || 'Failed to send OTP. Please try again.' });
             }
         })
         .catch(error => {
+            otpSending = false;
             btn.innerHTML = originalText;
             btn.disabled = false;
-            window.GB.alert({ type: 'error', title: 'Something went wrong', message: 'Network error. Please try again.' });
+            window.GB.alert({ type: 'error', title: 'Something went wrong', message: error.message || 'Network error. Please try again.' });
         });
     }
     
-    function proceedToStep2() {
+    function proceedToStep2(delivery = { success: true }) {
         const isResident = document.getElementById('is_resident').value;
         const province = isResident === 'no' ? $('#province').val() : '';
         const municipality = isResident === 'no' ? $('#municipality').val() : '';
@@ -1570,8 +1590,12 @@ let emailFallbackAvailable = false;
         document.getElementById('otpPhoneDisplay').textContent = formattedPhone;
         smsRecipient = formattedPhone;
         
-        otpChannel = 'sms';
-        emailFallbackAvailable = true; // let the user immediately switch to email OTP
+        otpChannel = 'email';
+        smsFallbackAvailable = true; // permit immediate SMS fallback after the first email attempt
+        resendCount = 0;
+        document.getElementById('useEmailBtn').classList.add('hidden');
+        document.getElementById('useSmsBtn').classList.remove('hidden');
+        hideOtpNotification();
         renderOtpChannelBadge();
         updateOtpChannelNotice();
         
@@ -1587,6 +1611,12 @@ let emailFallbackAvailable = false;
         document.getElementById('registerLoading').classList.add('hidden');
         
         startResendTimer(currentCooldown);
+        if (delivery.limit_reached) {
+            startSpamCooldown(delivery);
+        } else if (!delivery.success) {
+            document.getElementById('otpChannelNotice').textContent = 'Try resending the email code or sending it to your mobile number.';
+            showOtpNotification(delivery.error || 'Email delivery could not be confirmed.', 'error', true);
+        }
     }
     
     // ============================================
@@ -1793,7 +1823,7 @@ let emailFallbackAvailable = false;
         document.getElementById('otpSuccess').classList.add('hidden');
         document.getElementById('registerLoading').classList.add('hidden');
         
-        // Send a fresh code over the active channel (SMS by default, or email after "Send via Email instead")
+        // Resend over the selected channel; SMS requires an explicit switch.
         const isEmail = otpChannel === 'email';
         const formData = new FormData();
         formData.append('action', isEmail ? 'send_registration_email_otp' : 'send_registration_otp');
@@ -1805,11 +1835,12 @@ let emailFallbackAvailable = false;
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-        .then(response => response.json())
+        .then(readRegistrationResponse)
         .then(data => {
             otpSending = false;
             btn.textContent = 'Resend';
             if (data.success) {
+                hideOtpNotification();
                 currentCooldown = data.cooldown_seconds || 60;
                 renderOtpChannelBadge();
                 updateOtpChannelNotice();
@@ -1828,13 +1859,14 @@ let emailFallbackAvailable = false;
             otpSending = false;
             btn.textContent = 'Resend';
             document.getElementById('resendBtn').disabled = false;
-            showOtpNotification('Network error. Please try again.', 'error');
+            showOtpNotification(error.message || 'Network error. Please try again.', 'error');
         });
     }
     
 // Toggle between SMS OTP and email OTP in Step 2.
 // Sends a fresh code over the selected channel (the previous code is invalidated).
 function switchOtpChannel(channel) {
+    if (otpSending) return;
     if (otpChannel === channel) return;
     
     const targetBtn = channel === 'email' ? document.getElementById('useEmailBtn') : document.getElementById('useSmsBtn');
@@ -1844,10 +1876,11 @@ function switchOtpChannel(channel) {
     }
     
     otpChannel = channel;
-    emailFallbackAvailable = false; // only the initial SMS gets the free immediate fallback
+    smsFallbackAvailable = false; // only the first email attempt permits an immediate fallback
     
     document.getElementById('useEmailBtn').classList.toggle('hidden', channel === 'email');
     document.getElementById('useSmsBtn').classList.toggle('hidden', channel !== 'email');
+    renderOtpChannelBadge();
     
     document.querySelectorAll('.otp-input').forEach(input => {
         input.value = '';
@@ -1948,10 +1981,10 @@ function maskEmail(email) {
         document.getElementById('resendTimer').textContent = 'Resend available in ' + fmtClock(timerSeconds);
         
         // Anti-spam: during the cooldown no resend or channel switch is allowed,
-        // except the single immediate "Send via Email instead" right after the first SMS.
-        const allowImmediateFallback = emailFallbackAvailable && otpChannel === 'sms';
-        document.getElementById('useEmailBtn').disabled = !allowImmediateFallback;
-        document.getElementById('useSmsBtn').disabled = true;
+        // except the single immediate SMS fallback after the first email attempt.
+        const allowImmediateFallback = smsFallbackAvailable && otpChannel === 'email';
+        document.getElementById('useEmailBtn').disabled = true;
+        document.getElementById('useSmsBtn').disabled = !allowImmediateFallback;
         
         clearInterval(resendTimer);
         resendTimer = setInterval(() => {
@@ -1965,7 +1998,7 @@ function maskEmail(email) {
                 // Cooldown over: resend and channel switching are allowed again.
                 document.getElementById('useEmailBtn').disabled = false;
                 document.getElementById('useSmsBtn').disabled = false;
-                emailFallbackAvailable = false;
+                smsFallbackAvailable = false;
             }
         }, 1000);
     }
@@ -1983,6 +2016,7 @@ function maskEmail(email) {
     let spamCooldownTimer = null;
     function startSpamCooldown(data) {
         clearInterval(spamCooldownTimer);
+        clearInterval(resendTimer);
         
         const limit = data.max_requests || 3;
         const windowMinutes = Math.max(1, Math.round((data.window_seconds || 600) / 60));

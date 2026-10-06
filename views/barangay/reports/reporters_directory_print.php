@@ -367,5 +367,6 @@ if ($format === 'csv') {
     <?php if ($autoprint): ?>
     <script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 700); });</script>
     <?php endif; ?>
+<script src="<?php echo BASE_URL; ?>assets/js/export-print.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/export-print.js'); ?>"></script>
 </body>
 </html>

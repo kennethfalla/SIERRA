@@ -13,12 +13,6 @@ $database = new Database();
 $db = $database->getConnection();
 $barangay_id = $_SESSION['barangay_id'];
 
-// Ensure columns exist
-try {
-    $db->exec("ALTER TABLE `reports` ADD COLUMN IF NOT EXISTS `rejection_reason` TEXT NULL DEFAULT NULL AFTER `rejected_at`");
-    $db->exec("ALTER TABLE `reports` ADD COLUMN IF NOT EXISTS `rejected_at` TIMESTAMP NULL DEFAULT NULL AFTER `rejection_reason`");
-} catch (Exception $e) { /* continue */ }
-
 // Handle POST requests (Quick notes only)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_quick_note']) && isset($_POST['report_id']) && isset($_POST['note'])) {
@@ -1507,8 +1501,8 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
 <!-- Under Review Confirmation Modal -->
 <div id="underReviewModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm items-center justify-center z-[9999] p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl" onclick="event.stopPropagation()">
-        <div class="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-search text-blue-600 text-2xl"></i>
+        <div class="w-14 h-14 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-search text-[#0D8568] text-2xl"></i>
         </div>
         <h3 class="text-lg font-bold text-gray-800 text-center mb-2">Proceed with Under Review?</h3>
         <p class="text-sm text-gray-500 text-center mb-6">Do you want to proceed to place this report under review?</p>

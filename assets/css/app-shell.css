@@ -18,6 +18,31 @@ body {
     --sierra-muted: #63746b;
 }
 
+/* Shared search geometry, including controls lifted into the app header. */
+body :is(.toolbar-search,.search-box,.search-bar,.search-wrap) input,
+body :is(input[type="search"],.archive-search,.app-search-input) {
+    height:40px !important; border:1px solid #dce8e1 !important; border-radius:10px !important;
+    background:#f8fbf9 !important; color:#203b31; font-size:13px; line-height:1.4;
+    padding:9px 12px; box-sizing:border-box; transition:border-color .2s,box-shadow .2s;
+}
+body :is(.toolbar-search,.search-box,.search-bar,.search-wrap) input { padding-left:38px !important; }
+body :is(.toolbar-search,.search-box,.search-bar,.search-wrap) > i { top:20px !important; left:14px !important; transform:translateY(-50%); color:#769084; }
+body :is(.toolbar-search,.search-box,.search-bar,.search-wrap) input:focus,
+body :is(input[type="search"],.archive-search,.app-search-input):focus { outline:none; border-color:#0d8568 !important; box-shadow:0 0 0 3px #0d85681a !important; background:#fff !important; }
+.report-header-tabs { display:flex; flex:0 0 auto; align-items:center; gap:4px; padding:4px; border:1px solid #dce8e1; border-radius:12px; background:#eef5f0; }
+.report-header-tabs a { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:8px; font-size:12px; font-weight:700; white-space:nowrap; }
+.report-header-tabs a.active { background:#fff; color:#0d8568; box-shadow:0 2px 6px #203b3110; }
+.report-feed-heading .report-header-tabs { margin:0; max-width:100%; }
+.report-reason-options { display:grid; gap:8px; }
+.report-reason-option { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #dce8e1; border-radius:10px; font-size:13px; cursor:pointer; background:#fff; }
+.report-reason-option:has(:checked) { border-color:#0d8568; background:#eaf7f0; color:#075f49; }
+.report-reason-option input { accent-color:#0d8568; flex-shrink:0; }
+@media(max-width:767px) {
+    .report-header-tabs { width:100%; justify-content:center; }
+    body :is(.toolbar-search,.search-box,.search-bar,.search-wrap) input,
+    body :is(input[type="search"],.archive-search,.app-search-input) { font-size:16px !important; }
+}
+
 *, button, input, select, textarea {
     font-family: 'Manrope', sans-serif;
 }

@@ -221,7 +221,7 @@ function sendReportStatusEmail($db, $report_id, $templateKey, $subjectLabel, $ac
 // in-app notification is ALSO delivered by email)
 // ============================================
 function sendNotificationEmail($email, $name, $title, $message, $link = '') {
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    if (empty($email) || (!is_array($email) && !filter_var($email, FILTER_VALIDATE_EMAIL))) {
         return false;
     }
     $system_name = SettingsHelper::get('system_name', 'Sierra');
@@ -250,7 +250,7 @@ function sendNotificationEmail($email, $name, $title, $message, $link = '') {
     </html>
     ";
 
-    return SettingsHelper::sendReportEmail($email, $name, $subject, $html);
+    return is_array($email) ? SettingsHelper::sendReportEmailMany($email, $subject, $html) : SettingsHelper::sendReportEmail($email, $name, $subject, $html);
 }
 
 // ============================================
@@ -295,11 +295,9 @@ function notifyBarangayOfficials($db, $barangay_id, $title, $message, $icon = 'f
             $official_ids = array_column($officials, 'id');
             $notif = new Notification($db);
             $notif->createForMany($official_ids, $title, $message, 'report', $icon, $color, $link);
-            foreach ($officials as $o) {
-                if (!empty($o['email'])) {
-                    sendNotificationEmail($o['email'], $o['full_name'], $title, $message, $link);
-                }
-            }
+            sendNotificationEmail(array_map(static function ($official) {
+                return ['email' => $official['email'], 'name' => $official['full_name']];
+            }, $officials), '', $title, $message, $link);
         }
     } catch (Exception $e) {
         error_log("Barangay notification creation failed for barangay #$barangay_id: " . $e->getMessage());
@@ -323,11 +321,9 @@ function notifyMenro($db, $title, $message, $icon = 'fa-bell', $color = '#10A37F
             $menro_ids = array_column($menro, 'id');
             $notif = new Notification($db);
             $notif->createForMany($menro_ids, $title, $message, 'report', $icon, $color, $link);
-            foreach ($menro as $m) {
-                if (!empty($m['email'])) {
-                    sendNotificationEmail($m['email'], $m['full_name'], $title, $message, $link);
-                }
-            }
+            sendNotificationEmail(array_map(static function ($official) {
+                return ['email' => $official['email'], 'name' => $official['full_name']];
+            }, $menro), '', $title, $message, $link);
         }
     } catch (Exception $e) {
         error_log("MENRO notification creation failed: " . $e->getMessage());
@@ -637,6 +633,23 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
     header('Content-Type: application/json');
     $action = $_GET['action'];
+    if ($action === 'submission_availability') {
+        header('Cache-Control: no-store');
+        if (empty($_SESSION['user_id']) || ($_SESSION['user_role'] ?? $_SESSION['user_type'] ?? '') !== 'citizen') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Access denied.']);
+            exit();
+        }
+        if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+        try {
+            echo json_encode(SettingsHelper::getReportSubmissionAvailability($db, $_SESSION['user_id']));
+        } catch (Throwable $e) {
+            error_log('Submission availability failed: ' . $e->getMessage());
+            http_response_code(503);
+            echo json_encode(['error' => 'Unable to check submission availability.']);
+        }
+        exit();
+    }
     $report_id = IdGuard::req($_GET['id'] ?? '');
 
     if (($action === 'get_full' || $action === 'get_notes' || $action === 'get_images') && $report_id > 0) {
@@ -829,12 +842,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=my-reports");
             exit();
         }
-        $update = $db->prepare("UPDATE reports SET status = :cancelled WHERE id = :id");
+        $reason = InputSanitizer::sanitizeString($_POST['cancellation_remarks'] ?? '', 1000);
+        if (strlen($reason) < 3) {
+            if ($is_ajax) { echo json_encode(['success' => false, 'message' => 'Please provide a cancellation reason.']); exit(); }
+            $_SESSION['error'] = 'Please provide a cancellation reason.';
+            header('Location: ' . trackStatusUrl($report_id));
+            exit();
+        }
+        $update = $db->prepare("UPDATE reports SET status = :cancelled, cancellation_remarks = :reason, cancelled_at = NOW() WHERE id = :id AND user_id = :user_id AND status = 'pending'");
         $result = $update->execute([
             ':cancelled' => Report::STATUS_CANCELLED,
-            ':id' => $report_id
+            ':reason' => $reason,
+            ':id' => $report_id,
+            ':user_id' => $user_id
         ]);
-        if ($result) {
+        if ($result && $update->rowCount() === 1) {
             if ($report_data['latitude'] && $report_data['longitude']) {
                 recalcNearbyReports($db, $report_data['latitude'], $report_data['longitude'], $report_id);
             }
@@ -1644,45 +1666,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // RATE LIMITS (anti-spam) - configured in Admin > Settings > Reporting Limits
         // Daily cap + minimum interval between reports.
         //
-        // Time handling: created_at is a TIMESTAMP stored in MySQL's server
-        // timezone (UTC on InfinityFree, Manila on local XAMPP), so all
-        // comparisons are done with MySQL's own clock (NOW/CURDATE) to stay
-        // correct on any host. The Manila-midnight boundary is converted to
-        // the DB's wall-clock before comparing.
+        // The shared availability helper uses the database connection's Manila
+        // clock for the daily cap and exact seconds between submissions.
         // ============================================
-        $limits = SettingsHelper::getReportLimits();
-        if ($limits['enabled']) {
-            // Daily limit: count today's non-cancelled reports for this user.
-            // "Today" = Manila midnight (matches the app's timezone), converted
-            // to whatever clock the MySQL server is running on.
-            if ($limits['daily_limit'] > 0) {
-                $manilaMidnightEpoch = strtotime(date('Y-m-d 00:00:00'));
-                $dbOffsetHours = (int)$db->query("SELECT TIMESTAMPDIFF(HOUR, UTC_TIMESTAMP(), NOW())")->fetchColumn();
-                $todayStart = gmdate('Y-m-d H:i:s', $manilaMidnightEpoch + $dbOffsetHours * 3600);
-                $countStmt = $db->prepare("SELECT COUNT(*) FROM reports WHERE user_id = ? AND created_at >= ? AND status != ?");
-                $countStmt->execute([$user_id, $todayStart, Report::STATUS_CANCELLED]);
-                $todayCount = (int)$countStmt->fetchColumn();
-                if ($todayCount >= $limits['daily_limit']) {
-                    $_SESSION['error'] = "You have reached your daily report limit of " . $limits['daily_limit'] . " report(s). Please try again tomorrow.";
-                    header("Location: " . BASE_URL . "index.php?page=submit-report");
-                    exit();
-                }
-            }
-
-            // Interval limit: minimum minutes between two submissions.
-            // TIMESTAMPDIFF runs entirely in the DB's clock, so it is exact
-            // regardless of server timezone.
-            if ($limits['min_interval_minutes'] > 0) {
-                $minsStmt = $db->prepare("SELECT TIMESTAMPDIFF(MINUTE, MAX(created_at), NOW()) AS mins FROM reports WHERE user_id = ? AND status != ?");
-                $minsStmt->execute([$user_id, Report::STATUS_CANCELLED]);
-                $lastMins = $minsStmt->fetchColumn();
-                if ($lastMins !== null && $lastMins !== false && (int)$lastMins < $limits['min_interval_minutes']) {
-                    $wait = max(1, (int)$limits['min_interval_minutes'] - (int)$lastMins);
-                    $_SESSION['error'] = "You must wait " . $wait . " more minute(s) before submitting another report.";
-                    header("Location: " . BASE_URL . "index.php?page=submit-report");
-                    exit();
-                }
-            }
+        $availability = SettingsHelper::getReportSubmissionAvailability($db, $user_id);
+        if (!$availability['allowed']) {
+            $_SESSION['error'] = $availability['message'];
+            header('Location: ' . BASE_URL . 'index.php?page=submit-report');
+            exit();
         }
 
         $errors = [];

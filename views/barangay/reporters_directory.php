@@ -209,7 +209,7 @@ function reporterLocationOf($r) {
                             <form method="get" action="index.php" class="flex items-center gap-2">
                                 <input type="hidden" name="page" value="reporters-directory">
                                 <input type="hidden" name="tab" value="<?php echo $active_tab; ?>">
-                                <div class="relative">
+                                <div class="toolbar-search relative">
                                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                                     <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search reporters..." class="border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-[#10A37F] w-48 sm:w-64">
                                 </div>

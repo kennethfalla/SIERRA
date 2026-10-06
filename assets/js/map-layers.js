@@ -93,6 +93,16 @@
         resize();
     }
 
+    function getSettings() {
+        var values = window.SierraMapSettings || {};
+        return {
+            default_lat: Number.isFinite(Number(values.default_lat)) && values.default_lat != null ? Number(values.default_lat) : 15.3092,
+            default_lng: Number.isFinite(Number(values.default_lng)) && values.default_lng != null ? Number(values.default_lng) : 120.9033,
+            default_zoom: Math.max(3, Math.min(20, Number(values.default_zoom) || 14)),
+            clustering_radius_meters: Math.max(0, Number(values.clustering_radius_meters ?? 50) || 0)
+        };
+    }
+
     // The Analytics outline: white casing below a green dashed boundary.
     function addBoundary(map, geojson, options) {
         options = options || {};
@@ -166,6 +176,7 @@
         whiteCasingStyle: whiteCasingStyle,
         spotlight: spotlight,
         addBoundary: addBoundary,
-        configure: configureMap
+        configure: configureMap,
+        getSettings: getSettings
     };
 })();

@@ -1864,7 +1864,7 @@ heroScrollState();
 const mapReports = <?php echo json_encode($reports_for_map); ?>;
 
 function initMap() {
-    const map = L.map('map', { zoomControl: false, scrollWheelZoom: false, zoomAnimation: false, fadeAnimation: false, dragging: false, touchZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false }).setView([15.3092, 120.9033], 13);
+    const map = L.map('map', { zoomControl: false, scrollWheelZoom: false, zoomAnimation: false, fadeAnimation: false, dragging: false, touchZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false }).setView([<?php echo (float)SettingsHelper::getMapSettings()['default_lat']; ?>, <?php echo (float)SettingsHelper::getMapSettings()['default_lng']; ?>], <?php echo (int)SettingsHelper::getMapSettings()['default_zoom']; ?>);
     
     MapLayers.getLayers().Satellite.addTo(map);
     const mapSection = document.getElementById('map-section');

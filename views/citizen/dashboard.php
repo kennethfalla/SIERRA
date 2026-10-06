@@ -2132,7 +2132,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (citizenSpotlight) communityMap.removeLayer(citizenSpotlight);
                             citizenSpotlight = MapLayers.spotlight(communityMap, layer);
                         }
-                        try { communityMap.fitBounds(layer.getBounds(),{maxZoom:14}); } catch(e){}
+                        try { communityMap.fitBounds(layer.getBounds(),{maxZoom:SierraMapSettings.default_zoom}); } catch(e){}
                     }
                 });
             }
@@ -2202,9 +2202,9 @@ document.addEventListener('DOMContentLoaded', function() {
     updateCommunityLabels();
 
     if (barangayLayer) {
-        try { communityMap.fitBounds(barangayLayer.getBounds(),{padding:[20,20],maxZoom:13}); } catch(e){}
+        try { communityMap.fitBounds(barangayLayer.getBounds(),{padding:[20,20],maxZoom:SierraMapSettings.default_zoom}); } catch(e){}
     } else if (markersLayer.getLayers().length > 0) {
-        try { communityMap.fitBounds(markersLayer.getBounds().pad(0.12),{maxZoom:13}); } catch(e){}
+        try { communityMap.fitBounds(markersLayer.getBounds().pad(0.12),{maxZoom:SierraMapSettings.default_zoom}); } catch(e){}
     }
     setTimeout(function(){ communityMap.invalidateSize(); }, 250);
 });

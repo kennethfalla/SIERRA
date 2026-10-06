@@ -2266,7 +2266,7 @@ function loadMapData(mode) {
     // Fit bounds
     if (data.length > 0 && initialFitApplied) {
         const bounds = L.latLngBounds(data.map(r => [r.latitude, r.longitude]));
-        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: mapDefaults.default_zoom });
     }
     initialFitApplied = true;
 }

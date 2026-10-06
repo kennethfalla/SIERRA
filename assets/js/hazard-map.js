@@ -12,7 +12,7 @@
     else L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(map);
     if (data.boundary && data.boundary.features) {
         const boundary = MapLayers.addBoundary(map, data.boundary, {interactive:false});
-        if (boundary.getBounds().isValid()) map.fitBounds(boundary.getBounds(), { padding:[24,24], maxZoom:15 });
+        if (boundary.getBounds().isValid()) map.fitBounds(boundary.getBounds(), { padding:[24,24], maxZoom:zoom });
     }
     if (data.barangayBoundaries && data.barangayBoundaries.features && !data.focusBoundary) {
         MapLayers.addBoundary(map, data.barangayBoundaries, {onEachFeature:function(feature, polygon) {

@@ -471,29 +471,9 @@ class ProfileModel {
     }
 
     private function storeCode($user_id, $code, $type, $expires_at) {
-        try {
-            $typeCol = $this->db->query("SHOW COLUMNS FROM verification_codes LIKE 'type'")->fetch(PDO::FETCH_ASSOC);
-            if (!$typeCol) {
-                $this->db->exec("ALTER TABLE verification_codes ADD COLUMN type VARCHAR(20) DEFAULT 'forgot'");
-            } elseif (stripos($typeCol['Type'], 'enum') === 0) {
-                $this->db->exec("ALTER TABLE verification_codes MODIFY COLUMN type VARCHAR(20) DEFAULT 'forgot'");
-            }
-            $stmt = $this->db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$user_id, $code, $expires_at, $type]);
-        } catch (PDOException $e) {
-            $this->db->exec("CREATE TABLE IF NOT EXISTS verification_codes (
-                id INT(11) AUTO_INCREMENT PRIMARY KEY,
-                user_id INT(11) NOT NULL,
-                code VARCHAR(10) NOT NULL,
-                expires_at DATETIME NOT NULL,
-                used TINYINT(1) DEFAULT 0,
-                type VARCHAR(20) DEFAULT 'forgot',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_user_id (user_id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-            $stmt = $this->db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$user_id, $code, $expires_at, $type]);
-        }
+        // The database migration prepares OTP storage for all account flows.
+        $stmt = $this->db->prepare("INSERT INTO verification_codes (user_id, code, expires_at, type) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$user_id, $code, $expires_at, $type]);
     }
 
     private function logActivity($user_id, $action, $description, $status = 'SUCCESS') {

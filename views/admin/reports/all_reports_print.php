@@ -496,5 +496,6 @@ if ($periodDescAll !== '') $reportTitle .= ' - ' . $periodDescAll;
         }
     </script>
 <script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/export-print.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/export-print.js'); ?>"></script>
 </body>
 </html>

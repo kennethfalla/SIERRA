@@ -4,7 +4,7 @@
 html, body { overflow-x: clip; }
 
 /* A continuous, duplicated card track avoids the old back-face flicker. */
-#home.hero-orbit-layout { display: flex; flex-direction: column; justify-content: flex-end; min-height: calc(100svh - 38px); padding: 86px 0 48px; isolation: isolate; }
+#home.hero-orbit-layout { display: flex; flex-direction: column; justify-content: center; width:100%; min-height:100svh; box-sizing:border-box; padding: 86px 0 48px; isolation: isolate; }
 #home.hero-orbit-layout .hero-content-wrap { padding: 0 24px; gap: 0; text-align: center; }
 #home .hero-copy { width: 100%; max-width: 1100px; margin-inline: auto; }
 #home.hero-orbit-layout .hero-eyebrow { max-width: 680px; margin: 0 auto 16px; padding: 8px 16px; font-size: .72rem; line-height: 1.5; }
