@@ -53,6 +53,7 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if ($lguLogo): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($lguLogo); ?>">
     <?php endif; ?>
@@ -62,6 +63,8 @@ $hasCoords = !empty($report['latitude']) && !empty($report['longitude']) && (flo
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {

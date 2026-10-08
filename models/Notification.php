@@ -72,11 +72,30 @@ class Notification {
     }
 
     /** One scoped aggregate for the shared notification poll. */
-    public function getSyncSummary($user_id) {
-        $stmt = $this->conn->prepare("SELECT COALESCE(SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END), 0) AS unread, COALESCE(MAX(id), 0) AS notif_seq FROM notifications WHERE user_id = ?");
+    public function getSyncSummary($user_id, $role = null, $barangay_id = null) {
+        $stmt = $this->conn->prepare("SELECT
+            COALESCE(SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END), 0) AS unread,
+            COALESCE(SUM(CASE WHEN is_read = 0 AND type = 'report' THEN 1 ELSE 0 END), 0) AS reports,
+            COALESCE(SUM(CASE WHEN is_read = 0 AND type = 'announcement' THEN 1 ELSE 0 END), 0) AS announcements,
+            COALESCE(MAX(id), 0) AS notif_seq
+            FROM notifications WHERE user_id = ?");
         $stmt->execute([(int)$user_id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return ['unread' => (int)$row['unread'], 'notif_seq' => (int)$row['notif_seq']];
+        $counts = ['notifications' => (int)$row['unread'], 'reports' => (int)$row['reports'], 'announcements' => (int)$row['announcements']];
+        if ($role === 'citizen') {
+            $reports = $this->conn->prepare('SELECT COUNT(*) FROM reports WHERE user_id = ?');
+            $reports->execute([(int)$user_id]);
+            $counts['reports'] = (int)$reports->fetchColumn();
+        } elseif ($role === 'barangay_official') {
+            // Only new reports awaiting verification belong on this badge.
+            $counts['reports'] = 0;
+            if ((int)$barangay_id > 0) {
+                $reports = $this->conn->prepare("SELECT COUNT(*) FROM reports WHERE barangay_id = ? AND status = 'pending'");
+                $reports->execute([(int)$barangay_id]);
+                $counts['reports'] = (int)$reports->fetchColumn();
+            }
+        }
+        return ['unread' => (int)$row['unread'], 'notif_seq' => (int)$row['notif_seq'], 'sidebar_counts' => $counts];
     }
 
     /**

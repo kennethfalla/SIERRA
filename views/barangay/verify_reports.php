@@ -274,6 +274,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -281,10 +282,12 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
     <title>Manage Reports - Sierra</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         
@@ -1360,7 +1363,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         $ft = [
             'search_id'          => 'searchInput',
             'search_value'       => $search_keyword,
-            'search_placeholder' => 'Search reports...',
+            'search_placeholder' => 'Search reports…',
             'results_text'       => 'Showing <strong id="resultsCountDisplay">' . count($reports) . '</strong> of <strong>' . $total_reports . '</strong> reports',
             'inline_selects'     => [],
             'filter_by'          => [

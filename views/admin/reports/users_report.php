@@ -191,6 +191,7 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if ($lguLogo): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($lguLogo); ?>">
     <?php endif; ?>
@@ -483,6 +484,8 @@ $footerNote    = SettingsHelper::get('pdf_footer_note', 'System Generated via SI
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
 </head>
 <body>
     <div class="page-wrap">

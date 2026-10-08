@@ -182,6 +182,7 @@ if ($format === 'csv') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if ($lguLogo): ?><link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($lguLogo); ?>"><?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -189,6 +190,8 @@ if ($format === 'csv') {
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Manrope', Arial, sans-serif; background: #eef2f1; color: #1f2937; font-size: 11px; }
@@ -372,7 +375,7 @@ if ($format === 'csv') {
                     <div class="sidebar-group">
                         <div class="sidebar-group-label">Search</div>
                         <div class="filter-field">
-                            <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Title, description, reporter...">
+                            <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search reports…">
                         </div>
                     </div>
                 </div>
@@ -463,7 +466,7 @@ if ($format === 'csv') {
                                 <td><?php echo htmlspecialchars(trim($row['first_name'] . ' ' . $row['last_name'])); ?></td>
                                 <td><?php echo ((int)($row['is_resident'] ?? 0) === 1) ? 'Resident' : 'Non-Resident'; ?></td>
                                 <td><?php echo htmlspecialchars($row['category_name']); ?></td>
-                                <td><span class="badge badge-<?php echo $row['risk_level']; ?>"><?php echo $riskLabels[$row['risk_level']] ?? ucfirst($row['risk_level']); ?></span></td>
+                                <td><span class="risk-badge risk-<?php echo htmlspecialchars($row['risk_level'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo $riskLabels[$row['risk_level']] ?? ucfirst($row['risk_level']); ?></span></td>
                                 <td style="text-align:center;"><?php echo $row['severity_score'] ?? 0; ?></td>
                                 <td><span class="badge badge-<?php echo $row['status']; ?>"><?php echo $statusLabels[$row['status']] ?? ucfirst(str_replace('_', ' ', $row['status'])); ?></span></td>
                                 <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>

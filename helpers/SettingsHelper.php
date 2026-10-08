@@ -6,6 +6,36 @@
 class SettingsHelper {
     private static $settings = null;
     private static $db = null;
+    private static $gatewayDeadline = null;
+
+    /** All interactive provider calls share a budget and release the session lock. */
+    public static function executeGatewayRequest($handle, $timeoutSeconds = 10) {
+        $now = microtime(true);
+        if (self::$gatewayDeadline === null) self::$gatewayDeadline = $now + 15;
+        $remaining = PHP_SAPI === 'cli' ? 30 : self::$gatewayDeadline - $now;
+        if (PHP_SAPI !== 'cli') {
+            // Leave time for database work and the response before the host kills PHP.
+            $remaining = min($remaining, 24 - ($now - ($_SERVER['REQUEST_TIME_FLOAT'] ?? $now)));
+        }
+        $timeout = min(max(1, (int)$timeoutSeconds), PHP_SAPI === 'cli' ? 30 : 10, (int)floor($remaining));
+        if ($timeout < 1) {
+            error_log('[Gateway] Request delivery budget exhausted; no extra provider call started.');
+            return false;
+        }
+        curl_setopt($handle, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, min(3, $timeout));
+        curl_setopt($handle, CURLOPT_MAXREDIRS, 2);
+        $resumeSession = session_status() === PHP_SESSION_ACTIVE;
+        if ($resumeSession) session_write_close();
+        try {
+            return curl_exec($handle);
+        } finally {
+            // Reload the current session; never overwrite concurrent changes with
+            // the snapshot from before the provider call. OTP callers that already
+            // closed their session deliberately stay closed.
+            if ($resumeSession) session_start();
+        }
+    }
 
     /**
      * Get a setting value by key
@@ -139,6 +169,9 @@ class SettingsHelper {
             'contact_email' => 'menro@sanisidro.gov.ph',
             'emergency_hotline' => '0917-123-4567',
             'lgu_logo' => '',
+            'sidebar_logo' => '',
+            'header_logo' => '',
+            'auth_photo' => '',
 
             // ========================================
             // LANDING PAGE (public homepage content)
@@ -712,8 +745,7 @@ class SettingsHelper {
      * @return bool True on success
      */
     public static function sendSms($phone_number, $message, $gatewayOverride = null, $timeoutSeconds = 10) {
-        // Clear cache to ensure we're using the latest settings
-        self::clearCache();
+        // The request cache is updated by set(); avoid reloading it for each SMS.
 
         $gateway = $gatewayOverride;
 
@@ -778,7 +810,7 @@ class SettingsHelper {
             curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
             
-            $response = curl_exec($ch);
+            $response = self::executeGatewayRequest($ch, $timeoutSeconds);
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $error = curl_error($ch);
             curl_close($ch);
@@ -845,8 +877,14 @@ class SettingsHelper {
      * Get the LGU logo URL
      * @return string Logo URL or empty string
      */
-    public static function getLogoUrl() {
-        $logo = self::get('lgu_logo', '');
+    public static function getAuthPhotoUrl() {
+        $photo = self::get('auth_photo', '') ?: self::get('lp_hero_bg_image', '');
+        return $photo && !preg_match('#^https?://#i', $photo) ? BASE_URL . ltrim($photo, '/') : $photo;
+    }
+
+    public static function getLogoUrl($surface = 'lgu') {
+        $key = in_array($surface, ['sidebar', 'header'], true) ? $surface . '_logo' : 'lgu_logo';
+        $logo = self::get($key, '') ?: self::get('lgu_logo', '');
         if (empty($logo)) {
             return '';
         }
@@ -1163,7 +1201,7 @@ class SettingsHelper {
                 'Accept: application/json'
             ]);
 
-            $response = curl_exec($ch);
+            $response = self::executeGatewayRequest($ch, $timeoutSeconds);
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $error = curl_error($ch);
             curl_close($ch);
@@ -1234,7 +1272,7 @@ class SettingsHelper {
             curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
             curl_setopt($ch, CURLOPT_USERPWD, 'api:' . $apiKey);
 
-            $response  = curl_exec($ch);
+            $response  = self::executeGatewayRequest($ch, $timeoutSeconds);
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $error     = curl_error($ch);
             curl_close($ch);

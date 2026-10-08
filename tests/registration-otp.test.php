@@ -188,6 +188,7 @@ try {
     $db->failWrites = false;
 
     $db->settings['iprog_base_url'] = 'http://' . $address . '/slow';
+    SettingsHelper::clearCache(); // Simulate settings loaded by the next request.
     $started = microtime(true);
     check(isset(sendRegistrationOtpCode($db, '09170000000')['error']), 'Stalled SMS provider must return an error');
     $smsElapsed = microtime(true) - $started;

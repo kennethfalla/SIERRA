@@ -142,6 +142,7 @@
                 failures = 0;
                 var unread = parseInt(data.unread, 10) || 0;
                 updateBadge(unread);
+                if (window.SierraUI && data.sidebar_counts) window.SierraUI.updateSidebarCounts(data.sidebar_counts);
                 if (baselineSeq !== null && unread > lastUnread && data.latest) showToast(data.latest);
                 baselineSeq = data.notif_seq;
                 lastUnread = unread;

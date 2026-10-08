@@ -1,3 +1,63 @@
+@import url('../vendor/manrope/manrope.css');
+@import url('theme.css');
+/* Mobile account forms use a top photo; larger screens keep the side photo. */
+body:is(.login-page,.register-page) { --auth-photo-height:clamp(120px,22vh,180px); --sierra-type-placeholder:#6b7280; }
+html[data-theme="dark"] body:is(.login-page,.register-page) { --sierra-type-placeholder:#9ca3af; }
+body.login-page .auth-shell { grid-template-columns:minmax(0,1fr); grid-template-rows:var(--auth-photo-height) minmax(0,1fr); }
+body.login-page .hero-panel,body.register-page .auth-register-photo { display:block; height:var(--auth-photo-height); min-height:0; background-color:#075b48; background-size:cover; background-position:center; }
+body.login-page .hero-panel::before,body.login-page .hero-panel::after,body.login-page .hero-content > div { display:none; }
+body.login-page .hero-content { padding:20px; }
+body.login-page :is(.wave-divider,.ring-decor,.corner-blob,.floating-shape) { display:none; }
+body.login-page .form-panel { min-height:0; }
+body.register-page .auth-register-form { min-height:0; }
+/* Embedded account windows keep only the form area scrollable. */
+html.auth-embedded,html.auth-embedded body { min-height:100%; height:100dvh; overflow:hidden; background:#fff; }
+html.auth-embedded .auth-shell { min-height:0; height:100dvh; grid-template-columns:minmax(0,1fr); grid-template-rows:var(--auth-photo-height) minmax(0,1fr); }
+html.auth-embedded .hero-panel { min-height:0; }
+html.auth-embedded :is(.wave-divider,.ring-decor,.corner-blob,.floating-shape) { display:none; }
+html.auth-embedded .hero-content { padding:24px; }
+html.auth-embedded .hero-content > div { display:none; }
+html.auth-embedded .hero-content > a { visibility:hidden; }
+html.auth-embedded .hero-panel::before,html.auth-embedded .hero-panel::after { display:none; }
+html.auth-embedded .form-panel { min-height:0; height:100%; overflow-y:auto; padding:28px 36px; align-items:flex-start; }
+html.auth-embedded .form-card { max-width:360px; }
+html.auth-embedded .form-card > h2 { text-align:center; font-size:32px; text-transform:uppercase; }
+html.auth-embedded .form-card > p { text-align:center; }
+html.auth-embedded .brand-logo-form { margin-inline:auto; }
+html.auth-embedded .auth-register-content { border:0 !important; box-shadow:none !important; border-radius:0 !important; background:transparent !important; }
+html.auth-embedded .auth-register-content > .p-4 { display:none; }
+html.auth-embedded .auth-register-content > .p-6 { padding:0 !important; }
+html.auth-embedded .auth-register-inner { max-width:480px; }
+html.auth-embedded .auth-register-content h2 { font-size:32px; line-height:1.2; text-transform:uppercase; }
+html.auth-embedded body.register-page { display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:var(--auth-photo-height) minmax(0,1fr); }
+html.auth-embedded .auth-register-form { grid-column:1; min-height:0 !important; height:100%; overflow-y:auto; align-items:flex-start !important; padding:28px 36px; background:#fff; }
+@media(min-width:768px) {
+    body.login-page .auth-shell,
+    html.auth-embedded .auth-shell,
+    body.register-page,
+    html.auth-embedded body.register-page {
+        display:grid;
+        grid-template-columns:minmax(0,42fr) minmax(0,58fr);
+        grid-template-rows:minmax(0,1fr);
+    }
+    body.login-page .hero-panel,
+    body.register-page .auth-register-photo {
+        height:100dvh;
+        position:sticky;
+        top:0;
+        grid-column:1;
+        grid-row:1;
+    }
+    body.register-page .auth-register-form,
+    html.auth-embedded .auth-register-form { grid-column:2; grid-row:1; }
+}
+@media(max-width:767px) {
+    html.auth-embedded .auth-shell { grid-template-columns:minmax(0,1fr); }
+    html.auth-embedded .form-panel { padding:24px; }
+    html.auth-embedded body.register-page { grid-template-columns:minmax(0,1fr); }
+    html.auth-embedded .auth-register-form { grid-column:1; padding:24px; }
+    html.auth-embedded .auth-register-content h2 { font-size:28px; }
+}
 /* Shared dashboard button branding. Width and placement remain owned by each page. */
 :root {
     --sierra-button-accent:#0d8568;
@@ -125,11 +185,66 @@ body :is(button,a):is([class~="bg-[#10A37F]"],[class~="bg-emerald-600"],[class~=
     body :is(button,.btn,.btn-primary,.btn-secondary,.btn-view,.app-view-btn,.sierra-map-full-link,.map-fullscreen-btn) { transition:none; }
 }
 /* Shared scroll treatment for public pages, authentication, and the app. */
-html, body, body * { scrollbar-width:thin; scrollbar-color:#81b69e #eef5f0; }
-body *::-webkit-scrollbar, body::-webkit-scrollbar { width:7px; height:7px; }
-body *::-webkit-scrollbar-track, body::-webkit-scrollbar-track { background:#eef5f0; }
-body *::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb { background:#81b69e; border:2px solid #eef5f0; border-radius:99px; }
-body *::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover { background:#0d8568; }
+/* Text and form controls share the locally hosted font. Icon glyphs keep their
+   dedicated font through material-symbols.css's pseudo-element rules. */
+html, body, body :where(*) { font-family:'Manrope',sans-serif !important; }
+@media screen and (prefers-reduced-motion:no-preference) {
+    body { animation:sierraPageEnter .4s cubic-bezier(.22,1,.36,1); }
+}
+@keyframes sierraPageEnter { from { opacity:0; } to { opacity:1; } }
+html, body, body * { scrollbar-width:thin !important; scrollbar-color:#9a9a9a transparent !important; }
+
+/* Pending actions keep their original labels and dimensions. */
+body :is(button,a,input).app-is-loading[aria-busy="true"] { position:relative !important; cursor:wait !important; color:transparent !important; }
+body .app-is-loading > * { visibility:hidden !important; }
+body .app-is-loading::after {
+    content:""; position:absolute; inset:0; width:18px; height:18px; margin:auto;
+    border:2px solid #79bca6; border-top-color:#075b48; border-radius:50%;
+    animation:sierraButtonLoading .75s linear infinite;
+}
+body :is(.btn-primary,.btn-submit,.btn-success,.btn-danger,.btn-export-trigger,.btn-manage,.verify-btn,.save-btn,.gb-btn-primary,.nav-register,.nav-dashboard-btn).app-is-loading::after { border-color:#ffffff66; border-top-color:#fff; }
+@keyframes sierraButtonLoading { to { transform:rotate(360deg); } }
+
+/* One search field treatment for app pages, filters and export previews. */
+body input.app-search-input {
+    width:100%; min-width:0; height:40px !important; box-sizing:border-box;
+    border:1px solid #dce8e1 !important; border-radius:10px !important;
+    background:#f8fbf9 !important;
+    color:#203b31 !important; font-family:'Manrope',sans-serif !important; font-size:13px !important;
+    line-height:1.4; padding:9px 12px 9px 38px !important;
+    transition:border-color .18s ease,box-shadow .18s ease;
+}
+body .app-search-field { position:relative; display:flex; align-items:center; flex:1 1 auto; width:100%; min-width:0; }
+body .app-search-field > .app-search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; fill:none; stroke:#769084; stroke-width:2; stroke-linecap:round; pointer-events:none; z-index:1; }
+body :is(.toolbar-search,.search-box,.search-bar,.search-wrap):has(> .app-search-field) > :is(i,.material-symbols),
+body :has(> .app-search-field) > :is(i.fa-search,i.fa-magnifying-glass) { display:none !important; }
+body input.app-search-input:focus { outline:none; border-color:#0d8568 !important; box-shadow:0 0 0 3px #0d85681a !important; }
+body :is(input,textarea)::placeholder { color:var(--sierra-type-placeholder) !important; font-family:'Manrope',sans-serif !important; font-size:13px !important; line-height:1.4; opacity:1 !important; font-weight:400 !important; letter-spacing:normal !important; }
+/* Floating labels retain their empty-field state; hints appear on focus. */
+body .input-group:has(.floating-label) .input-field:not(:focus)::placeholder { color:transparent !important; }
+
+/* Risk colors and geometry are independent of report status and severity. */
+body :is(.risk-badge,span.risk-low,span.risk-medium,span.risk-high,span.risk-critical) {
+    display:inline-flex !important; align-items:center; justify-content:center; gap:5px;
+    min-height:28px; padding:5px 10px !important; border:1px solid currentColor !important;
+    border-radius:999px !important; font-family:'Manrope',sans-serif !important;
+    font-size:11px !important; font-weight:800 !important; font-style:normal; line-height:1.2;
+    white-space:nowrap; box-shadow:none !important; flex-shrink:0;
+}
+body :is(.risk-badge,span).risk-low { background:#f0fdf4 !important; color:#15803d !important; }
+body :is(.risk-badge,span).risk-medium { background:#fffbeb !important; color:#b45309 !important; }
+body :is(.risk-badge,span).risk-high { background:#fff7ed !important; color:#c2410c !important; }
+body :is(.risk-badge,span).risk-critical { background:#fef2f2 !important; color:#b91c1c !important; }
+body :is(.risk-badge,span.risk-low,span.risk-medium,span.risk-high,span.risk-critical)::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+body :is(.risk-badge,span.risk-low,span.risk-medium,span.risk-high,span.risk-critical) > i { display:none !important; }
+body input[autocomplete="one-time-code"]::placeholder { font-size:13px; }
+@media(max-width:767px) { body input.app-search-input { min-height:44px; height:44px !important; font-size:16px !important; } }
+@media(prefers-reduced-motion:reduce) { body .app-is-loading::after { animation:none; border-style:dotted; } }
+html::-webkit-scrollbar,body *::-webkit-scrollbar,body::-webkit-scrollbar { width:5px !important; height:5px !important; }
+html::-webkit-scrollbar-track,body *::-webkit-scrollbar-track,body::-webkit-scrollbar-track { background:transparent !important; }
+html::-webkit-scrollbar-thumb,body *::-webkit-scrollbar-thumb,body::-webkit-scrollbar-thumb { background:#9a9a9a !important; border:0 !important; border-radius:99px; }
+html::-webkit-scrollbar-thumb:hover,body *::-webkit-scrollbar-thumb:hover,body::-webkit-scrollbar-thumb:hover { background:#777 !important; }
+html::-webkit-scrollbar-button,body::-webkit-scrollbar-button,body *::-webkit-scrollbar-button { display:none !important; width:0 !important; height:0 !important; }
 
 /* Form and public-page controls retain their dimensions on narrow screens. */
 @media screen {

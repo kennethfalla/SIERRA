@@ -78,7 +78,7 @@
                             </div>
                             <div class="crop-modal-body" style="padding:24px;">
                                 <p class="text-sm text-gray-500 mb-4">We've sent a 6-digit OTP to your registered mobile number. Enter it below to confirm your password change.</p>
-                                <input type="text" id="passwordOtpInput" maxlength="6" placeholder="000000" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code" inputmode="numeric" aria-label="One-time password">
+                                <input type="text" id="passwordOtpInput" maxlength="6" placeholder="Enter 6-digit code" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code" inputmode="numeric" aria-label="One-time password">
                                 <p class="text-xs text-gray-400 mt-2 text-center">Expires in 10 minutes.</p>
                             </div>
                             <div class="crop-modal-footer">

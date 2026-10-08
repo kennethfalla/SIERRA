@@ -6,51 +6,23 @@
     'use strict';
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    // Cards move along a shallow arc, always facing the viewer. Their position
-    // comes from the duplicated track, so looping does not reset card angles.
-    var orbit = document.querySelector('.hero-orbit');
-    var ring = orbit && orbit.querySelector('.hero-orbit-ring');
-    if (ring) {
-        var orbitCards = Array.prototype.slice.call(ring.querySelectorAll('.hero-orbit-card'));
-        var orbitWidth = 0;
-        var cardPositions = [];
-        var orbitFrame = null;
-        var orbitVisible = true;
-        function measureOrbit() {
-            orbitWidth = orbit.clientWidth;
-            cardPositions = orbitCards.map(function (card) {
-                return card.offsetLeft + card.parentElement.offsetLeft + card.offsetWidth / 2;
-            });
+    // Keep the flat header above the landscape; restore the floating app-style
+    // navigation once the hero has passed, including with reduced motion.
+    var landingNav = document.querySelector('.nav-landing');
+    var landingHero = document.getElementById('home');
+    if (landingNav && landingHero) {
+        var navFrame = null;
+        function updateNav() {
+            navFrame = null;
+            landingNav.classList.toggle('nav-past-hero', landingHero.getBoundingClientRect().bottom <= 100);
         }
-        function curveOrbit() {
-            orbitFrame = null;
-            var transform = getComputedStyle(ring).transform;
-            var offset = 0;
-            if (transform !== 'none') {
-                var values = transform.slice(transform.indexOf('(') + 1, -1).split(',');
-                offset = parseFloat(values[values.length === 16 ? 12 : 4]) || 0;
-            }
-            orbitCards.forEach(function (card, index) {
-                var position = Math.max(-1, Math.min(1, (cardPositions[index] + offset - orbitWidth / 2) / (orbitWidth * .55)));
-                var curve = position * position;
-                card.style.transform = 'translate3d(0,' + (curve * 28).toFixed(2) + 'px,0) perspective(900px) rotateY(' + (-position * 42).toFixed(2) + 'deg) scale(' + (1 - curve * .12).toFixed(4) + ')';
-            });
-            if (orbitVisible && !document.hidden && !reducedMotion.matches) orbitFrame = requestAnimationFrame(curveOrbit);
+        function scheduleNav() {
+            if (navFrame === null) navFrame = requestAnimationFrame(updateNav);
         }
-        function refreshOrbit() {
-            measureOrbit();
-            if (orbitFrame === null) curveOrbit();
-        }
-        if (window.IntersectionObserver) {
-            new IntersectionObserver(function (entries) {
-                orbitVisible = entries[0].isIntersecting;
-                if (orbitVisible) refreshOrbit();
-            }).observe(orbit);
-        }
-        window.addEventListener('resize', refreshOrbit, { passive: true });
-        document.addEventListener('visibilitychange', function () { if (!document.hidden && orbitVisible) refreshOrbit(); });
-        reducedMotion.addEventListener('change', refreshOrbit);
-        refreshOrbit();
+        window.addEventListener('scroll', scheduleNav, { passive: true });
+        window.addEventListener('resize', scheduleNav, { passive: true });
+        window.addEventListener('pageshow', scheduleNav);
+        updateNav();
     }
     if (reducedMotion.matches) return;
 

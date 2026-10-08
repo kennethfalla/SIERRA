@@ -18,7 +18,7 @@ if (!isset($ft) || !is_array($ft)) {
 
 $ft_search_id          = $ft['search_id'] ?? 'searchInput';
 $ft_search_value       = $ft['search_value'] ?? '';
-$ft_search_placeholder = $ft['search_placeholder'] ?? 'Search...';
+$ft_search_placeholder = $ft['search_placeholder'] ?? 'Search records…';
 $ft_results_text       = $ft['results_text'] ?? '';
 $ft_inline_selects     = $ft['inline_selects'] ?? [];
 $ft_filter_by          = $ft['filter_by'] ?? ['active' => false, 'count' => 0];
@@ -864,7 +864,7 @@ foreach ($ft_popover_fields as $pf) {
         <?php if ($ft_show_search): ?>
         <div class="toolbar-search">
             <i class="fas fa-search"></i>
-            <input type="text" id="<?php echo htmlspecialchars($ft_search_id); ?>"
+            <input type="search" class="app-search-input" id="<?php echo htmlspecialchars($ft_search_id); ?>" aria-label="<?php echo htmlspecialchars($ft_search_placeholder); ?>"
                    value="<?php echo htmlspecialchars($ft_search_value); ?>"
                    placeholder="<?php echo htmlspecialchars($ft_search_placeholder); ?>">
         </div>

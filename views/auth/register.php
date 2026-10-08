@@ -25,6 +25,7 @@ $barangays = $db->query("SELECT id, name FROM barangays ORDER BY name");
 $system_name = SettingsHelper::get('system_name', 'Sierra');
 $lgu_logo = SettingsHelper::get('lgu_logo', '');
 $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
+$auth_photo = SettingsHelper::getAuthPhotoUrl();
 
 // ============================================
 // DYNAMIC PASSWORD RULES FROM SECURITY SETTINGS
@@ -146,6 +147,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -156,9 +158,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="<?php echo BASE_URL; ?>assets/vendor/select2/css/select2.min.css" rel="stylesheet" />
     <style>
         * { font-family: 'Manrope', sans-serif; }
+        /* Menus are portaled outside the scrolling registration form. */
+        body > .select2-container--open { z-index: 10020; }
+        .select2-results__options { max-height: min(220px, 35dvh) !important; }
+        .registration-legal-dialog {
+            position: fixed; inset: 0; margin: auto; padding: 0; border: 0;
+            width: min(672px, calc(100% - 24px)); max-width: none;
+            max-height: calc(100dvh - 24px); border-radius: 16px;
+            background: #fff; color: #374151; overflow: hidden;
+            box-shadow: 0 24px 60px #0004;
+        }
+        .registration-legal-dialog::backdrop { background: rgba(0, 10, 6, .65); }
+        .registration-legal-panel { display: flex; flex-direction: column; max-height: calc(100dvh - 24px); }
+        .registration-legal-panel > :is(.terms-content,.privacy-content) { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+        .registration-legal-panel > :first-child,.registration-legal-panel > :last-child { flex-shrink: 0; }
+        html.registration-legal-open .auth-register-form { overflow-y: hidden !important; }
         
         .input-group {
             position: relative;
@@ -173,7 +190,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             font-size: 0.875rem;
             transition: all 0.2s;
             background: #ffffff;
-            color: #1e293b;
+            color: var(--sierra-type-primary);
             height: 48px;
         }
         
@@ -196,7 +213,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             left: 0.875rem;
             top: 24px;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: var(--sierra-type-placeholder);
             font-size: 0.875rem;
             pointer-events: none;
             z-index: 2;
@@ -207,8 +224,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             left: 2.5rem;
             top: 24px;
             transform: translateY(-50%);
-            color: #94a3b8;
-            font-size: 0.875rem;
+            color: var(--sierra-type-placeholder);
+            font-size: 13px;
             pointer-events: none;
             transition: all 0.2s ease;
             background: transparent;
@@ -219,17 +236,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         .input-field:not(:placeholder-shown) ~ .floating-label {
             top: 0;
             transform: translateY(-50%);
-            font-size: 0.65rem;
+            font-size: 12px;
             color: #10A37F;
             background: white;
             padding: 0 0.25rem;
-        }
-        
-        .input-field:focus ~ .input-icon,
-        .input-field:not(:placeholder-shown) ~ .input-icon {
-            top: 1rem;
-            transform: translateY(0);
-            font-size: 0.75rem;
         }
         
         /* SELECT2 FLOATING LABEL FIX */
@@ -249,13 +259,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         }
         
         .select2-container--default .select2-selection--single .select2-selection__rendered {
-            color: #1e293b !important;
+            color: var(--sierra-type-primary) !important;
             line-height: 30px !important;
-            padding-left: 2.5rem !important;
+            padding-left: 1.5rem !important;
         }
         
         .select2-container--default .select2-selection--single .select2-selection__placeholder {
-            color: #94a3b8 !important;
+            color: var(--sierra-type-placeholder) !important;
         }
         
         .select2-container--default .select2-selection--single .select2-selection__arrow {
@@ -283,7 +293,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             left: 0.875rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: var(--sierra-type-placeholder);
             font-size: 0.875rem;
             z-index: 10;
             pointer-events: none;
@@ -292,9 +302,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         .select2-with-icon .select2-label {
             position: absolute;
             left: 2.5rem;
-            top: 0.75rem;
-            color: #94a3b8;
-            font-size: 0.875rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--sierra-type-placeholder);
+            font-size: 13px;
             pointer-events: none;
             transition: all 0.2s ease;
             background: transparent;
@@ -304,8 +315,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         
         .select2-with-icon.select2-active .select2-label,
         .select2-with-icon.has-value .select2-label {
-            top: -0.5rem;
-            font-size: 0.65rem;
+            top: 0;
+            font-size: 12px;
             color: #10A37F;
             background: white;
         }
@@ -363,57 +374,23 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             color: #10A37F;
         }
         
-        /* STEP INDICATOR */
+        /* STEP INDICATOR — segmented pills (photo-style) */
         .step-indicator {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
+            gap: 10px;
+            width: 100%;
             margin-bottom: 2rem;
         }
-        
-        .step-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #e2e8f0;
-            transition: all 0.3s ease;
+        .step-seg {
+            flex: 1 1 0;
+            height: 12px;
+            border-radius: 999px;
+            background: #e6e9ea;
+            transition: background .3s ease;
         }
-        
-        .step-dot.active {
-            background: #10A37F;
-            transform: scale(1.2);
-            box-shadow: 0 0 0 4px rgba(16, 163, 127, 0.2);
-        }
-        
-        .step-dot.completed {
-            background: #10A37F;
-        }
-        
-        .step-line {
-            width: 40px;
-            height: 2px;
-            background: #e2e8f0;
-            transition: all 0.3s ease;
-        }
-        
-        .step-line.completed {
-            background: #10A37F;
-        }
-        
-        .step-label {
-            font-size: 0.6rem;
-            font-weight: 600;
-            color: #94a3b8;
-            text-align: center;
-            margin-top: 0.25rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .step-label.active {
-            color: #10A37F;
-        }
+        .step-seg.active,
+        .step-seg.completed { background: #0d8568; }
         
         .step-container {
             display: none;
@@ -598,8 +575,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         /* RESPONSIVE */
         @media (max-width: 640px) {
             .resident-selector {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
             }
+            .resident-option { min-width: 0; padding: 16px 8px; }
+            .resident-option i { font-size: 24px; }
+            .resident-option .label { font-size: 13px; line-height: 1.45; text-wrap: balance; }
+            .resident-option .sub-label { font-size: 12px; line-height: 1.45; }
             .otp-container {
                 gap: 0.5rem;
             }
@@ -608,16 +590,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                 height: 50px;
                 font-size: 1.2rem;
             }
-            .step-line {
-                width: 20px;
-            }
             .select2-container .select2-selection--single {
                 height: 44px !important;
                 padding: 0.3rem 2.5rem 0.3rem 1rem !important;
             }
             .select2-container--default .select2-selection--single .select2-selection__rendered {
                 line-height: 28px !important;
-                padding-left: 2rem !important;
+                padding-left: 1.5rem !important;
             }
         }
         
@@ -673,15 +652,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
 </head>
-<body class="relative min-h-screen" style="background: linear-gradient(135deg, #f0f7f4 0%, #e6f0ec 100%);">
+<body class="register-page relative min-h-screen" style="background: linear-gradient(135deg, #f0f7f4 0%, #e6f0ec 100%);">
+    <aside class="auth-register-photo" aria-hidden="true"<?php if ($auth_photo): ?> style="background-image:url('<?php echo htmlspecialchars($auth_photo, ENT_QUOTES); ?>')"<?php endif; ?>></aside>
     <div class="floating-shape top-[-100px] right-[-100px] w-[300px] h-[300px] opacity-15" style="background: #10A37F;"></div>
     <div class="floating-shape bottom-[-100px] left-[-100px] w-[350px] h-[350px] opacity-10" style="background: #0D8568; animation-delay: -5s;"></div>
     
-    <div class="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div class="w-full max-w-2xl mx-auto">
+    <div class="auth-register-form relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div class="auth-register-inner w-full max-w-2xl mx-auto">
             
-            <div class="bg-white rounded-2xl shadow-xl" style="background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(0, 0, 0, 0.06);">
+            <div class="auth-register-content bg-white rounded-2xl shadow-xl" style="background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(0, 0, 0, 0.06);">
                 
                 <!-- Back Button -->
                 <div class="p-4 pb-0">
@@ -728,27 +709,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                     <?php endif; ?>
                     
                     <!-- Step Indicator -->
-                    <div class="step-indicator">
-                        <div class="flex flex-col items-center">
-                            <div class="flex items-center">
-                                <div class="step-dot active" id="dot1"></div>
-                                <div class="step-line" id="line1"></div>
-                            </div>
-                            <span class="step-label active" id="label1">Account</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="flex items-center">
-                                <div class="step-dot" id="dot2"></div>
-                                <div class="step-line" id="line2"></div>
-                            </div>
-                            <span class="step-label" id="label2">Verify</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="flex items-center">
-                                <div class="step-dot" id="dot3"></div>
-                            </div>
-                            <span class="step-label" id="label3">Done</span>
-                        </div>
+                    <div class="step-indicator" role="progressbar" aria-label="Registration progress" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1" id="stepIndicator">
+                        <span class="step-seg active" id="seg1"></span>
+                        <span class="step-seg" id="seg2"></span>
+                        <span class="step-seg" id="seg3"></span>
                     </div>
                     
                     <!-- DUPLICATE ERROR DISPLAY -->
@@ -907,7 +871,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                             <div id="residentFields">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div class="input-group" style="position: relative;">
-                                        <i class="fas fa-map-marker-alt input-icon" style="z-index: 20;"></i>
                                         <div class="select2-with-icon" id="barangayWrapper" style="width: 100%;">
                                             <select name="barangay_id" id="barangay" required style="width: 100%; padding-left: 2.5rem;">
                                                 <option value=""></option>
@@ -915,8 +878,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                                     <option value="<?php echo $brgy['id']; ?>"><?php echo htmlspecialchars($brgy['name']); ?></option>
                                                 <?php endwhile; ?>
                                             </select>
-                                            <span class="select2-icon"><i class="fas fa-map-marker-alt"></i></span>
-                                            <span class="select2-label">Barangay <span class="text-red-400">*</span></span>
+                                            <span class="select2-icon" aria-hidden="true"><i class="fas fa-map-marker-alt"></i></span>
+                                            <label for="barangay" class="select2-label">Barangay <span class="text-red-400">*</span></label>
                                         </div>
                                     </div>
                                     <div class="input-group">
@@ -931,7 +894,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                             <div id="nonResidentFields" style="display: none;">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div class="input-group" style="position: relative;">
-                                        <i class="fas fa-map input-icon" style="z-index: 20;"></i>
                                         <div class="select2-with-icon" id="provinceWrapper" style="width: 100%;">
                                             <select name="province" id="province" style="width: 100%; padding-left: 2.5rem;">
                                                 <option value=""></option>
@@ -939,18 +901,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                                     <option value="<?php echo htmlspecialchars($prov); ?>"><?php echo htmlspecialchars($prov); ?></option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <span class="select2-icon"><i class="fas fa-map"></i></span>
-                                            <span class="select2-label">Province <span class="text-red-400">*</span></span>
+                                            <span class="select2-icon" aria-hidden="true"><i class="fas fa-map"></i></span>
+                                            <label for="province" class="select2-label">Province <span class="text-red-400">*</span></label>
                                         </div>
                                     </div>
                                     <div class="input-group" style="position: relative;">
-                                        <i class="fas fa-city input-icon" style="z-index: 20;"></i>
                                         <div class="select2-with-icon" id="municipalityWrapper" style="width: 100%;">
                                             <select name="municipality" id="municipality" style="width: 100%; padding-left: 2.5rem;">
                                                 <option value=""></option>
                                             </select>
-                                            <span class="select2-icon"><i class="fas fa-city"></i></span>
-                                            <span class="select2-label">Municipality <span class="text-red-400">*</span></span>
+                                            <span class="select2-icon" aria-hidden="true"><i class="fas fa-city"></i></span>
+                                            <label for="municipality" class="select2-label">Municipality <span class="text-red-400">*</span></label>
                                         </div>
                                     </div>
                                 </div>
@@ -966,8 +927,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                                 <div class="flex items-start gap-2">
                                     <input type="checkbox" id="terms" required class="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10A37F] focus:ring-[#10A37F]">
                                     <label for="terms" class="text-xs text-gray-600 leading-relaxed">
-                                        I agree to the <a href="javascript:void(0)" onclick="openTermsModal()" class="text-[#10A37F] hover:underline font-medium">Terms of Service</a> and 
-                                        <a href="javascript:void(0)" onclick="openPrivacyModal()" class="text-[#10A37F] hover:underline font-medium">Privacy Policy</a>.
+                                        I agree to the <a href="<?php echo BASE_URL; ?>index.php?page=terms-of-service" onclick="event.preventDefault(); openTermsModal()" class="text-[#10A37F] hover:underline font-medium">Terms of Service</a> and
+                                        <a href="<?php echo BASE_URL; ?>index.php?page=privacy-policy" onclick="event.preventDefault(); openPrivacyModal()" class="text-[#10A37F] hover:underline font-medium">Privacy Policy</a>.
                                     </label>
                                 </div>
                                 <p class="text-red-500 text-xs mt-1.5 hidden items-center gap-1" id="termsError"><i class="fas fa-exclamation-circle mr-0.5"></i>Please agree to the Terms of Service and Privacy Policy to continue.</p>
@@ -1095,7 +1056,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                     <div class="text-center mt-6 pt-4 border-t border-gray-100">
                         <p class="text-sm text-gray-500">
                             Already have an account? 
-                            <a href="login.php" class="text-[#10A37F] font-semibold hover:underline">Sign in</a>
+                            <a href="<?php echo BASE_URL; ?>index.php?page=login" class="text-[#10A37F] font-semibold hover:underline">Sign in</a>
                         </p>
                     </div>
                     
@@ -1105,9 +1066,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
     </div>
     
     <!-- jQuery (required for Select2) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/vendor/jquery/jquery-3.6.0.min.js"></script>
     <!-- Select2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>assets/vendor/select2/js/select2.min.js"></script>
     
     <script>
     // ============================================
@@ -1130,7 +1091,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             placeholder: '',
             allowClear: true,
             width: '100%',
-            dropdownParent: $('#residentFields'),
+            dropdownParent: $(document.body),
             language: {
                 noResults: function() {
                     return 'No barangay found';
@@ -1166,7 +1127,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         $('#province').select2({
             allowClear: true,
             width: '100%',
-            dropdownParent: $('#nonResidentFields'),
+            dropdownParent: $(document.body),
             language: {
                 noResults: function() {
                     return 'No province found';
@@ -1181,7 +1142,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         $('#municipality').select2({
             allowClear: true,
             width: '100%',
-            dropdownParent: $('#nonResidentFields'),
+            dropdownParent: $(document.body),
             language: {
                 noResults: function() {
                     return 'No municipality found';
@@ -1301,26 +1262,12 @@ let smsFallbackAvailable = false;
         document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
         document.getElementById('step' + step).classList.add('active');
         
-        document.querySelectorAll('.step-dot').forEach(el => el.classList.remove('active', 'completed'));
-        document.querySelectorAll('.step-line').forEach(el => el.classList.remove('completed'));
-        document.querySelectorAll('.step-label').forEach(el => el.classList.remove('active'));
-        
-        for (let i = 1; i <= 3; i++) {
-            const dot = document.getElementById('dot' + i);
-            const label = document.getElementById('label' + i);
-            if (i < step) {
-                dot.classList.add('completed');
-            } else if (i === step) {
-                dot.classList.add('active');
-                label.classList.add('active');
-            }
-        }
-        
-        for (let i = 1; i < step; i++) {
-            const line = document.getElementById('line' + i);
-            if (line) line.classList.add('completed');
-        }
-        
+        document.querySelectorAll('.step-seg').forEach((el, idx) => {
+            el.classList.toggle('active', (idx + 1) <= step);
+        });
+        const stepIndicator = document.getElementById('stepIndicator');
+        if (stepIndicator) stepIndicator.setAttribute('aria-valuenow', String(step));
+
         currentStep = step;
     }
     
@@ -1365,12 +1312,12 @@ let smsFallbackAvailable = false;
                 $('#province').select2({
                     allowClear: true,
                     width: '100%',
-                    dropdownParent: $('#nonResidentFields')
+                    dropdownParent: $(document.body)
                 });
                 $('#municipality').select2({
                     allowClear: true,
                     width: '100%',
-                    dropdownParent: $('#nonResidentFields')
+                    dropdownParent: $(document.body)
                 });
                 $('#province').select2('open');
             }, 200);
@@ -2437,58 +2384,67 @@ function maskEmail(email) {
     // ============================================
     // TERMS OF SERVICE MODAL
     // ============================================
-    function openTermsModal() {
-        const modal = document.getElementById('termsModal');
-        modal.style.display = 'flex';
-        modal.querySelector('.terms-content').scrollTop = 0;
+    let legalOpener = null;
+    let legalBodyOverflow = '';
+    function notifyAuthOverlay(open) {
+        if (window.frameElement && window.frameElement.hasAttribute('data-landing-auth')) {
+            window.parent.postMessage({ type: 'sierra:auth-overlay', open: open }, window.location.origin);
+        }
+    }
+    function openRegistrationLegal(id) {
+        const modal = document.getElementById(id);
+        if (modal.open) return;
+        legalOpener = document.activeElement;
+        legalBodyOverflow = document.body.style.overflow;
+        document.documentElement.classList.add('registration-legal-open');
         document.body.style.overflow = 'hidden';
+        modal.showModal();
+        notifyAuthOverlay(true);
+        modal.querySelector('.terms-content,.privacy-content').scrollTop = 0;
     }
-    function closeTermsModal() {
-        document.getElementById('termsModal').style.display = 'none';
-        document.body.style.overflow = '';
-    }
+    function openTermsModal() { openRegistrationLegal('termsModal'); }
+    function closeTermsModal() { document.getElementById('termsModal').close(); }
     function agreeTerms() {
         document.getElementById('terms').checked = true;
+        document.getElementById('terms').dispatchEvent(new Event('change', { bubbles: true }));
         closeTermsModal();
     }
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('termsModal').style.display === 'flex') {
-            closeTermsModal();
-        }
-    });
 
     // ============================================
     // PRIVACY POLICY MODAL
     // ============================================
-    function openPrivacyModal() {
-        const modal = document.getElementById('privacyModal');
-        modal.style.display = 'flex';
-        modal.querySelector('.privacy-content').scrollTop = 0;
-        document.body.style.overflow = 'hidden';
-    }
-    function closePrivacyModal() {
-        document.getElementById('privacyModal').style.display = 'none';
-        document.body.style.overflow = '';
-    }
+    function openPrivacyModal() { openRegistrationLegal('privacyModal'); }
+    function closePrivacyModal() { document.getElementById('privacyModal').close(); }
     function agreePrivacy() {
         document.getElementById('terms').checked = true;
+        document.getElementById('terms').dispatchEvent(new Event('change', { bubbles: true }));
         closePrivacyModal();
     }
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('privacyModal').style.display === 'flex') {
-            closePrivacyModal();
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+        ['termsModal','privacyModal'].forEach(function(id) {
+            const modal = document.getElementById(id);
+            modal.addEventListener('close', function() {
+                notifyAuthOverlay(false);
+                document.documentElement.classList.remove('registration-legal-open');
+                document.body.style.overflow = legalBodyOverflow;
+                if (legalOpener && legalOpener.isConnected) legalOpener.focus();
+            });
+            modal.addEventListener('click', function(event) {
+                if (event.target !== modal) return;
+                const rect = modal.getBoundingClientRect();
+                if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) modal.close();
+            });
+        });
     });
     </script>
 
     <!-- ============================================ -->
     <!-- TERMS OF SERVICE MODAL -->
     <!-- ============================================ -->
-    <div id="termsModal" class="fixed inset-0 z-[9999] items-center justify-center p-4" style="display:none;">
-        <div class="absolute inset-0 bg-black/50" onclick="closeTermsModal()"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+    <dialog id="termsModal" class="registration-legal-dialog" aria-labelledby="termsModalTitle">
+        <div class="registration-legal-panel bg-white">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-bold text-gray-800">Terms of Service</h3>
+                <h3 id="termsModalTitle" class="text-lg font-bold text-gray-800">Terms of Service</h3>
                 <button type="button" onclick="closeTermsModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500" aria-label="Close">
                     <i class="fas fa-times"></i>
                 </button>
@@ -2507,16 +2463,15 @@ function maskEmail(email) {
                 </button>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- ============================================ -->
     <!-- PRIVACY POLICY MODAL -->
     <!-- ============================================ -->
-    <div id="privacyModal" class="fixed inset-0 z-[9999] items-center justify-center p-4" style="display:none;">
-        <div class="absolute inset-0 bg-black/50" onclick="closePrivacyModal()"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+    <dialog id="privacyModal" class="registration-legal-dialog" aria-labelledby="privacyModalTitle">
+        <div class="registration-legal-panel bg-white">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-bold text-gray-800">Privacy Policy</h3>
+                <h3 id="privacyModalTitle" class="text-lg font-bold text-gray-800">Privacy Policy</h3>
                 <button type="button" onclick="closePrivacyModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500" aria-label="Close">
                     <i class="fas fa-times"></i>
                 </button>
@@ -2535,7 +2490,7 @@ function maskEmail(email) {
                 </button>
             </div>
         </div>
-    </div>
+    </dialog>
 <?php
 require_once BASE_PATH . 'helpers/Lang.php';
 include BASE_PATH . 'views/shared/global_modals.php';

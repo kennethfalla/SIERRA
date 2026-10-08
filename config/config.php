@@ -2,6 +2,9 @@
 // config/config.php - COMPLETE FIXED VERSION
 // NO output before this line - NO spaces, NO HTML, NO echo
 
+require_once dirname(__DIR__) . '/helpers/RequestRuntime.php';
+RequestRuntime::boot();
+
 // Start session only if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

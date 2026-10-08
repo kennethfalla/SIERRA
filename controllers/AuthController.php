@@ -69,15 +69,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
 }
 
 // ============================================
-// HELPER: Check that an email's domain can actually
-// receive mail (has an MX record, or at least an A/AAAA
-// record that could accept mail as a fallback). This is a
-// DNS lookup only — no SMTP connection is made — so it
-// works fine on InfinityFree's outbound restrictions and
-// costs nothing. It catches typo'd/fake domains like
-// "gmial.com" without requiring a confirmation email.
-// Email or SMS OTP remains the real identity verification;
-// this just keeps the email delivery channel usable.
+// Validate domain syntax without blocking the PHP worker on DNS. PHP's
+// checkdnsrr() has no per-call timeout; three fallback lookups can exceed
+// the hosting proxy's deadline. Delivery and OTP verification confirm access.
 // ============================================
 function isEmailDomainValid($email) {
     $atPos = strrpos($email, '@');
@@ -96,14 +90,11 @@ function isEmailDomainValid($email) {
             $domain = $ascii;
         }
     }
-    // MX record = domain explicitly accepts mail. Some domains (rare) omit
-    // MX but still accept mail via an A/AAAA record, so check those too.
-    if (!function_exists('checkdnsrr')) {
-        // DNS lookups unavailable on this host — don't block registration,
-        // just skip the check (phone OTP still verifies the person).
-        return true;
+    if (strlen($domain) > 253 || strpos($domain, '.') === false) return false;
+    foreach (explode('.', $domain) as $label) {
+        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/iD', $label)) return false;
     }
-    return checkdnsrr($domain, 'MX') || checkdnsrr($domain, 'A') || checkdnsrr($domain, 'AAAA');
+    return true;
 }
 
 // ============================================
@@ -960,20 +951,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $tokenHash = hash('sha256', $token);
 
                     try {
-                        $stmt = $db->prepare("SHOW TABLES LIKE 'remember_tokens'");
-                        $stmt->execute();
-                        if ($stmt->rowCount() == 0) {
-                            $db->exec("CREATE TABLE IF NOT EXISTS remember_tokens (
-                                id INT(11) NOT NULL AUTO_INCREMENT,
-                                user_id INT(11) NOT NULL,
-                                token_hash VARCHAR(255) NOT NULL,
-                                expires_at DATETIME NOT NULL,
-                                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                PRIMARY KEY (id),
-                                KEY user_id (user_id)
-                            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-                        }
-
+                        // Prepared by the versioned migration, never during login.
                         $stmt = $db->prepare(
                             "INSERT INTO remember_tokens (user_id, token_hash, expires_at) 
                              VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))"
@@ -1272,13 +1250,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </html>
             ";
 
-            $headers = "MIME-Version: 1.0" . "\r\n";
-            $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-            $headers .= "From: " . SettingsHelper::get('system_name', 'Sierra') . " System <noreply@" . $_SERVER['HTTP_HOST'] . ">" . "\r\n";
-
-            @mail($email, $subject, $message, $headers);
-
-            $_SESSION['success'] = "Password reset link sent to your email!";
+            // Shared hosting disables PHP mail(); use the configured, bounded gateway.
+            $resetSent = SettingsHelper::sendEmail($email, '', $subject, $message);
+            if (!$resetSent) error_log('[Auth] Password reset delivery was not confirmed.');
+            $_SESSION['success'] = "If an account exists with this email, a password reset link has been sent.";
         } else {
             $_SESSION['success'] = "If an account exists with this email, a password reset link has been sent.";
         }

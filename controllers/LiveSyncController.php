@@ -18,25 +18,27 @@ if (!isLoggedIn()) {
 
 // Capture authentication before releasing this user's session lock.
 $user_id = (int)$_SESSION['user_id'];
+$user_role = $_SESSION['user_role'] ?? 'citizen';
+$barangay_id = $_SESSION['barangay_id'] ?? null;
 if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
 header('Cache-Control: no-store');
 
 $database = new Database();
 $db = $database->getConnection();
 $notif = new Notification($db);
-$summary = $notif->getSyncSummary($user_id);
+$summary = $notif->getSyncSummary($user_id, $user_role, $barangay_id);
 $unread = $summary['unread'];
 $notifSeq = $summary['notif_seq'];
 $latest = $notif->getForUser($user_id, 1);
 $latest = $latest[0] ?? null;
-// The sidebar consumes notification updates only; report/announcement scans
-// were unused. Keep the response field for compatibility.
+// Notification updates stay separate from own-report and verification counts.
 $dataVersion = $latest['created_at'] ?? null;
 
 echo json_encode([
     'success'      => true,
     'unread'       => $unread,
     'notif_seq'    => $notifSeq,
+    'sidebar_counts' => $summary['sidebar_counts'],
     'latest'       => $latest ? [
         'id'         => (int)$latest['id'],
         'title'      => $latest['title'],

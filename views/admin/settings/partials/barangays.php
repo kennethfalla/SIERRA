@@ -392,7 +392,7 @@ if (!isset($csrf_token)) {
     <input type="text" 
            id="newBarangayName" 
            class="add-input" 
-           placeholder="<?php echo t('Enter new barangay name...'); ?>"
+           placeholder="<?php echo t('Enter barangay name'); ?>"
            onkeydown="if(event.key === 'Enter') addBarangay()">
     <button type="button" class="btn-add-barangay" id="addBarangayBtn" onclick="addBarangay()">
         <i class="fas fa-plus mr-1"></i> <?php echo t('Add Barangay'); ?>

@@ -7,7 +7,7 @@ $itemRisk = $item['risk_level'] ?? 'low';
 $itemUrl = BASE_URL . 'index.php?page=' . ($reportListContext === 'verify' ? 'manage-report' : 'track-status') . '&id=' . rawurlencode(IdGuard::enc($itemId));
 $itemEsc = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 ?>
-<article class="report-feed-item" data-report-id="<?php echo $itemId; ?>">
+<article class="report-feed-item<?php echo empty($item['cover_image']) ? ' report-feed-no-photo' : ''; ?>" data-report-id="<?php echo $itemId; ?>">
     <div class="report-feed-photo" aria-hidden="true">
         <?php if (!empty($item['cover_image'])): ?><img src="<?php echo $itemEsc(BASE_URL . $item['cover_image']); ?>" alt="" loading="lazy"><?php else: ?><i class="fas fa-leaf"></i><?php endif; ?>
     </div>

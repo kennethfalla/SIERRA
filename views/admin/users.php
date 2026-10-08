@@ -412,6 +412,7 @@ function getRoleBadge($user_type, $job_title = '') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -423,6 +424,8 @@ function getRoleBadge($user_type, $job_title = '') {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F5FBF6; }
@@ -837,7 +840,7 @@ function getRoleBadge($user_type, $job_title = '') {
     $ft = [
         'search_id'          => 'searchInput',
         'search_value'       => $search_query,
-        'search_placeholder' => 'Search by name, email, phone...',
+        'search_placeholder' => 'Search users…',
         'results_text'       => 'Showing <strong>' . $display_count . '</strong> of <strong>' . $display_total . '</strong> ' . strtolower($tab_label),
         'inline_selects'     => $ft_inline_selects,
         'filter_by'          => [
@@ -1072,13 +1075,13 @@ function getRoleBadge($user_type, $job_title = '') {
                         <label class="block text-sm font-bold text-gray-700 mb-2" for="createFirstName"><?php echo t('First Name'); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="first_name" id="createFirstName" required
                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"
-                               placeholder="Juan">
+                               placeholder="Enter first name">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2" for="createLastName"><?php echo t('Last Name'); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="last_name" id="createLastName" required
                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-[#10A37F] focus:ring-2 focus:ring-emerald-100 outline-none transition text-sm"
-                               placeholder="Dela Cruz">
+                               placeholder="Enter last name">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2" for="createEmail"><?php echo t('Email Address'); ?> <span class="text-red-500">*</span></label>

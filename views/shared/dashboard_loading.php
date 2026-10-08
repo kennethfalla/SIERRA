@@ -2,7 +2,7 @@
 if (!empty($sierra_loading_included)) return;
 $sierra_loading_included = true;
 $initial_page_loading = !empty($_SESSION['initial_page_loading']);
-unset($_SESSION['initial_page_loading']);
+if (($_SERVER['HTTP_SEC_FETCH_DEST'] ?? '') !== 'iframe') unset($_SESSION['initial_page_loading']);
 ?>
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-loading.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-loading.css'); ?>">
 <div id="dashboardLoading" class="dashboard-loading" role="status" aria-live="polite" data-initial-load="<?php echo $initial_page_loading ? '1' : '0'; ?>" hidden>

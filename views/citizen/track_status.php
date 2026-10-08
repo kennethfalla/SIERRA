@@ -329,6 +329,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -935,7 +936,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body class="bg-[#F5FBF6] <?php echo $can_confirm_resolution ? 'resolution-active' : ''; ?>">
+<body class="track-status-page bg-[#F5FBF6] <?php echo $can_confirm_resolution ? 'resolution-active' : ''; ?>">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -988,7 +989,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <!-- ===== REPORT DETAILS CARD ===== -->
         <?php if ($is_supporter): ?>
             <!-- SUPPORTED REPORT HEADER (teal accent) -->
-            <div class="supported-header rounded-2xl shadow-sm overflow-hidden mb-6 md:mb-8">
+            <div class="track-report-hero supported-header rounded-2xl shadow-sm overflow-hidden mb-6 md:mb-8">
                 <div class="px-4 md:px-6 py-4 md:py-6">
                     <div class="flex flex-wrap justify-between items-start gap-4">
                         <div class="space-y-2">
@@ -1045,7 +1046,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
         <?php else: ?>
             <!-- OWN REPORT HEADER (default green gradient) -->
-            <div class="bg-gradient-to-r from-[#10A37F] to-[#0D8568] rounded-2xl shadow-xl overflow-hidden mb-6 md:mb-8">
+            <div class="track-report-hero bg-gradient-to-r from-[#10A37F] to-[#0D8568] rounded-2xl shadow-xl overflow-hidden mb-6 md:mb-8">
                 <div class="px-4 md:px-6 py-4 md:py-6">
                     <div class="flex flex-wrap justify-between items-start gap-4">
                         <div class="space-y-2">
@@ -1542,7 +1543,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
                 <div id="cancel_other_container" class="mb-4" style="display: none;">
                     <label for="cancel_remarks_other" class="block text-sm font-semibold text-gray-700 mb-2"><?php echo t('Please specify'); ?></label>
-                    <textarea id="cancel_remarks_other" name="cancellation_remarks" rows="3" maxlength="1000" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition" placeholder="<?php echo t("Describe why you're cancelling this report..."); ?>"></textarea>
+                    <textarea id="cancel_remarks_other" name="cancellation_remarks" rows="3" maxlength="1000" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition" placeholder="<?php echo t("Tell us why you are cancelling"); ?>"></textarea>
                 </div>
 
                 <div class="flex gap-3 mt-6">

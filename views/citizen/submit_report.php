@@ -102,6 +102,7 @@ if (is_dir($barangays_dir)) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -1502,7 +1503,7 @@ if (is_dir($barangays_dir)) {
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body class="bg-[#F5FBF6]">
+<body class="submit-report-page bg-[#F5FBF6]">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -1546,6 +1547,7 @@ if (is_dir($barangays_dir)) {
 
         <!-- Form Card -->
         <div class="form-card">
+            <div class="form-card-header"><span class="form-card-icon"><i class="fas fa-leaf" aria-hidden="true"></i></span><h2><?php echo t('Report details'); ?></h2></div>
 
             <div class="form-card-body">
                 <form id="reportForm" 
@@ -1710,7 +1712,7 @@ if (is_dir($barangays_dir)) {
                                   rows="5" 
                                   required 
                                   maxlength="5000"
-                                  placeholder="<?php echo t('Describe the issue, location, and impact (e.g., clogged drainage at Purok 3 causing road flooding since Monday).'); ?>"
+                                  placeholder="<?php echo t('Describe the issue, location and impact'); ?>"
                                   class="form-input" style="resize:vertical; min-height:120px;"></textarea>
                         
                         <p id="description-error" class="error-message" role="alert"></p>
@@ -2597,11 +2599,13 @@ if (is_dir($barangays_dir)) {
         }
     }
 
-    async function openCamera() {
+    async function openCamera(event) {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             showToast('Camera not supported on this device/browser', 'error');
             return;
         }
+        const loadingButton = event && event.currentTarget ? event.currentTarget : cameraBtn;
+        if (window.SierraUI) window.SierraUI.begin(loadingButton);
         try {
             const isVideoMode = cameraMode === 'video';
             const constraints = {
@@ -2633,6 +2637,8 @@ if (is_dir($barangays_dir)) {
         } catch (error) {
             console.error('Camera error:', error);
             showToast('Unable to access camera. Please grant camera permission.', 'error');
+        } finally {
+            if (window.SierraUI) window.SierraUI.end(loadingButton);
         }
     }
 
@@ -3897,17 +3903,23 @@ if (is_dir($barangays_dir)) {
 
     function getCurrentLocation() {
         if (!navigator.geolocation) { showToast('Geolocation not supported by your browser', 'error'); return; }
+        if (window.SierraUI) window.SierraUI.begin(getLocationBtn);
         document.getElementById('locationStatus').innerHTML = '<div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mt-2"><div class="flex items-center gap-2"><div class="loading-spinner"></div><span class="text-sm text-blue-700">Getting your location...</span></div></div>';
         navigator.geolocation.getCurrentPosition(
             async function(position) {
-                const lat = position.coords.latitude, lng = position.coords.longitude;
-                if (!isPointInSanIsidro(lat, lng)) {
-                    document.getElementById('locationStatus').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-xl p-3 mt-2"><p class="text-sm text-red-800"><i class="fas fa-exclamation-circle mr-1"></i>You are outside San Isidro</p></div>';
-                    return;
+                try {
+                    const lat = position.coords.latitude, lng = position.coords.longitude;
+                    if (!isPointInSanIsidro(lat, lng)) {
+                        document.getElementById('locationStatus').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-xl p-3 mt-2"><p class="text-sm text-red-800"><i class="fas fa-exclamation-circle mr-1"></i>You are outside San Isidro</p></div>';
+                        return;
+                    }
+                    await setLocation(lat, lng, true);
+                } finally {
+                    if (window.SierraUI) window.SierraUI.end(getLocationBtn);
                 }
-                await setLocation(lat, lng, true);
             },
             function(error) {
+                if (window.SierraUI) window.SierraUI.end(getLocationBtn);
                 let msg = 'Unable to get location';
                 if (error.code === error.PERMISSION_DENIED) msg = 'Location permission denied';
                 else if (error.code === error.TIMEOUT) msg = 'Location request timed out';

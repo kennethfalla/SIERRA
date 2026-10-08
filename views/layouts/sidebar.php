@@ -225,11 +225,14 @@ $profile_pic_url = !empty($profile_pic) ? BASE_URL . $profile_pic : '';
 // ============================================
 $menu_notifs = [];
 $menu_unread = 0;
+$sidebar_counts = ['reports' => 0, 'announcements' => 0, 'notifications' => 0];
 if ($user_id && isset($db)) {
     try {
         $sidebar_notif_model = new Notification($db);
         $menu_notifs  = $sidebar_notif_model->getForUser((int)$user_id, 8);
-        $menu_unread  = $sidebar_notif_model->getUnreadCount((int)$user_id);
+        $sidebar_summary = $sidebar_notif_model->getSyncSummary((int)$user_id, $user_role, $barangay_id);
+        $menu_unread = $sidebar_summary['unread'];
+        $sidebar_counts = $sidebar_summary['sidebar_counts'];
     } catch (Exception $e) {
         $menu_notifs = [];
         $menu_unread = 0;
@@ -557,6 +560,7 @@ if ($user_id && isset($db)) {
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/app-shell.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/app-shell.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/map-theme.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/map-theme.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/analytics-refinements.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/analytics-refinements.css'); ?>">
@@ -569,7 +573,7 @@ if ($user_id && isset($db)) {
 <!-- Page title, filters, notifications and account actions. -->
 <header class="app-mobile-header" role="banner">
     <div class="app-page-title-wrap">
-        <?php $header_logo = SettingsHelper::get('lgu_logo'); ?>
+        <?php $header_logo = SettingsHelper::get('header_logo', '') ?: SettingsHelper::get('lgu_logo'); ?>
         <span class="app-page-logo" aria-hidden="true">
             <?php if ($header_logo): ?>
                 <img src="<?php echo BASE_URL . $header_logo; ?>" alt="">
@@ -596,7 +600,7 @@ if ($user_id && isset($db)) {
         </button>
         <?php endif; ?>
         <?php if (!empty($_SESSION['user_id'])): ?>
-        <a href="<?php echo BASE_URL; ?>index.php?page=profile" class="app-header-user">
+        <a href="<?php echo BASE_URL; ?>index.php?page=profile" class="app-header-user" aria-label="<?php echo t('Profile settings'); ?>">
             <span class="app-header-avatar">
                 <?php if (!empty($profile_pic_url)): ?>
                     <img src="<?php echo htmlspecialchars($profile_pic_url); ?>" alt="Profile">
@@ -639,7 +643,7 @@ if ($user_id && isset($db)) {
     <div class="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center space-x-3">
             <?php 
-            $logo = SettingsHelper::get('lgu_logo');
+            $logo = SettingsHelper::get('sidebar_logo', '') ?: SettingsHelper::get('lgu_logo');
             if ($logo): ?>
                 <img src="<?php echo BASE_URL . $logo; ?>" alt="LGU Logo" class="w-10 h-10 object-contain rounded-xl">
             <?php else: ?>
@@ -709,6 +713,7 @@ if ($user_id && isset($db)) {
                     <i class="fas fa-list text-sm <?php echo $current_page == 'my-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
                 <span class="ml-3 text-sm font-medium"><?php echo t('My Reports'); ?></span>
+                <span class="sidebar-count" data-sidebar-count="reports" data-count-label="reports"<?php if (!$sidebar_counts['reports']): ?> hidden<?php endif; ?> aria-label="<?php echo (int)$sidebar_counts['reports']; ?> reports"><?php echo $sidebar_counts['reports'] > 99 ? '99+' : (int)$sidebar_counts['reports']; ?></span>
                 <?php if($current_page == 'my-reports'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -722,6 +727,7 @@ if ($user_id && isset($db)) {
                     <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
                 <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
+                <span class="sidebar-count" data-sidebar-count="announcements"<?php if (!$sidebar_counts['announcements']): ?> hidden<?php endif; ?> aria-label="<?php echo (int)$sidebar_counts['announcements']; ?> unread updates"><?php echo $sidebar_counts['announcements'] > 99 ? '99+' : (int)$sidebar_counts['announcements']; ?></span>
                 <?php if($current_page == 'announcements'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -735,6 +741,7 @@ if ($user_id && isset($db)) {
                     <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
                 <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
+                <span class="sidebar-count" data-sidebar-count="notifications"<?php if (!$sidebar_counts['notifications']): ?> hidden<?php endif; ?> aria-label="<?php echo (int)$sidebar_counts['notifications']; ?> unread updates"><?php echo $sidebar_counts['notifications'] > 99 ? '99+' : (int)$sidebar_counts['notifications']; ?></span>
                 <?php if($current_page == 'notifications'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -775,6 +782,7 @@ if ($user_id && isset($db)) {
                     <i class="fas fa-check-double text-sm <?php echo $current_page == 'verify-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
                 <span class="ml-3 text-sm font-medium"><?php echo t('Manage Reports'); ?></span>
+                <span class="sidebar-count" data-sidebar-count="reports" data-count-label="new reports awaiting verification"<?php if (!$sidebar_counts['reports']): ?> hidden<?php endif; ?> aria-label="<?php echo (int)$sidebar_counts['reports']; ?> new reports awaiting verification"><?php echo $sidebar_counts['reports'] > 99 ? '99+' : (int)$sidebar_counts['reports']; ?></span>
                 <?php if($current_page == 'verify-reports'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -788,6 +796,7 @@ if ($user_id && isset($db)) {
                     <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
                 <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
+                <span class="sidebar-count" data-sidebar-count="announcements"<?php if (!$sidebar_counts['announcements']): ?> hidden<?php endif; ?> aria-label="<?php echo (int)$sidebar_counts['announcements']; ?> unread updates"><?php echo $sidebar_counts['announcements'] > 99 ? '99+' : (int)$sidebar_counts['announcements']; ?></span>
                 <?php if($current_page == 'announcements'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -815,6 +824,7 @@ if ($user_id && isset($db)) {
                     <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
                 <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
+                <span class="sidebar-count" data-sidebar-count="notifications"<?php if (!$sidebar_counts['notifications']): ?> hidden<?php endif; ?> aria-label="<?php echo (int)$sidebar_counts['notifications']; ?> unread updates"><?php echo $sidebar_counts['notifications'] > 99 ? '99+' : (int)$sidebar_counts['notifications']; ?></span>
                 <?php if($current_page == 'notifications'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -861,6 +871,7 @@ if ($user_id && isset($db)) {
                     <i class="fas fa-flag text-sm <?php echo $current_page == 'all-reports' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
                 <span class="ml-3 text-sm font-medium"><?php echo t('All Reports'); ?></span>
+                <span class="sidebar-count" data-sidebar-count="reports"<?php if (!$sidebar_counts['reports']): ?> hidden<?php endif; ?> aria-label="<?php echo (int)$sidebar_counts['reports']; ?> unread updates"><?php echo $sidebar_counts['reports'] > 99 ? '99+' : (int)$sidebar_counts['reports']; ?></span>
                 <?php if($current_page == 'all-reports'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -874,6 +885,7 @@ if ($user_id && isset($db)) {
                     <i class="fas fa-bullhorn text-sm <?php echo $current_page == 'announcements' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
                 <span class="ml-3 text-sm font-medium"><?php echo t('Announcements'); ?></span>
+                <span class="sidebar-count" data-sidebar-count="announcements"<?php if (!$sidebar_counts['announcements']): ?> hidden<?php endif; ?> aria-label="<?php echo (int)$sidebar_counts['announcements']; ?> unread updates"><?php echo $sidebar_counts['announcements'] > 99 ? '99+' : (int)$sidebar_counts['announcements']; ?></span>
                 <?php if($current_page == 'announcements'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -887,6 +899,7 @@ if ($user_id && isset($db)) {
                     <i class="fas fa-bell text-sm <?php echo $current_page == 'notifications' ? 'text-emerald-600' : 'text-gray-500'; ?>"></i>
                 </div>
                 <span class="ml-3 text-sm font-medium"><?php echo t('Notifications'); ?></span>
+                <span class="sidebar-count" data-sidebar-count="notifications"<?php if (!$sidebar_counts['notifications']): ?> hidden<?php endif; ?> aria-label="<?php echo (int)$sidebar_counts['notifications']; ?> unread updates"><?php echo $sidebar_counts['notifications'] > 99 ? '99+' : (int)$sidebar_counts['notifications']; ?></span>
                 <?php if($current_page == 'notifications'): ?>
                 <span class="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                 <span class="sr-only">(current)</span>
@@ -941,36 +954,6 @@ if ($user_id && isset($db)) {
         </div>
     </nav>
     
-    <!-- User Profile Section - Fixed at Bottom (Links to Profile Page) -->
-    <div class="p-4 border-t border-gray-100 bg-white flex-shrink-0">
-        <a href="<?php echo BASE_URL; ?>index.php?page=profile" 
-           class="flex items-center hover:bg-gray-50 rounded-xl p-1.5 transition-all duration-200 text-left group">
-            <div class="relative">
-                <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
-                    <?php if (!empty($profile_pic_url)): ?>
-                        <img src="<?php echo $profile_pic_url; ?>" alt="Profile" class="w-full h-full object-cover rounded-full">
-                    <?php else: ?>
-                        <span class="text-white font-bold text-sm"><?php echo $initials; ?></span>
-                    <?php endif; ?>
-                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                </div>
-            </div>
-            <div class="ml-3 flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800 truncate group-hover:text-emerald-600 transition"><?php echo htmlspecialchars($display_name); ?></p>
-                <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
-                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium <?php echo $role_badge_color; ?>">
-                        <?php echo $role_display_name; ?>
-                    </span>
-                    <?php if($barangay_name): ?>
-                    <span class="text-[9px] text-gray-400 truncate flex items-center gap-0.5">
-                        <i class="fas fa-map-marker-alt text-[8px]"></i><?php echo htmlspecialchars(substr($barangay_name, 0, 12)); ?>
-                    </span>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <i class="fas fa-chevron-right text-gray-300 text-xs group-hover:text-emerald-500 transition"></i>
-        </a>
-    </div>
 </aside>
 
 <?php if ($user_role === 'admin'): ?>

@@ -6,7 +6,14 @@
     --dropdown-hover: #f1f8f4;
     --dropdown-selected: #e6f4ec;
 }
-body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])),
+/* Enhanced selects retain only their submitted value; the visible control is
+   Select2's replacement. Older compiled form rules must not enlarge them. */
+body select.select2-hidden-accessible {
+    min-height:0 !important; height:1px !important; min-width:0 !important; width:1px !important;
+    max-width:1px !important; padding:0 !important; border:0 !important;
+    background:none !important; box-shadow:none !important; appearance:none !important;
+}
+body select:where(:not([multiple]):not([size]):not([data-cs-enhanced]):not(.select2-hidden-accessible)),
 body .cs .cs-btn {
     appearance: none !important;
     box-sizing: border-box;
@@ -27,7 +34,7 @@ body .cs .cs-btn {
     box-shadow: none;
     transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
 }
-body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])) {
+body select:where(:not([multiple]):not([size]):not([data-cs-enhanced]):not(.select2-hidden-accessible)) {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%230d8568' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
     background-size: 18px 18px !important;
@@ -55,18 +62,18 @@ body .app-mobile-header select { min-height: 34px !important; font-size: .76rem;
    keep their native picker, including keyboard, touch and screen-reader support. */
 @supports (appearance: base-select) {
     @media (pointer: fine) {
-        body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])),
-        body select:where(:not([multiple]):not([size]):not([data-cs-enhanced]))::picker(select) { appearance: base-select !important; }
-        body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])) {
+        body select:where(:not([multiple]):not([size]):not([data-cs-enhanced]):not(.select2-hidden-accessible)),
+        body select:where(:not([multiple]):not([size]):not([data-cs-enhanced]):not(.select2-hidden-accessible))::picker(select) { appearance: base-select !important; }
+        body select:where(:not([multiple]):not([size]):not([data-cs-enhanced]):not(.select2-hidden-accessible)) {
             background-image: none !important; padding-right: .8rem !important; gap: .8rem;
         }
-        body select::picker-icon {
+        body select:not(.select2-hidden-accessible)::picker-icon {
             content: ''; width: 18px; height: 18px; flex-shrink: 0;
             background: center / 18px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%230d8568' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
             transition: rotate .16s ease;
         }
-        body select:open::picker-icon { rotate: 180deg; }
-        body select::picker(select) {
+        body select:not(.select2-hidden-accessible):open::picker-icon { rotate: 180deg; }
+        body select:not(.select2-hidden-accessible)::picker(select) {
             padding: 5px; margin-block: 6px; max-height: min(320px, 60vh);
             border: 1px solid var(--dropdown-border); border-radius: 10px; background: #fff;
             box-shadow: 0 12px 32px rgba(23,59,44,.13); overflow-y: auto;

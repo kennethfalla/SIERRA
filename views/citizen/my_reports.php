@@ -206,6 +206,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -1363,7 +1364,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/report-list.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/report-list.css'); ?>">
 </head>
-<body>
+<body class="my-reports-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -1402,7 +1403,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         $ft = [
             'search_id'          => 'searchInput',
             'search_value'       => $search_keyword,
-            'search_placeholder' => 'Search reports...',
+            'search_placeholder' => 'Search reports…',
             'results_text'       => '',
             'inline_selects'     => [],
             'filter_by'          => [
@@ -1448,6 +1449,22 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         </div>
 
+        <!-- Reports Grid -->
+        <div class="table-section-header report-feed-heading">
+            <nav class="tab-switcher report-header-tabs" aria-label="<?php echo t('Report lists'); ?>">
+                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="tab-btn <?php echo $active_tab === 'my' ? 'active' : ''; ?>" <?php if ($active_tab === 'my'): ?>aria-current="page"<?php endif; ?>>
+                    <i class="fas fa-file-alt"></i>
+                    <?php echo t('My Reports'); ?>
+                    <span class="tab-badge"><?php echo $total_reports; ?></span>
+                </a>
+                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported" class="tab-btn supported-tab <?php echo $active_tab === 'supported' ? 'active' : ''; ?>" <?php if ($active_tab === 'supported'): ?>aria-current="page"<?php endif; ?>>
+                    <i class="fas fa-heart"></i>
+                    <?php echo t('My Support'); ?>
+                    <span class="tab-badge"><?php echo $total_supported; ?></span>
+                </a>
+            </nav>
+            <div class="table-section-actions"></div>
+        </div>
         <!-- Status filter chips (notification-style) -->
         <?php $status_all_count = array_sum($status_summary); ?>
         <div class="status-chip-bar" id="statusChipBar">
@@ -1465,22 +1482,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <?php endforeach; ?>
         </div>
         
-        <!-- Reports Grid -->
-        <div class="table-section-header report-feed-heading">
-            <nav class="tab-switcher report-header-tabs" aria-label="<?php echo t('Report lists'); ?>">
-                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports" class="tab-btn <?php echo $active_tab === 'my' ? 'active' : ''; ?>" <?php if ($active_tab === 'my'): ?>aria-current="page"<?php endif; ?>>
-                    <i class="fas fa-file-alt"></i>
-                    <?php echo t('My Reports'); ?>
-                    <span class="tab-badge"><?php echo $total_reports; ?></span>
-                </a>
-                <a href="<?php echo BASE_URL; ?>index.php?page=my-reports&tab=supported" class="tab-btn supported-tab <?php echo $active_tab === 'supported' ? 'active' : ''; ?>" <?php if ($active_tab === 'supported'): ?>aria-current="page"<?php endif; ?>>
-                    <i class="fas fa-heart"></i>
-                    <?php echo t('My Support'); ?>
-                    <span class="tab-badge"><?php echo $total_supported; ?></span>
-                </a>
-            </nav>
-            <div class="table-section-actions"></div>
-        </div>
         <div id="reportsGrid" class="reports-grid report-feed">
             <?php if(count($reports) > 0): ?>
                 <?php $reportListContext = 'citizen'; foreach ($reports as $listReport) { include BASE_PATH . 'views/shared/report_list_item.php'; } ?>

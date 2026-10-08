@@ -37,7 +37,7 @@ class Database {
     // Bump this whenever new auto-migrations are added further below. The
     // database stores completion, so normal requests run one version lookup
     // and no schema inspection (important on shared hosting / high-traffic polling).
-    const SCHEMA_VERSION = '2026-10-07-1';
+    const SCHEMA_VERSION = '2026-10-08-1';
 
     // Reuse a single PDO connection per request (see getConnection()).
     private static $sharedConn = null;
@@ -60,6 +60,12 @@ class Database {
             $this->conn = new PDO($dsn, $this->username, $this->password, [PDO::ATTR_TIMEOUT => 5]);
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            // Bound metadata/row-lock waits instead of keeping a worker blocked
+            // until the reverse proxy gives up. Applies to every page/controller.
+            foreach (['SET SESSION lock_wait_timeout = 5', 'SET SESSION innodb_lock_wait_timeout = 5'] as $setting) {
+                try { $this->conn->exec($setting); }
+                catch (PDOException $e) { error_log('[Database] Lock timeout setting unavailable.'); }
+            }
 
             // Force the MySQL session to Manila time (+08:00) so NOW(),
             // CURRENT_TIMESTAMP and TIMESTAMPDIFF all match the app's
@@ -80,6 +86,16 @@ class Database {
                 self::$columnsEnsured = true;
             }
 
+            // MySQL bounds SELECTs; MariaDB uses max_statement_time. Install
+            // this after migrations so first-run schema work is not interrupted.
+            if (PHP_SAPI !== 'cli') {
+                try { $this->conn->exec('SET SESSION max_execution_time = 10000'); }
+                catch (PDOException $e) {
+                    try { $this->conn->exec('SET SESSION max_statement_time = 10'); }
+                    catch (PDOException $unsupported) { error_log('[Database] Statement timeout unavailable on this server.'); }
+                }
+            }
+
             self::$sharedConn = $this->conn;
 
         } catch(PDOException $exception) {
@@ -87,7 +103,9 @@ class Database {
             error_log('[Database] Connection/update failed: ' . $exception->getMessage());
             http_response_code(503);
             header('Retry-After: 30');
-            die('The system is temporarily unavailable. Please try again shortly.');
+            if (class_exists('RequestRuntime')) RequestRuntime::unavailable(503);
+            else echo 'The system is temporarily unavailable. Please try again shortly.';
+            exit;
         }
         return $this->conn;
     }
@@ -121,6 +139,14 @@ class Database {
                 if (!(int)$indexCheck->fetchColumn()) $this->conn->exec("ALTER TABLE reports ADD INDEX `{$name}` ({$columns})");
             }
             // Prepare OTP storage once per schema version, never during sends/resends.
+            $this->conn->exec("CREATE TABLE IF NOT EXISTS remember_tokens (
+                id INT(11) NOT NULL AUTO_INCREMENT,
+                user_id INT(11) NOT NULL,
+                token_hash VARCHAR(255) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id), KEY user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
             $this->conn->exec("CREATE TABLE IF NOT EXISTS verification_codes (
                 id INT(11) AUTO_INCREMENT PRIMARY KEY,
                 user_id INT(11) NOT NULL,
@@ -498,6 +524,32 @@ class Database {
             }
             if (!in_array('status', $activityColumns, true)) {
                 $this->conn->exec("ALTER TABLE activity_logs ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'SUCCESS' AFTER user_agent");
+            }
+
+            // Cover frequent list/poll/OTP lookups, including older imported
+            // schemas. Skip any equivalent index even if it has another name.
+            foreach ([
+                'notifications' => ['idx_notif_recent' => ['user_id', 'created_at', 'id']],
+                'verification_codes' => ['idx_verification_active' => ['user_id', 'type', 'used', 'expires_at']],
+                'report_images' => ['idx_report_images_report' => ['report_id']],
+                'reports' => ['idx_reports_status_created' => ['status', 'created_at']],
+            ] as $table => $indexes) {
+                if (!$this->tableExists($table)) continue;
+                $existing = [];
+                foreach ($this->conn->query("SHOW INDEX FROM `{$table}`")->fetchAll(PDO::FETCH_ASSOC) as $index) {
+                    $existing[$index['Key_name']][(int)$index['Seq_in_index']] = $index['Column_name'];
+                }
+                foreach ($indexes as $name => $columns) {
+                    $covered = false;
+                    foreach ($existing as $indexedColumns) {
+                        ksort($indexedColumns);
+                        if (array_slice(array_values($indexedColumns), 0, count($columns)) === $columns) { $covered = true; break; }
+                    }
+                    if (!$covered) {
+                        $columnSql = implode(', ', array_map(static function ($column) { return "`{$column}`"; }, $columns));
+                        $this->conn->exec("ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$columnSql})");
+                    }
+                }
             }
 
             return true;

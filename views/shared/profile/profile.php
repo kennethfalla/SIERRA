@@ -8,7 +8,7 @@
 // Determine which section to display
 // ============================================================
 $section = $_GET['section'] ?? '';
-$valid_sections = ['personal-information', 'change-password', 'lang-settings', 'pdf-export-settings', 'activity-log', 'about', 'terms', 'privacy', 'faqs', 'help'];
+$valid_sections = ['personal-information', 'change-password', 'lang-settings', 'appearance', 'pdf-export-settings', 'activity-log', 'about', 'terms', 'privacy', 'faqs', 'help'];
 if ($section && !in_array($section, $valid_sections)) {
     $section = ''; // treat as no section
 }
@@ -50,6 +50,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -798,6 +799,11 @@ require_once BASE_PATH . 'helpers/Lang.php';
                         <span class="menu-label"><?php echo t('Language Settings'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
+                    <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=appearance">
+                        <span class="menu-icon"><i class="fas fa-palette" aria-hidden="true"></i></span>
+                        <span class="menu-label"><?php echo t('Appearance'); ?></span>
+                        <i class="fas fa-chevron-right menu-chevron" aria-hidden="true"></i>
+                    </a>
                     <?php if (($_SESSION['user_role'] ?? '') === 'barangay_official'): ?>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=pdf-export-settings">
                         <span class="menu-icon"><i class="fas fa-file-pdf"></i></span>
@@ -872,6 +878,19 @@ require_once BASE_PATH . 'helpers/Lang.php';
                             break;
                         case 'lang-settings':
                             include __DIR__ . '/language.php';
+                            break;
+                        case 'appearance':
+                            ?>
+                            <h2 class="text-xl font-bold mb-2"><?php echo t('Appearance'); ?></h2>
+                            <p class="text-sm text-gray-500 mb-6"><?php echo t('Choose how SIERRA looks on this device.'); ?></p>
+                            <label class="form-label" for="profileAppearance"><?php echo t('Color mode'); ?></label>
+                            <select class="form-input" id="profileAppearance" data-theme-preference>
+                                <option value="system"><?php echo t('Follow device'); ?></option>
+                                <option value="light"><?php echo t('Light'); ?></option>
+                                <option value="dark"><?php echo t('Dark'); ?></option>
+                            </select>
+                            <p class="text-xs text-gray-400 mt-3"><?php echo t('Your choice applies immediately and is saved in this browser.'); ?></p>
+                            <?php
                             break;
                         case 'pdf-export-settings':
                             include __DIR__ . '/pdf_export.php';
@@ -961,7 +980,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
         </div>
         <div class="crop-modal-body" style="padding:24px;">
             <p class="text-sm text-gray-500 mb-4">We've sent a 6-digit OTP to your new mobile number. Enter it below to verify.</p>
-            <input type="text" id="phoneOtpInput" maxlength="6" placeholder="000000" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code" inputmode="numeric">
+            <input type="text" id="phoneOtpInput" maxlength="6" placeholder="Enter 6-digit code" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code" inputmode="numeric">
             <p class="text-xs text-gray-400 mt-2 text-center">Expires in 10 minutes.</p>
         </div>
         <div class="crop-modal-footer">
@@ -980,7 +999,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
         </div>
         <div class="crop-modal-body" style="padding:24px;">
             <p class="text-sm text-gray-500 mb-4">We've sent a confirmation code to your new email address. Enter it below to confirm.</p>
-            <input type="text" id="emailConfirmTokenInput" maxlength="8" placeholder="A1B2C3D4" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code">
+            <input type="text" id="emailConfirmTokenInput" maxlength="8" placeholder="Enter verification code" class="form-input text-center text-lg tracking-[0.3em] font-bold" style="letter-spacing:0.3em;" autocomplete="one-time-code">
             <p class="text-xs text-gray-400 mt-2 text-center">Expires in 30 minutes.</p>
         </div>
         <div class="crop-modal-footer">

@@ -19,7 +19,8 @@ class SchemaMigration {
     public static function run(PDO $db, string $version, callable $migrate): void {
         if (self::current($db, $version)) return;
         $name = 'sierra-schema-' . substr(hash('sha256', (string)$db->query('SELECT DATABASE()')->fetchColumn()), 0, 40);
-        $lock = $db->prepare('SELECT GET_LOCK(?, 10)');
+        // Competing visitors fail promptly while one request updates the schema.
+        $lock = $db->prepare('SELECT GET_LOCK(?, 0)');
         $lock->execute([$name]);
         if ((int)$lock->fetchColumn() !== 1) {
             throw new PDOException('Database update is in progress. Please retry shortly.');

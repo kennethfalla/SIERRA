@@ -600,6 +600,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -612,6 +613,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-loading.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-loading.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.css" />
     <script src="<?php echo BASE_URL; ?>assets/vendor/leaflet/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-layers.js'); ?>"></script>
@@ -1380,7 +1383,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         $ft = [
             'search_id'          => 'barangaySearchInput',
             'search_value'       => $f_search,
-            'search_placeholder' => 'Search reports by title or description...',
+            'search_placeholder' => 'Search reports…',
             'show_search'        => true,
             'show_active_row' => false,
             'compact_breakpoint' => 1199,
@@ -1870,11 +1873,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                         <?php 
                         foreach(array_slice($recent_reports_rows, 0, 10) as $row):
                             $risk_level = $row['risk_level'] ?? 'low';
-                            $risk_badge = '';
-                            if($risk_level == 'low') $risk_badge = 'bg-[#D1FAE5] text-[#065F46]';
-                            elseif($risk_level == 'medium') $risk_badge = 'bg-[#FEF3C7] text-[#92400E]';
-                            elseif($risk_level == 'high') $risk_badge = 'bg-[#FFEDD5] text-[#9A3412]';
-                            else $risk_badge = 'bg-[#FEE2E2] text-[#991B1B]';
                             
                             $display_status = $row['status'];
                             if($display_status == 'escalated_pending' || $display_status == 'escalated') {
@@ -1893,7 +1891,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             <td class="px-3 py-3 text-sm font-semibold text-gray-600"><?php echo htmlspecialchars($row['full_name']); ?></td>
                             <td class="px-3 py-3 text-sm font-medium text-gray-600"><?php echo htmlspecialchars($row['category_name']); ?></td>
                             <td class="px-3 py-3">
-                                <span class="px-2.5 py-1 text-xs rounded-full font-extrabold <?php echo $risk_badge; ?>">
+                                <span class="risk-badge risk-<?php echo htmlspecialchars($risk_level, ENT_QUOTES, 'UTF-8'); ?>">
                                     <?php echo ucfirst($risk_level); ?>
                                 </span>
                             </td>
@@ -1934,12 +1932,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <?php else: ?>
                 <?php foreach(array_slice($recent_reports_rows, 0, 10) as $row):
                     $risk_level = $row['risk_level'] ?? 'low';
-                    $risk_badge_mob = '';
-                    $risk_color = '#10B981';
-                    if($risk_level == 'low')      { $risk_badge_mob = 'bg-[#D1FAE5] text-[#065F46]';  $risk_color = '#10B981'; }
-                    elseif($risk_level == 'medium'){ $risk_badge_mob = 'bg-[#FEF3C7] text-[#92400E]'; $risk_color = '#F59E0B'; }
-                    elseif($risk_level == 'high')  { $risk_badge_mob = 'bg-[#FFEDD5] text-[#9A3412]'; $risk_color = '#F97316'; }
-                    else                           { $risk_badge_mob = 'bg-[#FEE2E2] text-[#991B1B]'; $risk_color = '#EF4444'; }
+                    $risk_color = ['low' => '#10B981', 'medium' => '#F59E0B', 'high' => '#F97316', 'critical' => '#EF4444'][$risk_level] ?? '#10B981';
                     $display_status_mob = $row['status'];
                     if($display_status_mob == 'escalated_pending' || $display_status_mob == 'escalated') $display_status_mob = 'escalated';
                     if($display_status_mob == 'rejected') $display_status_mob = 'declined';
@@ -1947,7 +1940,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <div class="mob-card">
                     <div class="flex justify-between items-start gap-2 mb-1">
                         <div class="mob-card-title flex-1"><?php echo htmlspecialchars($row['title']); ?></div>
-                        <span class="px-2 py-0.5 text-xs rounded-full font-bold <?php echo $risk_badge_mob; ?> flex-shrink-0"><?php echo ucfirst($risk_level); ?></span>
+                        <span class="risk-badge risk-<?php echo htmlspecialchars($risk_level, ENT_QUOTES, 'UTF-8'); ?>"><?php echo ucfirst($risk_level); ?></span>
                     </div>
                     <div class="mob-card-meta">
                         <span><i class="fas fa-user text-[#10A37F]"></i><?php echo htmlspecialchars($row['full_name']); ?></span>

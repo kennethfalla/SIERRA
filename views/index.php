@@ -95,7 +95,7 @@ $system_name = SettingsHelper::get('system_name', 'Sierra');
 $contact_email = SettingsHelper::get('contact_email', 'menro@sanisidro.gov.ph');
 $emergency_hotline = SettingsHelper::get('emergency_hotline', '0917-123-4567');
 $lgu_logo = SettingsHelper::get('lgu_logo', '');
-$logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
+$logo_url = SettingsHelper::getLogoUrl('header');
 
 // ===== HERO BACKGROUND MEDIA (editable in Settings > Landing Page) =====
 $hero_bg_type  = $lp('lp_hero_bg_type', 'image');
@@ -147,6 +147,7 @@ if ($isLoggedIn && $is_staff) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -343,8 +344,75 @@ if ($isLoggedIn && $is_staff) {
         }
 
         .hero-scroll-cue {
-            text-shadow: 0 1px 6px rgba(0,0,0,0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            width: fit-content;
+            margin: .9rem auto 0;
+            padding: .5rem 1rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .14);
+            border: 1px solid rgba(255, 255, 255, .28);
+            color: #fff;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            text-decoration: none;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, .25);
+            z-index: 6;
         }
+        .hero-scroll-cue:hover { background: rgba(255, 255, 255, .22); }
+        .hero-scroll-cue i { animation: heroCueBounce 1.6s ease-in-out infinite; }
+        @keyframes heroCueBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        /* ===== Reveal the landing after the intro splash ===== */
+        body.splash-lock #main-content { opacity: 0; transform: translateY(26px); }
+        body.landing-ready #main-content {
+            opacity: 1;
+            transform: none;
+            transition: opacity .9s ease .05s, transform .9s cubic-bezier(.22, 1, .36, 1) .05s;
+        }
+
+        /* ===== Floating dark-mode toggle (landing) ===== */
+        .landing-dark-toggle {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 60;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 1px solid #cde5d7;
+            background: #fff;
+            color: #0d8568;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            cursor: pointer;
+            box-shadow: 0 16px 34px -16px rgba(15, 23, 42, .55);
+            transition: transform .18s ease, background .18s ease, color .18s ease;
+        }
+        .landing-dark-toggle:hover { transform: translateY(-2px); }
+        body.landing-dark .landing-dark-toggle { background: #0f2a20; border-color: #1f4a3a; color: #7ee1b7; }
+
+        /* ===== Landing dark theme (basic) ===== */
+        body.landing-dark { background: #06140f; }
+        body.landing-dark #main-content { background: #06140f; }
+        body.landing-dark :is(.bg-white) { background: #0d2018 !important; }
+        body.landing-dark :is(.bg-\[\#F5FBF6\]) { background: #0a1a14 !important; }
+        body.landing-dark :is(.text-gray-800, .text-gray-700, .text-gray-600) { color: #d7e6de !important; }
+        body.landing-dark :is(.text-gray-500, .text-gray-400) { color: #9fb3a9 !important; }
+        body.landing-dark :is(h1, h2, h3, .lp-section-head, .lp-steps-head) { color: #eafff6; }
+        body.landing-dark .stat-card { background: #10281f !important; }
+        body.landing-dark .lp-step { background: #0d2018; border-color: #1b3a2e; }
+        body.landing-dark .lp-step-title { color: #eafff6; }
+        body.landing-dark .faq-item { background: #0d2018; border-color: #1b3a2e; }
+        body.landing-dark .lp-marquee { background: #04100b; }
 
         #home::after {
             content: "";
@@ -380,24 +448,6 @@ if ($isLoggedIn && $is_staff) {
         @keyframes landingHeroBgDrift {
             from { background-position: 50% 50%; }
             to { background-position: 56% 48%; }
-        }
-
-        /* Hero bottom corners: square on load, rounded once the page is scrolled */
-        #home {
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-            transition: border-radius 0.5s ease;
-            will-change: border-radius;
-        }
-        body.is-scrolled-landing #home {
-            border-bottom-left-radius: 2rem;
-            border-bottom-right-radius: 2rem;
-        }
-        @media (min-width: 640px) {
-            body.is-scrolled-landing #home {
-                border-bottom-left-radius: 2.5rem;
-                border-bottom-right-radius: 2.5rem;
-            }
         }
 
         /* FAQ accordion */
@@ -440,17 +490,6 @@ if ($isLoggedIn && $is_staff) {
             line-height: 1.6;
         }
         .faq-a strong { color: #047857; }
-        .faq-item::details-content {
-            block-size: 0;
-            opacity: 0;
-            overflow: hidden;
-            transition: block-size .32s ease, opacity .24s ease;
-        }
-        .faq-item[open]::details-content {
-            block-size: auto;
-            opacity: 1;
-        }
-
         /* ============================================ */
         /* LANDING NAVBAR (the compiled Tailwind build  */
         /* lacks responsive/hover/opacity utilities)    */
@@ -709,60 +748,6 @@ if ($isLoggedIn && $is_staff) {
             /* ── Nav ── */
             .nav-landing .landing-brand-name { font-size: 0.95rem; }
 
-            /* ── Hero ──
-               Bottom corners stay square while the hero is at rest (matching
-               desktop) and round once the page is scrolled. Position/layout is
-               unchanged — only the visuals are enhanced. */
-            #home {
-                min-height: 100svh;
-                border-radius: 0;
-                padding: 0 !important;
-                background-position: 54% center;
-            }
-            body.is-scrolled-landing #home {
-                border-bottom-left-radius: 1.5rem;
-                border-bottom-right-radius: 1.5rem;
-            }
-            /* Stronger bottom shading so the hero copy stays readable over the
-               busy photo/video on small screens. */
-            #home .hero-bg-overlay {
-                background: linear-gradient(180deg, rgba(4,40,31,0.30) 0%, rgba(6,78,59,0.30) 38%, rgba(3,22,15,0.78) 100%);
-            }
-            #home > .relative.z-10 {
-                padding-top: 6rem;
-                padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
-                gap: 1.5rem;
-            }
-            .hero-eyebrow {
-                max-width: 100%;
-                font-size: 0.73rem !important;
-                padding: 0.55rem 0.8rem;
-                margin-bottom: 1.1rem !important;
-                line-height: 1.5;
-            }
-            .hero-heading {
-                font-size: clamp(2.1rem, 8.8vw, 3rem) !important;
-                line-height: 1.08;
-                letter-spacing: -0.025em;
-                text-transform: uppercase;
-                text-wrap: balance;
-                margin-bottom: 1rem !important;
-            }
-            .hero-headline-second br { display: none; }
-            #home .hero-subtitle {
-                max-width: 35rem;
-                font-size: 0.95rem !important;
-                line-height: 1.65;
-                margin-bottom: 1.5rem !important;
-            }
-            .hero-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
-            #home .hero-actions a {
-                min-height: 44px;
-                justify-content: center;
-                padding: 0.75rem 1rem;
-                font-size: 0.88rem;
-                border-radius: 0.75rem;
-            }
             /* Stats glass card — compact */
             .glass-card {
                 padding: 1rem 1.1rem !important;
@@ -859,6 +844,8 @@ if ($isLoggedIn && $is_staff) {
     <script defer src="<?php echo BASE_URL; ?>assets/js/landing-motion.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/landing-motion.js'); ?>"></script>
     <script defer src="<?php echo BASE_URL; ?>assets/js/custom-cursor.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/custom-cursor.js'); ?>"></script>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
+    <script defer src="<?php echo BASE_URL; ?>assets/js/landing-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/landing-ui.js'); ?>"></script>
 </head>
 <body class="bg-[#F5FBF6] splash-lock">
 
@@ -956,12 +943,13 @@ if ($isLoggedIn && $is_staff) {
     <!-- Mobile navigation menu (below lg) -->
     <div id="mobileNavMenu" class="nav-mobile-menu hidden bg-white border-t border-gray-100 shadow-xl">
         <div class="px-3 sm:px-5 py-3">
-            <div class="space-y-1">
+            <div class="nav-mobile-links space-y-1">
                 <a href="#home" class="nav-mobile-link"><i class="fas fa-home"></i><?php echo t('Home'); ?></a>
                 <a href="#features" class="nav-mobile-link"><i class="fas fa-cogs"></i><?php echo t('How It Works'); ?></a>
                 <a href="#map-section" class="nav-mobile-link"><i class="fas fa-map-marked-alt"></i><?php echo t('Map'); ?></a>
                 <a href="#stats" class="nav-mobile-link"><i class="fas fa-chart-bar"></i><?php echo t('Stats'); ?></a>
                 <a href="#about" class="nav-mobile-link"><i class="fas fa-landmark"></i><?php echo t('About LGU'); ?></a>
+                <a href="#report-guide" class="nav-mobile-link"><i class="fas fa-clipboard-list"></i><?php echo t('Before You Report'); ?></a>
                 <a href="#faq" class="nav-mobile-link"><i class="fas fa-question-circle"></i><?php echo t('FAQ'); ?></a>
             </div>
 
@@ -988,7 +976,7 @@ if ($isLoggedIn && $is_staff) {
 <!-- ============================================ -->
 <!-- SECTION 1: HOME (HERO) -->
 <!-- ============================================ -->
-<section id="home" class="hero-orbit-layout relative overflow-hidden hero-bg" style="<?php echo $hero_bg_style; ?>">
+<section id="home" class="hero-landscape-layout relative overflow-hidden hero-bg" style="<?php echo $hero_bg_style; ?>">
     <?php if ($show_hero_video): ?>
         <video class="hero-media-video" id="heroVideo" autoplay muted loop playsinline src="<?php echo htmlspecialchars($hero_bg_video); ?>"></video>
     <?php endif; ?>
@@ -1034,7 +1022,7 @@ if ($isLoggedIn && $is_staff) {
                         </a>
                     <?php else: ?>
                         <a href="<?php echo BASE_URL; ?>index.php?page=register" class="btn-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
-                            <i class="fas fa-user-plus"></i> <?php echo t('Create Free Account'); ?>
+                            <i class="fas fa-user-plus"></i> <?php echo t("Let's get started"); ?>
                         </a>
                         <a href="<?php echo BASE_URL; ?>index.php?page=login" class="btn-outline-light px-6 py-3 rounded-xl font-semibold flex items-center gap-2">
                             <i class="fas fa-sign-in-alt"></i> <?php echo t('Sign In'); ?>
@@ -1044,89 +1032,10 @@ if ($isLoggedIn && $is_staff) {
             </div>
     </div>
 
-    <!-- A visual overview of the system; these cards do not expose report details. -->
-    <div class="hero-orbit" aria-hidden="true">
-        <div class="hero-orbit-ring">
-            <?php for ($orbit_copy = 0; $orbit_copy < 2; $orbit_copy++): ?>
-            <div class="hero-orbit-group">
-            <div class="hero-orbit-card orbit-community">
-                <span class="orbit-card-kicker">SIERRA / COMMUNITY</span>
-                <i class="fas fa-leaf orbit-card-icon"></i>
-                <strong>Green San Isidro</strong>
-                <span>A cleaner community starts with us.</span>
-                <div class="orbit-card-tags"><span>Care</span><span>Act</span><span>Protect</span></div>
-            </div>
-            <div class="hero-orbit-card">
-                <span class="orbit-card-kicker">COMMUNITY REPORTS</span>
-                <i class="fas fa-clipboard-list orbit-card-icon"></i>
-                <strong class="orbit-card-number"><?php echo number_format((int)$total_reports); ?></strong>
-                <span>Environmental concerns reported</span>
-                <div class="orbit-card-bars"><span></span><span></span><span></span><span></span><span></span></div>
-            </div>
-            <div class="hero-orbit-card orbit-dark">
-                <span class="orbit-card-kicker">CLEAN AIR</span>
-                <i class="fas fa-cloud orbit-card-icon"></i>
-                <strong>Room to breathe.</strong>
-                <span>Help keep our air clean and our neighborhoods healthy.</span>
-            </div>
-            <div class="hero-orbit-card">
-                <span class="orbit-card-kicker">CLEAN WATER</span>
-                <i class="fas fa-water orbit-card-icon"></i>
-                <strong>Protect our waterways.</strong>
-                <span>Report pollution and blocked drainage in your barangay.</span>
-            </div>
-            <div class="hero-orbit-card orbit-community">
-                <span class="orbit-card-kicker">WASTE MANAGEMENT</span>
-                <i class="fas fa-recycle orbit-card-icon"></i>
-                <strong>Clean streets. Better days.</strong>
-                <span>Speak up about illegal dumping and uncollected waste.</span>
-            </div>
-            <div class="hero-orbit-card">
-                <span class="orbit-card-kicker">REPORTS RESOLVED</span>
-                <i class="fas fa-check-circle orbit-card-icon"></i>
-                <strong class="orbit-card-number"><?php echo number_format((int)$resolved_reports); ?></strong>
-                <span>Community reports marked resolved</span>
-                <div class="orbit-card-tags"><span>Reported</span><span>Reviewed</span><span>Resolved</span></div>
-            </div>
-            <div class="hero-orbit-card orbit-dark">
-                <span class="orbit-card-kicker">TREE PLANTING</span>
-                <i class="fas fa-seedling orbit-card-icon"></i>
-                <strong>Grow a greener future.</strong>
-                <span>Small actions today help protect San Isidro tomorrow.</span>
-            </div>
-            <div class="hero-orbit-card">
-                <span class="orbit-card-kicker">YOUR BARANGAY</span>
-                <i class="fas fa-map-marker-alt orbit-card-icon"></i>
-                <strong>Local concerns. Local action.</strong>
-                <span>Report an issue and follow its progress through SIERRA.</span>
-            </div>
-            <div class="hero-orbit-card orbit-community">
-                <span class="orbit-card-kicker">REPORT AN ISSUE</span>
-                <i class="fas fa-camera orbit-card-icon"></i>
-                <strong>See it. Share it.</strong>
-                <span>A photo and an exact location help your barangay take action.</span>
-            </div>
-            <div class="hero-orbit-card orbit-dark">
-                <span class="orbit-card-kicker">FOLLOW THE PROGRESS</span>
-                <i class="fas fa-list-check orbit-card-icon"></i>
-                <strong>Stay informed.</strong>
-                <span>Track your report from submission through resolution.</span>
-            </div>
-            <div class="hero-orbit-card">
-                <span class="orbit-card-kicker">ENVIRONMENTAL MAP</span>
-                <i class="fas fa-map-marked-alt orbit-card-icon"></i>
-                <strong>See the bigger picture.</strong>
-                <span>Explore environmental reports across San Isidro.</span>
-            </div>
-            </div>
-            <?php endfor; ?>
-        </div>
-    </div>
-
     <!-- Scroll cue -->
-    <a href="#features" class="hero-scroll-cue hidden sm:flex flex-col items-center gap-1.5 absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 hover:text-white transition" aria-label="Scroll to explore">
-        <span class="text-[10px] uppercase tracking-widest">Scroll</span>
-        <i class="fas fa-chevron-down text-sm animate-bounce"></i>
+    <a href="#features" class="hero-scroll-cue" aria-label="<?php echo htmlspecialchars(t('Scroll down to How It Works'), ENT_QUOTES); ?>">
+        <span><?php echo t('Scroll down'); ?></span>
+        <i class="fas fa-arrow-down" aria-hidden="true"></i>
     </a>
 </section>
 
@@ -1501,7 +1410,7 @@ if ($isLoggedIn && $is_staff) {
     <!-- ============================================ -->
     <!-- MARQUEE TICKER -->
     <!-- ============================================ -->
-    <?php $marquee_items = ['Clean Air', 'Clean Water', 'Waste Management', 'Tree Planting', 'Coastal Care', 'Green San Isidro']; ?>
+    <?php $marquee_items = $landing_barangays ?: ['Alua', 'Calaba', 'Malapit', 'Mangga', 'Poblacion', 'Pulo', 'San Roque', 'Santo Cristo', 'Tabon']; ?>
     <div class="lp-marquee" aria-hidden="true">
         <div class="lp-marquee-track">
             <?php for ($m = 0; $m < 2; $m++): ?>
@@ -1620,12 +1529,12 @@ if ($isLoggedIn && $is_staff) {
         </div>
 
         <div class="max-w-3xl mx-auto space-y-3">
-            <details class="faq-item" open>
+            <details class="faq-item">
                 <summary class="faq-q">
                     <span>How do I report an environmental issue?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a">Create a free account, then click <strong>Submit Report</strong> in your dashboard. Choose the category, take a photo, describe the issue, and pin the exact location on the map. Your barangay will review it and take action.</div>
+                <div class="faq-a"><div class="faq-answer-inner">Create a free account, then click <strong>Submit Report</strong> in your dashboard. Choose the category, take a photo, describe the issue, and pin the exact location on the map. Your barangay will review it and take action.</div></div>
             </details>
 
             <details class="faq-item">
@@ -1633,7 +1542,7 @@ if ($isLoggedIn && $is_staff) {
                     <span>Who can report environmental issues?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a">Any citizen, whether a resident of San Isidro or not. You only need a free account. Your report is anonymous to the public but visible to your barangay and MENRO so they can act on it.</div>
+                <div class="faq-a"><div class="faq-answer-inner">Any citizen, whether a resident of San Isidro or not. You only need a free account. Your report is anonymous to the public but visible to your barangay and MENRO so they can act on it.</div></div>
             </details>
 
             <details class="faq-item">
@@ -1641,7 +1550,7 @@ if ($isLoggedIn && $is_staff) {
                     <span>What types of issues can I report?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a">Common reports include illegal dumping, uncollected garbage, drainage blockage, flooding, burning, air or water pollution, and other environmental concerns affecting your neighborhood.</div>
+                <div class="faq-a"><div class="faq-answer-inner">Common reports include illegal dumping, uncollected garbage, drainage blockage, flooding, burning, air or water pollution, and other environmental concerns affecting your neighborhood.</div></div>
             </details>
 
             <details class="faq-item">
@@ -1649,7 +1558,7 @@ if ($isLoggedIn && $is_staff) {
                     <span>How do I track the status of my report?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a">Open <strong>My Reports</strong> from your sidebar. Every report shows its current status &#8212; Pending, Verified, In Progress, Resolved, or Rejected. You also receive in-app notifications when your report's status changes.</div>
+                <div class="faq-a"><div class="faq-answer-inner">Open <strong>My Reports</strong> from your sidebar. Every report shows its current status &#8212; Pending, Verified, In Progress, Resolved, or Rejected. You also receive in-app notifications when your report's status changes.</div></div>
             </details>
 
             <details class="faq-item">
@@ -1657,7 +1566,7 @@ if ($isLoggedIn && $is_staff) {
                     <span>Do I need to include a photo?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a">A photo is highly recommended because it helps your barangay assess the issue faster. You can take a photo with your camera or choose one from your gallery when submitting the report.</div>
+                <div class="faq-a"><div class="faq-answer-inner">A photo is highly recommended because it helps your barangay assess the issue faster. You can take a photo with your camera or choose one from your gallery when submitting the report.</div></div>
             </details>
 
             <details class="faq-item">
@@ -1665,7 +1574,7 @@ if ($isLoggedIn && $is_staff) {
                     <span>What happens after I submit a report?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a">Your report goes to the appropriate barangay or MENRO staff. They verify the report, assign it, and work to resolve it. You will be notified at every step until the issue is marked resolved.</div>
+                <div class="faq-a"><div class="faq-answer-inner">Your report goes to the appropriate barangay or MENRO staff. They verify the report, assign it, and work to resolve it. You will be notified at every step until the issue is marked resolved.</div></div>
             </details>
 
             <details class="faq-item">
@@ -1673,7 +1582,7 @@ if ($isLoggedIn && $is_staff) {
                     <span>How long does review usually take?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a"><?php echo htmlspecialchars($landing_response_time); ?> Reports with clear photos, descriptions, and pinned locations are easier to review.</div>
+                <div class="faq-a"><div class="faq-answer-inner"><?php echo htmlspecialchars($landing_response_time); ?> Reports with clear photos, descriptions, and pinned locations are easier to review.</div></div>
             </details>
 
             <details class="faq-item">
@@ -1681,7 +1590,7 @@ if ($isLoggedIn && $is_staff) {
                     <span>What if another person already reported the same issue?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a">If the system detects a nearby similar report, you may support the existing report instead of creating a duplicate. This helps staff count how many people are affected by the same concern.</div>
+                <div class="faq-a"><div class="faq-answer-inner">If the system detects a nearby similar report, you may support the existing report instead of creating a duplicate. This helps staff count how many people are affected by the same concern.</div></div>
             </details>
 
             <details class="faq-item">
@@ -1689,7 +1598,7 @@ if ($isLoggedIn && $is_staff) {
                     <span>Is my personal information public?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a">No. Public viewers do not see your personal details. Authorized barangay and MENRO staff can view reporter information only when they need to verify, coordinate, or resolve a report.</div>
+                <div class="faq-a"><div class="faq-answer-inner">No. Public viewers do not see your personal details. Authorized barangay and MENRO staff can view reporter information only when they need to verify, coordinate, or resolve a report.</div></div>
             </details>
 
             <details class="faq-item">
@@ -1697,7 +1606,7 @@ if ($isLoggedIn && $is_staff) {
                     <span>What should I do for emergencies?</span>
                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </summary>
-                <div class="faq-a">For immediate danger, contact local emergency responders first. You can call <?php echo htmlspecialchars($emergency_hotline); ?> or email <?php echo htmlspecialchars($contact_email); ?> if you need help with the reporting system.</div>
+                <div class="faq-a"><div class="faq-answer-inner">For immediate danger, contact local emergency responders first. You can call <?php echo htmlspecialchars($emergency_hotline); ?> or email <?php echo htmlspecialchars($contact_email); ?> if you need help with the reporting system.</div></div>
             </details>
         </div>
     </div>
@@ -1776,38 +1685,6 @@ if ($isLoggedIn && $is_staff) {
 <!-- SCRIPTS -->
 <!-- ============================================ -->
 <script>
-// ============================================
-// MOBILE NAV TOGGLE
-// ============================================
-(function () {
-    var btn = document.getElementById('navToggle');
-    var menu = document.getElementById('mobileNavMenu');
-    if (!btn || !menu) return;
-    function close() {
-        menu.classList.add('hidden');
-        btn.setAttribute('aria-expanded', 'false');
-        btn.innerHTML = '<i class="fas fa-bars"></i>';
-    }
-    btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var isOpen = !menu.classList.toggle('hidden');
-        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        btn.innerHTML = '<i class="fas ' + (isOpen ? 'fa-times' : 'fa-bars') + '"></i>';
-    });
-    menu.querySelectorAll('a').forEach(function (a) {
-        a.addEventListener('click', close);
-    });
-    document.addEventListener('click', function (e) {
-        if (!btn.contains(e.target) && !menu.contains(e.target)) close();
-    });
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') close();
-    });
-    window.addEventListener('resize', function () {
-        if (window.innerWidth >= 1280) close();
-    }, { passive: true });
-})();
-
 // Keep the desktop navigation pill in step with the section being viewed.
 (function () {
     var links = Array.from(document.querySelectorAll('.nav-links .nav-link'));
@@ -1829,19 +1706,6 @@ if ($isLoggedIn && $is_staff) {
     }, { rootMargin: '-15% 0px -65% 0px', threshold: 0 });
     sections.forEach(function (section) { observer.observe(section); });
 })();
-
-// ============================================
-// HERO SCROLL CORNERS
-// ============================================
-function heroScrollState() {
-    if (window.scrollY > 40) {
-        document.body.classList.add('is-scrolled-landing');
-    } else {
-        document.body.classList.remove('is-scrolled-landing');
-    }
-}
-window.addEventListener('scroll', heroScrollState, { passive: true });
-heroScrollState();
 
 // ============================================
 // LANGUAGE DROPDOWNS
@@ -2159,61 +2023,40 @@ if (resolutionBar && window.IntersectionObserver && !window.matchMedia('(prefers
 })();
 </script>
 
-<!-- FAQ: exclusive accordion — only one item open at a time -->
+<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
+<?php echo lang_apply_js(); ?>
+<?php include BASE_PATH . 'views/shared/dashboard_loading.php'; ?>
+<dialog id="landingAuthDialog" class="auth-dialog" aria-label="Account access">
+    <button type="button" class="auth-dialog-close" data-auth-close aria-label="Close account window"><i class="fas fa-times" aria-hidden="true"></i></button>
+    <span class="auth-dialog-loading" role="status">Loading…</span>
+    <iframe data-landing-auth title="Account access" src="about:blank"></iframe>
+</dialog>
+
+<!-- Floating dark-mode toggle -->
+<button type="button" id="landingDarkToggle" class="landing-dark-toggle" aria-label="Toggle dark mode" aria-pressed="false">
+    <i class="fas fa-moon" aria-hidden="true"></i>
+</button>
 <script>
 (function () {
     'use strict';
-    var faqs = document.querySelectorAll('#faq details.faq-item');
-    if (!faqs.length) return;
-    Array.prototype.forEach.call(faqs, function (item) {
-        item.addEventListener('toggle', function () {
-            if (!item.open) return;
-            Array.prototype.forEach.call(faqs, function (other) {
-                if (other !== item && other.open) other.open = false;
-            });
-        });
+    var btn = document.getElementById('landingDarkToggle');
+    if (!btn) return;
+    var KEY = 'sierra_landing_dark';
+    function apply(on) {
+        document.body.classList.toggle('landing-dark', on);
+        btn.setAttribute('aria-pressed', String(on));
+        btn.innerHTML = '<i class="fas ' + (on ? 'fa-sun' : 'fa-moon') + '" aria-hidden="true"></i>';
+    }
+    var on = false;
+    try { on = localStorage.getItem(KEY) === '1'; } catch (e) {}
+    apply(on);
+    btn.addEventListener('click', function () {
+        on = !document.body.classList.contains('landing-dark');
+        try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+        apply(on);
     });
 })();
 </script>
-
-<script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
-<script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
-<script>
-/* Stats rows: 3 or fewer cards fit the screen; more than 3 scroll horizontally.
-   Self-contained (injects its own CSS) so a cached stylesheet can't break it. */
-(function () {
-    'use strict';
-    var CSS = '@media(max-width:767px){' +
-        '.stat-cards{display:flex !important;flex-wrap:nowrap !important;gap:10px;min-width:0;max-width:100%;overflow-x:auto !important;overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding-bottom:6px;overscroll-behavior-x:contain;}' +
-        '.stat-cards>*{box-sizing:border-box;flex:0 0 165px !important;width:165px !important;min-width:0;scroll-snap-align:start;}' +
-        '.stat-cards.sf-fit{display:grid !important;overflow:visible !important;padding-bottom:0;scroll-snap-type:none;}' +
-        '.stat-cards.sf-fit>*{flex:1 1 auto !important;width:auto !important;min-width:0;}' +
-        '.stat-cards.sf-1{grid-template-columns:minmax(0,1fr) !important;}' +
-        '.stat-cards.sf-2{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}' +
-        '.stat-cards.sf-3{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}' +
-        '}';
-    function inject() {
-        if (document.getElementById('stat-cards-css')) return;
-        var s = document.createElement('style');
-        s.id = 'stat-cards-css';
-        s.appendChild(document.createTextNode(CSS));
-        (document.head || document.documentElement).appendChild(s);
-    }
-    function applyStatFit() {
-        inject();
-        var rows = document.querySelectorAll('.stat-cards');
-        for (var i = 0; i < rows.length; i++) {
-            var row = rows[i];
-            var n = row.children.length;
-            row.classList.remove('sf-fit', 'sf-1', 'sf-2', 'sf-3');
-            if (n >= 1 && n <= 3) { row.classList.add('sf-fit', 'sf-' + n); }
-        }
-    }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyStatFit);
-    else applyStatFit();
-    window.addEventListener('resize', applyStatFit);
-})();
-</script>
-<?php echo lang_apply_js(); ?>
 </body>
 </html>

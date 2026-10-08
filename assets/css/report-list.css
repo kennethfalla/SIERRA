@@ -18,3 +18,51 @@
 .report-feed-heading { margin:18px 0 12px; padding:16px 18px; border:1px solid #dce9e1; border-radius:14px; background:#fff; }
 @media(max-width:700px) { .report-feed .report-feed-item { grid-template-columns:92px minmax(0,1fr); gap:12px; padding:12px; }.report-feed-photo{width:92px;height:110px}.report-feed-actions{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-end;border-top:1px solid #edf2ee;padding-top:10px}.report-feed-copy h3{font-size:13px}.report-feed-badges{gap:5px}.my-reports-topbar .tab-switcher a{padding:10px;font-size:12px} }
 @media(max-width:380px){.report-feed .report-feed-item{grid-template-columns:70px minmax(0,1fr)}.report-feed-photo{width:70px;height:100px}.report-feed-meta{gap:5px;font-size:10px}}
+
+/* Personal reports use the dashboard's quiet surfaces and clearer hierarchy. */
+.my-reports-page .report-feed-heading { margin-bottom:0; padding:18px 20px; border-radius:18px 18px 0 0; border-bottom:0; }
+.my-reports-page .report-header-tabs { background:#edf4f0; padding:5px; border-radius:12px; gap:4px; }
+.my-reports-page .report-header-tabs .tab-btn { min-height:42px; padding:10px 16px; border:0; border-radius:9px; color:#61776b; font-size:13px; font-weight:750; }
+.my-reports-page .report-header-tabs .tab-btn.active { background:#fff; color:#075b48; box-shadow:0 2px 8px #163e2e12; }
+.my-reports-page .report-header-tabs .tab-badge { min-width:22px; padding:2px 6px; background:#dceee3; color:#075b48; border-radius:6px; }
+.my-reports-page #statusChipBar { margin:0 0 20px; padding:0 20px 18px; border:1px solid #dce9e1; border-top:0; border-radius:0 0 18px 18px; background:#fff; gap:8px; }
+.my-reports-page #statusChipBar .status-chip-label { font-size:12px; color:#72867a; }
+.my-reports-page #statusChipBar .status-chip { min-height:34px; padding:7px 11px; font-size:12px; border:1px solid #e0e9e3; background:#f8faf9; color:#506a5b; border-radius:9px; }
+.my-reports-page #statusChipBar .status-chip.active { background:#073d2d; border-color:#073d2d; color:#fff; box-shadow:none; }
+.my-reports-page #statusChipBar .status-chip.active .status-chip-count { background:#ffffff24; color:#fff; }
+.my-reports-page .reports-grid.report-feed { gap:16px; }
+.my-reports-page .report-feed .report-feed-item { grid-template-columns:164px minmax(0,1fr) auto; gap:22px; padding:20px; border-radius:18px; box-shadow:0 4px 18px #173f2e06; }
+.my-reports-page .report-feed-photo { width:164px; height:154px; border-radius:13px; }
+.my-reports-page .report-feed-copy h3 { margin:9px 0; font-size:17px; line-height:1.4; color:#153c2d; }
+.my-reports-page .report-feed-copy p { font-size:13px; line-height:1.65; }
+.my-reports-page .report-feed-meta { font-size:12px; gap:8px 14px; }
+.my-reports-page .report-feed-copy > .report-feed-meta:first-child > span { font-size:11px; font-weight:800; letter-spacing:.04em; color:#0d7057; }
+.my-reports-page .report-feed-badges { margin:12px 0; gap:7px; }
+.my-reports-page .report-feed-actions { min-width:128px; gap:14px; font-size:12px; }
+.my-reports-page .report-feed-actions > a { min-height:42px; border-color:#cce3d6; background:#edf7f1; color:#075b48; font-size:13px; padding:10px 14px; }
+.my-reports-page .report-feed-actions > a:hover { background:#dbeee3; }
+.my-reports-page .empty-state { padding:44px 20px; border:1px dashed #bdd4c6; border-radius:18px; background:#f8fbf9; }
+@media(max-width:1000px) {
+    .my-reports-page .report-feed .report-feed-item { grid-template-columns:120px minmax(0,1fr); gap:16px; }
+    .my-reports-page .report-feed-photo { width:120px; height:144px; }
+    .my-reports-page .report-feed-actions { grid-column:1/-1; flex-direction:row; justify-content:space-between; align-items:center; border-top:1px solid #eaf1ed; padding-top:14px; }
+}
+@media(max-width:600px) {
+    .my-reports-page .report-feed-heading { padding:14px; }
+    .my-reports-page .report-header-tabs { flex:1; }
+    .my-reports-page .report-header-tabs .tab-btn { flex:1; min-width:0; min-height:44px; padding:9px; font-size:12px; gap:6px; }
+    .my-reports-page #statusChipBar { padding:0 14px 14px; gap:8px; margin-bottom:16px; }
+    .my-reports-page #statusChipBar .status-chip { min-height:40px; flex-shrink:0; }
+    .my-reports-page .report-feed .report-feed-item { grid-template-columns:minmax(0,1fr); padding:16px; gap:14px; }
+    .my-reports-page .report-feed-photo { width:100%; height:164px; }
+    .my-reports-page .report-feed-no-photo .report-feed-photo { height:72px; }
+    .my-reports-page .report-feed-copy h3 { font-size:16px; margin:8px 0; }
+    .my-reports-page .report-feed-copy p { font-size:14px; }
+    .my-reports-page .report-feed-meta { font-size:12px; gap:7px 12px; }
+    .my-reports-page .report-feed-actions > a { min-height:44px; }
+}
+@media(max-width:360px) {
+    .my-reports-page .report-feed-heading { padding-inline:10px; }
+    .my-reports-page .report-header-tabs .tab-btn { padding:9px 4px; gap:4px; }
+    .my-reports-page .report-header-tabs .tab-badge { min-width:18px; padding:2px 4px; font-size:11px; }
+}

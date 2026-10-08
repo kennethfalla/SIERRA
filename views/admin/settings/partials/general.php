@@ -73,7 +73,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
     <section class="settings-card">
     <h3 class="settings-card-title"><?php echo t('Branding'); ?></h3>
-    <p class="settings-card-sub"><?php echo t('Logo used in the sidebar, header, and login pages.'); ?></p>
+    <p class="settings-card-sub"><?php echo t('Default logo and separate sidebar and header branding.'); ?></p>
     <!-- ============================================ -->
     <!-- LGU LOGO -->
     <!-- ============================================ -->
@@ -118,6 +118,51 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </section>
 
     <section class="settings-card">
+    <h3 class="settings-card-title"><?php echo t('Sidebar & Header Logos'); ?></h3>
+    <p class="settings-card-sub"><?php echo t('Each uses the LGU logo when no separate image is set.'); ?></p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <?php foreach (['sidebar' => 'Sidebar Logo', 'header' => 'Header Logo'] as $surface => $label):
+            $surface_logo = SettingsHelper::get($surface . '_logo', '');
+            $surface_url = SettingsHelper::getLogoUrl($surface);
+        ?>
+        <div class="form-group">
+            <label class="form-label" for="<?php echo $surface; ?>LogoInput"><?php echo t($label); ?></label>
+            <div class="logo-preview flex items-center justify-center bg-gray-50 border border-gray-200 mb-3">
+                <img id="<?php echo $surface; ?>LogoPreview" src="<?php echo htmlspecialchars($surface_url); ?>" alt="<?php echo t($label); ?>" class="w-full h-full object-contain" <?php if (!$surface_url): ?>hidden<?php endif; ?>>
+            </div>
+            <input class="form-input" type="file" id="<?php echo $surface; ?>LogoInput" name="<?php echo $surface; ?>_logo" accept="image/png,image/jpeg,image/gif,image/webp">
+            <p class="text-xs text-gray-400 mt-1">PNG, JPG, GIF, WebP · Max 5MB</p>
+            <?php if ($surface_logo): ?>
+            <label class="flex items-center gap-2 mt-3 text-sm"><input type="checkbox" name="<?php echo $surface; ?>_logo_reset" value="1"> <?php echo t('Use the LGU logo'); ?></label>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    </section>
+    <section class="settings-card general-auth-photo-card">
+    <h3 class="settings-card-title"><?php echo t('Login & Registration Photo'); ?></h3>
+    <p class="settings-card-sub"><?php echo t('A shared photo for both account windows.'); ?></p>
+    <div class="general-auth-photo-layout">
+        <img id="authPhotoPreview" src="<?php echo htmlspecialchars(SettingsHelper::getAuthPhotoUrl(), ENT_QUOTES, 'UTF-8'); ?>" alt="Login and registration photo" <?php if (!SettingsHelper::getAuthPhotoUrl()): ?>hidden<?php endif; ?>>
+        <div class="form-group">
+            <label class="form-label" for="authPhotoInput"><?php echo t('Upload photo'); ?></label>
+            <input class="form-input" type="file" id="authPhotoInput" name="auth_photo" accept="image/png,image/jpeg,image/gif,image/webp">
+            <p class="text-xs text-gray-400 mt-1">PNG, JPG, GIF, WebP · Max 5MB</p>
+            <?php if (SettingsHelper::get('auth_photo', '')): ?>
+            <label class="flex items-center gap-2 mt-3 text-sm"><input type="checkbox" name="auth_photo_reset" value="1"> <?php echo t('Use the landing page photo'); ?></label>
+            <?php endif; ?>
+        </div>
+    </div>
+    </section>
+    <section class="settings-card">
+    <h3 class="settings-card-title"><?php echo t('Appearance'); ?></h3>
+    <p class="settings-card-sub"><?php echo t('Choose the appearance for this browser.'); ?></p>
+    <label class="form-label" for="appearancePreference"><?php echo t('Color mode'); ?></label>
+    <select id="appearancePreference" class="form-input" data-theme-preference>
+        <option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option>
+    </select>
+    </section>
+    <section class="settings-card">
     <h3 class="settings-card-title"><?php echo t('Live Preview'); ?></h3>
     <p class="settings-card-sub"><?php echo t('Changes take effect immediately after saving. Preview updates in real-time.'); ?></p>
     <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
@@ -156,6 +201,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </div>
     
     </section>
+    <div class="general-settings-actions">
+        <span><?php echo t('Review your changes, then save.'); ?></span>
+        <div><button type="button" class="btn-secondary" onclick="resetForm()"><i class="fas fa-rotate-left" aria-hidden="true"></i> <?php echo t('Reset'); ?></button>
+        <button type="submit" class="btn-primary"><i class="fas fa-check" aria-hidden="true"></i> <?php echo t('Save Changes'); ?></button></div>
+    </div>
 </form>
 
 <!-- ============================================ -->
@@ -176,6 +226,27 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     const previewContactEmail = document.getElementById('previewContactEmail');
     const previewHotline = document.getElementById('previewHotline');
     const fileLabel = uploadArea.querySelector('.file-label');
+    ['sidebar', 'header'].forEach(function(surface) {
+        const input = document.getElementById(surface + 'LogoInput');
+        const image = document.getElementById(surface + 'LogoPreview');
+        const savedSrc = image.getAttribute('src');
+        let previewUrl;
+        input.addEventListener('change', function() {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            if (!input.files.length) { image.src = savedSrc || ''; image.hidden = !savedSrc; return; }
+            previewUrl = URL.createObjectURL(input.files[0]); image.src = previewUrl; image.hidden = false;
+        });
+    });
+    const authPhotoInput = document.getElementById('authPhotoInput');
+    const authPhotoPreview = document.getElementById('authPhotoPreview');
+    let authPreviewUrl;
+    const savedAuthSrc = authPhotoPreview.getAttribute('src');
+    authPhotoInput.addEventListener('change', function() {
+        if (authPreviewUrl) URL.revokeObjectURL(authPreviewUrl);
+        authPreviewUrl = this.files.length ? URL.createObjectURL(this.files[0]) : null;
+        authPhotoPreview.src = authPreviewUrl || savedAuthSrc || '';
+        authPhotoPreview.hidden = !(authPreviewUrl || savedAuthSrc);
+    });
     
     // ===== REAL-TIME PREVIEW =====
     systemNameInput.addEventListener('input', function() {
@@ -260,7 +331,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     window.resetForm = function() {
         window.GB.confirm({
             message: 'Reset all fields to their saved values? Unsaved changes will be lost.',
-            onConfirm: function () { location.reload(); }
+            onConfirm: function () { form.reset(); form.dispatchEvent(new Event('input', {bubbles:true})); location.reload(); }
         });
     };
     

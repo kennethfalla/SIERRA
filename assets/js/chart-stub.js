@@ -3,7 +3,14 @@
    die with "Chart is not defined". Charts simply render nothing. */
 (function () {
     'use strict';
-    if (typeof window.Chart !== 'undefined') return;
+    if (typeof window.Chart !== 'undefined') {
+        // Canvas labels do not inherit the page's CSS typography.
+        if (window.Chart.defaults) {
+            if (window.Chart.defaults.font) window.Chart.defaults.font.family = 'Manrope, sans-serif';
+            window.Chart.defaults.color = document.documentElement.dataset.theme === 'dark' ? '#a3b9ac' : '#63746b';
+        }
+        return;
+    }
 
     var inert = {
         destroy: function () {},

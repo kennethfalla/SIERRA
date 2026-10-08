@@ -305,6 +305,7 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if ($lguLogo): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($lguLogo); ?>">
     <?php endif; ?>
@@ -579,6 +580,8 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
 </head>
 <body>
     <div class="page-wrap">
@@ -596,7 +599,7 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
                     <div class="sidebar-group">
                         <div class="sidebar-group-label">Filters</div>
                         <div class="filter-field">
-                            <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Description, user, email, action...">
+                            <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search activity…">
                         </div>
                         <div class="filter-field">
                             <label for="sideRole">Role</label>

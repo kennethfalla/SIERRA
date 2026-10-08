@@ -73,40 +73,46 @@ class SettingsController {
             exit();
         }
 
+        // Validate all branding images before saving them. A separate logo can
+        // be reset to the LGU fallback without deleting a shared image file.
+        $logoChanges = [];
+        $uploads = [];
+        foreach (['lgu_logo', 'sidebar_logo', 'header_logo', 'auth_photo'] as $key) {
+            $file = $_FILES[$key] ?? null;
+            if (!$file || $file['error'] === UPLOAD_ERR_NO_FILE) {
+                if ($key !== 'lgu_logo' && !empty($_POST[$key . '_reset'])) $logoChanges[$key] = '';
+                continue;
+            }
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $mimeByExt = ['jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','gif'=>'image/gif','webp'=>'image/webp'];
+            $image = $file['error'] === UPLOAD_ERR_OK ? @getimagesize($file['tmp_name']) : false;
+            if ($file['error'] !== UPLOAD_ERR_OK || $file['size'] > 5242880 || !isset($mimeByExt[$ext]) || !$image || ($image['mime'] ?? '') !== $mimeByExt[$ext]) {
+                $_SESSION['error'] = 'Please upload valid PNG, JPG, GIF, or WebP images up to 5MB.';
+                header('Location: ' . BASE_URL . 'index.php?page=settings&tab=general');
+                exit();
+            }
+            $uploads[$key] = [$file, $ext];
+        }
+        $createdPaths = [];
+        foreach ($uploads as $key => [$file, $ext]) {
+            $uploadDir = BASE_PATH . 'uploads/settings/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+            $relative = 'uploads/settings/' . $key . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+            if (!move_uploaded_file($file['tmp_name'], BASE_PATH . $relative)) {
+                foreach ($createdPaths as $path) @unlink($path);
+                $_SESSION['error'] = 'Image upload failed. Please try again.';
+                header('Location: ' . BASE_URL . 'index.php?page=settings&tab=general');
+                exit();
+            }
+            $createdPaths[] = BASE_PATH . $relative;
+            $logoChanges[$key] = $relative;
+        }
         SettingsHelper::set('system_name', $system_name);
         SettingsHelper::set('contact_email', $contact_email);
         SettingsHelper::set('emergency_hotline', $emergency_hotline);
-
-        // Handle logo upload
-        if (isset($_FILES['lgu_logo']) && $_FILES['lgu_logo']['error'] === UPLOAD_ERR_OK) {
-            $file = $_FILES['lgu_logo'];
-            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-            if (in_array($ext, $allowed) && $file['size'] <= 5242880) {
-                $upload_dir = BASE_PATH . 'uploads/settings/';
-                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-                $old_logo = SettingsHelper::get('lgu_logo');
-                if ($old_logo && file_exists(BASE_PATH . $old_logo)) {
-                    unlink(BASE_PATH . $old_logo);
-                }
-                $new_filename = 'logo_' . time() . '.' . $ext;
-                $target_path = $upload_dir . $new_filename;
-                if (move_uploaded_file($file['tmp_name'], $target_path)) {
-                    SettingsHelper::set('lgu_logo', 'uploads/settings/' . $new_filename);
-                } else {
-                    $_SESSION['error'] = "Logo upload failed.";
-                    header("Location: " . BASE_URL . "index.php?page=settings&tab=general");
-                    exit();
-                }
-            } else {
-                $_SESSION['error'] = "Invalid logo file. Allowed: JPG, PNG, GIF, WebP (max 5MB).";
-                header("Location: " . BASE_URL . "index.php?page=settings&tab=general");
-                exit();
-            }
-        }
-
+        foreach ($logoChanges as $key => $value) SettingsHelper::set($key, $value);
         SettingsHelper::clearCache();
-        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated general settings (system name, contact email, hotline" . (isset($_FILES['lgu_logo']) && $_FILES['lgu_logo']['error'] === UPLOAD_ERR_OK ? ", logo" : "") . ")", null, 'Settings');
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated general settings (system name, contact email, hotline" . ($logoChanges ? ", branding images" : "") . ")", null, 'Settings');
         $_SESSION['success'] = "General settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=general");
         exit();
@@ -2186,7 +2192,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'validate_iprog') {
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    $response = curl_exec($ch);
+    $response = SettingsHelper::executeGatewayRequest($ch, 10);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
     curl_close($ch);

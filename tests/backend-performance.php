@@ -31,10 +31,22 @@ try {
     check($db->query("SELECT setting_value FROM system_settings WHERE setting_key = '_app_schema_version'")->fetchColumn() === Database::SCHEMA_VERSION, 'legacy schema migrates and stores completion in the database');
     check(count($db->query("SHOW COLUMNS FROM activity_logs WHERE Field IN ('user_agent', 'status')")->fetchAll()) === 2, 'legacy activity metadata columns migrate');
     check(count($db->query("SHOW COLUMNS FROM reports WHERE Field IN ('rejected_at', 'rejection_reason', 'cancelled_at', 'cancellation_remarks')")->fetchAll()) === 4, 'report reasons migrate before page and OTP requests');
+    check((int)$db->query('SELECT @@SESSION.lock_wait_timeout')->fetchColumn() === 5
+        && (int)$db->query('SELECT @@SESSION.innodb_lock_wait_timeout')->fetchColumn() === 5, 'database lock waits have a five-second ceiling');
+    check((int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'remember_tokens'")->fetchColumn() === 1, 'remember-me storage is prepared before login');
+    check((int)$db->query("SELECT COUNT(DISTINCT CONCAT(table_name, '/', index_name)) FROM information_schema.statistics WHERE table_schema = DATABASE() AND index_name IN ('idx_notif_recent','idx_verification_active','idx_report_images_report','idx_reports_status_created')")->fetchColumn() === 4, 'notification, OTP, image, and status lookups are indexed');
     check((int)$db->query("SELECT COUNT(DISTINCT index_name) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'reports' AND index_name IN ('idx_reports_created_status','idx_reports_barangay_created','idx_reports_user_created')")->fetchColumn() === 3, 'dashboard and per-user report scopes have indexes');
     $ran = false;
     SchemaMigration::run($db, Database::SCHEMA_VERSION, function () use (&$ran) { $ran = true; return true; });
     check(!$ran, 'completed version skips schema work without a filesystem marker');
+    $other = new PDO('mysql:host=127.0.0.1;port=13308;dbname=' . $schema, 'root', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $lockName = 'sierra-schema-' . substr(hash('sha256', $schema), 0, 40);
+    $hold = $other->prepare('SELECT GET_LOCK(?, 0)'); $hold->execute([$lockName]);
+    $started = microtime(true); $contended = false;
+    try { SchemaMigration::run($db, 'concurrent-test', static function () { throw new RuntimeException('A competing migration must not start'); }); }
+    catch (PDOException $e) { $contended = true; }
+    $release = $other->prepare('SELECT RELEASE_LOCK(?)'); $release->execute([$lockName]);
+    check($contended && microtime(true) - $started < 1, 'a competing schema update returns immediately instead of blocking a worker');
     try { SchemaMigration::run($db, 'failed-test', static function () { return false; }); }
     catch (PDOException $e) { /* Expected: never mark failure as complete. */ }
     check($db->query("SELECT setting_value FROM system_settings WHERE setting_key = '_app_schema_version'")->fetchColumn() === Database::SCHEMA_VERSION, 'failed migration preserves the last successful version');
@@ -73,10 +85,12 @@ try {
     $notification->create(1, 'Test', 'Test');
     $notification->create(1, 'Second', 'Test');
     $notification->create(2, 'Other', 'Test');
-    check($notification->getSyncSummary(1) === ['unread' => 2, 'notif_seq' => 2], 'notification summary excludes other users');
+    $sync = $notification->getSyncSummary(1);
+    check($sync['unread'] === 2 && $sync['notif_seq'] === 2, 'notification summary excludes other users');
     $notification->markRead(1, 1);
     check($notification->getSyncSummary(1)['unread'] === 1, 'notification summary reflects read actions');
-    check($notification->getSyncSummary(999) === ['unread' => 0, 'notif_seq' => 0], 'empty notification account returns zero counts');
+    $sync = $notification->getSyncSummary(999);
+    check($sync['unread'] === 0 && $sync['notif_seq'] === 0, 'empty notification account returns zero counts');
     (new ActivityLog($db))->log(1, 'Test', 'Isolated QA');
     check((new UserDevice($db))->registerLogin(1, 'QA browser', '127.0.0.1')['is_new'] === true, 'activity logs and recognized devices work after centralized migration');
 

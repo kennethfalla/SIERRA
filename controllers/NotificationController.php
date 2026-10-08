@@ -19,6 +19,8 @@ $database = new Database();
 $db = $database->getConnection();
 $notif = new Notification($db);
 $user_id = (int)$_SESSION['user_id'];
+$user_role = $_SESSION['user_role'] ?? 'citizen';
+$barangay_id = $_SESSION['barangay_id'] ?? null;
 
 $action = $_POST['action'] ?? ($_GET['action'] ?? '');
 
@@ -27,7 +29,8 @@ $action = $_POST['action'] ?? ($_GET['action'] ?? '');
 // ============================================
 if ($action === 'get_unread_count') {
     if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
-    echo json_encode(['success' => true, 'unread_count' => $notif->getUnreadCount($user_id)]);
+    $summary = $notif->getSyncSummary($user_id, $user_role, $barangay_id);
+    echo json_encode(['success' => true, 'unread_count' => $summary['unread'], 'sidebar_counts' => $summary['sidebar_counts']]);
     exit();
 }
 
@@ -45,7 +48,8 @@ if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
 // ============================================
 if ($action === 'mark_all_read') {
     $updated = $notif->markAllRead($user_id);
-    echo json_encode(['success' => true, 'updated' => $updated]);
+    $summary = $notif->getSyncSummary($user_id, $user_role, $barangay_id);
+    echo json_encode(['success' => true, 'updated' => $updated, 'unread_count' => $summary['unread'], 'sidebar_counts' => $summary['sidebar_counts']]);
     exit();
 }
 
@@ -59,7 +63,8 @@ if ($action === 'mark_read') {
         exit();
     }
     $notif->markRead($user_id, $id);
-    echo json_encode(['success' => true, 'unread_count' => $notif->getUnreadCount($user_id)]);
+    $summary = $notif->getSyncSummary($user_id, $user_role, $barangay_id);
+    echo json_encode(['success' => true, 'unread_count' => $summary['unread'], 'sidebar_counts' => $summary['sidebar_counts']]);
     exit();
 }
 
@@ -73,13 +78,15 @@ if ($action === 'delete_selected') {
         exit();
     }
     $deleted = $notif->deleteSelected($user_id, $ids);
-    echo json_encode(['success' => true, 'deleted' => $deleted, 'unread_count' => $notif->getUnreadCount($user_id)]);
+    $summary = $notif->getSyncSummary($user_id, $user_role, $barangay_id);
+    echo json_encode(['success' => true, 'deleted' => $deleted, 'unread_count' => $summary['unread'], 'sidebar_counts' => $summary['sidebar_counts']]);
     exit();
 }
 
 if ($action === 'clear_all') {
     $deleted = $notif->clearAll($user_id);
-    echo json_encode(['success' => true, 'deleted' => $deleted]);
+    $summary = $notif->getSyncSummary($user_id, $user_role, $barangay_id);
+    echo json_encode(['success' => true, 'deleted' => $deleted, 'unread_count' => $summary['unread'], 'sidebar_counts' => $summary['sidebar_counts']]);
     exit();
 }
 

@@ -10,10 +10,11 @@
         overlay.classList.remove('is-leaving');
         overlay.hidden = false;
     }
-    function show() {
+    function show(immediate) {
         finished = false;
         clearTimeout(timer);
-        timer = window.setTimeout(reveal, delay);
+        if (immediate) reveal();
+        else timer = window.setTimeout(reveal, delay);
     }
     function hide() {
         finished = true;
@@ -26,7 +27,7 @@
     });
     // The server grants this only to the first authenticated page after login.
     if (overlay.dataset.initialLoad !== '1') return;
-    timer = window.setTimeout(reveal, Math.max(0, delay - performance.now()));
+    reveal();
     function rendered() {
         window.requestAnimationFrame(function () {
             window.requestAnimationFrame(hide);

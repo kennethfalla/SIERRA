@@ -423,7 +423,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
             <h4 class="font-bold text-gray-800 text-sm"><i class="fas fa-box-archive text-[#10A37F] mr-2"></i><?php echo t('Archived Items'); ?></h4>
             <p class="text-xs text-gray-500 mt-0.5"><?php echo count($archive_rows); ?> <?php echo t('item(s) currently archived · search to filter'); ?></p>
         </div>
-        <input type="text" id="archiveSearch" class="archive-search" placeholder="<?php echo t('Search by title, ID, category, barangay...'); ?>">
+        <input type="text" id="archiveSearch" class="archive-search" placeholder="<?php echo t('Search archived records…'); ?>">
     </div>
 
     <div class="archive-table-wrap">

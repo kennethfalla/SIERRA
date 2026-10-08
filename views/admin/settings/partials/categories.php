@@ -417,7 +417,7 @@ function categoryWeightLevelClass($weight) {
     $ft = [
         'search_id'          => 'searchInput',
         'search_value'       => $search_query,
-        'search_placeholder' => t('Search by name, description, or icon...'),
+        'search_placeholder' => t('Search categories…'),
         'results_text'       => 'Showing <strong>' . count($filtered_categories) . '</strong> of <strong>' . $total_categories . '</strong> categories',
         'inline_selects'     => [
             [

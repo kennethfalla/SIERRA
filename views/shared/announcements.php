@@ -298,6 +298,7 @@ if ($broadcast_barangay > 0) $active_filters++;
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -305,7 +306,7 @@ if ($broadcast_barangay > 0) $active_filters++;
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8'); ?>">
     <title>Announcements - EnviroTrack</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <!-- Quill CSS -->
@@ -1310,7 +1311,7 @@ if ($broadcast_barangay > 0) $active_filters++;
         $ft = [
             'search_id'          => 'searchInput',
             'search_value'       => htmlspecialchars($search_query),
-            'search_placeholder' => 'Search announcements...',
+            'search_placeholder' => 'Search announcements…',
             'results_text'       => '',
             'inline_selects'     => [
                 [
@@ -1612,7 +1613,7 @@ if ($broadcast_barangay > 0) $active_filters++;
                 </div>
 
                 <div class="composer-title-box">
-                    <input type="text" name="title" required class="composer-title-input" placeholder="Give your post a short title">
+                    <input type="text" name="title" required class="composer-title-input" placeholder="Enter a short announcement title">
                 </div>
 
                 <div class="composer-meta-grid">

@@ -33,18 +33,20 @@ $db = $database->getConnection();
 $system_name = SettingsHelper::get('system_name', 'Sierra');
 $lgu_logo = SettingsHelper::get('lgu_logo', '');
 $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
+$auth_photo = SettingsHelper::getAuthPhotoUrl();
 $demo_access_enabled = (int)SettingsHelper::get('demo_access_enabled', 1) === 1;
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In - <?php echo htmlspecialchars($system_name); ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard-loading.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard-loading.css'); ?>">
@@ -280,15 +282,16 @@ $demo_access_enabled = (int)SettingsHelper::get('demo_access_enabled', 1) === 1;
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
 </head>
-<body>
+<body class="login-page">
     <?php include BASE_PATH . 'views/shared/dashboard_loading.php'; ?>
     <div class="auth-shell">
 
         <!-- ============================================ -->
         <!-- LEFT: HERO / IMAGE PANEL                      -->
         <!-- ============================================ -->
-        <div class="hero-panel">
+        <div class="hero-panel"<?php if ($auth_photo): ?> style="background-image:linear-gradient(0deg,#05281c33,#05281c11),url('<?php echo htmlspecialchars($auth_photo, ENT_QUOTES); ?>');background-size:cover;background-position:center"<?php endif; ?>>
 
             <!-- wavy white cut into the right edge (matches reference) -->
             <svg class="wave-divider" viewBox="0 0 200 900" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -327,7 +330,7 @@ $demo_access_enabled = (int)SettingsHelper::get('demo_access_enabled', 1) === 1;
                     <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="<?php echo htmlspecialchars($system_name); ?> Logo" class="brand-logo-form">
                 <?php endif; ?>
 
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">Welcome<br>Back</h2>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">Welcome</h2>
                 <p class="text-gray-500 text-sm mt-2 mb-6">Sign in with your email or mobile number</p>
 
                 <!-- ============================================ -->
@@ -635,7 +638,9 @@ $demo_access_enabled = (int)SettingsHelper::get('demo_access_enabled', 1) === 1;
         submitBtn.disabled = true;
         submitText.classList.add('hidden');
         submitSpinner.classList.remove('hidden');
-        if (window.SierraDashboardLoading) window.SierraDashboardLoading.show();
+        if (window.frameElement && window.frameElement.hasAttribute('data-landing-auth')) {
+            window.parent.postMessage({type:'sierra:auth-submit'}, window.location.origin);
+        } else if (window.SierraDashboardLoading) window.SierraDashboardLoading.show(true);
 
         window.requestAnimationFrame(function() {
             window.setTimeout(function() {

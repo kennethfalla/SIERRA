@@ -177,6 +177,7 @@ $top_actions = $db->query("
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="<?php echo BASE_URL; ?>assets/js/theme.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/theme.js'); ?>"></script>
     <?php if (class_exists('SettingsHelper') && SettingsHelper::getLogoUrl()): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(SettingsHelper::getLogoUrl()); ?>">
     <?php endif; ?>
@@ -188,6 +189,8 @@ $top_actions = $db->query("
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
     <style>
         * { font-family: 'Manrope', sans-serif; }
         body { background: #F7FBF9; }
@@ -431,7 +434,7 @@ $top_actions = $db->query("
         $ft = [
             'search_id'          => 'searchInput',
             'search_value'       => htmlspecialchars($search),
-            'search_placeholder' => 'Search logs by description or user...',
+            'search_placeholder' => 'Search activity…',
             'results_text'       => 'Showing <strong>' . count($logs) . '</strong> of <strong>' . number_format($total_logs) . '</strong> log entries',
             'inline_selects'     => [
                 [

@@ -48,6 +48,14 @@ if (SettingsHelper::get('maintenance_mode', 0) == 1) {
 // ============================================
 // CSRF TOKEN GENERATION FOR FORMS
 // ============================================
+// Authentication may start in the landing popup. Hand off before rendering
+// dashboard queries or consuming its first-login loading flag.
+if ($page === 'dashboard' && isLoggedIn() && ($_SERVER['HTTP_SEC_FETCH_DEST'] ?? '') === 'iframe') {
+    $dashboard_url = BASE_URL . 'index.php?page=dashboard';
+    header('Cache-Control: no-store');
+    echo '<!doctype html><html><head><meta charset="utf-8"><title>Opening dashboard</title></head><body><script>if(!window.frameElement || !window.frameElement.hasAttribute("data-landing-auth")) window.top.location.replace(' . json_encode($dashboard_url, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ');</script><a target="_top" href="' . htmlspecialchars($dashboard_url, ENT_QUOTES, 'UTF-8') . '">Open dashboard</a></body></html>';
+    exit();
+}
 $csrf_token = InputSanitizer::generateCsrfToken();
 
 // ============================================
