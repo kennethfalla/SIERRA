@@ -26,7 +26,7 @@ $filter_category = isset($_GET['category']) && $_GET['category'] != '' ? (int)$_
 $filter_date = isset($_GET['date_range']) && $_GET['date_range'] != '' ? (int)$_GET['date_range'] : 0;
 $search_keyword = isset($_GET['search']) ? trim($_GET['search']) : '';
 $sort_order = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = (int)($_GET['p'] ?? $_GET['page_num'] ?? 1);
 if ($page < 1) $page = 1;
 
 // Multi-select support (comma-separated GET values)
@@ -50,55 +50,50 @@ $offset = ($page - 1) * $limit;
 // ============================================================
 // MY REPORTS tab query
 // ============================================================
-$where_conditions = ["r.user_id = $user_id"];
-$params = [];
-
-if ($filter_status != '') {
-    $where_conditions[] = "r.status = '$filter_status'";
+// Both tabs search the complete dataset, including report IDs and locations.
+$where_conditions = ['r.user_id = ?'];
+$params = [(int)$user_id];
+$supported_where = ['rv.user_id = ?'];
+$supported_params = [(int)$user_id];
+$filters = [];
+$filter_params = [];
+if ($filter_status !== '') {
+    $filters[] = 'r.status = ?';
+    $filter_params[] = $filter_status;
 }
 if ($filter_risks) {
-    $where_conditions[] = "r.risk_level IN ('" . implode("','", array_map('addslashes', $filter_risks)) . "')";
+    $filters[] = 'r.risk_level IN (' . implode(',', array_fill(0, count($filter_risks), '?')) . ')';
+    $filter_params = array_merge($filter_params, $filter_risks);
 }
 if ($filter_categories) {
-    $where_conditions[] = "r.category_id IN (" . implode(',', $filter_categories) . ")";
+    $filters[] = 'r.category_id IN (' . implode(',', array_fill(0, count($filter_categories), '?')) . ')';
+    $filter_params = array_merge($filter_params, $filter_categories);
 }
+if ($search_keyword !== '') {
+    $filters[] = '(r.title LIKE ? OR r.description LIKE ? OR r.location_address LIKE ? OR CAST(r.id AS CHAR) = ?)';
+    $like = '%' . $search_keyword . '%';
+    $id_search = ltrim($search_keyword, '#');
+    if (ctype_digit($id_search)) $id_search = (string)(int)$id_search;
+    $filter_params = array_merge($filter_params, [$like, $like, $like, $id_search]);
+}
+$where_conditions = array_merge($where_conditions, $filters);
+$supported_where = array_merge($supported_where, $filters);
+$params = array_merge($params, $filter_params);
+$supported_params = array_merge($supported_params, $filter_params);
 if ($filter_date > 0) {
-    $where_conditions[] = "r.created_at >= DATE_SUB(NOW(), INTERVAL $filter_date DAY)";
+    $where_conditions[] = 'r.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)';
+    $supported_where[] = 'rv.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)';
+    $params[] = $filter_date;
+    $supported_params[] = $filter_date;
 }
-if ($search_keyword != '') {
-    $search_escaped = addslashes($search_keyword);
-    $where_conditions[] = "(r.title LIKE '%$search_escaped%' OR r.description LIKE '%$search_escaped%')";
-}
-$where_clause = implode(" AND ", $where_conditions);
-
-// Count my reports
-$count_sql = "SELECT COUNT(*) as total FROM reports r WHERE $where_clause";
-$total_reports = $db->query($count_sql)->fetch(PDO::FETCH_ASSOC)['total'];
-
-// ============================================================
-// SUPPORTED REPORTS tab query
-// ============================================================
-$supported_where = ["rv.user_id = $user_id"];
-if ($filter_status != '') {
-    $supported_where[] = "r.status = '$filter_status'";
-}
-if ($filter_risks) {
-    $supported_where[] = "r.risk_level IN ('" . implode("','", array_map('addslashes', $filter_risks)) . "')";
-}
-if ($filter_categories) {
-    $supported_where[] = "r.category_id IN (" . implode(',', $filter_categories) . ")";
-}
-if ($filter_date > 0) {
-    $supported_where[] = "rv.created_at >= DATE_SUB(NOW(), INTERVAL $filter_date DAY)";
-}
-if ($search_keyword != '') {
-    $search_escaped = addslashes($search_keyword);
-    $supported_where[] = "(r.title LIKE '%$search_escaped%' OR r.description LIKE '%$search_escaped%')";
-}
-$supported_where_clause = implode(" AND ", $supported_where);
-
-$supported_count_sql = "SELECT COUNT(*) as total FROM report_verifications rv JOIN reports r ON rv.report_id = r.id WHERE $supported_where_clause";
-$total_supported = $db->query($supported_count_sql)->fetch(PDO::FETCH_ASSOC)['total'];
+$where_clause = implode(' AND ', $where_conditions);
+$supported_where_clause = implode(' AND ', $supported_where);
+$count_stmt = $db->prepare("SELECT COUNT(*) FROM reports r WHERE $where_clause");
+$count_stmt->execute($params);
+$total_reports = (int)$count_stmt->fetchColumn();
+$supported_count_stmt = $db->prepare("SELECT COUNT(*) FROM report_verifications rv JOIN reports r ON rv.report_id = r.id WHERE $supported_where_clause");
+$supported_count_stmt->execute($supported_params);
+$total_supported = (int)$supported_count_stmt->fetchColumn();
 
 // Set pagination based on active tab
 $total_in_tab = ($active_tab === 'supported') ? $total_supported : $total_reports;
@@ -138,7 +133,9 @@ if ($active_tab === 'supported') {
             ORDER BY r.created_at " . ($sort_order === 'oldest' ? 'ASC' : 'DESC') . "
             LIMIT $limit OFFSET $offset";
 }
-$reports = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+$report_stmt = $db->prepare($sql);
+$report_stmt->execute($active_tab === 'supported' ? $supported_params : $params);
+$reports = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get risk summary for initial load
 $risk_summary = ['low' => 0, 'medium' => 0, 'high' => 0, 'critical' => 0];
@@ -321,7 +318,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .status-escalated_pending { background: #FDE68A; color: #92400E; border: 1px solid #F59E0B; }
         .status-escalated { background: #FED7AA; color: #9A3412; }
         .status-rejected { background: #FEE2E2; color: #DC2626; }
-        .status-cancelled { background: #F3F4F6; color: #6B7280; }
+        .status-cancelled { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); }
         
         /* Risk Badges */
         .risk-badge {
@@ -392,7 +389,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             align-items: center;
             gap: 0.25rem;
             font-size: 0.7rem;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
         }
         .verification-count i {
             color: #10A37F;
@@ -416,7 +413,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             opacity: 0.5;
             cursor: not-allowed;
             border-color: #D1D5DB;
-            color: #9CA3AF;
+            color: var(--sierra-type-muted, #63746b);
         }
         .verify-btn.verified {
             background: #D1FAE5;
@@ -433,7 +430,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border-radius: 9999px;
             font-size: 0.65rem;
             font-weight: 500;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
             background: #F3F4F6;
         }
 
@@ -496,31 +493,18 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             left: 12px;
             top: 50%;
             transform: translateY(-50%);
-            color: #9CA3AF;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.8rem;
             pointer-events: none;
         }
-        .toolbar-search input {
-            width: 100%;
-            padding: 8px 12px 8px 36px;
-            border: 1.5px solid var(--lt-border-light);
-            border-radius: 8px;
-            font-size: 0.85rem;
-            color: var(--lt-gray-800);
-            background: var(--lt-gray-50);
-            transition: all 0.2s ease;
-            outline: none;
-        }
-        .toolbar-search input:focus {
+
+.toolbar-search input:focus {
             border-color: var(--lt-forest);
             background: var(--lt-white);
             box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.10);
         }
-        .toolbar-search input::placeholder {
-            color: #9CA3AF;
-        }
 
-        .toolbar-select {
+.toolbar-select {
             appearance: none;
             padding: 8px 32px 8px 12px;
             border: 1.5px solid var(--lt-border-light);
@@ -826,7 +810,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             line-height: 1;
             border: 1px solid #E5E7EB;
             background: #F3F4F6;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             transition: all 0.2s ease;
             white-space: nowrap;
@@ -856,7 +840,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
         .status-chip:not(.active) .status-chip-count {
             background: #E5E7EB;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
         }
 
         /* View Toggle */
@@ -874,7 +858,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             font-weight: 500;
             cursor: pointer;
             background: transparent;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
             transition: all 0.2s;
         }
         @media (min-width: 640px) {
@@ -935,7 +919,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
             background: white;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -1034,7 +1018,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             align-items: center;
             gap: 0.35rem;
             font-size: 0.6rem;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
         }
         @media (min-width: 640px) {
             .meta-item {
@@ -1184,7 +1168,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border-radius: 8px;
             font-size: 0.82rem;
             font-weight: 600;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
             background: transparent;
             border: none;
             cursor: pointer;
@@ -1212,7 +1196,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             font-size: 0.65rem;
             font-weight: 700;
             background: #E5E7EB;
-            color: #374151;
+            color: var(--sierra-type-primary, #203b31);
             transition: all 0.2s;
         }
         .tab-btn.active .tab-badge {
@@ -1375,11 +1359,22 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="loading-spinner"></div>
         </div>
 
+        <?php
+        $report_summary_total = array_sum($status_summary);
+        $report_summary_active = array_sum(array_intersect_key($status_summary, array_flip(['pending', 'under_review', 'verified', 'in_progress', 'escalated_pending', 'escalated'])));
+        $report_summary_resolved = (int)($status_summary['resolved'] ?? 0) + (int)($status_summary['closed'] ?? 0);
+        ?>
+        <div class="my-reports-summary" aria-label="<?php echo t('Report summary'); ?>">
+            <div><i class="fas fa-file-alt" aria-hidden="true"></i><strong><?php echo (int)$report_summary_total; ?></strong><span><?php echo t('Total Reports'); ?></span></div>
+            <div><i class="fas fa-clock" aria-hidden="true"></i><strong><?php echo (int)$report_summary_active; ?></strong><span><?php echo t('Active'); ?></span></div>
+            <div><i class="fas fa-check-circle" aria-hidden="true"></i><strong><?php echo (int)$report_summary_resolved; ?></strong><span><?php echo t('Resolved'); ?></span></div>
+        </div>
+
         <!-- New Report action; report/support tabs live in the list header. -->
         <div class="my-reports-topbar">
             <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 md:gap-2 sm:w-auto justify-center">
-                <i class="fas fa-plus-circle text-xs md:text-sm"></i>
-                <span class="text-xs md:text-sm"><?php echo t('New Report'); ?></span>
+                <i class="fas fa-plus-circle text-sm"></i>
+                <span class="text-sm"><?php echo t('New Report'); ?></span>
             </a>
         </div>
 
@@ -1404,6 +1399,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             'search_id'          => 'searchInput',
             'search_value'       => $search_keyword,
             'search_placeholder' => 'Search reports…',
+            'show_filter_by'     => false,
             'results_text'       => '',
             'inline_selects'     => [],
             'filter_by'          => [
@@ -1468,7 +1464,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <!-- Status filter chips (notification-style) -->
         <?php $status_all_count = array_sum($status_summary); ?>
         <div class="status-chip-bar" id="statusChipBar">
-            <span class="status-chip-label"><?php echo t('Status'); ?></span>
             <input type="hidden" id="toolbarStatus" value="<?php echo htmlspecialchars($filter_status, ENT_QUOTES, 'UTF-8'); ?>">
             <?php foreach ($status_chip_keys as $sc_key):
                 $sc_active = ($sc_key === $filter_status);
@@ -1489,18 +1484,18 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <?php else: ?>
                 <div class="empty-state">
                     <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                        <i class="fas <?php echo $active_tab === 'supported' ? 'fa-thumbs-up' : 'fa-inbox'; ?> text-xl sm:text-2xl text-gray-400"></i>
+                        <i class="fas <?php echo $active_tab === 'supported' ? 'fa-thumbs-up' : 'fa-inbox'; ?> text-gray-400 text-2xl"></i>
                     </div>
                     <?php if ($active_tab === 'supported'): ?>
-                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg"><?php echo t('No supported reports yet'); ?></h3>
-                        <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4"><?php echo t('When you support a report from the community, it will appear here so you can track its progress.'); ?></p>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-lg"><?php echo t('No supported reports yet'); ?></h3>
+                        <p class="text-gray-400 mb-3 sm:mb-4 text-sm"><?php echo t('When you support a report from the community, it will appear here so you can track its progress.'); ?></p>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=dashboard" class="btn-primary inline-flex items-center gap-1.5 sm:gap-2 text-sm">
                             <i class="fas fa-map"></i> <?php echo t('Explore Community Reports'); ?>
                         </a>
                     <?php else: ?>
-                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg"><?php echo t('No reports found'); ?></h3>
-                        <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4"><?php echo t('Try adjusting your filters'); ?></p>
-                        <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-lg"><?php echo t('No reports found'); ?></h3>
+                        <p class="text-gray-400 mb-3 sm:mb-4 text-sm"><?php echo t('Try adjusting your filters'); ?></p>
+                        <a href="<?php echo BASE_URL; ?>index.php?page=submit-report" class="btn-primary hidden sm:inline-flex items-center gap-1.5 sm:gap-2 text-sm">
                             <i class="fas fa-plus-circle"></i> <?php echo t('New Report'); ?>
                         </a>
                     <?php endif; ?>
@@ -1522,9 +1517,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 if ($sort_order) $pag_params['sort'] = $sort_order;
                 ?>
                 <?php if($page > 1): ?>
-                <a href="<?php $pag_params['page_num'] = $page-1; echo BASE_URL . 'index.php?' . http_build_query(array_merge($pag_params, ['page' => 'my-reports', 'p' => $page-1])); ?>" class="page-btn"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></a>
+                <a href="<?php $pag_params['page_num'] = $page-1; echo BASE_URL . 'index.php?' . http_build_query(array_merge($pag_params, ['page' => 'my-reports', 'p' => $page-1])); ?>" class="page-btn"><i class="fas fa-chevron-left text-[10px] text-xs"></i></a>
                 <?php else: ?>
-                <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></span>
+                <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] text-xs"></i></span>
                 <?php endif; ?>
                 
                 <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
@@ -1532,9 +1527,9 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php endfor; ?>
                 
                 <?php if($page < $total_pages): ?>
-                <a href="<?php echo BASE_URL . 'index.php?' . http_build_query(array_merge($pag_params, ['page' => 'my-reports', 'p' => $page+1])); ?>" class="page-btn"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></a>
+                <a href="<?php echo BASE_URL . 'index.php?' . http_build_query(array_merge($pag_params, ['page' => 'my-reports', 'p' => $page+1])); ?>" class="page-btn"><i class="fas fa-chevron-right text-[10px] text-xs"></i></a>
                 <?php else: ?>
-                <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></span>
+                <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] text-xs"></i></span>
                 <?php endif; ?>
             </div>
             <?php endif; ?>

@@ -1,7 +1,7 @@
 .sierra-map-panel { min-width:0; padding:1.3rem; border:1px solid #dce9e1; border-radius:1.15rem; background:#fff; box-shadow:0 4px 18px rgba(28,70,46,.055); }
 .sierra-map-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.8rem; margin-bottom:1rem; }
 .sierra-map-eyebrow { color:#0d8568; font-size:.68rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
-.sierra-map-heading h2 { color:#244c3d; font-size:1.05rem; font-weight:800; }
+.sierra-map-heading h2 { color:var(--sierra-type-primary, #203b31); font-size:1.05rem; font-weight:800; }
 .sierra-map-full-link { display:inline-flex; align-items:center; gap:.5rem; min-height:38px; padding:.5rem .75rem; border:1px solid #cde5d7; border-radius:.7rem; background:#eef8f1; color:#0d8568; font-size:.76rem; font-weight:800; text-decoration:none; transition:background .2s,border-color .2s,transform .2s; }
 .sierra-map-full-link:hover { background:#e1f2e8; border-color:#91c5a5; transform:translateY(-2px); }
 .sierra-map-controls { display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap; padding-bottom:.85rem; }
@@ -19,7 +19,7 @@
 .sierra-map-panel-full .sierra-hazard-map { height:min(73vh,760px); min-height:420px; }
 .sierra-map-foot { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; padding-top:.8rem; color:#65776b; font-size:.7rem; }
 .sierra-map-foot > span { display:inline-flex; align-items:center; gap:.35rem; }
-.sierra-map-foot strong { margin-left:auto; color:#244c3d; font-weight:800; }
+.sierra-map-foot strong { margin-left:auto; color:var(--sierra-type-primary, #203b31); font-weight:800; }
 .sierra-risk-dot { width:.65rem; height:.65rem; border-radius:50%; }
 .sierra-risk-dot.low { background:#10b981; }.sierra-risk-dot.medium { background:#f59e0b; }.sierra-risk-dot.high { background:#f97316; }.sierra-risk-dot.critical { background:#ef4444; }
 .sierra-map-popup { display:flex; flex-direction:column; gap:.3rem; min-width:160px; color:#334d3e; font:600 .74rem Manrope,sans-serif; }

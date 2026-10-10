@@ -202,6 +202,60 @@ class Report {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function getUnderReviewDate(array $reportData) {
+        if (!empty($reportData['viewed_at'])) return $reportData['viewed_at'];
+        if (empty($reportData['id']) || ($reportData['status'] ?? '') === self::STATUS_PENDING) return null;
+
+        // Earlier detail-page transitions recorded the date only in the audit log.
+        $reportId = (int)$reportData['id'];
+        $stmt = $this->conn->prepare("SELECT MIN(created_at) FROM activity_logs
+            WHERE status = 'SUCCESS' AND (
+                (action = 'Status Change' AND description LIKE ?)
+                OR (action = 'Update Status' AND description = ?)
+            )");
+        $stmt->execute([
+            "Auto%flipped report #$reportId to Under Review (barangay viewed the report)",
+            "Updated report #$reportId status to under_review",
+        ]);
+        return $stmt->fetchColumn() ?: null;
+    }
+
+    /** Fill timeline milestones from recorded events; never infer dates from updated_at. */
+    public function getTimelineDates(array $reportData) {
+        $reportData['viewed_at'] = $this->getUnderReviewDate($reportData);
+        if (empty($reportData['id'])) return $reportData;
+        $reportId = (int)$reportData['id'];
+        $stmt = $this->conn->prepare('SELECT escalated_at, approved_at FROM escalations WHERE report_id = ? ORDER BY escalated_at DESC, id DESC LIMIT 1');
+        $stmt->execute([$reportId]);
+        $escalationDates = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        foreach (['escalated_at', 'approved_at'] as $field) {
+            if (empty($reportData[$field]) && !empty($escalationDates[$field])) $reportData[$field] = $escalationDates[$field];
+        }
+        $stmt = $this->conn->prepare("SELECT action, description, created_at FROM activity_logs WHERE status = 'SUCCESS' AND description LIKE ? ORDER BY created_at ASC");
+        $stmt->execute(["%report #$reportId%"]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $event) {
+            if (!preg_match('/report #' . $reportId . '(?![0-9])/i', $event['description'])) continue;
+            $field = null;
+            switch ($event['action']) {
+                case 'Create Report': $field = 'created_at'; break;
+                case 'Verify Report': $field = 'verified_at'; break;
+                case 'Resolve Report': $field = 'resolved_at'; break;
+                case 'Reject Report': $field = 'rejected_at'; break;
+                case 'Cancel Report': $field = 'cancelled_at'; break;
+                case 'Approve Escalation': $field = 'approved_at'; break;
+                case 'Escalate Report': $field = 'escalated_at'; break;
+                case 'Update Status':
+                    if (preg_match('/^Updated report #' . $reportId . ' status to (under_review|verified|in_progress|escalated_pending|escalated|resolved|rejected|cancelled)$/', $event['description'], $match)) {
+                        $fields = ['under_review'=>'viewed_at', 'verified'=>'verified_at', 'in_progress'=>'verified_at', 'escalated_pending'=>'escalated_at', 'escalated'=>'approved_at', 'resolved'=>'resolved_at', 'rejected'=>'rejected_at', 'cancelled'=>'cancelled_at'];
+                        $field = $fields[$match[1]];
+                    }
+                    break;
+            }
+            if ($field && empty($reportData[$field])) $reportData[$field] = $event['created_at'];
+        }
+        return $reportData;
+    }
+
     public function getReportsByStatus($status, $barangay_id = null, $user_id = null) {
         $query = "SELECT COUNT(*) as count FROM " . $this->table . " WHERE status = :status";
         $params = [':status' => $status];
@@ -556,7 +610,7 @@ class Report {
         $stmt->bindValue(":status", self::STATUS_UNDER_REVIEW);
         $stmt->bindValue(":id", $report_id);
         $stmt->bindValue(":pending", self::STATUS_PENDING);
-        return $stmt->execute();
+        return $stmt->execute() && $stmt->rowCount() > 0;
     }
 
     // ============================================

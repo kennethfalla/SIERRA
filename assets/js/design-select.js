@@ -87,9 +87,17 @@
         btn.className = 'cs-btn';
         btn.setAttribute('aria-haspopup', 'listbox');
         btn.setAttribute('aria-expanded', 'false');
+        btn.id = (native.id || 'design-select-' + document.querySelectorAll('.cs').length) + '-button';
+        var nativeLabel = native.labels && native.labels[0];
+        if (nativeLabel) {
+            if (!nativeLabel.id) nativeLabel.id = btn.id + '-label';
+            btn.setAttribute('aria-labelledby', nativeLabel.id + ' ' + btn.id + '-value');
+            nativeLabel.addEventListener('click', function (event) { event.preventDefault(); btn.focus(); });
+        }
 
         var label = document.createElement('span');
         label.className = 'cs-label';
+        label.id = btn.id + '-value';
         btn.appendChild(label);
 
         var caret = document.createElement('span');
@@ -100,6 +108,8 @@
         var list = document.createElement('ul');
         list.className = 'cs-list';
         list.setAttribute('role', 'listbox');
+        list.id = btn.id + '-options';
+        btn.setAttribute('aria-controls', list.id);
         list.hidden = true;
 
         wrap.appendChild(btn);
@@ -114,6 +124,8 @@
                 li.className = 'cs-option';
                 li.setAttribute('role', 'option');
                 li.dataset.index = String(i);
+                li.id = list.id + '-' + i;
+                li.setAttribute('aria-disabled', opt.disabled ? 'true' : 'false');
                 li.textContent = (opt.textContent || '').replace(/\s+/g, ' ').trim();
                 li.addEventListener('click', function () { choose(i); });
                 list.appendChild(li);
@@ -121,6 +133,7 @@
         }
 
         function refresh() {
+            btn.disabled = native.disabled;
             var sel = native.options[native.selectedIndex];
             label.textContent = sel ? (sel.textContent || '').replace(/\s+/g, ' ').trim() : '';
             label.classList.toggle('is-placeholder', !native.value);
@@ -135,11 +148,13 @@
             var items = list.children;
             if (!items.length) return;
             active = Math.max(0, Math.min(i, items.length - 1));
+            btn.setAttribute('aria-activedescendant', items[active].id);
             for (var k = 0; k < items.length; k++) items[k].classList.toggle('is-active', k === active);
             if (items[active] && items[active].scrollIntoView) items[active].scrollIntoView({ block: 'nearest' });
         }
 
         function open() {
+            if (native.disabled) return;
             closeAllExcept(wrap);
             list.hidden = false;
             wrap.classList.add('is-open');
@@ -150,8 +165,10 @@
             list.hidden = true;
             wrap.classList.remove('is-open');
             btn.setAttribute('aria-expanded', 'false');
+            btn.removeAttribute('aria-activedescendant');
         }
         function choose(i) {
+            if (!native.options[i] || native.options[i].disabled) return;
             native.selectedIndex = i;
             native.dispatchEvent(new Event('change', { bubbles: true }));
             refresh();
@@ -164,7 +181,10 @@
             if (list.hidden) open(); else close();
         });
         btn.addEventListener('keydown', function (e) {
-            if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (list.hidden) open(); else setActive(active + 1);
+            } else if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 if (list.hidden) open(); else choose(active);
             } else if (e.key === 'ArrowUp') {
@@ -178,10 +198,12 @@
         });
 
         native.addEventListener('change', refresh);
+        native.addEventListener('invalid', function () { wrap.classList.add('is-error'); btn.setAttribute('aria-invalid', 'true'); btn.focus(); });
 
         // Mirror feedback classes from the native select onto the wrapper.
         var mirror = function () {
             wrap.classList.toggle('is-error', native.classList.contains('error'));
+            btn.setAttribute('aria-invalid', native.classList.contains('error') ? 'true' : 'false');
             if (native.classList.contains('category-auto-flash')) {
                 wrap.classList.remove('is-flash');
                 void wrap.offsetWidth; // restart the animation

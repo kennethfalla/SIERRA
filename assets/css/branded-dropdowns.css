@@ -2,7 +2,7 @@
 :root {
     --dropdown-accent: #0d8568;
     --dropdown-ink: #24463a;
-    --dropdown-border: #d7e4dd;
+    --dropdown-border: #e2e6e9;
     --dropdown-hover: #f1f8f4;
     --dropdown-selected: #e6f4ec;
 }
@@ -41,10 +41,10 @@ body select:where(:not([multiple]):not([size]):not([data-cs-enhanced]):not(.sele
     background-position: right .65rem center !important;
 }
 body .cs .cs-btn { padding-right: .8rem !important; }
-body select:hover:not(:disabled), body .cs .cs-btn:hover:not(:disabled) { border-color: #a4cbb5 !important; }
+body select:hover:not(:disabled), body .cs .cs-btn:hover:not(:disabled) { border-color: #b7c1c8 !important; }
 body select:focus-visible, body .cs .cs-btn:focus-visible {
-    border-color: var(--dropdown-accent) !important;
-    outline: 2px solid #0d856833 !important;
+    border-color: var(--sierra-focus, #64748b) !important;
+    outline: 2px solid var(--sierra-focus, #64748b) !important;
     outline-offset: 2px;
     box-shadow: none !important;
 }
@@ -101,6 +101,10 @@ body :is(.export-dropdown-item, .dropdown-item, .lang-menu button, .cs-option) {
     transition: background-color .15s ease, color .15s ease;
 }
 body .cs-list { padding: 5px; }
+body .cs-list[hidden] { display:none !important; }
+body .cs.is-open { z-index:90; }
+body .cs .cs-btn { min-height:44px; font-size:14px; }
+body .cs > select[data-cs-enhanced] { min-height:0 !important; max-width:1px !important; height:1px !important; width:1px !important; padding:0 !important; border:0 !important; }
 body .cs-option { border-radius: 6px; min-height: 36px; }
 body :is(.export-dropdown-item, .dropdown-item) { border-radius: 8px; }
 body :is(.export-dropdown-item, .dropdown-item, .lang-menu button, .cs-option):hover,
@@ -110,6 +114,14 @@ body .cs-option.is-selected::after { background: none; content: '\2713'; color: 
 body .cs-option[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 body :is(.export-dropdown-item, .dropdown-item, .lang-menu button):focus-visible { outline: 2px solid var(--dropdown-accent); outline-offset: -3px; background: var(--dropdown-hover); }
 body :is(.btn-filter-by, .btn-date-range, .ft-more-btn) { border-radius: 8px !important; }
+/* Same Filter By trigger in a header, table, or dashboard action row. */
+body .ft-toolbar .toolbar-filter-btn {
+    display:inline-flex !important; align-items:center; justify-content:center; gap:6px;
+    min-height:40px !important; padding:8px 14px !important; border-radius:8px !important;
+    font-size:.82rem !important; font-weight:600; line-height:1.4;
+    color:var(--sierra-type-primary) !important; background:#f9fafb !important; box-shadow:none !important;
+}
+body .ft-toolbar .toolbar-filter-btn:hover,body .ft-toolbar .toolbar-filter-btn.active { background:#e8f0e7 !important; color:#0d8568 !important; }
 @media (max-width: 640px) {
     body select:where(:not([multiple]):not([size]):not([data-cs-enhanced])), body .cs .cs-btn { min-height: 44px; }
     body .app-mobile-header select { min-height: 36px !important; }
@@ -164,7 +176,7 @@ body .table-filter-portal .popover-actions { position: sticky; bottom: 0; margin
 body .table-filter-portal #popoverApply { width: 100%; min-height: 48px; border-radius: 999px !important; background: #0d684c !important; color: white !important; justify-content: center; font-size: .9rem; }
 body .table-filter-portal :is(button,input):focus-visible { outline: 2px solid #10a37f; outline-offset: 3px; }
 @media (max-width: 600px) {
-    body .table-filter-portal #filterPopover { width: calc(100vw - 20px) !important; max-height: calc(100dvh - 24px) !important; padding: 16px 18px 0 !important; border-radius: 22px !important; }
+    body .table-filter-portal #filterPopover { width: calc(100vw - 20px) !important; max-height: calc(100dvh - 24px) !important; padding: 16px 18px 0 !important; }
     body .table-filter-portal .pf-group { padding: 16px 0; }
     body .table-filter-portal :is(.pf-chip,.dr-preset) { min-height: 40px; padding: 7px 10px; font-size: .76rem; }
     body .table-filter-portal :is(.pf-date-grid,.dr-custom) { grid-template-columns: minmax(0, 1fr); }

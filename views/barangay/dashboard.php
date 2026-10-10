@@ -678,7 +678,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .status-escalated { background: #FEE2E2; color: #DC2626; }
         .status-resolved { background: #D1FAE5; color: #10A37F; }
         .status-rejected { background: #FEE2E2; color: #DC2626; }
-        .status-cancelled { background: #E5E7EB; color: #4B5563; }
+        .status-cancelled { background: #E5E7EB; color: var(--sierra-type-muted, #63746b); }
         
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(30px); }
@@ -772,20 +772,20 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .notification-title { 
             font-weight: 700; 
             font-size: 0.9rem; 
-            color: #1F2937; 
+            color: var(--sierra-type-primary, #203b31);
             margin-bottom: 4px; 
         }
         
         .notification-message { 
             font-size: 0.75rem; 
-            color: #6B7280; 
+            color: var(--sierra-type-muted, #63746b);
             line-height: 1.4; 
             margin-bottom: 6px; 
         }
         
         .notification-time { 
             font-size: 0.65rem; 
-            color: #9CA3AF; 
+            color: var(--sierra-type-muted, #63746b);
             display: flex; 
             align-items: center; 
             gap: 4px; 
@@ -922,7 +922,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         }
         .kpi-card .kpi-sub {
             font-size: 0.7rem;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             margin-top: 0.25rem;
         }
         .kpi-card .kpi-icon {
@@ -1021,7 +1021,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             border: none;
             cursor: pointer;
             background: transparent;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
             transition: all 0.2s;
         }
         .map-toggle button.active {
@@ -1053,7 +1053,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.9rem;
         }
-        .score-row .label { color: #64748b; }
+        .score-row .label { color: var(--sierra-type-muted, #63746b); }
         .score-row .value { font-weight: 600; }
 
         .rec-box {
@@ -1116,7 +1116,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .chart-card .chart-title {
             font-weight: 700;
             font-size: 0.9rem;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             margin-bottom: 0.75rem;
         }
         .chart-container {
@@ -1173,7 +1173,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             background: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 0.5rem;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             transition: all 0.15s ease;
             flex-shrink: 0;
@@ -1254,7 +1254,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             padding: 0.45rem 0.8rem;
             box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
             font-size: 0.72rem;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
         }
         /* Legend shown under the map on phones so it never covers the canvas */
         .map-legend-inline {
@@ -1266,8 +1266,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         @media (max-width: 768px) {
             .ml-72 { margin-left: 0; }
             .notification-dropdown { right: 8px; left: 8px; width: auto; max-width: none; }
-            .kpi-card .kpi-value { font-size: 1.5rem; }
-            .map-toggle button { padding: 0.3rem 0.8rem; font-size: 0.7rem; }
+            .map-toggle button { padding: 0.3rem 0.8rem; }
             /* greeting: hide clock on tiny screens */
             .time-card { display: none; }
             /* chart grids: single column stacks */
@@ -1288,7 +1287,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             #mapToggle button { flex: 1; padding: 0.35rem 0.5rem; font-size: 0.72rem; }
             /* Header tools wrap to their own line on mobile */
             .map-head-tools { width: 100%; justify-content: space-between; }
-            .map-legend { gap: 0.45rem 0.85rem; padding: 0.35rem 0.65rem; font-size: 0.68rem; }
+            .map-legend { gap: 0.45rem 0.85rem; padding: 0.35rem 0.65rem; }
             /* Timeframe pills become a swipeable strip instead of wrapping */
             #timeframeToggle {
                 display: flex;
@@ -1334,12 +1333,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .mob-card-title {
             font-weight: 700;
             font-size: 0.9rem;
-            color: #111827;
+            color: var(--sierra-type-primary, #203b31);
             margin-bottom: 4px;
         }
         .mob-card-meta {
             font-size: 0.72rem;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             display: flex;
             flex-wrap: wrap;
             gap: 6px 12px;
@@ -1384,7 +1383,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             'search_id'          => 'barangaySearchInput',
             'search_value'       => $f_search,
             'search_placeholder' => 'Search reports…',
-            'show_search'        => true,
+            'show_search'        => false,
             'show_active_row' => false,
             'compact_breakpoint' => 1199,
             'more_icon' => 'fa-sliders-h',
@@ -1415,10 +1414,11 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             </div></div>
         </div>
         <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
+        <?php include BASE_PATH . 'views/shared/dashboard_report_reminders.php'; ?>
         <?php include BASE_PATH . 'views/shared/dashboard_announcements.php'; ?>
 
         <div class="dash-head dash-title-row">
-            <div class="dash-title-actions">
+            <div class="dash-title-actions" data-filter-actions>
                 <span class="dash-date"><i class="far fa-calendar" aria-hidden="true"></i><?php echo date('D, d F Y'); ?></span>
                 <div class="export-dropdown">
                     <button onclick="toggleExportMenu()" class="btn-export-trigger radius-12" type="button">
@@ -2419,14 +2419,12 @@ function loadMapData(mode) {
         const color = getSeverityColor(score);
         const tier = getSeverityTier(score);
         const isPending = report.status === 'pending';
-        const popupAction = isPending
-            ? `<a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=${report.token}" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 8px; padding: 4px 12px; font-size: 12px; text-decoration: none; display: inline-block;">Manage Report</a>`
-            : '';
+        const popupAction = `<a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=${report.token}" style="margin-top: 6px; background: #10A37F; color: white; border: none; border-radius: 8px; padding: 4px 12px; font-size: 12px; text-decoration: none; display: inline-block;">${isPending ? 'Manage Report' : 'View Report'}</a>`;
         const popupContent = `
             <div style="font-family: Manrope, sans-serif; min-width: 200px;">
-                <strong style="font-size: 14px; color:#1f2937;">#${String(report.id).padStart(5,'0')} — ${escapeHtml(report.title)}</strong><br>
-                <span style="font-size: 12px; color: #64748b;">Severity: ${score}/20 (${tier})</span><br>
-                <span style="font-size: 12px; color: #64748b;">Reports in cluster: ${report.spatial_density_count || 0}</span><br>
+                <strong style="font-size: 14px; color:var(--sierra-type-primary, #203b31);">#${String(report.id).padStart(5,'0')} — ${escapeHtml(report.title)}</strong><br>
+                <span style="font-size: 12px; color: var(--sierra-type-muted, #63746b);">Severity: ${score}/20 (${tier})</span><br>
+                <span style="font-size: 12px; color: var(--sierra-type-muted, #63746b);">Reports in cluster: ${report.spatial_density_count || 0}</span><br>
                 ${popupAction}
             </div>
         `;

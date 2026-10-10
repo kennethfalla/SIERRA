@@ -5,6 +5,7 @@
 //   search_id, search_value, search_placeholder, results_text,
 //   inline_selects   [{id, value, min_width, onchange, options}]
 //   filter_by        {active, count}
+//   show_filter_by   bool (false keeps filter values without showing filter controls)
 //   popover_fields   [{kind:'select'|'date', id, label, value, default, options}]
 //   sort_select      {id, value, default, min_width, options}  (rendered inside Filter By popover)
 //   trailing_select  {id, value, min_width, onchange, options}
@@ -34,6 +35,7 @@ $ft_callback           = $ft['callback'] ?? 'applyFilters';
 $ft_filter_count       = (int)($ft_filter_by['count'] ?? 0);
 $ft_date_range         = $ft['date_range'] ?? null;
 $ft_show_search        = $ft['show_search'] ?? true;
+$ft_show_filter_by     = $ft['show_filter_by'] ?? true;
 $ft_show_active_row    = $ft['show_active_row'] ?? true;
 $ft_compact_breakpoint = max(640, min(1600, (int)($ft['compact_breakpoint'] ?? 640)));
 // The shared app header also needs room for its page title and notifications.
@@ -49,7 +51,8 @@ foreach ($ft_inline_selects as $sel) {
     $ft_popover_fields[] = [
         'kind' => 'select', 'id' => $sel['id'] ?? '',
         'label' => $sel['label'] ?? preg_replace('/^All\s+/i', '', (string)$firstOption),
-        'value' => $sel['value'] ?? '', 'default' => (string)array_key_first($options ?: ['' => '']),
+        'value' => $sel['value'] ?? '', 'default' => (string)($sel['default'] ?? array_key_first($options ?: ['' => ''])),
+        'multi' => !empty($sel['multi']),
         'options' => $options,
     ];
 }
@@ -58,7 +61,7 @@ if ($ft_trailing_select) {
         'kind' => 'select', 'id' => $ft_trailing_select['id'] ?? '',
         'label' => $ft_trailing_select['label'] ?? 'Items per page',
         'value' => $ft_trailing_select['value'] ?? '',
-        'default' => (string)array_key_first($ft_trailing_select['options'] ?? ['' => '']),
+        'default' => (string)($ft_trailing_select['default'] ?? array_key_first($ft_trailing_select['options'] ?? ['' => ''])),
         'options' => $ft_trailing_select['options'] ?? [],
     ];
 }
@@ -88,10 +91,11 @@ foreach ($ft_popover_fields as $pf) {
         --ft-border-light: #E5E7EB;
         --ft-white: #FFFFFF;
         --ft-gray-50: #F9FAFB;
-        --ft-gray-500: #6B7280;
-        --ft-gray-700: #374151;
+        --ft-gray-500: var(--sierra-type-muted, #63746b);
+        --ft-gray-700: var(--sierra-type-primary, #203b31);
         --ft-gray-800: #1F2937;
     }
+    .ft-toolbar .filter-date-error { color: #b91c1c; font-size: .8rem; margin: .5rem 0; }
     .ft-toolbar .reports-toolbar {
         background: var(--ft-white);
         border: 1px solid var(--ft-border);
@@ -117,30 +121,18 @@ foreach ($ft_popover_fields as $pf) {
         left: 12px;
         top: 50%;
         transform: translateY(-50%);
-        color: #9CA3AF;
+        color: var(--sierra-type-muted, #63746b);
         font-size: 0.8rem;
         pointer-events: none;
     }
-    .ft-toolbar .toolbar-search input {
-        width: 100%;
-        padding: 8px 12px 8px 36px;
-        border: 1.5px solid var(--ft-border-light);
-        border-radius: 8px;
-        font-size: 0.85rem;
-        color: var(--ft-gray-800);
-        background: var(--ft-gray-50);
-        transition: all 0.2s ease;
-        outline: none;
-    }
-    .ft-toolbar .toolbar-search input:focus {
+
+.ft-toolbar .toolbar-search input:focus {
         border-color: var(--ft-forest);
         background: var(--ft-white);
         box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.10);
     }
-    .ft-toolbar .toolbar-search input::placeholder {
-        color: #9CA3AF;
-    }
-    .ft-toolbar .toolbar-select {
+
+.ft-toolbar .toolbar-select {
         appearance: none;
         padding: 8px 32px 8px 12px;
         border: 1.5px solid var(--ft-border-light);
@@ -324,7 +316,7 @@ foreach ($ft_popover_fields as $pf) {
         border-radius: 50%;
         border: 1px solid var(--ft-border-light);
         background: #fff;
-        color: #334155;
+        color: var(--sierra-type-primary, #203b31);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -343,7 +335,7 @@ foreach ($ft_popover_fields as $pf) {
     }
     .ft-toolbar .pf-group { padding: 14px 0; border-top: 1px solid #eef2f0; }
     .ft-toolbar .pf-group:first-of-type { border-top: 0; padding-top: 0; }
-    .ft-toolbar .pf-group-title { font-size: .95rem; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+    .ft-toolbar .pf-group-title { font-size: .95rem; font-weight: 800; color: var(--sierra-type-primary, #203b31); margin-bottom: 10px; }
     .ft-toolbar .pf-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .ft-toolbar .pf-chip {
         display: inline-flex;
@@ -353,7 +345,7 @@ foreach ($ft_popover_fields as $pf) {
         border: 1.5px solid #dbe7e0;
         border-radius: 999px;
         background: #fff;
-        color: #334155;
+        color: var(--sierra-type-primary, #203b31);
         font-size: .8rem;
         font-weight: 600;
         cursor: pointer;
@@ -384,7 +376,7 @@ foreach ($ft_popover_fields as $pf) {
         border-radius: 14px;
         padding: 12px 14px;
     }
-    .ft-toolbar .pf-date-box label { margin: 0; text-transform: none; letter-spacing: 0; font-size: .82rem; color: #64748b; }
+    .ft-toolbar .pf-date-box label { margin: 0; text-transform: none; letter-spacing: 0; font-size: .82rem; color: var(--sierra-type-muted, #63746b); }
     .ft-toolbar .pf-date-box input[type="date"] { border: 0; background: transparent; padding: 0; flex: 1; }
     .ft-toolbar .popover-actions { position: sticky; bottom: 0; background: var(--ft-white); padding-top: 14px; border-top: 1px solid #eef2f0; margin-top: 4px; }
     .ft-toolbar .popover-btn-apply { width: 100%; justify-content: center; border-radius: 999px; padding: 14px; font-size: .95rem; }
@@ -497,7 +489,7 @@ foreach ($ft_popover_fields as $pf) {
         font-weight: 500;
         cursor: pointer;
         background: transparent;
-        color: #64748b;
+        color: var(--sierra-type-muted, #63746b);
         transition: all 0.2s;
     }
     @media (min-width: 640px) {
@@ -847,7 +839,7 @@ foreach ($ft_popover_fields as $pf) {
 
 .table-section-header { display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
 .table-section-header > div:first-child { text-align:left; }
-.table-section-header h2 { font-size:14px; font-weight:800; color:#244c3d; }
+.table-section-header h2 { font-size:14px; font-weight:800; color:var(--sierra-type-primary, #203b31); }
 .table-section-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-left:auto; flex-wrap:wrap; }
 .table-section-header .table-section-actions .export-dropdown,.table-section-header .table-section-actions .btn-export-trigger { width:auto; }
 .table-section-actions .table-filter-controls { margin:0; padding:0; border:0; box-shadow:none; background:none; width:auto; }
@@ -870,6 +862,11 @@ foreach ($ft_popover_fields as $pf) {
         </div>
         <?php endif; ?>
 
+        <?php if (!$ft_show_filter_by): ?>
+        <?php foreach (array_merge($ft_popover_fields, $ft_sort_select ? [$ft_sort_select] : []) as $pf): ?>
+            <input type="hidden" id="<?php echo htmlspecialchars($pf['id'] ?? '', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string)($pf['value'] ?? ''), ENT_QUOTES); ?>">
+        <?php endforeach; ?>
+        <?php else: ?>
         <!-- Mobile-only "more filters" trigger (3 dots) -->
         <button type="button" class="ft-more-btn" id="ftMoreBtn" aria-label="More filters" aria-expanded="false">
             <i class="fas <?php echo htmlspecialchars($ft_more_icon, ENT_QUOTES); ?>"></i>
@@ -976,6 +973,7 @@ foreach ($ft_popover_fields as $pf) {
                         </div>
                     </div>
                     <?php endif; ?>
+                    <p id="filterDateError" role="alert" class="filter-date-error" hidden>Please choose an end date on or after the start date.</p>
                     <div class="popover-actions">
                         <button type="button" class="popover-btn-apply" id="popoverApply"><i class="fas fa-check" style="margin-right:4px"></i>Apply Filter</button>
                     </div>
@@ -993,10 +991,13 @@ foreach ($ft_popover_fields as $pf) {
             </div>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
 
     <!-- Backdrop for the mobile "more filters" sheet -->
+    <?php if ($ft_show_filter_by): ?>
     <div class="ft-more-backdrop" id="ftMoreBackdrop"></div>
+    <?php endif; ?>
 
     <?php if ($ft_show_active_row && $ft_active_filters > 0): ?>
     <div class="active-filters-row">
@@ -1023,8 +1024,9 @@ foreach ($ft_popover_fields as $pf) {
             array_map(function ($pf) {
                 return ['id' => $pf['id'] ?? '', 'default' => $pf['default'] ?? ''];
             }, $ft_popover_fields),
-            $ft_sort_select ? [['id' => $ft_sort_select['id'] ?? '', 'default' => $ft_sort_select['default'] ?? '']] : []
-        )); ?>
+            $ft_sort_select ? [['id' => $ft_sort_select['id'] ?? '', 'default' => $ft_sort_select['default'] ?? (string)array_key_first($ft_sort_select['options'] ?? ['' => ''])]] : []
+        )); ?>,
+        dateFields: <?php echo json_encode(array_values(array_map(function ($field) { return $field['id']; }, array_filter($ft_popover_fields, function ($field) { return ($field['kind'] ?? 'date') === 'date'; })))); ?>
     };
     if (!document.querySelector('.ft-toolbar .reports-toolbar')) return;
 
@@ -1051,18 +1053,7 @@ foreach ($ft_popover_fields as $pf) {
     var moreClose = document.getElementById('ftMoreClose');
     var mobileQuery = window.matchMedia('(max-width: <?php echo $ft_compact_breakpoint; ?>px)');
 
-    // Keep report-list search available in the filter sheet when the header is compact.
-    var searchWrap = document.getElementById(FT.searchId)?.closest('.toolbar-search');
-    function placeHeaderSearch() {
-        if (!<?php echo $ft_in_header ? 'true' : 'false'; ?> || !searchWrap || !moreControls || !moreBtn || !document.querySelector('.app-mobile-header')) return;
-        if (mobileQuery.matches) {
-            moreControls.querySelector('.ft-more-controls-header').after(searchWrap);
-        } else {
-            moreBtn.before(searchWrap);
-        }
-    }
-    placeHeaderSearch();
-    mobileQuery.addEventListener('change', placeHeaderSearch);
+    // The shared app header owns mobile search; keep the input in its original toolbar.
 
     function clearSheetHold() {
         if (!moreControls) return;
@@ -1217,7 +1208,57 @@ foreach ($ft_popover_fields as $pf) {
 
     // ===== Grid/List view toggle stays inside the 3-dot sheet on mobile =====
     function ftRun() {
+        clearTimeout(searchTimer);
+        if (!validDates()) return;
+        updateFilterBadge();
         if (typeof window[FT.callback] === 'function') window[FT.callback]();
+    }
+
+    function resetFilterFields() {
+        FT.popoverFields.forEach(function(field) {
+            var element = document.getElementById(field.id);
+            if (element) element.value = field.default;
+        });
+        ['ftRangeFrom', 'ftRangeTo', 'ftRangePreset'].forEach(function(id) {
+            var element = document.getElementById(id); if (element) element.value = '';
+        });
+        Object.keys(FT.clearMap || {}).forEach(function(key) {
+            if (key === 'search') return;
+            var field = FT.clearMap[key], element = document.getElementById(field.el);
+            if (element) element.value = field.clear;
+        });
+        var error = document.getElementById('filterDateError');
+        if (error) error.hidden = true;
+    }
+
+    function validDates() {
+        var pairs = FT.dateFields.length === 2 ? [FT.dateFields] : [];
+        if (document.getElementById('ftRangeFrom')) pairs.push(['ftRangeFrom', 'ftRangeTo']);
+        var error = document.getElementById('filterDateError');
+        if (error) error.hidden = true;
+        for (var pair of pairs) {
+            var from = document.getElementById(pair[0]), to = document.getElementById(pair[1]);
+            if (from && to && from.value && to.value && from.value > to.value) {
+                if (error) error.hidden = false;
+                to.focus();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function updateFilterBadge() {
+        if (!filterBtn) return;
+        var count = FT.popoverFields.filter(function(field) {
+            var element = document.getElementById(field.id);
+            return element && String(element.value) !== String(field.default);
+        }).length;
+        var range = document.getElementById('ftRangePreset'), from = document.getElementById('ftRangeFrom'), to = document.getElementById('ftRangeTo');
+        if ((range && range.value) || (from && from.value) || (to && to.value)) count++;
+        var badge = filterBtn.querySelector('.filter-count-badge');
+        if (!badge && count) { badge = document.createElement('span'); badge.className = 'filter-count-badge'; filterBtn.appendChild(badge); }
+        if (badge) { badge.textContent = count; badge.hidden = !count; }
+        filterBtn.classList.toggle('active', count > 0);
     }
 
     function ftClearChip(filter) {
@@ -1230,7 +1271,8 @@ foreach ($ft_popover_fields as $pf) {
             searchInput.value = '';
         } else if (filter === 'category' || filter === FT.categoryEl) {
             var catEl = document.getElementById(FT.categoryEl);
-            if (catEl) catEl.value = 'all';
+            var field = FT.popoverFields.find(function(item) { return item.id === FT.categoryEl; });
+            if (catEl) catEl.value = field ? field.default : 'all';
         } else if (FT.dateMap[filter]) {
             var dateEl = document.getElementById(FT.dateMap[filter]);
             if (dateEl) dateEl.value = '';
@@ -1238,20 +1280,14 @@ foreach ($ft_popover_fields as $pf) {
     }
 
     function ftClearAll() {
+        resetFilterFields();
+        searchInput.value = '';
         if (FT.clearMap && Object.keys(FT.clearMap).length) {
             Object.keys(FT.clearMap).forEach(function (k) {
                 var el = document.getElementById(FT.clearMap[k].el);
                 if (el) el.value = FT.clearMap[k].clear;
             });
-            return;
         }
-        searchInput.value = '';
-        var catEl = document.getElementById(FT.categoryEl);
-        if (catEl) catEl.value = 'all';
-        Object.keys(FT.dateMap).forEach(function (k) {
-            var el = document.getElementById(FT.dateMap[k]);
-            if (el) el.value = '';
-        });
     }
 
     // Debounced search
@@ -1317,6 +1353,7 @@ foreach ($ft_popover_fields as $pf) {
         });
     }
     function clearDatePresetChips() {
+        if (!filterPopover) return;
         filterPopover.querySelectorAll('.pf-date-presets .pf-chip').forEach(function(chip) {
             chip.classList.remove('active'); chip.setAttribute('aria-pressed', 'false');
         });
@@ -1336,13 +1373,22 @@ foreach ($ft_popover_fields as $pf) {
     }
     filterBtn && filterBtn.addEventListener('click', function(event) {
         event.stopPropagation();
+        clearTimeout(searchTimer);
         if (filterPopover.classList.contains('open')) { closeFilterPopover(false); return; }
-        filterDraft = Array.from(filterPopover.querySelectorAll('input,select')).map(function(element) {
+        var draftElements = Array.from(filterPopover.querySelectorAll('input,select'));
+        Object.keys(FT.clearMap || {}).forEach(function(key) {
+            if (key === 'search') return;
+            var element = document.getElementById(FT.clearMap[key].el);
+            if (element && draftElements.indexOf(element) === -1) draftElements.push(element);
+        });
+        filterDraft = draftElements.map(function(element) {
             return {element: element, value: element.value};
         });
         previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         syncFilterChips();
+        var dateError = document.getElementById('filterDateError');
+        if (dateError) dateError.hidden = true;
         filterPopover.classList.add('open');
         popBackdrop.classList.add('open');
         filterBtn.setAttribute('aria-expanded', 'true');
@@ -1362,18 +1408,10 @@ foreach ($ft_popover_fields as $pf) {
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
     var applyBtn = document.getElementById('popoverApply');
-    applyBtn && applyBtn.addEventListener('click', function() { closeFilterPopover(true); ftRun(); });
+    applyBtn && applyBtn.addEventListener('click', function() { if (validDates()) { closeFilterPopover(true); ftRun(); } });
     var resetBtn = document.getElementById('popoverReset');
     resetBtn && resetBtn.addEventListener('click', function() {
-        FT.popoverFields.forEach(function(field) {
-            var element = document.getElementById(field.id);
-            if (!element) return;
-            element.value = field.default;
-            if (element.tagName === 'SELECT' && element.selectedIndex < 0) element.selectedIndex = 0;
-        });
-        ['ftRangeFrom', 'ftRangeTo', 'ftRangePreset'].forEach(function(id) {
-            var element = document.getElementById(id); if (element) element.value = '';
-        });
+        resetFilterFields();
         filterPopover.querySelectorAll('.dr-preset').forEach(function(button) { button.classList.remove('active'); });
         clearDatePresetChips();
         syncFilterChips();
@@ -1381,17 +1419,17 @@ foreach ($ft_popover_fields as $pf) {
     document.querySelectorAll('.pf-chips[data-input]').forEach(function(group) {
         var input = document.getElementById(group.dataset.input);
         var multi = group.dataset.multi === '1';
-        var allChip = group.querySelector('.pf-chip[data-value=""], .pf-chip[data-value="0"]');
+        var allChip = group.querySelector('.pf-chip[data-value=""], .pf-chip[data-value="0"], .pf-chip[data-value="all"]');
         var allValue = allChip ? allChip.dataset.value : '';
         group.querySelectorAll('.pf-chip').forEach(function(chip) {
             chip.addEventListener('click', function() {
                 if (!input) return;
                 var value = chip.dataset.value;
-                var isAll = value === '' || value === '0';
+                var isAll = value === allValue;
                 if (!multi || isAll) {
                     input.value = value;
                 } else {
-                    var values = input.value ? String(input.value).split(',').filter(function(v) { return v !== '' && v !== '0'; }) : [];
+                    var values = input.value ? String(input.value).split(',').filter(function(v) { return v !== allValue; }) : [];
                     var idx = values.indexOf(value);
                     if (idx === -1) values.push(value); else values.splice(idx, 1);
                     input.value = values.length ? values.join(',') : allValue;
@@ -1497,7 +1535,7 @@ foreach ($ft_popover_fields as $pf) {
             });
         });
         var drApplyBtn = document.getElementById('ftRangeApply');
-        drApplyBtn && drApplyBtn.addEventListener('click', function () { drClose(); ftRun(); });
+        drApplyBtn && drApplyBtn.addEventListener('click', function () { if (validDates()) { drClose(); ftRun(); } });
         var drResetBtn = document.getElementById('ftRangeReset');
         drResetBtn && drResetBtn.addEventListener('click', function () {
             drPreset.value = '';

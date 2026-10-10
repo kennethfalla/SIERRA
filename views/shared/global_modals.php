@@ -63,10 +63,10 @@
     .gb-icon-success { background: #D1FAE5; color: #059669; }
     .gb-icon-error   { background: #FEE2E2; color: #DC2626; }
     .gb-modal-title {
-        font-weight: 700; color: #1F2937; font-size: 1.05rem; margin-bottom: 6px;
+        font-weight: 700; color: var(--sierra-type-primary, #203b31); font-size: 1.05rem; margin-bottom: 6px;
     }
     .gb-modal-msg {
-        color: #6B7280; font-size: 0.875rem; line-height: 1.55; margin-bottom: 1.4rem;
+        color: var(--sierra-type-muted, #63746b); font-size: 0.875rem; line-height: 1.55; margin-bottom: 1.4rem;
         word-wrap: break-word; overflow-wrap: anywhere; white-space: pre-line;
     }
     .gb-modal-actions { display: flex; gap: 0.75rem; }
@@ -81,7 +81,7 @@
     .gb-btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(220,38,38,0.32); }
     .gb-btn-primary { background: linear-gradient(135deg, #10A37F, #0D8568); color: #fff; box-shadow: 0 2px 8px rgba(16,163,127,0.24); }
     .gb-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16,163,127,0.34); }
-    .gb-btn-cancel  { background: #fff; color: #4B5563; border: 1px solid #E5E7EB; }
+    .gb-btn-cancel  { background: #fff; color: var(--sierra-type-muted, #63746b); border: 1px solid #E5E7EB; }
     .gb-btn-cancel:hover { background: #F9FAFB; }
     @keyframes gbFadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes gbFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }

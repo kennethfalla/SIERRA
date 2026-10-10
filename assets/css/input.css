@@ -2,12 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Global responsive scaling =====
-   All Tailwind rem-based sizes (fonts, padding, gaps, widths) scale
-   fluidly with the viewport so the app compact on phones, natural on
-   tablets, and full-size on desktops without hard 16px jumps. */
+/* Keep the same rem-based typography on every device; grids handle layout. */
 html {
-    font-size: clamp(14px, 0.35vw + 13.5px, 16px);
+    font-size: 16px;
     -webkit-text-size-adjust: 100%;
 }
 
@@ -17,15 +14,6 @@ body {
     overflow-x: hidden;
 }
 
-/* Keep form fields at >=16px on touch devices so iOS Safari does not
-   auto-zoom into the field when focused (fluid root is <16px on phones). */
-@media (pointer: coarse) {
-    input,
-    select,
-    textarea {
-        font-size: 16px;
-    }
-}
 
 /* Keep this in the Tailwind source so rebuilding CSS preserves mobile KPI rows. */
 @media (max-width: 767px) {
@@ -61,11 +49,11 @@ body {
     }
     body .stat-cards.stat-cards:has(> :nth-child(1):last-child) { grid-template-columns: minmax(0, 1fr); }
     body .stat-cards.stat-cards:has(> :nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    body .stat-cards.stat-cards:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    body .stat-cards.stat-cards:has(> :nth-child(3):last-child) { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); }
     body .stat-cards.stat-cards:has(> :nth-child(-n+3):last-child) > * {
         width: 100%;
         min-width: 0;
     }
-    body .stat-cards.stat-cards:has(> :nth-child(3):last-child) > * { padding: 10px 8px; }
-    body .stat-cards.stat-cards:has(> :nth-child(3):last-child) .stat-icon { display: none; }
+
+
 }

@@ -8,7 +8,7 @@
 .citizen-dashboard-page .citizen-primary-action:hover { background:#086e57; }
 .citizen-dashboard-page .citizen-overview .hero-kpi { grid-row:auto; }
 .citizen-dashboard-page #map-container > .flex:first-child { padding-bottom:.85rem; border-bottom:1px solid #edf2ee; }
-.citizen-dashboard-page #map-container .chart-title { display:flex; align-items:center; color:#244c3d; font-size:.95rem; font-weight:800; line-height:1.35; }
+.citizen-dashboard-page #map-container .chart-title { display:flex; align-items:center; color:var(--sierra-type-primary, #203b31); font-size:.95rem; font-weight:800; line-height:1.35; }
 .citizen-dashboard-page #communityMap { height:390px; border:1px solid #e0e9e3; border-radius:.75rem; }
 .citizen-dashboard-page .announce-card,
 .citizen-dashboard-page .citizen-track-card,
@@ -18,22 +18,22 @@
 }
 .citizen-dashboard-page .announce-card { padding:1rem 1.3rem; }
 .citizen-dashboard-page .announce-icon { background:#eaf6ef; color:#0d8568; border:1px solid #d5eadd; border-radius:.7rem; }
-.citizen-dashboard-page .announce-label { color:#667085; }
+.citizen-dashboard-page .announce-label { color:var(--sierra-type-muted, #63746b); }
 .citizen-dashboard-page .announce-msg { color:#344054; }
 .citizen-dashboard-page .btn-announce { background:#f4f8f5; color:#0d8568; border-color:#dce9e1; box-shadow:none; }
 .citizen-dashboard-page .citizen-track-card { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1.3rem; }
-.citizen-dashboard-page .citizen-track-card h2 { display:flex; align-items:center; gap:.6rem; color:#244c3d; font-size:.95rem; font-weight:800; }
-.citizen-dashboard-page .citizen-track-card p { color:#667085; font-size:.8rem; line-height:1.6; margin-top:.5rem; }
+.citizen-dashboard-page .citizen-track-card h2 { display:flex; align-items:center; gap:.6rem; color:var(--sierra-type-primary, #203b31); font-size:.95rem; font-weight:800; }
+.citizen-dashboard-page .citizen-track-card p { color:var(--sierra-type-muted, #63746b); font-size:.8rem; line-height:1.6; margin-top:.5rem; }
 .citizen-dashboard-page .citizen-track-card a { display:inline-flex; align-items:center; gap:.6rem; flex-shrink:0; color:#0d8568; font-size:.8rem; font-weight:700; padding:.65rem .85rem; border:1px solid #dce9e1; border-radius:.7rem; }
 .citizen-dashboard-page .table-container .table-header { padding:1.3rem; background:#fff; border-bottom:1px solid #edf2ee; }
-.citizen-dashboard-page .table-container .table-header h3 { display:flex; align-items:center; gap:.65rem; color:#244c3d; font-size:.95rem; font-weight:800; }
+.citizen-dashboard-page .table-container .table-header h3 { display:flex; align-items:center; gap:.65rem; color:var(--sierra-type-primary, #203b31); font-size:.95rem; font-weight:800; }
 .citizen-dashboard-page .table-header h3 > i { display:inline-flex; align-items:center; justify-content:center; width:2.25rem; height:2.25rem; border:1px solid #d5eadd; border-radius:.7rem; background:#eaf6ef; color:#0d8568; }
 .citizen-dashboard-page .desktop-table thead { background:#f7faf8; }
 .citizen-dashboard-page .desktop-table tbody tr:hover { background:#f4faf6; }
 .citizen-dashboard-page .new-report-fab { background:#0d8568; }
 @media (max-width:700px) {
     .citizen-dashboard-page .dash-head { gap:.5rem; flex-wrap:wrap; }
-    .citizen-dashboard-page .citizen-primary-action { font-size:.75rem; padding:.6rem .7rem; margin-left:auto; }
+    .citizen-dashboard-page .citizen-primary-action { padding:.6rem .7rem; margin-left:auto; }
     .citizen-dashboard-page .announce-card { flex-wrap:wrap !important; padding:1rem !important; gap:.75rem; }
     .citizen-dashboard-page .announce-left { flex:1 1 210px !important; }
     .citizen-dashboard-page .announce-right { margin-left:auto; }
@@ -42,3 +42,7 @@
     .citizen-dashboard-page #communityMap { height:300px !important; }
     .citizen-dashboard-page .table-container .table-header { padding:1rem !important; }
 }
+
+/* Keep the new-report action easy to recognize on every screen. */
+.citizen-dashboard-page .new-report-fab .fa-plus::before { font-size:32px; }
+.citizen-dashboard-page .btn-add-report .fa-plus::before { font-size:22px; }

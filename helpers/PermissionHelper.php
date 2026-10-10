@@ -206,6 +206,13 @@ class PermissionHelper {
             return false;
         }
 
+        // Barangay access remains view-only after handoff, even with broad permissions.
+        if ((($user['role'] ?? '') === 'barangay_official' || ($user['user_type'] ?? '') === 'barangay_personnel')
+            && (!empty($report['escalated']) || !empty($report['escalated_to_menro'])
+                || in_array($report['status'] ?? '', ['escalated_pending', 'escalated'], true))) {
+            return false;
+        }
+
         // Super-admin bypass.
         if (($user['user_type'] ?? null) === 'admin') {
             return true;
@@ -234,9 +241,22 @@ class PermissionHelper {
     }
 
     /**
-     * The set of actions a user is allowed to take on a report right
-     * now, for building the action buttons in verify_reports.php /
-     * all_reports.php. Returns [] if canManageReport() is false.
+     * Keep note ownership and active-report rules identical in the UI and controller.
+     */
+    public static function canDeleteInvestigationNote(array $report, $authorId, $user = null) {
+        $user = $user ?? self::sessionUser();
+        if (!$user || (int)$authorId !== (int)$user['id'] || !self::canManageReport($report, $user)) {
+            return false;
+        }
+        if (($user['role'] ?? '') === 'barangay_official') {
+            return ($report['status'] ?? '') === 'in_progress';
+        }
+        return ($user['role'] ?? '') === 'admin'
+            && in_array($report['status'] ?? '', ['verified', 'in_progress', 'escalated_pending', 'escalated'], true);
+    }
+
+    /**
+     * Actions available on reports the current user can manage.
      * @return string[]
      */
     public static function allowedReportActions(array $report, $user = null) {

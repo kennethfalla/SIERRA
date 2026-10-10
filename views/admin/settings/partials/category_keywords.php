@@ -172,24 +172,24 @@ $categories_covered = count(array_unique(array_map(fn($k) => (int)$k['category_i
 <style>
     .ckw-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 1.25rem; flex-wrap: wrap; }
     .ckw-stats { display: flex; gap: 10px; flex-wrap: wrap; }
-    .ckw-stat { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.4rem 0.9rem; font-size: 0.8rem; color: #4B5563; }
-    .ckw-stat strong { color: #1F2937; }
+    .ckw-stat { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.4rem 0.9rem; font-size: 0.8rem; color: var(--sierra-type-muted, #63746b); }
+    .ckw-stat strong { color: var(--sierra-type-primary, #203b31); }
     .ckw-info { background: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #3B82F6; color: #1E40AF; border-radius: 0.75rem; padding: 0.7rem 0.9rem; font-size: 0.78rem; margin-bottom: 1.25rem; line-height: 1.5; }
     .ckw-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
     .ckw-modal-overlay.active { display: flex; }
     .ckw-modal { background: white; border-radius: 1rem; box-shadow: 0 20px 50px rgba(0,0,0,0.2); width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; animation: ckwFade 0.2s ease-out; }
     @keyframes ckwFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .ckw-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid #F3F4F6; }
-    .ckw-modal-header h3 { font-size: 1rem; font-weight: 700; color: #1F2937; display: flex; align-items: center; gap: 0.5rem; }
-    .ckw-modal-close { background: #F3F4F6; border: none; width: 30px; height: 30px; border-radius: 9999px; cursor: pointer; color: #6B7280; transition: all 0.2s; }
-    .ckw-modal-close:hover { background: #E5E7EB; color: #111827; }
+    .ckw-modal-header h3 { font-size: 1rem; font-weight: 700; color: var(--sierra-type-primary, #203b31); display: flex; align-items: center; gap: 0.5rem; }
+    .ckw-modal-close { background: #F3F4F6; border: none; width: 30px; height: 30px; border-radius: 9999px; cursor: pointer; color: var(--sierra-type-muted, #63746b); transition: all 0.2s; }
+    .ckw-modal-close:hover { background: #E5E7EB; color: var(--sierra-type-primary, #203b31); }
     .ckw-modal-body { padding: 1.25rem; }
     .ckw-sm { font-size: 0.7rem; }
     .ckw-badge { display: inline-flex; align-items: center; gap: 4px; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.65rem; font-weight: 700; }
     .ckw-badge.on { background: #ECFDF5; color: #047857; }
     .ckw-badge.off { background: #FEF2F2; color: #B91C1C; }
     .ckw-chip { background: #ECFDF5; color: #065F46; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.68rem; font-weight: 600; }
-    .ckw-empty { text-align: center; padding: 3rem 1rem; color: #9CA3AF; }
+    .ckw-empty { text-align: center; padding: 3rem 1rem; color: var(--sierra-type-muted, #63746b); }
     .ckw-empty i { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; color: #D1D5DB; }
 </style>
 

@@ -37,7 +37,7 @@ class Database {
     // Bump this whenever new auto-migrations are added further below. The
     // database stores completion, so normal requests run one version lookup
     // and no schema inspection (important on shared hosting / high-traffic polling).
-    const SCHEMA_VERSION = '2026-10-08-1';
+    const SCHEMA_VERSION = '2026-10-10-report-reminders-1';
 
     // Reuse a single PDO connection per request (see getConnection()).
     private static $sharedConn = null;
@@ -116,6 +116,19 @@ class Database {
      */
     private function ensureColumns() {
         try {
+            $this->conn->exec("CREATE TABLE IF NOT EXISTS report_reminder_deliveries (
+                report_id INT(11) NOT NULL,
+                user_id INT(11) NOT NULL,
+                stage VARCHAR(20) NOT NULL,
+                started_at DATETIME NOT NULL,
+                delivered_at DATETIME NOT NULL,
+                PRIMARY KEY (user_id, report_id, stage, started_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $this->conn->exec("CREATE TABLE IF NOT EXISTS report_reminder_checks (
+                user_id INT(11) NOT NULL PRIMARY KEY,
+                checked_at DATETIME NOT NULL,
+                settings_key VARCHAR(80) NOT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
             // Report reasons are migrated once, rather than on each list load.
             foreach (['rejected_at' => 'DATETIME NULL', 'rejection_reason' => 'TEXT NULL',
                       'cancelled_at' => 'DATETIME NULL', 'cancellation_remarks' => 'TEXT NULL'] as $column => $definition) {
@@ -549,6 +562,29 @@ class Database {
                         $columnSql = implode(', ', array_map(static function ($column) { return "`{$column}`"; }, $columns));
                         $this->conn->exec("ALTER TABLE `{$table}` ADD INDEX `{$name}` ({$columnSql})");
                     }
+                }
+            }
+
+            // Native search indexes cover complete bodies. Restricted/older
+            // databases retain literal-safe search if an index cannot be added.
+            foreach ([
+                'reports' => ['ft_search_reports', ['title','description','location_address']],
+                'announcements' => ['ft_search_announcements', ['title','content']],
+                'notifications' => ['ft_search_notifications', ['title','message']],
+                'users' => ['ft_search_users', ['first_name','last_name','email']],
+                'activity_logs' => ['ft_search_activity', ['action','description','actor_name']],
+            ] as $searchTable => [$searchIndex, $searchColumns]) {
+                try {
+                    foreach ($searchColumns as $searchColumn) {
+                        if (!$this->columnExists($searchTable,$searchColumn)) continue 2;
+                    }
+                    $checkSearchIndex = $this->conn->prepare('SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name=? AND index_name=?');
+                    $checkSearchIndex->execute([$searchTable,$searchIndex]);
+                    if (!(int)$checkSearchIndex->fetchColumn()) {
+                        $this->conn->exec("ALTER TABLE `$searchTable` ADD FULLTEXT INDEX `$searchIndex` (".implode(',',array_map(fn($column)=>"`$column`",$searchColumns)).')');
+                    }
+                } catch (PDOException $searchIndexError) {
+                    error_log('[Search] Native index unavailable for '.$searchTable.'. Using live text matching.');
                 }
             }
 

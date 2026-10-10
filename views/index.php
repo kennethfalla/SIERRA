@@ -377,43 +377,6 @@ if ($isLoggedIn && $is_staff) {
             transition: opacity .9s ease .05s, transform .9s cubic-bezier(.22, 1, .36, 1) .05s;
         }
 
-        /* ===== Floating dark-mode toggle (landing) ===== */
-        .landing-dark-toggle {
-            position: fixed;
-            right: 18px;
-            bottom: 18px;
-            z-index: 60;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 1px solid #cde5d7;
-            background: #fff;
-            color: #0d8568;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.15rem;
-            cursor: pointer;
-            box-shadow: 0 16px 34px -16px rgba(15, 23, 42, .55);
-            transition: transform .18s ease, background .18s ease, color .18s ease;
-        }
-        .landing-dark-toggle:hover { transform: translateY(-2px); }
-        body.landing-dark .landing-dark-toggle { background: #0f2a20; border-color: #1f4a3a; color: #7ee1b7; }
-
-        /* ===== Landing dark theme (basic) ===== */
-        body.landing-dark { background: #06140f; }
-        body.landing-dark #main-content { background: #06140f; }
-        body.landing-dark :is(.bg-white) { background: #0d2018 !important; }
-        body.landing-dark :is(.bg-\[\#F5FBF6\]) { background: #0a1a14 !important; }
-        body.landing-dark :is(.text-gray-800, .text-gray-700, .text-gray-600) { color: #d7e6de !important; }
-        body.landing-dark :is(.text-gray-500, .text-gray-400) { color: #9fb3a9 !important; }
-        body.landing-dark :is(h1, h2, h3, .lp-section-head, .lp-steps-head) { color: #eafff6; }
-        body.landing-dark .stat-card { background: #10281f !important; }
-        body.landing-dark .lp-step { background: #0d2018; border-color: #1b3a2e; }
-        body.landing-dark .lp-step-title { color: #eafff6; }
-        body.landing-dark .faq-item { background: #0d2018; border-color: #1b3a2e; }
-        body.landing-dark .lp-marquee { background: #04100b; }
-
         #home::after {
             content: "";
             position: absolute;
@@ -473,7 +436,7 @@ if ($isLoggedIn && $is_staff) {
             font-family: 'Manrope', sans-serif;
             font-size: 0.95rem;
             line-height: 1.6;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
         }
         .faq-q::-webkit-details-marker { display: none; }
         .faq-q i {
@@ -484,7 +447,7 @@ if ($isLoggedIn && $is_staff) {
         .faq-item[open] .faq-q i { transform: rotate(180deg); }
         .faq-a {
             padding: 0 1.25rem 1.25rem;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             font-family: 'Manrope', sans-serif;
             font-size: 0.95rem;
             line-height: 1.6;
@@ -520,7 +483,7 @@ if ($isLoggedIn && $is_staff) {
         }
 
         .nav-link {
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
             font-weight: 500;
             white-space: nowrap;
             text-decoration: none;
@@ -578,7 +541,7 @@ if ($isLoggedIn && $is_staff) {
 
         .nav-hamburger {
             display: inline-flex; align-items: center; justify-content: center;
-            color: #374151; background: #ffffff; transition: all 0.2s ease;
+            color: var(--sierra-type-primary, #203b31); background: #ffffff; transition: all 0.2s ease;
         }
         .nav-hamburger:hover { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
         .nav-hamburger i { font-size: 1rem; }
@@ -594,7 +557,7 @@ if ($isLoggedIn && $is_staff) {
         .nav-mobile-link {
             display: flex; align-items: center; gap: 0.7rem;
             padding: 0.7rem 0.85rem; border-radius: 0.75rem;
-            color: #374151; font-weight: 600; font-size: 0.9rem;
+            color: var(--sierra-type-primary, #203b31); font-weight: 600; font-size: 0.9rem;
             transition: background 0.18s ease, color 0.18s ease;
         }
         .nav-mobile-link i { width: 1.1rem; text-align: center; color: #10a37f; font-size: 0.85rem; }
@@ -780,7 +743,7 @@ if ($isLoggedIn && $is_staff) {
             /* Login prompt */
 
             /* ── Map section ── */
-            #map { height: 230px !important; border-radius: 0.75rem; }
+            #map { height: 230px !important; }
             #map-section .bg-white.rounded-2xl { padding: 0.65rem !important; }
             #map-section .flex.flex-wrap.gap-3 { gap: 0.5rem; font-size: 0.7rem; }
 
@@ -1796,9 +1759,9 @@ function initMap() {
             <?php if($isLoggedIn): ?>
             const popupContent = `
                 <div style="font-family: Manrope, sans-serif; min-width: 200px; padding: 4px;">
-                    <strong style="font-size: 14px; color: #1e293b;">${escapeHtml(report.title)}</strong><br>
-                    <span style="font-size: 12px; color: #64748b;">Risk: ${risk.charAt(0).toUpperCase() + risk.slice(1)}</span><br>
-                    <span style="font-size: 12px; color: #64748b;">Status: ${statusDisplay}</span><br>
+                    <strong style="font-size: 14px; color: var(--sierra-type-primary, #203b31);">${escapeHtml(report.title)}</strong><br>
+                    <span style="font-size: 12px; color: var(--sierra-type-muted, #63746b);">Risk: ${risk.charAt(0).toUpperCase() + risk.slice(1)}</span><br>
+                    <span style="font-size: 12px; color: var(--sierra-type-muted, #63746b);">Status: ${statusDisplay}</span><br>
                     <a href="<?php echo BASE_URL; ?>index.php?page=track-status&id=${report.token}" 
                        style="display: inline-block; margin-top: 8px; padding: 4px 12px; background: #059669; color: white; border-radius: 8px; font-size: 12px; text-decoration: none; font-weight: 500;">
                         View Details
@@ -1809,8 +1772,8 @@ function initMap() {
             const popupContent = `
                 <div style="font-family: Manrope, sans-serif; min-width: 180px; padding: 4px; text-align: center;">
                     <div style="font-size: 32px; margin-bottom: 8px; color: #059669;"><i class="fas fa-lock"></i></div>
-                    <p style="font-size: 14px; font-weight: 600; color: #1e293b;">Login to view details</p>
-                    <p style="font-size: 12px; color: #64748b; margin: 4px 0 8px;">Sign in to see full report information</p>
+                    <p style="font-size: 14px; font-weight: 600; color: var(--sierra-type-primary, #203b31);">Login to view details</p>
+                    <p style="font-size: 12px; color: var(--sierra-type-muted, #63746b); margin: 4px 0 8px;">Sign in to see full report information</p>
                     <a href="<?php echo BASE_URL; ?>index.php?page=login" 
                        style="display: inline-block; padding: 6px 16px; background: #059669; color: white; border-radius: 8px; font-size: 12px; text-decoration: none; font-weight: 500;">
                         Login
@@ -2033,30 +1996,6 @@ if (resolutionBar && window.IntersectionObserver && !window.matchMedia('(prefers
     <iframe data-landing-auth title="Account access" src="about:blank"></iframe>
 </dialog>
 
-<!-- Floating dark-mode toggle -->
-<button type="button" id="landingDarkToggle" class="landing-dark-toggle" aria-label="Toggle dark mode" aria-pressed="false">
-    <i class="fas fa-moon" aria-hidden="true"></i>
-</button>
-<script>
-(function () {
-    'use strict';
-    var btn = document.getElementById('landingDarkToggle');
-    if (!btn) return;
-    var KEY = 'sierra_landing_dark';
-    function apply(on) {
-        document.body.classList.toggle('landing-dark', on);
-        btn.setAttribute('aria-pressed', String(on));
-        btn.innerHTML = '<i class="fas ' + (on ? 'fa-sun' : 'fa-moon') + '" aria-hidden="true"></i>';
-    }
-    var on = false;
-    try { on = localStorage.getItem(KEY) === '1'; } catch (e) {}
-    apply(on);
-    btn.addEventListener('click', function () {
-        on = !document.body.classList.contains('landing-dark');
-        try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
-        apply(on);
-    });
-})();
-</script>
+
 </body>
 </html>

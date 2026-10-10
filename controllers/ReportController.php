@@ -378,21 +378,18 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
         $report_data['status'] === Report::STATUS_PENDING &&
         $report_data['barangay_id'] == $barangay_id) {
         
-        $updateStmt = $db->prepare("UPDATE reports SET status = :status WHERE id = :id");
-        $updateStmt->execute([
-            ':status' => Report::STATUS_UNDER_REVIEW,
-            ':id' => $report_id
-        ]);
-        
-        $activityLog->log(
-            $user_id,
-            'Status Change',
-            "Auto‑flipped report #$report_id to Under Review (barangay viewed the report)"
-        );
+        if ($report->markUnderReview($report_id)) {
+            $activityLog->log(
+                $user_id,
+                'Status Change',
+                "Auto‑flipped report #$report_id to Under Review (barangay viewed the report)"
+            );
+        }
         
         $report_data = $report->getReportWithDetails($report_id);
     }
 
+    $report_data = $report->getTimelineDates($report_data);
     $images = $report->getImagesByReport($report_id);
     foreach ($images as &$img) {
         $img['is_video'] = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $img['image_path']) ? 1 : 0;
@@ -472,20 +469,10 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
     // ============================================
     // SMART SUGGESTION TEMPLATES (Quick Note Templates)
     // Canned responses configured in Settings > Quick Note Templates.
-    // A template matches this report when its target category is empty (all)
-    // or matches the report's category name, AND its target status is empty
-    // (all) or matches the report status.
-    //
-    // Two contexts use different status targeting:
-    //  - note_templates    -> matched to the report's CURRENT status, shown
-    //                         as ongoing suggestions above the investigation-
-    //                         note box (e.g. in_progress -> "crew dispatched").
-    //  - resolve_templates -> matched to the 'resolved' status, shown inside
-    //                         the Resolve Report modal as closing / thank-you
-    //                         suggestions for the resolution note.
-    //  - escalate_templates-> matched to the 'escalated_pending' status, shown
-    //                         inside the Escalate to MENRO modal as ready-to-use
-    //                         justification suggestions.
+    // Settings uses existing target_status values to identify each purpose:
+    // resolved -> resolution; escalated/escalated_pending -> escalation;
+    // other/empty -> investigation at that status. Never fall back across
+    // purposes when an action has no matching category template.
     // ============================================
     $note_templates = [];
     $resolve_templates = [];
@@ -495,42 +482,10 @@ if (isset($_GET['page']) && $_GET['page'] === 'manage-report') {
         $all_templates = $tpl_stmt->fetchAll(PDO::FETCH_ASSOC);
         $report_category_name = (string)($report_data['category_name'] ?? '');
         $report_current_status = (string)($report_data['status'] ?? '');
-        $report_matched_templates = function ($target_status) use ($all_templates, $report_category_name) {
-            $match_all_statuses = ($target_status === '*');
-            $out = [];
-            foreach ($all_templates as $tpl) {
-                $tpl_category = trim((string)($tpl['target_category'] ?? ''));
-                $tpl_status   = trim((string)($tpl['target_status'] ?? ''));
-                $category_ok = ($tpl_category === '' || strcasecmp($tpl_category, $report_category_name) === 0);
-                $status_ok   = $match_all_statuses || ($tpl_status === '' || $tpl_status === $target_status);
-                if ($category_ok && $status_ok) {
-                    $out[] = $tpl['template_text'];
-                }
-            }
-            return $out;
-        };
-        $note_templates = $report_matched_templates($report_current_status);
-        // Resolve/escalate modals: if no template explicitly targets the
-        // target status (resolved / escalated_pending), fall back to every
-        // active template for this category so quick suggestions NEVER come
-        // up empty when a barangay or admin marks a report as resolved.
-        $all_category_templates = $report_matched_templates('*');
-        $resolve_templates = array_values(array_unique(array_merge(
-            $report_matched_templates(Report::STATUS_RESOLVED),
-            $all_category_templates
-        )));
-        $escalate_templates = array_values(array_unique(array_merge(
-            $report_matched_templates(Report::STATUS_ESCALATED_PENDING),
-            $all_category_templates
-        )));
-        if ($report_current_status === Report::STATUS_RESOLVED) {
-            // A resolved (closed) report is terminal — hide the quick
-            // suggestions on the manage page so it stays clean. Follow-up
-            // notes can still be typed manually. (Suggestion chips in the
-            // resolve modal only appear while the report is being marked
-            // resolved, before the status flips.)
-            $note_templates = [];
-        }
+        require_once BASE_PATH . 'helpers/QuickNoteTemplates.php';
+        $note_templates = QuickNoteTemplates::forAction($all_templates, $report_category_name, $report_current_status, 'investigation');
+        $resolve_templates = QuickNoteTemplates::forAction($all_templates, $report_category_name, $report_current_status, 'resolution');
+        $escalate_templates = QuickNoteTemplates::forAction($all_templates, $report_category_name, $report_current_status, 'escalation');
     } catch (Exception $e) {
         // Table may be missing on a deployment that hasn't run the migration yet.
         $note_templates = [];
@@ -919,7 +874,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
-        $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
+        $check_stmt = $db->prepare("SELECT * FROM reports WHERE id = ?");
         $check_stmt->execute([$report_id]);
         $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report_data) {
@@ -988,7 +943,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
-        $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
+        $check_stmt = $db->prepare("SELECT * FROM reports WHERE id = ?");
         $check_stmt->execute([$report_id]);
         $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report_data) {
@@ -1152,7 +1107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=verify-reports");
             exit();
         }
-        $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
+        $check_stmt = $db->prepare("SELECT * FROM reports WHERE id = ?");
         $check_stmt->execute([$report_id]);
         $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report_data) {
@@ -1247,7 +1202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=all-reports");
             exit();
         }
-        $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
+        $check_stmt = $db->prepare("SELECT * FROM reports WHERE id = ?");
         $check_stmt->execute([$report_id]);
         $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report_data) {
@@ -1312,7 +1267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . BASE_URL . "index.php?page=all-reports");
             exit();
         }
-        $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
+        $check_stmt = $db->prepare("SELECT * FROM reports WHERE id = ?");
         $check_stmt->execute([$report_id]);
         $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report_data) {
@@ -1381,7 +1336,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
         if ($user_role == 'barangay_official') {
-            $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
+            $check_stmt = $db->prepare("SELECT * FROM reports WHERE id = ?");
             $check_stmt->execute([$report_id]);
             $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
             if (!$report_data) {
@@ -1415,7 +1370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
         } elseif ($user_role == 'admin') {
-            $check_stmt = $db->prepare("SELECT id, barangay_id, status, latitude, longitude FROM reports WHERE id = ?");
+            $check_stmt = $db->prepare("SELECT * FROM reports WHERE id = ?");
             $check_stmt->execute([$report_id]);
             $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
             if (!$report_data) {
@@ -1494,7 +1449,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: " . manageReportUrl($report_id));
             exit();
         }
-        $check_stmt = $db->prepare("SELECT id, barangay_id, status FROM reports WHERE id = ?");
+        $check_stmt = $db->prepare("SELECT * FROM reports WHERE id = ?");
         $check_stmt->execute([$report_id]);
         $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report_data) {
@@ -1552,25 +1507,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ============================================
-    // Delete only the signed-in barangay official's notes on an in-progress report.
+    // Staff can delete their own notes only while they can manage an active report.
     if ($action === 'delete_note') {
         $report_id = (int)($_POST['report_id'] ?? 0);
         $note_id = (int)($_POST['note_id'] ?? 0);
-        $check = $db->prepare('SELECT id, barangay_id, status FROM reports WHERE id = ?');
+        $check = $db->prepare('SELECT * FROM reports WHERE id = ?');
         $check->execute([$report_id]);
         $current = $check->fetch(PDO::FETCH_ASSOC);
-        $allowed = $current && $user_role === 'barangay_official'
-            && $current['status'] === Report::STATUS_IN_PROGRESS
-            && (int)$current['barangay_id'] === (int)($_SESSION['barangay_id'] ?? 0)
-            && PermissionHelper::canManageReport($current);
+        $allowed = $current && PermissionHelper::canDeleteInvestigationNote($current, $user_id);
         $deleted = false;
         if ($allowed) {
-            $stmt = $db->prepare("DELETE FROM report_notes WHERE id = ? AND report_id = ? AND user_id = ? AND EXISTS (SELECT 1 FROM reports WHERE id = ? AND status = 'in_progress' AND barangay_id = ?)");
-            $stmt->execute([$note_id, $report_id, $user_id, $report_id, $_SESSION['barangay_id']]);
+            $stmt = $db->prepare('DELETE FROM report_notes WHERE id = ? AND report_id = ? AND user_id = ? AND EXISTS (SELECT 1 FROM reports WHERE id = ? AND status = ? AND barangay_id = ?)');
+            $stmt->execute([$note_id, $report_id, $user_id, $report_id, $current['status'], $current['barangay_id']]);
             $deleted = $stmt->rowCount() > 0;
         }
         if ($deleted) $activityLog->log($user_id, 'Delete Note', "Deleted own investigation note #$note_id from report #$report_id");
-        $message = $deleted ? 'Investigation note deleted.' : 'You can only delete your own notes while the report is in progress.';
+        $message = $deleted ? 'Investigation note deleted.' : 'You can only delete your own notes on an active report you can manage.';
         if ($is_ajax) { echo json_encode(['success' => $deleted, 'message' => $message]); exit(); }
         $_SESSION[$deleted ? 'success' : 'error'] = $message;
         header('Location: ' . ($report_id > 0 ? manageReportUrl($report_id) : BASE_URL . 'index.php?page=verify-reports'));
@@ -1990,7 +1942,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $check_stmt->execute([$report_id]);
             $report_data = $check_stmt->fetch(PDO::FETCH_ASSOC);
             if ($report_data) {
-                $stmt = $db->prepare("UPDATE reports SET status = ?, verified_by = ?, verified_at = NOW() WHERE id = ?");
+                $reviewTimestamp = $status === Report::STATUS_UNDER_REVIEW ? ', viewed_at = COALESCE(viewed_at, NOW())' : '';
+                $stmt = $db->prepare("UPDATE reports SET status = ?, verified_by = ?, verified_at = NOW()$reviewTimestamp WHERE id = ?");
                 $stmt->execute([$status, $user_id, $report_id]);
                 $report->calculateAndUpdateSeverity($report_id);
                 if ($report_data['latitude'] && $report_data['longitude']) {

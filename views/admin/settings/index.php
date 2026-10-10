@@ -68,9 +68,9 @@ $navigation_groups = [
             'file' => 'quick_notes.php'
         ],
         'reporting' => [
-            'label' => t('Reporting Limits'),
+            'label' => t('Report Settings'),
             'icon' => 'fa-gauge-high',
-            'description' => t('Per-citizen report rate limits to prevent spam'),
+            'description' => t('Submission limits and report follow-up reminders'),
             'file' => 'reporting.php'
         ],
         'algorithm' => [
@@ -270,7 +270,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             padding: 0.75rem 0.9rem 0.4rem;
             margin-top: 0.5rem;
         }
@@ -290,7 +290,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border-radius: 0.75rem;
             cursor: pointer;
             transition: all 0.2s ease;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             text-decoration: none;
             font-weight: 500;
             font-size: 0.85rem;
@@ -331,7 +331,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             .settings-tab {
                 white-space: nowrap;
                 padding: 0.5rem 0.75rem;
-                font-size: 0.75rem;
                 width: auto;
                 flex-shrink: 0;
             }
@@ -358,13 +357,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .settings-header h2 {
             font-size: 1.25rem;
             font-weight: 700;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
         .settings-header p {
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.85rem;
             margin-top: 0.25rem;
         }
@@ -378,7 +377,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             font-size: 0.9rem;
             transition: all 0.2s;
             background: white;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
         }
         .form-input:focus {
             border-color: #10A37F;
@@ -417,7 +416,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             padding: 0.6rem 1.5rem;
             border-radius: 0.75rem;
             font-weight: 500;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -507,7 +506,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             font-size: 0.7rem;
             font-weight: 600;
             text-transform: uppercase;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             border-bottom: 1px solid #e5e7eb;
         }
         .table-container td {
@@ -539,7 +538,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
         .tag-item .tag-remove {
             cursor: pointer;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             transition: color 0.2s;
         }
         .tag-item .tag-remove:hover {
@@ -619,12 +618,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .settings-unsaved-modal h3 {
             font-size: 1.05rem;
             font-weight: 700;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             margin-bottom: 0.4rem;
         }
         .settings-unsaved-modal p {
             font-size: 0.85rem;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             line-height: 1.5;
             margin-bottom: 1.25rem;
         }
@@ -641,8 +640,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
-        }
-        @media (max-width: 480px) {
         }
 
         /* ===== SAVE VALIDATION ===== */
@@ -669,7 +666,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @media (max-width: 640px) {
             .settings-content { padding: 1rem; }
             .settings-header { margin-bottom: 1rem; padding-bottom: 0.75rem; }
-            .settings-header h2 { font-size: 1.1rem; }
             .settings-toast { left: 1rem; right: 1rem; max-width: none; }
         }
         @media (max-width: 480px) {
@@ -803,7 +799,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border-radius: .8rem;
             font-size: .88rem;
             background: #fbfdfc;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
         }
         .settings-content .form-input:focus { border-color: #10A37F; background: #fff; box-shadow: 0 0 0 3px rgba(16, 163, 127, .1); }
         .settings-content .form-group > p { color: #93a59c; }
@@ -888,7 +884,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 padding: .5rem;
                 overflow-x: auto;
                 overflow-y: hidden;
-                border-radius: .9rem;
                 scrollbar-width: none;
                 -webkit-overflow-scrolling: touch;
             }
@@ -899,22 +894,19 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 flex: 0 0 auto;
                 padding: .45rem .65rem;
                 align-items: center;
-                font-size: .76rem;
                 gap: .45rem;
                 white-space: nowrap;
             }
             .settings-tab .tab-copy { flex-direction: row; align-items: center; }
             .settings-tab .tab-description { display: none; }
-            .settings-tab .tab-icon { width: 28px; height: 28px; border-radius: 8px; font-size: .72rem; }
+            .settings-tab .tab-icon { width: 28px; height: 28px; }
             #main-content .settings-content { height: auto; max-height: none; overflow: visible; padding: 0 0 4.5rem; }
         }
 
         @media (max-width: 768px) {
             .main-container { padding: .85rem !important; }
             .settings-header { padding: .9rem 1rem; gap: .7rem; }
-            .settings-header .settings-header-icon { width: 40px; height: 40px; border-radius: 12px; font-size: 1rem; }
-            .settings-header h2 { font-size: 1rem; }
-            .settings-header p { font-size: .76rem; }
+            .settings-header .settings-header-icon { width: 40px; height: 40px; }
             .settings-sync-pill { display: none; }
             .settings-card, .settings-content :is(.card-info, .barangay-section, .ks-card, .template-card, .perm-card, .rl-card, .map-card, .stat-card, .ckw-stats, .qnt-stats, .settings-section) {
                 padding: 1rem;
@@ -1155,22 +1147,14 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     var footer = document.getElementById('settingsFooter');
     var content = document.querySelector('.settings-content');
     if (!footer || !content) return;
-    function activeForm() { return content.querySelector('form'); }
-    function showSaveBar(e) { var form = e.target.closest && e.target.closest('form'); if (form && form.id !== 'generalSettingsForm' && !e.target.matches('[data-theme-preference]')) footer.hidden = false; }
-    content.addEventListener('input', showSaveBar);
-    content.addEventListener('change', showSaveBar);
-    content.addEventListener('submit', function () { footer.hidden = true; });
     window.settingsSave = function () {
-        var form = activeForm();
-        if (!form) return;
-        if (typeof form.requestSubmit === 'function') form.requestSubmit();
-        else form.submit();
+        window.unsavedSaveNow();
     };
     window.settingsDiscard = function () {
         if (window.GB && window.GB.confirm) {
-            window.GB.confirm({ message: 'Discard unsaved changes?', onConfirm: function () { location.reload(); } });
+            window.GB.confirm({ message: 'Discard unsaved changes?', onConfirm: function () { window.unsavedDiscard(); } });
         } else if (confirm('Discard unsaved changes?')) {
-            location.reload();
+            window.unsavedDiscard();
         }
     };
 })();
@@ -1258,38 +1242,56 @@ document.querySelectorAll('.upload-area').forEach(area => {
 });
 
 // ===== PRESERVE SCROLL POSITION ACROSS TAB SWITCHES =====
-// The sidebar links do a full page reload; save/restore the vertical
-// page scroll AND the sidebar's horizontal scroll so switching
-// sections keeps the sidebar (and your place) in view instead of
-// jumping back to the top or to the first tab.
+// Desktop uses a vertically scrolling menu; smaller screens use a
+// horizontal menu and page scroll. Keep both when opening another tab.
 (function() {
-    var SK = 'settingsScrollPos', SKL = 'settingsSidebarScroll';
+    var key = 'settingsNavigationScroll';
+    var destination = null;
+    var saved = null;
+    function pageKey(url) { return url.pathname + url.search; }
     try {
-        var saved = sessionStorage.getItem(SK);
-        if (saved !== null && parseInt(saved, 10) > 0) {
-            window.scrollTo(0, parseInt(saved, 10));
-            sessionStorage.removeItem(SK);
-        }
-        var bar = document.querySelector('.settings-sidebar');
-        var savedL = sessionStorage.getItem(SKL);
-        if (bar) {
-            if (savedL !== null && parseInt(savedL, 10) > 0) {
-                bar.scrollLeft = parseInt(savedL, 10);
-            }
-            sessionStorage.removeItem(SKL);
-        }
+        saved = JSON.parse(sessionStorage.getItem(key) || 'null');
+        sessionStorage.removeItem(key);
+        sessionStorage.removeItem('settingsScrollPos');
+        sessionStorage.removeItem('settingsSidebarScroll');
     } catch (e) {}
-})();
 
-window.addEventListener('beforeunload', function() {
-    var el = document.documentElement.scrollTop || document.body.scrollTop;
-    var y = window.pageYOffset !== undefined ? window.pageYOffset : el;
-    var bar = document.querySelector('.settings-sidebar');
-    try {
-        if (y > 0) sessionStorage.setItem('settingsScrollPos', String(y));
-        if (bar && bar.scrollLeft > 0) sessionStorage.setItem('settingsSidebarScroll', String(bar.scrollLeft));
-    } catch (e) {}
-});
+    function restore() {
+        if (!saved || saved.destination !== pageKey(new URL(window.location.href)) ||
+            Date.now() - saved.time > 60000) return;
+        var bar = document.querySelector('.settings-sidebar');
+        if (bar) {
+            bar.scrollTo({ top: saved.menuTop || 0, left: saved.menuLeft || 0, behavior: 'instant' });
+        }
+        window.scrollTo({ top: saved.pageTop || 0, left: saved.pageLeft || 0, behavior: 'instant' });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        restore();
+        requestAnimationFrame(restore);
+    });
+    window.addEventListener('load', restore, { once: true });
+
+    // Capture the intended tab even when the unsaved-changes prompt
+    // defers navigation. Write only when the user actually leaves.
+    document.addEventListener('click', function(event) {
+        var link = event.target.closest('a[href]');
+        if (!link || event.button !== 0 || event.ctrlKey || event.metaKey ||
+            event.shiftKey || event.altKey || link.target === '_blank') return;
+        destination = link.classList.contains('settings-tab') ? pageKey(new URL(link.href)) : null;
+    }, true);
+    document.addEventListener('submit', function() { destination = null; }, true);
+    window.addEventListener('pagehide', function() {
+        if (!destination) return;
+        var bar = document.querySelector('.settings-sidebar');
+        try {
+            sessionStorage.setItem(key, JSON.stringify({
+                destination: destination, time: Date.now(),
+                pageTop: window.scrollY, pageLeft: window.scrollX,
+                menuTop: bar ? bar.scrollTop : 0, menuLeft: bar ? bar.scrollLeft : 0
+            }));
+        } catch (e) {}
+    });
+})();
 
 // ===== UNSAVED CHANGES PROTECTION =====
 // 1. Tracks edits silently until the user tries to leave.
@@ -1315,6 +1317,8 @@ window.addEventListener('beforeunload', function() {
     function setDirty(v) {
         dirty = v;
         window.settingsHasUnsavedChanges = v;
+        var footer = document.getElementById('settingsFooter');
+        if (footer) footer.hidden = !v;
     }
 
     // Pick the "main" save form of the active tab: prefer a form whose submit

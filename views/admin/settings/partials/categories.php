@@ -204,7 +204,7 @@ function categoryWeightLevelClass($weight) {
         animation: slideUp 0.5s ease-out forwards;
     }
     .stat-card:hover { transform: translateY(-3px); border-color: #10A37F; box-shadow: 0 12px 24px -8px rgba(16, 163, 127, 0.12); }
-    .stat-card .stat-value { font-size: 1.75rem; font-weight: 800; color: #1a2e1a; letter-spacing: -0.02em; }
+    .stat-card .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--sierra-type-primary, #203b31); letter-spacing: -0.02em; }
     @media (min-width: 640px) { .stat-card .stat-value { font-size: 2rem; } }
     .stat-card .stat-label { font-size: 0.7rem; font-weight: 600; color: #8aa38a; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.15rem; }
     @media (min-width: 640px) { .stat-card .stat-label { font-size: 0.75rem; } }
@@ -235,7 +235,7 @@ function categoryWeightLevelClass($weight) {
         white-space: nowrap; letter-spacing: 0.01em;
     }
     .status-active { background: #D1FAE5; color: #065F46; }
-    .status-inactive { background: #F3F4F6; color: #6B7280; }
+    .status-inactive { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); }
 
     /* ===== TABLE ===== */
     .table-container { background: white; border-radius: 12px; border: 1px solid rgba(16, 163, 127, 0.08); overflow: hidden; }
@@ -265,7 +265,7 @@ function categoryWeightLevelClass($weight) {
     /* ===== RUBRIC TABLE ===== */
     .rubric-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     .rubric-table th, .rubric-table td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: left; }
-    .rubric-table th { background: #f9fafb; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; }
+    .rubric-table th { background: #f9fafb; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--sierra-type-muted, #63746b); }
 
     /* ===== ACTION BUTTONS ===== */
     .action-btn {
@@ -282,21 +282,21 @@ function categoryWeightLevelClass($weight) {
     .action-btn-activate:hover { background: #A7F3D0; }
     .action-btn-delete { background: #FEE2E2; color: #991B1B; }
     .action-btn-delete:hover { background: #FECACA; }
-    .action-btn-disabled { background: #F3F4F6; color: #9CA3AF; cursor: not-allowed; }
+    .action-btn-disabled { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); cursor: not-allowed; }
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
         .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .table-container table { min-width: 760px; }
         .modal-overlay { padding: 12px; align-items: flex-end; }
-        .modal-content { border-radius: 16px 16px 0 0; max-height: 88vh; }
+        .modal-content { max-height: 88vh; }
         .stat-card { padding: 1rem 0.9rem; }
     }
     @media (max-width: 480px) {
         .action-btn { padding: 5px 9px; }
         .action-btn-disabled { padding: 5px 9px; font-size: 0.65rem; }
-        .status-badge { padding: 3px 10px; font-size: 0.65rem; }
-        .weight-badge { width: 2.25rem; height: 2.25rem; font-size: 0.95rem; }
+        .status-badge { padding: 3px 10px; }
+        .weight-badge { width: 2.25rem; height: 2.25rem; }
     }
     @media (max-width: 576px) {
         .table-container { overflow-x: visible; }
@@ -318,14 +318,12 @@ function categoryWeightLevelClass($weight) {
             box-shadow: 0 1px 3px rgba(16, 163, 127, 0.05);
             background: white;
         }
-        .table-container tbody tr:hover { background: white; }
         .table-container tbody td {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
             padding: 0.4rem 0 !important;
-            font-size: 0.8rem;
             border-bottom: 1px dashed #eef2f0;
         }
         .table-container tbody td:last-child { border-bottom: none; }
@@ -336,7 +334,7 @@ function categoryWeightLevelClass($weight) {
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
         }
         .table-container tbody td[data-label="Actions"] { display: block; padding-top: 0.5rem !important; }
         .table-container tbody td[data-label="Actions"]::before { margin-bottom: 0.4rem; display: block; }
@@ -530,10 +528,10 @@ function categoryWeightLevelClass($weight) {
                             <td colspan="7" class="text-center py-12">
                                 <div class="text-center py-6">
                                     <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                                        <i class="fas fa-tags text-xl sm:text-2xl text-gray-400"></i>
+                                        <i class="fas fa-tags text-gray-400 text-2xl"></i>
                                     </div>
                                     <h3 class="font-semibold text-gray-700 mb-1 text-base"><?php echo t('No categories found'); ?></h3>
-                                    <p class="text-gray-400 text-xs sm:text-sm"><?php echo t('Try adjusting your filters'); ?></p>
+                                    <p class="text-gray-400 text-sm"><?php echo t('Try adjusting your filters'); ?></p>
                                 </div>
                             </td>
                         </tr>

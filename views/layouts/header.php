@@ -124,7 +124,7 @@ $logo_url = $lgu_logo ? BASE_URL . $lgu_logo : '';
         }
         .badge-pending {
             background-color: var(--cool-gray);
-            color: #4B5563;
+            color: var(--sierra-type-muted, #63746b);
         }
         
         /* Table Row Hover */

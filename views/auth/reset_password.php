@@ -230,7 +230,7 @@ try {
         .input-group label {
             display: block;
             font-weight: 600;
-            color: #374151;
+            color: var(--sierra-type-primary, #203b31);
             margin-bottom: 0.4rem;
             font-size: 0.875rem;
         }
@@ -247,7 +247,7 @@ try {
             font-size: 0.95rem;
             transition: all 0.2s;
             background: #ffffff;
-            color: #1e293b;
+            color: var(--sierra-type-primary, #203b31);
         }
         
         .input-group input:focus {
@@ -266,7 +266,7 @@ try {
             left: 0.875rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.95rem;
         }
         
@@ -275,7 +275,7 @@ try {
             right: 0.875rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             background: none;
             border: none;
@@ -301,7 +301,7 @@ try {
         }
         
         .requirement.unmet {
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
         }
         
         .requirement i {
@@ -415,15 +415,10 @@ try {
         
         @media (max-width: 480px) {
             .input-group input {
-                font-size: 0.85rem;
                 padding: 0.65rem 0.85rem 0.65rem 2.25rem;
             }
             .input-group .icon {
-                font-size: 0.8rem;
                 left: 0.7rem;
-            }
-            .requirement {
-                font-size: 0.65rem;
             }
         }
     </style>

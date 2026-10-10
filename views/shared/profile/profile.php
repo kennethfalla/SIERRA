@@ -8,7 +8,7 @@
 // Determine which section to display
 // ============================================================
 $section = $_GET['section'] ?? '';
-$valid_sections = ['personal-information', 'change-password', 'lang-settings', 'appearance', 'pdf-export-settings', 'activity-log', 'about', 'terms', 'privacy', 'faqs', 'help'];
+$valid_sections = ['personal-information', 'change-password', 'lang-settings', 'pdf-export-settings', 'activity-log', 'about', 'terms', 'privacy', 'faqs', 'help'];
 if ($section && !in_array($section, $valid_sections)) {
     $section = ''; // treat as no section
 }
@@ -109,7 +109,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
         .btn-secondary {
             background: white;
             border: 1px solid #e2e8f0;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
             padding: 0.5rem 1rem;
             border-radius: 0.75rem;
             font-size: 0.8rem;
@@ -196,7 +196,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
         .metric-value {
             font-size: 0.9rem;
             font-weight: 500;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             margin-top: 0.1rem;
         }
         @media (min-width: 640px) {
@@ -212,7 +212,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             font-size: 0.9rem;
             transition: all 0.2s;
             background: white;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             min-height: 44px;
         }
         .form-input:focus {
@@ -257,7 +257,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             gap: 10px;
             padding: 9px 8px;
             border-radius: 0.5rem;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             text-decoration: none;
             font-weight: 500;
             font-size: 0.8rem;
@@ -292,7 +292,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
         }
         .profile-menu-item:hover {
             background: #fafcfb;
-            color: #111827;
+            color: var(--sierra-type-primary, #203b31);
         }
         .profile-menu-item:hover .menu-icon {
             background: #10A37F;
@@ -308,7 +308,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
         .profile-menu-group-label {
             font-size: 0.6rem;
             font-weight: 700;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             text-transform: uppercase;
             letter-spacing: 0.06em;
             padding: 0.4rem 0.4rem 0.2rem;
@@ -356,18 +356,18 @@ require_once BASE_PATH . 'helpers/Lang.php';
             margin: 0.9rem 0 0.15rem;
             font-size: 1.15rem;
             font-weight: 700;
-            color: #111827;
+            color: var(--sierra-type-primary, #203b31);
         }
         .profile-hero-email {
             margin: 0;
             font-size: 0.85rem;
-            color: #9CA3AF;
+            color: var(--sierra-type-muted, #63746b);
             word-break: break-word;
         }
         .profile-hero-meta {
             margin: 0.35rem 0 0;
             font-size: 0.8rem;
-            color: #9CA3AF;
+            color: var(--sierra-type-muted, #63746b);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -414,7 +414,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             padding: 0.95rem 1.1rem;
             font-size: 0.92rem;
             font-weight: 600;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
         }
         .profile-group .profile-menu-item:last-child { border-bottom: none; }
         .profile-group .menu-icon {
@@ -422,7 +422,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             height: 26px;
             border-radius: 0;
             background: transparent;
-            color: #111827;
+            color: var(--sierra-type-primary, #203b31);
             font-size: 1.05rem;
         }
         .profile-group .profile-menu-item:hover { background: #f8fbf9; color: #0D8568; }
@@ -440,8 +440,6 @@ require_once BASE_PATH . 'helpers/Lang.php';
         .profile-group .logout-item:hover { background: #fef2f2; color: #b91c1c; }
         .profile-group .logout-item:hover .menu-icon { color: #EF4444; }
         @media (max-width: 480px) {
-            .profile-hero-card { border-radius: 18px; }
-            .profile-group { border-radius: 14px; }
         }
 
         .boxed-field {
@@ -459,7 +457,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             display: block;
             font-size: 0.68rem;
             font-weight: 600;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             margin-bottom: 2px;
@@ -472,22 +470,22 @@ require_once BASE_PATH . 'helpers/Lang.php';
             padding: 0;
             font-size: 0.92rem;
             font-weight: 600;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             background: transparent;
         }
-        .boxed-field input:read-only { color: #9ca3af; font-weight: 500; }
+        .boxed-field input:read-only { color: var(--sierra-type-muted, #63746b); font-weight: 500; }
         .boxed-field .flex input { width: auto; flex: 1; }
         
         .legal-content h4 {
             font-weight: 700;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             margin: 0.9rem 0 0.3rem;
             font-size: 0.9rem;
         }
         .legal-content p, .legal-content li {
             font-size: 0.85rem;
             line-height: 1.6;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
         }
         .legal-content ul { list-style: disc; padding-left: 1.25rem; }
         .legal-content li { margin-bottom: 0.15rem; }
@@ -509,7 +507,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             text-align: left;
             font-size: 0.875rem;
             font-weight: 600;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             cursor: pointer;
             border: none;
         }
@@ -520,7 +518,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             padding: 0 1rem 0.85rem;
             font-size: 0.85rem;
             line-height: 1.6;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
         }
         .faq-item.open .faq-answer { display: block; }
         
@@ -555,7 +553,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             align-items: center;
             flex-shrink: 0;
         }
-        .crop-modal-header h3 { font-weight: 700; color: #1a2e1a; font-size: 1rem; }
+        .crop-modal-header h3 { font-weight: 700; color: var(--sierra-type-primary, #203b31); font-size: 1rem; }
         .crop-modal-header h3 i { color: #10A37F; margin-right: 0.5rem; }
         .crop-modal-body { padding: 16px; overflow: hidden; flex: 1; min-height: 200px; }
         /* Crop preview area: bounded so huge gallery photos always fit the modal */
@@ -597,7 +595,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             margin-bottom: 0.75rem;
         }
         .avatar-picker-grid {
@@ -637,13 +635,13 @@ require_once BASE_PATH . 'helpers/Lang.php';
             border-radius: 50%;
         }
         .avatar-option-none:hover { background: #E5E7EB; }
-        .avatar-none-glyph { color: #9CA3AF; font-size: 20px; line-height: 1; }
-        .avatar-none-label { color: #6B7280; font-size: 9px; font-weight: 700; }
+        .avatar-none-glyph { color: var(--sierra-type-muted, #63746b); font-size: 20px; line-height: 1; }
+        .avatar-none-label { color: var(--sierra-type-muted, #63746b); font-size: 9px; font-weight: 700; }
         .avatar-picker-divider {
             display: flex;
             align-items: center;
             gap: 10px;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.7rem;
             font-weight: 600;
             text-transform: uppercase;
@@ -671,7 +669,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
             align-items: center;
             gap: 8px;
             font-size: 0.78rem;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             margin-bottom: 4px;
             transition: color 0.15s;
         }
@@ -681,8 +679,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
         .pw-check i.fa-check-circle { display: none; }
         
         @media (max-width: 480px) {
-            .metric-value { font-size: 0.8rem; }
-            .btn-primary, .btn-secondary { font-size: 0.75rem; padding: 0.4rem 0.75rem; }
+            .btn-primary, .btn-secondary { padding: 0.4rem 0.75rem; }
         }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
@@ -799,11 +796,6 @@ require_once BASE_PATH . 'helpers/Lang.php';
                         <span class="menu-label"><?php echo t('Language Settings'); ?></span>
                         <i class="fas fa-chevron-right menu-chevron"></i>
                     </a>
-                    <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=appearance">
-                        <span class="menu-icon"><i class="fas fa-palette" aria-hidden="true"></i></span>
-                        <span class="menu-label"><?php echo t('Appearance'); ?></span>
-                        <i class="fas fa-chevron-right menu-chevron" aria-hidden="true"></i>
-                    </a>
                     <?php if (($_SESSION['user_role'] ?? '') === 'barangay_official'): ?>
                     <a class="profile-menu-item" href="<?php echo BASE_URL; ?>index.php?page=profile&section=pdf-export-settings">
                         <span class="menu-icon"><i class="fas fa-file-pdf"></i></span>
@@ -878,19 +870,6 @@ require_once BASE_PATH . 'helpers/Lang.php';
                             break;
                         case 'lang-settings':
                             include __DIR__ . '/language.php';
-                            break;
-                        case 'appearance':
-                            ?>
-                            <h2 class="text-xl font-bold mb-2"><?php echo t('Appearance'); ?></h2>
-                            <p class="text-sm text-gray-500 mb-6"><?php echo t('Choose how SIERRA looks on this device.'); ?></p>
-                            <label class="form-label" for="profileAppearance"><?php echo t('Color mode'); ?></label>
-                            <select class="form-input" id="profileAppearance" data-theme-preference>
-                                <option value="system"><?php echo t('Follow device'); ?></option>
-                                <option value="light"><?php echo t('Light'); ?></option>
-                                <option value="dark"><?php echo t('Dark'); ?></option>
-                            </select>
-                            <p class="text-xs text-gray-400 mt-3"><?php echo t('Your choice applies immediately and is saved in this browser.'); ?></p>
-                            <?php
                             break;
                         case 'pdf-export-settings':
                             include __DIR__ . '/pdf_export.php';

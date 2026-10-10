@@ -275,7 +275,7 @@ $otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
     padding: 0.6rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 500;
-    color: #4b5563;
+    color: var(--sierra-type-muted, #63746b);
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -288,7 +288,7 @@ $otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
 .form-label {
     display: block;
     font-weight: 600;
-    color: #374151;
+    color: var(--sierra-type-primary, #203b31);
     font-size: 0.8rem;
     margin-bottom: 0.2rem;
 }
@@ -308,7 +308,7 @@ $otp_cooldown    = (int) SettingsHelper::get('otp_cooldown_seconds', 60);
 }
 .help-text {
     font-size: 0.7rem;
-    color: #6B7280;
+    color: var(--sierra-type-muted, #63746b);
     margin-top: 0.2rem;
 }
 

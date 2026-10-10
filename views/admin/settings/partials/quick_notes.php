@@ -3,7 +3,7 @@
 // Quick Note Templates — embedded as the "Quick Note Templates" tab of
 // System Settings. Full CRUD for smart-suggestion (canned response)
 // templates used on the Manage Report page (Investigation Notes) and
-// inside the Resolve Report modal (Resolution Notes).
+// inside the Resolve Report and Escalate to MENRO modals.
 //
 // POST actions (create / update / delete / toggle_status) are handled
 // inline here (the settings shell routes ?tab=quick_notes POSTs to this
@@ -26,13 +26,14 @@ $activityLog = new ActivityLog($db);
 // STATUS + CATEGORY OPTIONS
 // ============================================================
 $QUICK_NOTE_STATUSES = [
-    'pending'           => 'Pending',
-    'under_review'      => 'Under Review',
-    'verified'          => 'Verified',
-    'in_progress'       => 'In Progress',
-    'escalated_pending' => 'Escalation Pending',
-    'escalated'         => 'Escalated',
-    'resolved'          => 'Resolved',
+    ''                 => 'Investigation — Any active status',
+    'pending'           => 'Investigation — Pending',
+    'under_review'      => 'Investigation — Under Review',
+    'verified'          => 'Investigation — Verified',
+    'in_progress'       => 'Investigation — In Progress',
+    'escalated_pending' => 'Escalate to MENRO',
+    'escalated'         => 'Escalate to MENRO',
+    'resolved'          => 'Mark as Resolved',
 ];
 
 // Category options come straight from the categories table.
@@ -161,23 +162,23 @@ $active_count = count(array_filter($templates, fn($t) => (int)$t['is_active'] ==
 <style>
     .qnt-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 1.25rem; flex-wrap: wrap; }
     .qnt-stats { display: flex; gap: 10px; flex-wrap: wrap; }
-    .qnt-stat { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.4rem 0.9rem; font-size: 0.8rem; color: #4B5563; }
-    .qnt-stat strong { color: #1F2937; }
+    .qnt-stat { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 0.4rem 0.9rem; font-size: 0.8rem; color: var(--sierra-type-muted, #63746b); }
+    .qnt-stat strong { color: var(--sierra-type-primary, #203b31); }
     .qnt-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
     .qnt-modal-overlay.active { display: flex; }
     .qnt-modal { background: white; border-radius: 1rem; box-shadow: 0 20px 50px rgba(0,0,0,0.2); width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; animation: qntFade 0.2s ease-out; }
     @keyframes qntFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .qnt-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid #F3F4F6; }
-    .qnt-modal-header h3 { font-size: 1rem; font-weight: 700; color: #1F2937; display: flex; align-items: center; gap: 0.5rem; }
-    .qnt-modal-close { background: #F3F4F6; border: none; width: 30px; height: 30px; border-radius: 9999px; cursor: pointer; color: #6B7280; transition: all 0.2s; }
-    .qnt-modal-close:hover { background: #E5E7EB; color: #111827; }
+    .qnt-modal-header h3 { font-size: 1rem; font-weight: 700; color: var(--sierra-type-primary, #203b31); display: flex; align-items: center; gap: 0.5rem; }
+    .qnt-modal-close { background: #F3F4F6; border: none; width: 30px; height: 30px; border-radius: 9999px; cursor: pointer; color: var(--sierra-type-muted, #63746b); transition: all 0.2s; }
+    .qnt-modal-close:hover { background: #E5E7EB; color: var(--sierra-type-primary, #203b31); }
     .qnt-modal-body { padding: 1.25rem; }
     .qnt-sm { font-size: 0.7rem; }
     .qnt-badge { display: inline-flex; align-items: center; gap: 4px; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.65rem; font-weight: 700; }
     .qnt-badge.on { background: #ECFDF5; color: #047857; }
     .qnt-badge.off { background: #FEF2F2; color: #B91C1C; }
-    .qnt-chip { background: #F1F5F9; color: #334155; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.68rem; font-weight: 600; }
-    .qnt-empty { text-align: center; padding: 3rem 1rem; color: #9CA3AF; }
+    .qnt-chip { background: #F1F5F9; color: var(--sierra-type-primary, #203b31); padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.68rem; font-weight: 600; }
+    .qnt-empty { text-align: center; padding: 3rem 1rem; color: var(--sierra-type-muted, #63746b); }
     .qnt-empty i { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; color: #D1D5DB; }
 </style>
 
@@ -205,7 +206,7 @@ $active_count = count(array_filter($templates, fn($t) => (int)$t['is_active'] ==
                 <tr>
                     <th>Template Text</th>
                     <th>Target Category</th>
-                    <th>Target Status</th>
+                    <th>Used For</th>
                     <th>Status</th>
                     <th style="text-align:right;">Actions</th>
                 </tr>
@@ -223,7 +224,7 @@ $active_count = count(array_filter($templates, fn($t) => (int)$t['is_active'] ==
                     </td>
                     <td>
                         <?php if ($tpl['target_status'] === ''): ?>
-                            <span class="qnt-chip">All Statuses</span>
+                            <span class="qnt-chip">Investigation — Any active status</span>
                         <?php else: ?>
                             <span class="qnt-chip" style="background:#EFF6FF;color:#1E40AF;"><?php echo htmlspecialchars($QUICK_NOTE_STATUSES[$tpl['target_status']] ?? $tpl['target_status']); ?></span>
                         <?php endif; ?>
@@ -288,14 +289,19 @@ $active_count = count(array_filter($templates, fn($t) => (int)$t['is_active'] ==
                     <div class="qnt-sm text-gray-400 mt-1">Choose which environmental issue this note is for.</div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Target Status</label>
+                    <label class="form-label" for="templateStatus">Used For</label>
                     <select name="target_status" id="templateStatus" class="form-input">
-                        <option value="">All Statuses</option>
-                        <?php foreach ($QUICK_NOTE_STATUSES as $st_key => $st_label): ?>
-                            <option value="<?php echo $st_key; ?>"><?php echo $st_label; ?></option>
-                        <?php endforeach; ?>
+                        <optgroup label="Investigation notes">
+                            <?php foreach ($QUICK_NOTE_STATUSES as $st_key => $st_label): if (in_array($st_key, ['resolved', 'escalated_pending', 'escalated'], true)) continue; ?>
+                            <option value="<?php echo $st_key; ?>"><?php echo htmlspecialchars($st_label); ?></option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                        <optgroup label="Report actions">
+                            <option value="escalated_pending">Escalate to MENRO</option>
+                            <option value="resolved">Mark as Resolved</option>
+                        </optgroup>
                     </select>
-                    <div class="qnt-sm text-gray-400 mt-1">Choose the report status this note should appear in.</div>
+                    <div class="qnt-sm text-gray-400 mt-1">Each suggestion appears only in the selected action or investigation status.</div>
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label class="form-label">Template Text</label>
@@ -318,7 +324,7 @@ function openTemplateModal(id, text, category, status) {
     document.getElementById('templateId').value = id || 0;
     document.getElementById('templateText').value = text || '';
     document.getElementById('templateCategory').value = category || '';
-    document.getElementById('templateStatus').value = status || '';
+    document.getElementById('templateStatus').value = status === 'escalated' ? 'escalated_pending' : (status || '');
     document.getElementById('templateModal').classList.add('active');
     document.getElementById('templateText').focus();
 }

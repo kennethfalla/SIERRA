@@ -123,24 +123,20 @@ body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page
     font-size: .76rem;
     font-weight: 700;
 }
-body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-name { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 800; line-height: 1.14; letter-spacing: -.035em; }
+body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-name { font-size: 2.4rem; font-weight: 800; line-height: 1.14; letter-spacing: -.035em; overflow-wrap:anywhere; }
 body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-subtitle { color: #e3f8eb; font-size: .86rem; font-weight: 500; margin-top: .5rem; }
 body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero .sierra-hero-bell { background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .28); }
 
 @keyframes sierraTextShine { from { background-position: 0% 50%; } to { background-position: 200% 50%; } }
 @media (min-width: 640px) { .sierra-hero { padding: 2rem; border-radius: 1.5rem; } .sierra-hero-name { font-size: 1.75rem; } }
 @media (max-width: 639px) {
-    .sierra-hero { padding: 1rem; border-radius: 1rem; margin-bottom: .85rem; }
+    .sierra-hero { padding: 1rem; margin-bottom: .85rem; }
     .sierra-hero-row { gap: .6rem; }
-    .sierra-hero-greeting { margin-bottom: .1rem; font-size: .72rem; }
-    .sierra-hero-name { font-size: 1.1rem; }
-    .sierra-hero-subtitle { font-size: .65rem; }
+    .sierra-hero-greeting { margin-bottom: .1rem; }
     .sierra-hero .sierra-hero-bell { width: 2.1rem; height: 2.1rem; }
-    .sierra-hero .sierra-hero-bell .fa-bell { font-size: .9rem; }
     body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero { min-height: 126px; padding: 1rem 1.2rem; }
     body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero::before { width: 250px; height: 250px; top: -125px; right: -120px; }
-    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-greeting { font-size: .76rem; margin-bottom: .45rem; }
-    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-name { font-size: 1.8rem; }
-    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-subtitle { font-size: .86rem; line-height: 1.35; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-greeting { margin-bottom: .45rem; }
+    body:is(.menro-dashboard-page, .barangay-dashboard-page, .citizen-dashboard-page) .sierra-hero-subtitle { line-height: 1.35; }
 }
 @media (prefers-reduced-motion: reduce) { .sierra-hero, .sierra-hero * { animation: none; transition: none; } .sierra-hero:hover { transform: none; } }

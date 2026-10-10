@@ -40,7 +40,7 @@
     border-radius: 14px;
     box-shadow: 0 18px 42px -20px rgba(13, 73, 54, 0.35), 0 8px 18px -14px rgba(13, 73, 54, 0.25);
     min-width: 220px;
-    z-index: 100;
+    z-index: 12000;
     overflow: hidden;
     animation: exportMenuIn 0.15s ease;
 }
@@ -305,16 +305,16 @@
     body .report :is(.kpi-row, .summary-row):has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     body .report :is(.kpi-row, .summary-row):has(> :nth-child(-n+3):last-child) > * { width: 100%; min-width: 0; }
 }
-/* The report filter rail shares the main navigation's forest branding. */
+/* The report filter rail uses a clean white surface with brand accents. */
 @media screen {
-    .filter-sidebar { background:#0b3f31 !important; border:1px solid #175e49 !important; color:#fff; }
-    .filter-sidebar .sidebar-head { background:#0b3f31; border-bottom:1px solid #ffffff20; }
-    .filter-sidebar :is(.head-title,.filter-field label,.section-check) { color:#f0faf5 !important; }
-    .filter-sidebar :is(.head-sub,.sidebar-group-label) { color:#8ec5b0 !important; }
-    .filter-sidebar .sidebar-body { scrollbar-color:#488a71 #0b3f31; }
-    .filter-sidebar .sidebar-group { padding:12px; border:1px solid #ffffff20; border-radius:12px; }
-    .filter-sidebar .sidebar-footer { background:#0b3f31; border-color:#ffffff20; }
-    .filter-sidebar .section-check:hover { background:#ffffff15; }
+    .filter-sidebar { background:#ffffff !important; border-right:1px solid rgba(16,163,127,0.12) !important; color:#1f2937; }
+    .filter-sidebar .sidebar-head { background:#ffffff; border-bottom:1px solid #f3f4f6; }
+    .filter-sidebar :is(.head-title,.filter-field label,.section-check) { color:#374151 !important; }
+    .filter-sidebar :is(.head-sub,.sidebar-group-label) { color:#9ca3af !important; }
+    .filter-sidebar .sidebar-body { scrollbar-color:#c7e6da #ffffff; }
+    .filter-sidebar .sidebar-group { padding:12px; border:1px solid rgba(16,163,127,0.12); border-radius:12px; }
+    .filter-sidebar .sidebar-footer { background:#ffffff; border-color:#f3f4f6; }
+    .filter-sidebar .section-check:hover { background:#F0FBF6; }
     .filter-sidebar :is(input:not([type="checkbox"]),select) { min-height:40px; border-radius:10px; }
 }
 .export-mobile-controls,.export-filter-close,.export-filter-backdrop { display:none; }
@@ -324,7 +324,7 @@
     .page-wrap { display:block !important; }
     .filter-sidebar { display:flex !important; position:fixed !important; inset:0 auto 0 0; width:min(320px,calc(100vw - 40px)) !important; height:100dvh !important; z-index:102; transform:translateX(-105%); transition:transform .25s ease; visibility:hidden; }
     .filter-sidebar.export-filter-open { transform:translateX(0); visibility:visible; }
-    .export-filter-close { display:block; margin-left:auto; width:32px; height:32px; color:#fff; background:#ffffff15; border:0; border-radius:8px; font-size:24px; cursor:pointer; }
+    .export-filter-close { display:block; margin-left:auto; width:32px; height:32px; color:#374151; background:#f3f4f6; border:0; border-radius:8px; font-size:24px; cursor:pointer; }
     .export-filter-backdrop:not([hidden]) { display:block; position:fixed; inset:0; width:100%; height:100dvh; background:#071d15a6; border:0; z-index:101; }
 }
 @media print { .export-mobile-controls,.export-filter-backdrop,.export-filter-close { display:none !important; } }

@@ -93,6 +93,11 @@ $offset = ($page - 1) * $limit;
 // Build WHERE clause
 $where = ["1=1"];
 $params = [];
+$focused_log = filter_var($_GET['focus'] ?? null,FILTER_VALIDATE_INT);
+if ($focused_log && $focused_log > 0) {
+    $where[] = 'a.id = :focused_log';
+    $params[':focused_log'] = $focused_log;
+}
 
 if($action_filter !== 'all') {
     $where[] = "a.action = :action";
@@ -287,7 +292,7 @@ $top_actions = $db->query("
         .action-Create { background: #E0E7FF; color: #3730A3; }
         .action-Update { background: #FCE7F3; color: #9D174D; }
         .action-Delete { background: #FEE2E2; color: #DC2626; }
-        .action-default { background: #F3F4F6; color: #6B7280; }
+        .action-default { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); }
         
         .role-badge-admin { background: #8B5CF6; color: white; }
         .role-badge-barangay { background: #10A37F; color: white; }
@@ -320,7 +325,7 @@ $top_actions = $db->query("
             border: 1px solid #E5E7EB;
             border-radius: 9999px;
             font-size: 0.875rem;
-            color: #1F2937;
+            color: var(--sierra-type-primary, #203b31);
             text-decoration: none;
             transition: all 0.2s;
         }
@@ -433,7 +438,7 @@ $top_actions = $db->query("
 
         $ft = [
             'search_id'          => 'searchInput',
-            'search_value'       => htmlspecialchars($search),
+            'search_value'       => $search,
             'search_placeholder' => 'Search activity…',
             'results_text'       => 'Showing <strong>' . count($logs) . '</strong> of <strong>' . number_format($total_logs) . '</strong> log entries',
             'inline_selects'     => [
@@ -461,10 +466,10 @@ $top_actions = $db->query("
             ],
             'popover_fields'     => [
                 ['kind' => 'select', 'id' => 'popoverUser', 'label' => 'User', 'value' => $user_filter, 'default' => '',
-                 'options' => array_merge(['' => 'All Users'], array_reduce($users, function($carry, $u) {
+                 'options' => ['' => 'All Users'] + array_reduce($users, function($carry, $u) {
                      $carry[$u['id']] = $u['first_name'] . ' ' . $u['last_name'];
                      return $carry;
-                 }, []))
+                 }, [])
                 ],
                 ['kind' => 'date', 'id' => 'popoverDateFrom', 'label' => 'Date From', 'value' => $date_from, 'default' => ''],
                 ['kind' => 'date', 'id' => 'popoverDateTo', 'label' => 'Date To', 'value' => $date_to, 'default' => ''],
@@ -653,10 +658,10 @@ $top_actions = $db->query("
                                 <td colspan="9" class="px-4 py-12 text-center">
                                     <div class="empty-state">
                                         <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                                            <i class="fas fa-history text-xl sm:text-2xl text-gray-400"></i>
+                                            <i class="fas fa-history text-gray-400 text-2xl"></i>
                                         </div>
-                                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg"><?php echo t('No audit logs found'); ?></h3>
-                                        <p class="text-gray-400 text-xs sm:text-sm"><?php echo t('Try adjusting your filters'); ?></p>
+                                        <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-lg"><?php echo t('No audit logs found'); ?></h3>
+                                        <p class="text-gray-400 text-sm"><?php echo t('Try adjusting your filters'); ?></p>
                                     </div>
                                 </td>
                             </tr>

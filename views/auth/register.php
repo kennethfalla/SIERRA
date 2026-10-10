@@ -168,7 +168,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             position: fixed; inset: 0; margin: auto; padding: 0; border: 0;
             width: min(672px, calc(100% - 24px)); max-width: none;
             max-height: calc(100dvh - 24px); border-radius: 16px;
-            background: #fff; color: #374151; overflow: hidden;
+            background: #fff; color: var(--sierra-type-primary, #203b31); overflow: hidden;
             box-shadow: 0 24px 60px #0004;
         }
         .registration-legal-dialog::backdrop { background: rgba(0, 10, 6, .65); }
@@ -362,7 +362,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             right: 0.875rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             background: none;
             border: none;
@@ -445,12 +445,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         
         .resident-option .label {
             font-weight: 600;
-            color: #1e293b;
+            color: var(--sierra-type-primary, #203b31);
         }
         
         .resident-option .sub-label {
             font-size: 0.75rem;
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
             margin-top: 0.25rem;
         }
         
@@ -472,7 +472,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
             border-radius: 0.75rem;
             transition: all 0.2s;
             background: white;
-            color: #1e293b;
+            color: var(--sierra-type-primary, #203b31);
         }
         
         .otp-input:focus {
@@ -519,7 +519,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
         }
         
         .requirement.met { color: #10A37F; }
-        .requirement.unmet { color: #94a3b8; }
+        .requirement.unmet { color: var(--sierra-type-muted, #63746b); }
         
         /* SUCCESS SCREEN */
         .success-screen {
@@ -579,23 +579,20 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_municipalities' && isset(
                 gap: 10px;
             }
             .resident-option { min-width: 0; padding: 16px 8px; }
-            .resident-option i { font-size: 24px; }
             .resident-option .label { font-size: 13px; line-height: 1.45; text-wrap: balance; }
-            .resident-option .sub-label { font-size: 12px; line-height: 1.45; }
+            .resident-option .sub-label { line-height: 1.45; }
             .otp-container {
                 gap: 0.5rem;
             }
             .otp-input {
                 width: 40px;
                 height: 50px;
-                font-size: 1.2rem;
             }
             .select2-container .select2-selection--single {
                 height: 44px !important;
                 padding: 0.3rem 2.5rem 0.3rem 1rem !important;
             }
             .select2-container--default .select2-selection--single .select2-selection__rendered {
-                line-height: 28px !important;
                 padding-left: 1.5rem !important;
             }
         }

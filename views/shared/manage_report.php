@@ -47,8 +47,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/material-symbols.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/material-symbols.css'); ?>">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/export-print.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/export-print.css'); ?>">
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/buttons.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/buttons.css'); ?>">
-<script src="<?php echo BASE_URL; ?>assets/js/app-ui.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/app-ui.js'); ?>" defer></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="<?php echo BASE_URL; ?>assets/js/map-layers.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/map-layers.js'); ?>"></script>
@@ -67,10 +65,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @media (min-width: 768px) { .main-container { padding: 2rem 2rem 13rem; } }
 
         /* ===== CARDS ===== */
-        .card { background: white; border-radius: 1rem; border: 1px solid rgba(16,163,127,0.08); padding: 1.25rem; margin-bottom: 1.25rem; transition: all 0.25s ease; }
+        .card { background: white; border-radius: 1rem; border: 1px solid #cbd5cf; padding: 1.25rem; margin-bottom: 1.25rem; transition: all 0.25s ease; }
         .card:hover { border-color: rgba(16,163,127,0.15); box-shadow: 0 4px 16px -4px rgba(16,163,127,0.08); }
         @media (min-width: 640px) { .card { padding: 1.5rem; } }
-        .card-header { font-weight: 700; font-size: 0.85rem; color: #4b5563; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .card-header { font-weight: 700; font-size: 0.85rem; color: var(--sierra-type-muted, #63746b); border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         .card-header i { color: #10A37F; }
 
         .report-top-actions {
@@ -89,7 +87,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border-radius: 14px;
             background: #fff;
             border: 1px solid rgba(16, 163, 127, .12);
-            color: #334155;
+            color: var(--sierra-type-primary, #203b31);
             font-size: .82rem;
             font-weight: 800;
             box-shadow: 0 10px 24px -20px rgba(13, 133, 104, .45);
@@ -100,74 +98,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border-color: rgba(16, 163, 127, .35);
             box-shadow: 0 18px 32px -24px rgba(13, 133, 104, .55);
         }
-        .report-hero {
-            position: relative;
-            overflow: hidden;
-            border-radius: 24px;
-            margin-bottom: 1.5rem;
-            color: #fff;
-            background:
-                radial-gradient(circle at 90% 10%, rgba(255,255,255,.22), transparent 30%),
-                linear-gradient(135deg, #0f766e 0%, #10A37F 52%, #0D8568 100%);
-            box-shadow: 0 24px 60px -36px rgba(13, 133, 104, .9);
-            border: 1px solid rgba(255, 255, 255, .22);
-        }
-        .report-hero::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: linear-gradient(120deg, rgba(255,255,255,.08), transparent 45%);
-            pointer-events: none;
-        }
-        .report-hero-inner {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 1rem;
-            padding: clamp(1.1rem, 2.5vw, 1.65rem);
-        }
-        .report-hero-kicker {
-            display: inline-flex;
-            align-items: center;
-            gap: .55rem;
-            margin-bottom: .65rem;
-            padding: .36rem .65rem;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, .14);
-            color: rgba(255,255,255,.88);
-            font-size: .72rem;
-            font-weight: 900;
-            letter-spacing: .08em;
-            text-transform: uppercase;
-        }
-        .report-hero-title {
-            margin: 0;
-            max-width: 760px;
-            font-size: clamp(1.35rem, 3vw, 2rem);
-            line-height: 1.15;
-            font-weight: 900;
-            letter-spacing: -.035em;
-        }
-        .report-hero-meta, .report-hero-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .5rem;
-        }
-        .report-hero-meta { margin-top: .9rem; }
-        .report-hero-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: .42rem;
-            padding: .42rem .65rem;
-            border-radius: 12px;
-            background: rgba(255,255,255,.14);
-            color: rgba(255,255,255,.9);
-            font-size: .74rem;
-            font-weight: 700;
-        }
-        .report-hero .status-badge,
+
+.report-hero .status-badge,
         .report-hero .risk-badge {
             border: 1px solid rgba(255,255,255,.4);
             box-shadow: 0 10px 22px -18px rgba(15,23,42,.6);
@@ -175,27 +107,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         @media (max-width: 640px) {
             .report-top-actions { align-items: stretch; }
             .report-top-actions .export-dropdown, .report-top-actions .btn-export-trigger, .report-back-btn { width: 100%; justify-content: center; }
-            .report-hero-inner { flex-direction: column; }
-        }
+
+}
 
         /* ===== BUTTONS ===== */
-        .btn-primary { background: linear-gradient(135deg, #10A37F, #0D8568); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 2px 8px rgba(16,163,127,0.18); }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(16,163,127,0.3); }
-        .btn-primary:active { transform: translateY(0); }
-        .btn-secondary { background: white; border: 1.5px solid #10A37F; color: #10A37F; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.25s ease; }
-        .btn-secondary:hover { background: #E8F5F0; border-color: #0D8568; color: #0D8568; }
-        .btn-danger { background: linear-gradient(135deg, #DC2626, #B91C1C); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 2px 8px rgba(220,38,38,0.18); }
-        .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(220,38,38,0.3); }
-        .btn-danger:active { transform: translateY(0); }
-        .btn-warning { background: linear-gradient(135deg, #D97706, #B45309); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 2px 8px rgba(217,119,6,0.18); }
-        .btn-warning:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(217,119,6,0.3); }
-        .btn-warning:active { transform: translateY(0); }
-        .btn-success { background: linear-gradient(135deg, #10A37F, #0D8568); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 2px 8px rgba(16,163,127,0.18); }
-        .btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(16,163,127,0.3); }
-        .btn-success:active { transform: translateY(0); }
-        .btn-indigo { background: linear-gradient(135deg, #10A37F, #0D8568); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 2px 8px rgba(16,163,127,0.18); }
-        .btn-indigo:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(16,163,127,0.3); }
-        .btn-indigo:active { transform: translateY(0); }
 
         /* ===== LAYOUT ===== */
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
@@ -209,18 +124,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .photo-grid video:hover { transform: scale(1.02); }
         .photo-card { position: relative; }
         .photo-grid-cell { display: flex; flex-direction: column; gap: 6px; }
-        .resolution-note-box {
-            font-size: 0.75rem;
-            color: #374151;
-            background: #F0FDF4;
-            border: 1px solid #A7F3D0;
-            border-radius: 0.5rem;
-            padding: 0.45rem 0.6rem;
-            line-height: 1.45;
-            word-break: break-word;
-            white-space: pre-wrap;
-        }
-        /* ===== FULL-BLEED MEDIA CARDS (photos fill the whole card, no gaps) ===== */
+
+/* ===== FULL-BLEED MEDIA CARDS (photos fill the whole card, no gaps) ===== */
         .card-bleed { padding: 0; overflow: hidden; }
         .card-bleed .card-header {
             margin-bottom: 0;
@@ -255,159 +160,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             .photo-grid.pg-2 { grid-template-columns: 1fr; }
             .photo-grid.pg-2 img, .photo-grid.pg-2 video { height: auto; aspect-ratio: 4 / 3; }
         }
-        /* ===== SMART SUGGESTION CARDS ===== */
-        .qn-wrap {
-            position: relative;
-            background: #f8fbf9;
-            border: 1px solid #dce8e1;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 12px;
-        }
-        .qn-wrap.mb-1\\.5 { margin-bottom: 6px; }
-        .qn-suggestions-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-        .qn-suggestions-icon {
-            width: 26px;
-            height: 26px;
-            border-radius: 8px;
-            background: #eaf7f0;
-            color: #0d8568;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.72rem;
-            flex-shrink: 0;
-        }
-        .qn-suggestions-title {
-            font-size: 0.7rem;
-            font-weight: 800;
-            letter-spacing: 0;
-            color: #334155;
-            flex: 1;
-        }
-        .qn-suggestions-hint {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.62rem;
-            font-weight: 600;
-            color: #94A3B8;
-        }
-        .qn-chips {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
-        }
-        @media (min-width: 640px) {
-            .qn-chips { grid-template-columns: 1fr 1fr; }
-        }
-        .note-template-chip {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            background: #fff;
-            border: 1px solid #E2E8F0;
-            border-radius: 12px;
-            padding: 9px 12px;
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.18s ease;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        }
-        .note-template-chip:hover {
-            border-color: #34D399;
-            background: #F0FDF4;
-        }
-        .note-template-chip:focus-visible {
-            outline: 2px solid #34D399;
-            outline-offset: 1px;
-        }
-        .note-template-chip .chip-bolt {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            background: #eaf7f0;
-            color: #0d8568;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.72rem;
-            flex-shrink: 0;
-        }
-        .note-template-chip .chip-text {
-            flex: 1;
-            min-width: 0;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #334155;
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            word-break: break-word;
-        }
-        .note-template-chip:hover .chip-text { color: #065F46; }
-        .note-template-chip .chip-action {
-            color: #CBD5E1;
-            font-size: 0.8rem;
-            flex-shrink: 0;
-            transition: color 0.18s ease, transform 0.18s ease;
-        }
-        .note-template-chip:hover .chip-action { color: #10A37F; transform: translateX(2px); }
-
         /* ===== MAP ===== */
-        #map { height: 340px; border-radius: 0.75rem; border: 1px solid rgba(16,163,127,0.08); }
+        body.manage-report-page #map { height: 340px; border-radius: 0.75rem; border: 2px solid #94a39b !important; box-sizing: border-box; overflow: hidden; }
 
         /* ===== NOTES ===== */
-        .note-thread {
-            display: flex;
-            flex-direction: column;
-            gap: .85rem;
-        }
-        .note-item {
-            align-items: flex-start;
-        }
-        .note-bubble {
-            flex: 1 1 auto;
-            min-width: 0;
-            background: #F8FCFA;
-            border: 1px solid rgba(16, 163, 127, .12);
-            border-radius: 1rem 1rem 1rem .35rem;
-            padding: .72rem .85rem;
-            box-shadow: 0 8px 22px -20px rgba(13, 133, 104, .45);
-        }
-        .note-meta {
-            display: flex;
-            align-items: baseline;
-            gap: .45rem;
-            flex-wrap: wrap;
-            margin-bottom: .22rem;
-        }
-        .note-author {
-            font-size: .78rem;
-            font-weight: 900;
-            color: #1f2937;
-        }
-        .note-time {
-            font-size: .68rem;
-            font-weight: 700;
-            color: #94a3b8;
-        }
-        .note-text {
-            margin: 0;
-            color: #334155;
-            font-size: .88rem;
-            line-height: 1.5;
-            overflow-wrap: anywhere;
-        }
-        .note-composer {
+
+.note-composer {
             display: flex;
             gap: .6rem;
             padding: .65rem;
@@ -449,7 +207,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .action-panel-bar .action-callout { margin-bottom:12px; padding:10px 12px; border-radius:10px; }
         .action-panel-bar .action-cards { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
         .action-panel-bar .action-card { min-width: 0; }
-        .action-panel-bar .action-card:not(.action-card-btn) { background:#f7fbf8; border-color:#dce8e1; }
+        .action-panel-bar .action-card:not(.action-card-btn) { background:#fff; border-color:#dce8e1; }
         .escalation-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:auto; }
         .escalation-actions .action-btn { min-width:0; padding:10px 8px; font-size:12px; white-space:normal; }
         @media (max-width: 1023px) {
@@ -465,8 +223,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
 
         /* ===== INFO ROWS ===== */
-        .info-label { color: #6b7280; font-size: 0.8rem; font-weight: 500; }
-        .info-value { font-weight: 600; color: #1f2937; }
+        .info-label { color: var(--sierra-type-muted, #63746b); font-size: 0.8rem; font-weight: 500; }
+        .info-value { font-weight: 600; color: var(--sierra-type-primary, #203b31); }
         .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f3f4f6; }
         .info-row:last-child { border-bottom: none; }
 
@@ -487,7 +245,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .status-escalated { background: rgba(234, 88, 12, .14); color: #EA580C; }
         .status-resolved { background: rgba(22, 163, 74, .14); color: #16A34A; }
         .status-rejected { background: rgba(220, 38, 38, .14); color: #DC2626; }
-        .status-closed { background: #F3F4F6; color: #6B7280; }
+        .status-closed { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); }
         .risk-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
         .risk-low { background: #D1FAE5; color: #065F46; }
         .risk-medium { background: #FEF3C7; color: #92400E; }
@@ -621,14 +379,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             }
 
             /* Notes */
-            .note-item {
-                padding: 4px 6px !important;
-                margin-bottom: 3px !important;
-                font-size: 7pt !important;
-                border-radius: 8px!important;
-            }
 
-            /* Badges */
+/* Badges */
             .badge, .status-badge, .risk-badge, .severity-badge {
                 font-size: 6pt !important;
                 padding: 2px 6px !important;
@@ -649,7 +401,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 display: block !important;
                 text-align: center;
                 font-size: 7pt;
-                color: #9CA3AF;
+                color: var(--sierra-type-muted, #63746b);
                 border-top: 1px solid #e5e7eb;
                 padding-top: 4px;
                 margin-top: 8px;
@@ -716,7 +468,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .step-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; background: linear-gradient(135deg, #10A37F, #0D8568); color: white; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; box-shadow: 0 2px 6px rgba(16,163,127,0.3); }
 
         /* ===== SECTION EYEBROW ===== */
-        .section-eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; color: #6b7280; text-transform: uppercase; }
+        .section-eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; color: var(--sierra-type-muted, #63746b); text-transform: uppercase; }
 
         /* ===== EXPANDABLE ACTION FORM ===== */
         .expand-section { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.3s ease, opacity 0.25s ease, margin 0.3s ease; margin-top: 0; }
@@ -767,86 +519,48 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .confirm-modal-card.is-positive .confirm-modal-icon { background:#eaf7f0; color:#0d8568; border-radius:12px; }
 
         /* ===== COPY BUTTON ===== */
-        .copy-btn { display: inline-flex; align-items: center; gap: 4px; color: #6b7280; cursor: pointer; transition: color 0.15s ease; border: none; background: none; font-size: inherit; padding: 0; }
+        .copy-btn { display: inline-flex; align-items: center; gap: 4px; color: var(--sierra-type-muted, #63746b); cursor: pointer; transition: color 0.15s ease; border: none; background: none; font-size: inherit; padding: 0; }
         .copy-btn:hover { color: #10A37F; }
 
         /* ===== EMPTY STATE ===== */
-        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; text-align: center; color: #9CA3AF; }
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; text-align: center; color: var(--sierra-type-muted, #63746b); }
         .empty-state i { font-size: 1.75rem; margin-bottom: 8px; opacity: 0.5; }
 
         /* ===== NOTE AVATAR ===== */
-        .note-avatar { width: 34px; height: 34px; border-radius: 9999px; background: linear-gradient(135deg,#10A37F,#0D8568); color: white; font-size: 0.78rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 10px 18px -14px rgba(13,133,104,.75); }
 
-        /* ===== ENHANCED ACTION PANEL ===== */
-        /* Report Progress Timeline (track-status style) */
-        /* Geometry is driven by CSS vars --track-left / --track-width / --progress-width
-           set inline from PHP so the line always aligns with the real step centers,
-           regardless of how many steps (4 default, 6 when escalated, 2 when terminal). */
-        .timeline-container { display: flex; flex-wrap: nowrap; position: relative; padding: 0 0.5rem; }
-        .timeline-step { position: relative; flex: 1 1 0; text-align: center; z-index: 2; min-width: 0; }
-        .timeline-container::before { content: ''; position: absolute; top: 28px; left: var(--track-left, 12.5%); width: var(--track-width, 75%); height: 3px; background: #E5E7EB; z-index: 0; border-radius: 8px; }
-        .timeline-progress { position: absolute; top: 26px; left: var(--track-left, 12.5%); height: 6px; background: linear-gradient(90deg, #10A37F, #0D8568); z-index: 1; transition: width 0.6s ease; border-radius: 9999px; box-shadow: 0 1px 4px rgba(16,163,127,0.35); width: var(--progress-width, 0%); }
-        .step-icon { position: relative; z-index: 2; width: 56px; height: 56px; margin: 0 auto 12px; background: white; border: 2px solid #E5E7EB; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
-        .step-icon i { color: #9CA3AF; font-size: 1.25rem; }
-        .timeline-step.completed .step-icon { border-color: #10A37F; background: #10A37F; box-shadow: 0 3px 8px rgba(16,163,127,0.3); }
-        .timeline-step.completed .step-icon i { color: white; }
-        .timeline-step.current .step-icon { border-color: #10A37F; background: white; animation: stepPulse 2s infinite; }
-        .timeline-step.current .step-icon i { color: #10A37F; }
-        @keyframes stepPulse { 0% { box-shadow: 0 0 0 0 rgba(16, 163, 127, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(16, 163, 127, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 163, 127, 0); } }
-        .timeline-step.rejected-step .step-icon { border-color: #EF4444; background: #FEE2E2; box-shadow: 0 3px 8px rgba(239,68,68,0.25); }
-        .timeline-step.rejected-step .step-icon i { color: #DC2626; }
-        .timeline-step.cancelled-step .step-icon { border-color: #6B7280; background: #F3F4F6; }
-        .timeline-step.cancelled-step .step-icon i { color: #6B7280; }
-        .timeline-step .step-label { font-size: 0.7rem; font-weight: 600; color: #1F2937; line-height: 1.2; }
-        .timeline-step .step-date { font-size: 0.6rem; color: #9CA3AF; margin-top: 0.2rem; }
-        @media (max-width: 640px) {
-            .timeline-step .step-icon { width: 40px; height: 40px; }
-            .timeline-step .step-icon i { font-size: 1rem; }
-            .timeline-container::before, .timeline-progress { top: 18px; }
-            .timeline-step .step-label { font-size: 0.55rem; }
-            .timeline-step .step-date { font-size: 0.5rem; }
-        }
-
-        /* Action Cards */
-        .action-cards { display: grid; grid-template-columns: 1fr; gap: 0.85rem; }
-        @media (min-width: 640px) { .action-cards { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; } }
-        .action-card { background: white; border: 1px solid #E5E7EB; border-radius: 1rem; padding: 0.9rem; display: flex; flex-direction: column; transition: all 0.2s ease; }
-        @media (min-width: 640px) { .action-card { padding: 1rem; } }
-        .action-card:hover { border-color: #10A37F; box-shadow: 0 4px 16px -6px rgba(16,163,127,0.18); }
-        .action-card .action-icon { width: 42px; height: 42px; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; }
-        .action-card .action-btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; }
-        .action-card .action-expand { grid-column: 1 / -1; }
-        .action-card > form { display: flex; flex-direction: column; flex-grow: 1; gap: 0.75rem; margin-top: 0.25rem; }
-        .action-card > form .action-btn { margin-top: auto; }
-        .action-card > form .action-btn,
-        .action-card > button.action-trigger { margin-top: auto; }
-        .action-card .action-trigger + .expand-section { width: 100%; }
-        .action-card .expand-section-inner { min-width: 0; }
-
-        /* Touch-friendly tap targets across desktop/tablet/mobile */
-        .action-card .action-btn,
-        .action-card button[type="submit"],
-        .action-card .action-trigger,
-        .expand-section-inner button { min-height: 44px; touch-action: manipulation; }
-        @media (max-width: 480px) {
-            .expand-section-inner .flex.gap-2 { flex-wrap: wrap; }
-            .expand-section-inner .flex.gap-2 button { min-width: 120px; }
-        }
-        .action-expand { grid-column: 1 / -1; }
-
-        /* ===== Action Popup Modals (reclassify / resolve / escalate) ===== */
-        .action-card-btn { cursor: pointer; min-height: 54px; width: 100%; display: flex; align-items: center; gap: 0.8rem; border: none; border-radius: 0.75rem; padding: 0.6rem 1rem; color: #fff; font-weight: 600; font-size: 0.85rem; text-align: left; box-shadow: 0 2px 8px rgba(0,0,0,0.10); transition: all 0.25s ease; touch-action: manipulation; }
-        .action-card-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
-        .action-card-btn:active { transform: translateY(0); }
-        .action-card-btn:focus-visible { outline: 3px solid rgba(16,163,127,0.35); outline-offset: 2px; }
-        .action-card-btn .action-icon { background: transparent; color: #fff; box-shadow: none; }
-        .action-card-btn .text-gray-800 { color: #fff; }
-        .action-card-btn .text-gray-400 { color: rgba(255,255,255,0.78); }
-        .action-card-btn .fas.fa-chevron-right { color: rgba(255,255,255,0.7); }
+/* ===== ENHANCED ACTION PANEL ===== */
+        /* Dashboard-branded report actions. Shared button variants own CTA colors. */
+        .action-cards { display:grid; grid-template-columns:1fr; gap:12px; }
+        .action-card { min-width:0; padding:16px; display:flex; flex-direction:column; border:1px solid #dce8e1; border-radius:16px; background:#fff; box-shadow:0 3px 12px #173b2c04; }
+        .action-card .action-icon { width:40px; height:40px; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; background:#e8f5ed; color:#0d8568; font-size:18px; }
+        .action-card .action-icon.text-red-600 { background:#fef2f2; color:#dc2626; }
+        .action-card-title { display:block; color:var(--sierra-type-primary); font-size:14px; font-weight:800; line-height:1.4; }
+        .action-card-description { display:block; margin-top:4px; color:var(--sierra-type-muted); font-size:12px; font-weight:500; line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+        .action-card .action-btn { width:100%; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:8px; touch-action:manipulation; }
+        body.manage-report-page .action-card .action-btn { border-radius:var(--sierra-button-radius,10px) !important; font-size:13px; }
+        .action-card .action-btn > i { margin:0; flex-shrink:0; }
+        .action-card > form { display:flex; flex-direction:column; flex-grow:1; gap:12px; margin-top:4px; }
+        .action-card > form .action-btn,.action-card > button.action-trigger { margin-top:auto; }
+        .action-card .action-expand,.action-expand { grid-column:1 / -1; }
+        .action-card .action-trigger + .expand-section { width:100%; }
+        .action-card .expand-section-inner { min-width:0; }
+        .expand-section-inner button { min-height:44px; touch-action:manipulation; }
+        .action-card-btn { cursor:pointer; width:100%; min-height:88px; text-align:left; justify-content:center; font-family:inherit; touch-action:manipulation; transition:background-color .18s,border-color .18s,box-shadow .18s; }
+        .action-card-btn > .action-card-content { display:flex; align-items:center; gap:12px; width:100%; }
+        .action-card-content > .action-card-copy { flex:1; min-width:0; }
+        .action-card-btn > .action-card-content > i { flex-shrink:0; font-size:16px; }
+        .action-card-btn:focus-visible,.action-card .action-btn:focus-visible { outline:3px solid #80baa3; outline-offset:3px; }
+        .action-card-btn--resolve { background:var(--sierra-button-accent,#0d8568); border-color:var(--sierra-button-accent,#0d8568); color:#fff; box-shadow:0 4px 10px #0d856824; }
+        .action-card-btn--resolve .action-card-title { color:#fff; }
+        .action-card-btn--resolve .action-card-description { color:#e1f5ec; }
+        .action-card-btn--resolve .action-icon { background:#ffffff24; color:#fff; }
+        .action-card-btn--resolve:hover { background:var(--sierra-button-hover,#086b54); border-color:var(--sierra-button-hover,#086b54); box-shadow:0 6px 14px #0d856833; }
+        .action-card-btn--escalate { background:#f0f8f4; border-color:#cde2d7; color:#0d7057; }
+        .action-card-btn--escalate:hover { background:#e3f2ea; border-color:#a4cbb5; }
+        @media(max-width:640px) { .action-card { padding:12px; } .action-card-btn { min-height:80px; } }
+        @media(prefers-reduced-motion:reduce) { .action-card-btn { transition:none; } }
         .risk-edit-btn { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; font-size: 0.68rem; font-weight: 700; color: #0D8568; background: rgba(16,163,127,0.10); border: 1px solid rgba(16,163,127,0.22); border-radius: 9999px; cursor: pointer; transition: all .15s ease; touch-action: manipulation; }
         .risk-edit-btn:hover { background: rgba(16,163,127,0.18); }
-        .action-card-btn--resolve { background: linear-gradient(135deg, #10A37F, #0D8568); }
-        .action-card-btn--escalate { background: linear-gradient(135deg, #D97706, #B45309); }
         .qn-note-suggestions { display: none; }
         .qn-note-suggestions.visible { display: block; }
         .action-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,20,0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 1rem; animation: fadeIn .15s ease; }
@@ -854,7 +568,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .action-modal-card { background: #fff; border-radius: 1rem; width: 100%; max-width: 460px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.28); animation: fadeUp .2s ease; }
         .action-modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #F3F4F6; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; }
         .action-modal-header .action-icon { width: 42px; height: 42px; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; }
-        .action-modal-close { width: 34px; height: 34px; border-radius: 9999px; background: #F3F4F6; border: none; color: #6B7280; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all .15s ease; touch-action: manipulation; }
+        .action-modal-close { width: 34px; height: 34px; border-radius: 9999px; background: #F3F4F6; border: none; color: var(--sierra-type-muted, #63746b); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all .15s ease; touch-action: manipulation; }
         .action-modal-close:hover { background: #FEE2E2; color: #DC2626; }
         .action-modal-body { padding: 1.25rem; overflow-y: auto; }
         .action-modal-body form { display: flex; flex-direction: column; gap: 0.9rem; }
@@ -863,13 +577,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .action-modal-card > form .action-modal-body { min-height: 0; }
         .action-modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 1rem 1.25rem; border-top: 1px solid #eef2f0; flex-shrink: 0; }
         .action-modal-footer button { min-height: 44px; }
-        #reclassifyModal .action-modal-card { border:1px solid #dce8e1; box-shadow:0 24px 60px -24px #124c3c80; }
-        #reclassifyModal .action-modal-header { background:linear-gradient(100deg,#fff,#f2faf5); border-color:#dce8e1; }
-        #reclassifyModal .action-icon { background:#eaf7f0; color:#0d8568; }
-        #reclassifyModal :is(select,textarea) { border-color:#dce8e1; border-radius:10px; background:#f8fbf9; }
-        #reclassifyModal :is(select,textarea):focus { outline:none; border-color:#0d8568; box-shadow:0 0 0 3px #0d85681a; }
         @media (max-width: 480px) {
-            .action-modal-card { max-width: none; border-radius: 1rem; }
+            .action-modal-card { max-width: none; }
             .action-modal-header { padding: 0.9rem 1rem; }
             .action-modal-body { padding: 1rem; }
         }
@@ -884,7 +593,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .action-callout .callout-sub { font-size: 0.75rem; margin-top: 2px; opacity: 0.9; }
         /* ===== EVIDENCE CAMERA MODAL (ported from submit-report) ===== */
         .file-upload-choice { display: flex; gap: 10px; margin-bottom: 10px; }
-        .file-upload-choice button { flex: 1; min-height: 44px; padding: 9px 8px; background: #f3f4f6; border-radius: 0.75rem; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; font-weight: 500; color: #374151; cursor: pointer; transition: all 0.15s; touch-action: manipulation; }
+        .file-upload-choice button { flex: 1; min-height: 44px; padding: 9px 8px; background: #f3f4f6; border-radius: 0.75rem; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.8rem; font-weight: 500; color: var(--sierra-type-primary, #203b31); cursor: pointer; transition: all 0.15s; touch-action: manipulation; }
         .file-upload-choice button:hover { background: #e5e7eb; }
         @media (max-width: 360px) { .file-upload-choice { flex-direction: column; } }
 
@@ -913,11 +622,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .camera-controls .ctrl-btn.close-cam { background: rgba(239,68,68,0.3); color: #fca5a5; }
         .camera-controls .ctrl-btn.close-cam:hover { background: rgba(239,68,68,0.5); }
         .camera-controls .ctrl-btn.flash { background: rgba(255,255,255,0.08); color: #fbbf24; }
-        .camera-controls .ctrl-btn.flash.active { background: #fbbf24; color: #1f2937; }
+        .camera-controls .ctrl-btn.flash.active { background: #fbbf24; color: var(--sierra-type-primary, #203b31); }
         .camera-controls .ctrl-btn.switch-cam { background: rgba(255,255,255,0.08); color: #93c5fd; }
         @media (max-width: 480px) {
-            .camera-controls .ctrl-btn { width: 48px; height: 48px; font-size: 1rem; }
-            .camera-controls .ctrl-btn.capture { width: 60px; height: 60px; font-size: 1.5rem; }
+            .camera-controls .ctrl-btn { width: 48px; height: 48px; }
+            .camera-controls .ctrl-btn.capture { width: 60px; height: 60px; }
             .camera-controls { gap: 14px; }
         }
 
@@ -925,7 +634,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .camera-mode-toggle .mode-btn { border: none; background: transparent; color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 600; padding: 8px 18px; border-radius: 9999px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; touch-action: manipulation; }
         .camera-mode-toggle .mode-btn:hover { color: white; }
         .camera-mode-toggle .mode-btn.mode-active { background: white; color: #10A37F; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        @media (max-width: 480px) { .camera-mode-toggle .mode-btn { padding: 7px 14px; font-size: 0.75rem; } }
+        @media (max-width: 480px) { .camera-mode-toggle .mode-btn { padding: 7px 14px; } }
 
         .recording-indicator { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); color: white; padding: 8px 16px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 8px; z-index: 20; pointer-events: none; }
         .recording-indicator .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: #EF4444; animation: recBlink 1s infinite; flex-shrink: 0; }
@@ -939,7 +648,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .camera-tips-overlay .tip-text strong { color: #10A37F; }
         .camera-tips-overlay .tip-dismiss { position: absolute; top: -8px; right: -6px; background: rgba(255,255,255,0.15); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; font-size: 10px; color: #aaa; transition: all 0.2s; }
         .camera-tips-overlay .tip-dismiss:hover { background: rgba(255,255,255,0.3); color: white; }
-        @media (max-width: 480px) { .camera-tips-overlay { font-size: 0.65rem; padding: 8px 14px; bottom: 12px; white-space: normal; } }
+        @media (max-width: 480px) { .camera-tips-overlay { padding: 8px 14px; bottom: 12px; white-space: normal; } }
 
         /* ===== MOBILE RESPONSIVENESS ===== */
         /* Keep content clear of the floating sidebar menu button on phone/tablet. */
@@ -955,7 +664,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             #map { height: 240px; }
             .photo-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
             .info-label, .info-value { font-size: 0.8rem; }
-            .card-header { font-size: 0.8rem; }
             .card form.flex.gap-2 { flex-wrap: wrap; }
             .card form.flex.gap-2 input { flex: 1 1 100%; }
             .card form.flex.gap-2 button { width: 100%; }
@@ -963,7 +671,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body>
+<body class="manage-report-page report-detail-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -1019,6 +727,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         </div>
 
+        <div class="report-detail-sheet">
         <!-- ===== REPORT HERO CARD ===== -->
         <div class="report-hero fade-up">
             <div class="report-hero-inner">
@@ -1044,87 +753,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         </div>
 
-        <?php
-        // Only show the Escalation / With MENRO steps in the lifecycle when the
-        // report has actually been escalated. Otherwise the stepper is a clean
-        // Submitted -> Under Review -> In Progress -> Resolved flow.
-        $report_escalated = in_array($report['status'], ['escalated_pending', 'escalated']);
-        $flow_steps = [
-            ['key' => 'pending',          'label' => 'Submitted',    'icon' => 'fa-paper-plane'],
-            ['key' => 'under_review',     'label' => 'Under Review', 'icon' => 'fa-eye'],
-            ['key' => 'in_progress',      'label' => 'In Progress',  'icon' => 'fa-wrench'],
-        ];
-        if ($report_escalated) {
-            $flow_steps[] = ['key' => 'escalated_pending', 'label' => 'Escalation',   'icon' => 'fa-hourglass-half'];
-            $flow_steps[] = ['key' => 'escalated',         'label' => 'With MENRO',   'icon' => 'fa-building-shield'];
-        }
-        $flow_steps[] = ['key' => 'resolved',              'label' => 'Resolved',     'icon' => 'fa-check-double'];
-
-        $status_order = [];
-        foreach ($flow_steps as $step_index => $step) {
-            $status_order[$step['key']] = $step_index;
-        }
-        $status_order['verified'] = $status_order['under_review'] ?? 1;
-        $current_step = $status_order[$report['status']] ?? 0;
-        $is_terminal = in_array($report['status'], ['rejected', 'cancelled']);
-
-        // Geometry: with every step occupying 1/N of the row, step i's icon is
-        // centered at (i+0.5)/N * 100% of the container width. We align the gray
-        // track between the first and last step centers, and the green progress
-        // fill from the first center up to the center of the furthest reached
-        // step, so the line stays perfectly aligned for any step count.
-        // Terminal states render only LastCompleted + final step (2 steps).
-        $geo_steps = $is_terminal ? 2 : max(1, count($flow_steps));
-        $track_left  = (0.5 / $geo_steps) * 100;
-        $track_width = (($geo_steps - 1) / $geo_steps) * 100;
-
-        if ($report['status'] === 'resolved') {
-            $fill_index = $geo_steps - 1;
-        } elseif ($is_terminal) {
-            // Fill through the completed step so the line reaches the terminal dot.
-            $fill_index = max(0, min($current_step, $geo_steps - 1));
-        } else {
-            $fill_index = min($current_step, $geo_steps - 1);
-        }
-        $progress_width = (($fill_index + 0.5) / $geo_steps) * 100 - $track_left;
-        $progress_width = max(0, min($progress_width, 100));
-        ?>
-
-        <!-- STATUS LIFECYCLE TIMELINE -->
-        <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8 no-print">
-            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 md:mb-6">Report Progress Timeline</h3>
-            <div class="timeline-container" style="--track-left: <?php echo $track_left; ?>%; --track-width: <?php echo $track_width; ?>%; --progress-width: <?php echo $progress_width; ?>%;">
-                <div class="timeline-progress"></div>
-
-                <?php if ($is_terminal): ?>
-                    <div class="timeline-step completed">
-                        <div class="step-icon"><i class="fas fa-check"></i></div>
-                        <div class="step-label">Submitted</div>
-                        <div class="step-date"><?php echo date('M d', strtotime($report['created_at'])); ?></div>
-                    </div>
-                    <div class="timeline-step <?php echo ($report['status'] === 'cancelled') ? 'cancelled-step' : 'rejected-step'; ?>">
-                        <div class="step-icon"><i class="fas <?php echo ($report['status'] === 'cancelled') ? 'fa-ban' : 'fa-times-circle'; ?>"></i></div>
-                        <div class="step-label"><?php echo ($report['status'] === 'cancelled') ? 'Cancelled' : 'Rejected'; ?></div>
-                        <div class="step-date">Final</div>
-                    </div>
-                <?php else: ?>
-                    <?php foreach ($flow_steps as $i => $s):
-                        if ($report['status'] === 'resolved') {
-                            $state = 'completed';
-                        } else {
-                            $state = ($i < $current_step) ? 'completed' : (($i === $current_step) ? 'current' : '');
-                        }
-                        $icon = ($state === 'completed') ? 'fa-check' : $s['icon'];
-                    ?>
-                        <div class="timeline-step <?php echo $state; ?>">
-                            <div class="step-icon"><i class="fas <?php echo $icon; ?>"></i></div>
-                            <div class="step-label"><?php echo $s['label']; ?></div>
-                            <div class="step-date"><?php echo ($i === 0) ? date('M d', strtotime($report['created_at'])) : ''; ?></div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
-        </div>
+        <?php $reportProgressContext = 'manage'; $reportProgressMode = 'summary'; include BASE_PATH . 'views/shared/report_progress.php'; ?>
 
         <!-- Two Columns: Reporter Details + Metadata -->
         <div class="two-col fade-up" style="animation-delay:0.05s">
@@ -1185,6 +814,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <div class="card-header"><i class="fas fa-align-left"></i> Resident's Description</div>
             <div class="text-gray-700 leading-relaxed whitespace-pre-line"><?php echo nl2br(htmlspecialchars($report['description'])); ?></div>
         </div>
+
+        <?php $reportProgressMode = 'history'; include BASE_PATH . 'views/shared/report_progress.php'; ?>
 
         <!-- Geographic Location (map solo, full width) -->
         <div class="card fade-up" style="animation-delay:0.15s">
@@ -1259,7 +890,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                     <?php endif; ?>
                                 </div>
                                 <?php if (!empty($ev['caption'])): ?>
-                                    <div class="resolution-note-box"><i class="fas fa-sticky-note mr-1 text-emerald-500"></i><?php echo htmlspecialchars($ev['caption']); ?></div>
+                                    <div class="resolution-note-box"><span class="resolution-note-label">Resolution note</span><p><?php echo htmlspecialchars($ev['caption']); ?></p><?php if (!empty($ev['uploaded_by_name'])): ?><span class="resolution-note-author"><?php echo htmlspecialchars($ev['uploaded_by_name']); ?></span><?php endif; ?></div>
                                 <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
@@ -1286,22 +917,22 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php if (!empty($notes)): ?>
                     <?php foreach ($notes as $note): ?>
                         <div class="note-item flex gap-3">
-                            <div class="note-avatar" aria-hidden="true"><?php echo strtoupper(substr($note['user_name'], 0, 1)); ?></div>
+                            <div class="note-avatar" aria-hidden="true"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($note['user_name'], 0, 1))); ?></div>
                             <div class="note-bubble">
                                 <div class="note-meta">
                                     <span class="note-author"><?php echo htmlspecialchars($note['user_name']); ?></span>
                                     <span class="note-time"><?php echo date('M d, h:i A', strtotime($note['created_at'])); ?></span>
                                 </div>
-                                <p class="note-text"><?php echo htmlspecialchars($note['note']); ?></p>
-                                <?php if ($user_role === 'barangay_official' && $can_manage && $report['status'] === 'in_progress' && (int)$note['user_id'] === (int)$_SESSION['user_id']): ?>
-                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="mt-2" onsubmit="return handleReportFormSubmit(event, this)" data-confirm="Delete this investigation note?">
+                                <?php if (PermissionHelper::canDeleteInvestigationNote($report, $note['user_id'])): ?>
+                                <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" class="note-delete-form no-print" onsubmit="return handleReportFormSubmit(event, this)" data-confirm="Delete this investigation note?">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                                     <input type="hidden" name="action" value="delete_note">
                                     <input type="hidden" name="report_id" value="<?php echo (int)$report['id']; ?>">
                                     <input type="hidden" name="note_id" value="<?php echo (int)$note['id']; ?>">
-                                    <button type="submit" class="btn-secondary text-xs"><i class="fas fa-trash-alt" aria-hidden="true"></i> Delete note</button>
+                                    <button type="submit" class="note-delete-btn" title="Delete investigation note" aria-label="Delete investigation note"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
                                 </form>
                                 <?php endif; ?>
+                                <p class="note-text"><?php echo htmlspecialchars($note['note']); ?></p>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -1323,16 +954,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             <?php if (!empty($note_templates)): ?>
             <div class="qn-wrap qn-note-suggestions" id="noteQuickSuggestions">
                 <div class="qn-suggestions-header">
-                    <div class="qn-suggestions-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
-                    <span class="qn-suggestions-title">Quick suggestions</span>
-                    <span class="qn-suggestions-hint"><i class="fas fa-arrow-pointer"></i> tap to insert</span>
+                    <span class="qn-suggestions-title">Suggestions</span>
                 </div>
                 <div class="qn-chips">
                     <?php foreach ($note_templates as $tpl_index => $tpl_text): ?>
                     <button type="button" class="note-template-chip" onclick="insertNoteTemplate('NOTE_TEMPLATES', <?php echo $tpl_index; ?>, 'noteInput')" title="<?php echo htmlspecialchars($tpl_text, ENT_QUOTES); ?>">
-                        <span class="chip-bolt"><i class="fas fa-bolt"></i></span>
-                        <span class="chip-text"><?php echo htmlspecialchars((mb_strlen($tpl_text) > 100 ? mb_substr($tpl_text, 0, 100) . '…' : $tpl_text)); ?></span>
-                        <span class="chip-action"><i class="fas fa-plus-circle"></i></span>
+                        <span class="chip-text"><?php echo htmlspecialchars($tpl_text); ?></span>
                     </button>
                     <?php endforeach; ?>
                 </div>
@@ -1349,7 +976,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         </div>
         <?php endif; ?>
 
+        </div><!-- /report-detail-sheet -->
+
         <!-- 🛠️ ACTION & MANAGEMENT PANEL -->
+        <?php if ($can_verify || $can_reject || $can_resolve || $can_escalate || $can_approve_escalation || $can_reject_escalation): ?>
         <div class="action-panel no-print">
           <div class="action-panel-bar">
 
@@ -1367,12 +997,10 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <?php endif; ?>
                     </div>
                 </div>
-            <?php elseif ($report['status'] == 'escalated'): ?>
+            <?php elseif ($report['status'] == 'escalated' && !empty($escalation['evidence_path'])): ?>
                 <div class="action-callout info mb-5">
                     <i class="fas fa-building-shield mt-0.5"></i>
                     <div>
-                        <p class="callout-title">Under MENRO supervision</p>
-                        <p class="callout-sub">This report has been escalated and is now being managed by MENRO.</p>
                         <?php if (!empty($escalation['evidence_path'])): $esc_is_video = preg_match('/\.(mp4|webm|mov|m4v|avi)$/i', $escalation['evidence_path']); ?>
                             <a href="<?php echo BASE_URL . $escalation['evidence_path']; ?>" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 mt-2 hover:underline">
                                 <i class="fas <?php echo $esc_is_video ? 'fa-video' : 'fa-image'; ?>"></i> View escalation evidence
@@ -1404,14 +1032,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <p class="callout-sub">This report is queued and waiting to be processed.</p>
                     </div>
                 </div>
-            <?php elseif (($_SESSION['user_type'] ?? '') === 'menro_staff' && !in_array($report['status'], ['escalated', 'escalated_pending', 'resolved', 'rejected', 'cancelled'], true)): ?>
-                <div class="action-callout info mb-5">
-                    <i class="fas fa-eye mt-0.5"></i>
-                    <div>
-                        <p class="callout-title">Viewing only</p>
-                        <p class="callout-sub">This report has not been escalated to MENRO, so you can review the details but cannot manage it or add investigation notes. Managing becomes available once the barangay escalates this report to MENRO.</p>
-                    </div>
-                </div>
             <?php endif; ?>
 
             <!-- ACTION CARDS GRID -->
@@ -1423,8 +1043,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div class="flex items-center gap-3 mb-3">
                         <div class="action-icon bg-blue-50 text-blue-600"><i class="fas fa-check"></i></div>
                         <div class="min-w-0">
-                            <p class="font-bold text-gray-800 text-sm">Verify Report</p>
-                            <p class="text-xs text-gray-400 truncate">Mark this report as legitimate</p>
+                            <p class="action-card-title">Verify Report</p>
+                            <p class="action-card-description">Mark this report as legitimate</p>
                         </div>
                     </div>
                     <form method="POST" action="<?php echo BASE_URL; ?>controllers/ReportController.php" data-confirm="Are you sure you want to verify this report?" onsubmit="return handleReportFormSubmit(event, this)">
@@ -1441,8 +1061,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div class="flex items-center gap-3 mb-3">
                         <div class="action-icon bg-red-50 text-red-600"><i class="fas fa-ban"></i></div>
                         <div class="min-w-0">
-                            <p class="font-bold text-gray-800 text-sm">Reject Report</p>
-                            <p class="text-xs text-gray-400 truncate">Refuse this report and notify resident</p>
+                            <p class="action-card-title">Reject Report</p>
+                            <p class="action-card-description">Refuse this report and notify resident</p>
                         </div>
                     </div>
                     <button type="button" onclick="openActionModal('rejectReportModal')" class="action-trigger action-btn btn-danger"><i class="fas fa-times-circle mr-2"></i> Reject Report</button>
@@ -1450,29 +1070,29 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php endif; ?>
 
                 <?php if ($can_resolve): ?>
-                <div class="action-card action-card-btn action-card-btn--resolve" onclick="openActionModal('resolveModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActionModal('resolveModal');}" aria-haspopup="dialog">
-                    <div class="flex items-center gap-3">
-                        <div class="action-icon bg-emerald-50 text-emerald-600"><i class="fas fa-check-double"></i></div>
-                        <div class="min-w-0 flex-1">
-                            <p class="font-bold text-gray-800 text-sm">Mark as Resolved</p>
-                            <p class="text-xs text-gray-400 truncate">Attach photo proof and close the report</p>
-                        </div>
-                        <i class="fas fa-chevron-right text-gray-300 flex-shrink-0"></i>
-                    </div>
-                </div>
+                <button type="button" class="action-card action-card-btn action-card-btn--resolve" onclick="openActionModal('resolveModal')" aria-haspopup="dialog">
+                    <span class="action-card-content">
+                        <span class="action-icon"><i class="fas fa-check-double"></i></span>
+                        <span class="action-card-copy">
+                            <span class="action-card-title">Mark as Resolved</span>
+                            <span class="action-card-description">Attach photo proof and close the report</span>
+                        </span>
+                        <i class="fas fa-chevron-right flex-shrink-0" aria-hidden="true"></i>
+                    </span>
+                </button>
                 <?php endif; ?>
 
                 <?php if ($can_escalate): ?>
-                <div class="action-card action-card-btn action-card-btn--escalate" onclick="openActionModal('escalateModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActionModal('escalateModal');}" aria-haspopup="dialog">
-                    <div class="flex items-center gap-3">
-                        <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-arrow-up-right-dots"></i></div>
-                        <div class="min-w-0 flex-1">
-                            <p class="font-bold text-gray-800 text-sm">Escalate to MENRO</p>
-                            <p class="text-xs text-gray-400 truncate">Request MENRO intervention</p>
-                        </div>
-                        <i class="fas fa-chevron-right text-gray-300 flex-shrink-0"></i>
-                    </div>
-                </div>
+                <button type="button" class="action-card action-card-btn action-card-btn--escalate" onclick="openActionModal('escalateModal')" aria-haspopup="dialog">
+                    <span class="action-card-content">
+                        <span class="action-icon"><i class="fas fa-arrow-up-right-dots"></i></span>
+                        <span class="action-card-copy">
+                            <span class="action-card-title">Escalate to MENRO</span>
+                            <span class="action-card-description">Request MENRO intervention</span>
+                        </span>
+                        <i class="fas fa-chevron-right flex-shrink-0" aria-hidden="true"></i>
+                    </span>
+                </button>
                 <?php endif; ?>
 
             <?php elseif ($user_role == 'admin'): ?>
@@ -1481,8 +1101,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <div class="flex items-center gap-3 mb-3">
                         <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-arrow-up-right-dots"></i></div>
                         <div class="min-w-0">
-                            <p class="font-bold text-gray-800 text-sm">Escalation Review</p>
-                            <p class="text-xs text-gray-400 truncate">Decide on this pending escalation</p>
+                            <p class="action-card-title">Escalation Review</p>
+                            <p class="action-card-description">Decide on this pending escalation</p>
                         </div>
                     </div>
                     <div class="escalation-actions">
@@ -1497,21 +1117,22 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php endif; ?>
 
                 <?php if ($can_resolve): ?>
-                <div class="action-card action-card-btn action-card-btn--resolve" onclick="openActionModal('resolveAdminModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openActionModal('resolveAdminModal');}" aria-haspopup="dialog">
-                    <div class="flex items-center gap-3">
-                        <div class="action-icon bg-emerald-50 text-emerald-600"><i class="fas fa-check-double"></i></div>
-                        <div class="min-w-0 flex-1">
-                            <p class="font-bold text-gray-800 text-sm">Mark as Resolved</p>
-                            <p class="text-xs text-gray-400 truncate">Close this report with photo proof</p>
-                        </div>
-                        <i class="fas fa-chevron-right text-gray-300 flex-shrink-0"></i>
-                    </div>
-                </div>
+                <button type="button" class="action-card action-card-btn action-card-btn--resolve" onclick="openActionModal('resolveAdminModal')" aria-haspopup="dialog">
+                    <span class="action-card-content">
+                        <span class="action-icon"><i class="fas fa-check-double"></i></span>
+                        <span class="action-card-copy">
+                            <span class="action-card-title">Mark as Resolved</span>
+                            <span class="action-card-description">Close this report with photo proof</span>
+                        </span>
+                        <i class="fas fa-chevron-right flex-shrink-0" aria-hidden="true"></i>
+                    </span>
+                </button>
                 <?php endif; ?>
             <?php endif; ?>
             </div>
           </div>
         </div>
+        <?php endif; ?>
 
     </div>
 
@@ -1566,13 +1187,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <div class="action-modal-overlay no-print" id="reclassifyModal" onclick="if(event.target===this)closeActionModal('reclassifyModal')" role="dialog" aria-modal="true" aria-labelledby="reclassifyModalTitle">
     <div class="action-modal-card">
         <div class="action-modal-header">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="action-icon bg-indigo-50 text-indigo-600"><i class="fas fa-rotate"></i></div>
-                <div class="min-w-0">
-                    <p class="font-bold text-gray-800 text-sm" id="reclassifyModalTitle">Reclassify Risk Level</p>
-                    <p class="text-xs text-gray-400">Adjust the risk level for this report</p>
-                </div>
-            </div>
+            <div><h3 id="reclassifyModalTitle" class="font-bold">Reclassify Risk Level</h3><p class="text-sm text-gray-500">Adjust the risk level for this report</p></div>
             <button type="button" class="action-modal-close" onclick="closeActionModal('reclassifyModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="action-modal-body">
@@ -1583,16 +1198,16 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">Risk Level</label>
                     <select name="new_impact" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none">
-                        <option value="0" <?php echo ($report['impact_modifier'] == 0) ? 'selected' : ''; ?>>🟢 Low Risk (Localized)</option>
-                        <option value="2" <?php echo ($report['impact_modifier'] == 2) ? 'selected' : ''; ?>>🟡 Medium Risk (Moderate)</option>
-                        <option value="4" <?php echo ($report['impact_modifier'] == 4) ? 'selected' : ''; ?>>🔴 High Risk (Severe)</option>
+                        <option value="0" <?php echo ($report['impact_modifier'] == 0) ? 'selected' : ''; ?>>Low Risk (Localized)</option>
+                        <option value="2" <?php echo ($report['impact_modifier'] == 2) ? 'selected' : ''; ?>>Medium Risk (Moderate)</option>
+                        <option value="4" <?php echo ($report['impact_modifier'] == 4) ? 'selected' : ''; ?>>High Risk (Severe)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Reason for reclassification <span class="text-red-500">(required)</span></label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Reason for reclassification</label>
                     <input type="text" name="reclassify_reason" placeholder="Why is the risk level changing?" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none" required>
                 </div>
-                <button type="submit" class="btn-indigo modal-submit"><i class="fas fa-save mr-2"></i> Update Risk Level</button>
+                <div class="action-form-footer"><button type="button" class="btn-secondary" onclick="closeActionModal('reclassifyModal')">Back</button><button type="submit" class="btn-primary modal-submit"><i class="fas fa-save mr-2"></i> Update Risk Level</button></div>
             </form>
         </div>
     </div>
@@ -1602,13 +1217,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <div class="action-modal-overlay no-print" id="resolveModal" onclick="if(event.target===this)closeActionModal('resolveModal')" role="dialog" aria-modal="true" aria-labelledby="resolveModalTitle">
     <div class="action-modal-card">
         <div class="action-modal-header">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="action-icon bg-emerald-50 text-emerald-600"><i class="fas fa-check-double"></i></div>
-                <div class="min-w-0">
-                    <p class="font-bold text-gray-800 text-sm" id="resolveModalTitle">Mark as Resolved</p>
-                    <p class="text-xs text-gray-400">Attach photo proof and close the report</p>
-                </div>
-            </div>
+            <div><h3 id="resolveModalTitle" class="font-bold">Mark as Resolved</h3><p class="text-sm text-gray-500">Attach photo proof and close the report</p></div>
             <button type="button" class="action-modal-close" onclick="closeActionModal('resolveModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="action-modal-body">
@@ -1638,16 +1247,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <?php if (!empty($resolve_templates)): ?>
                     <div class="qn-wrap mb-1.5">
                         <div class="qn-suggestions-header">
-                            <div class="qn-suggestions-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
                             <span class="qn-suggestions-title">Resolution suggestions</span>
-                            <span class="qn-suggestions-hint"><i class="fas fa-arrow-pointer"></i> tap to insert</span>
                         </div>
                         <div class="qn-chips">
                             <?php foreach ($resolve_templates as $tpl_index => $tpl_text): ?>
                             <button type="button" class="note-template-chip" onclick="insertNoteTemplate('RESOLVE_TEMPLATES', <?php echo $tpl_index; ?>, 'resolutionNoteBarangay')" title="<?php echo htmlspecialchars($tpl_text, ENT_QUOTES); ?>">
-                                <span class="chip-bolt"><i class="fas fa-bolt"></i></span>
-                                <span class="chip-text"><?php echo htmlspecialchars((mb_strlen($tpl_text) > 100 ? mb_substr($tpl_text, 0, 100) . '…' : $tpl_text)); ?></span>
-                                <span class="chip-action"><i class="fas fa-plus-circle"></i></span>
+                                <span class="chip-text"><?php echo htmlspecialchars($tpl_text); ?></span>
                             </button>
                             <?php endforeach; ?>
                         </div>
@@ -1655,7 +1260,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <?php endif; ?>
                     <textarea name="resolution_note" id="resolutionNoteBarangay" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe how the issue was resolved"></textarea>
                 </div>
-                <button type="submit" class="btn-success modal-submit"><i class="fas fa-check mr-1.5"></i> Mark as Resolved</button>
+                <div class="action-form-footer"><button type="button" class="btn-secondary" onclick="closeActionModal('resolveModal')">Back</button><button type="submit" class="btn-success modal-submit"><i class="fas fa-check mr-1.5"></i> Mark as Resolved</button></div>
             </form>
         </div>
     </div>
@@ -1665,13 +1270,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <div class="action-modal-overlay no-print" id="escalateModal" onclick="if(event.target===this)closeActionModal('escalateModal')" role="dialog" aria-modal="true" aria-labelledby="escalateModalTitle">
     <div class="action-modal-card">
         <div class="action-modal-header">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-arrow-up-right-dots"></i></div>
-                <div class="min-w-0">
-                    <p class="font-bold text-gray-800 text-sm" id="escalateModalTitle">Escalate to MENRO</p>
-                    <p class="text-xs text-gray-400">Request MENRO intervention</p>
-                </div>
-            </div>
+            <div><h3 id="escalateModalTitle" class="font-bold">Escalate to MENRO</h3><p class="text-sm text-gray-500">Request MENRO intervention</p></div>
             <button type="button" class="action-modal-close" onclick="closeActionModal('escalateModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="action-modal-body">
@@ -1680,20 +1279,16 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <input type="hidden" name="action" value="escalate_report">
                 <input type="hidden" name="report_id" value="<?php echo $report['id']; ?>">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Justification for escalation <span class="text-red-500">(required)</span></label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Justification for escalation</label>
                     <?php if (!empty($escalate_templates)): ?>
                     <div class="qn-wrap mb-1.5">
                         <div class="qn-suggestions-header">
-                            <div class="qn-suggestions-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
                             <span class="qn-suggestions-title">Escalation suggestions</span>
-                            <span class="qn-suggestions-hint"><i class="fas fa-arrow-pointer"></i> tap to insert</span>
                         </div>
                         <div class="qn-chips">
                             <?php foreach ($escalate_templates as $tpl_index => $tpl_text): ?>
                             <button type="button" class="note-template-chip" onclick="insertNoteTemplate('ESCALATE_TEMPLATES', <?php echo $tpl_index; ?>, 'escalationReason')" title="<?php echo htmlspecialchars($tpl_text, ENT_QUOTES); ?>">
-                                <span class="chip-bolt"><i class="fas fa-bolt"></i></span>
-                                <span class="chip-text"><?php echo htmlspecialchars((mb_strlen($tpl_text) > 100 ? mb_substr($tpl_text, 0, 100) . '…' : $tpl_text)); ?></span>
-                                <span class="chip-action"><i class="fas fa-plus-circle"></i></span>
+                                <span class="chip-text"><?php echo htmlspecialchars($tpl_text); ?></span>
                             </button>
                             <?php endforeach; ?>
                         </div>
@@ -1701,7 +1296,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <?php endif; ?>
                     <textarea name="escalation_reason" id="escalationReason" rows="4" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Explain why MENRO assistance is needed" required></textarea>
                 </div>
-                <button type="submit" class="btn-warning modal-submit"><i class="fas fa-arrow-up-right-dots mr-1.5"></i> Escalate Report</button>
+                <div class="action-form-footer"><button type="button" class="btn-secondary" onclick="closeActionModal('escalateModal')">Back</button><button type="submit" class="btn-primary modal-submit"><i class="fas fa-arrow-up-right-dots mr-1.5"></i> Escalate Report</button></div>
             </form>
         </div>
     </div>
@@ -1711,13 +1306,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <div class="action-modal-overlay no-print" id="approveEscalModal" onclick="if(event.target===this)closeActionModal('approveEscalModal')" role="dialog" aria-modal="true" aria-labelledby="approveEscalModalTitle">
     <div class="action-modal-card">
         <div class="action-modal-header">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="action-icon bg-amber-50 text-amber-600"><i class="fas fa-arrow-up-right-dots"></i></div>
-                <div class="min-w-0">
-                    <p class="font-bold text-gray-800 text-sm" id="approveEscalModalTitle">Approve Escalation</p>
-                    <p class="text-xs text-gray-400">Accept this escalation and pass it to MENRO</p>
-                </div>
-            </div>
+            <div><h3 id="approveEscalModalTitle" class="font-bold">Approve Escalation</h3><p class="text-sm text-gray-500">Accept this escalation and pass it to MENRO</p></div>
             <button type="button" class="action-modal-close" onclick="closeActionModal('approveEscalModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="action-modal-body">
@@ -1731,7 +1320,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <div class="mt-2 text-xs text-amber-700"><strong>Justification:</strong> <?php echo htmlspecialchars($escalation['escalation_reason']); ?></div>
                     <?php endif; ?>
                 </div>
-                <button type="submit" class="btn-success modal-submit"><i class="fas fa-check mr-1.5"></i> Approve Escalation</button>
+                <div class="action-form-footer"><button type="button" class="btn-secondary" onclick="closeActionModal('approveEscalModal')">Back</button><button type="submit" class="btn-success modal-submit"><i class="fas fa-check mr-1.5"></i> Approve Escalation</button></div>
             </form>
         </div>
     </div>
@@ -1741,13 +1330,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <div class="action-modal-overlay no-print" id="rejectEscalModal" onclick="if(event.target===this)closeActionModal('rejectEscalModal')" role="dialog" aria-modal="true" aria-labelledby="rejectEscalModalTitle">
     <div class="action-modal-card">
         <div class="action-modal-header">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="action-icon bg-red-50 text-red-600"><i class="fas fa-xmark"></i></div>
-                <div class="min-w-0">
-                    <p class="font-bold text-gray-800 text-sm" id="rejectEscalModalTitle">Reject Escalation</p>
-                    <p class="text-xs text-gray-400">Send the escalation back to the barangay</p>
-                </div>
-            </div>
+            <div><h3 id="rejectEscalModalTitle" class="font-bold">Reject Escalation</h3><p class="text-sm text-gray-500">Send the escalation back to the barangay</p></div>
             <button type="button" class="action-modal-close" onclick="closeActionModal('rejectEscalModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="action-modal-body">
@@ -1759,7 +1342,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">Reason for rejection <span class="text-red-500">(required)</span></label>
                     <?php $reasonSuggestions = ['The issue can be handled at barangay level.', 'More evidence or investigation is needed.', 'This issue is already covered by an existing escalation.']; include BASE_PATH . 'views/shared/report_reason_picker.php'; unset($reasonSuggestions); ?>
                 </div>
-                <button type="submit" class="btn-danger modal-submit"><i class="fas fa-xmark mr-1.5"></i> Reject Escalation</button>
+                <div class="action-form-footer"><button type="button" class="btn-secondary" onclick="closeActionModal('rejectEscalModal')">Back</button><button type="submit" class="btn-danger modal-submit"><i class="fas fa-xmark mr-1.5"></i> Reject Escalation</button></div>
             </form>
         </div>
     </div>
@@ -1769,13 +1352,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <div class="action-modal-overlay no-print" id="resolveAdminModal" onclick="if(event.target===this)closeActionModal('resolveAdminModal')" role="dialog" aria-modal="true" aria-labelledby="resolveAdminModalTitle">
     <div class="action-modal-card">
         <div class="action-modal-header">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="action-icon bg-emerald-50 text-emerald-600"><i class="fas fa-check-double"></i></div>
-                <div class="min-w-0">
-                    <p class="font-bold text-gray-800 text-sm" id="resolveAdminModalTitle">Mark as Resolved</p>
-                    <p class="text-xs text-gray-400">Attach photo proof and close the report</p>
-                </div>
-            </div>
+            <div><h3 id="resolveAdminModalTitle" class="font-bold">Mark as Resolved</h3><p class="text-sm text-gray-500">Attach photo proof and close the report</p></div>
             <button type="button" class="action-modal-close" onclick="closeActionModal('resolveAdminModal')" aria-label="Close"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="action-modal-body">
@@ -1805,16 +1382,12 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <?php if (!empty($resolve_templates)): ?>
                     <div class="qn-wrap mb-1.5">
                         <div class="qn-suggestions-header">
-                            <div class="qn-suggestions-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
                             <span class="qn-suggestions-title">Resolution suggestions</span>
-                            <span class="qn-suggestions-hint"><i class="fas fa-arrow-pointer"></i> tap to insert</span>
                         </div>
                         <div class="qn-chips">
                             <?php foreach ($resolve_templates as $tpl_index => $tpl_text): ?>
                             <button type="button" class="note-template-chip" onclick="insertNoteTemplate('RESOLVE_TEMPLATES', <?php echo $tpl_index; ?>, 'resolutionNoteAdmin')" title="<?php echo htmlspecialchars($tpl_text, ENT_QUOTES); ?>">
-                                <span class="chip-bolt"><i class="fas fa-bolt"></i></span>
-                                <span class="chip-text"><?php echo htmlspecialchars((mb_strlen($tpl_text) > 100 ? mb_substr($tpl_text, 0, 100) . '…' : $tpl_text)); ?></span>
-                                <span class="chip-action"><i class="fas fa-plus-circle"></i></span>
+                                <span class="chip-text"><?php echo htmlspecialchars($tpl_text); ?></span>
                             </button>
                             <?php endforeach; ?>
                         </div>
@@ -1822,7 +1395,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                     <?php endif; ?>
                     <textarea name="resolution_note" id="resolutionNoteAdmin" rows="3" class="w-full border-2 border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:border-[#10A37F] focus:ring-2 focus:ring-[#10A37F]/20 outline-none" placeholder="Describe how the issue was resolved"></textarea>
                 </div>
-                <button type="submit" class="btn-success modal-submit"><i class="fas fa-check mr-1.5"></i> Mark as Resolved</button>
+                <div class="action-form-footer"><button type="button" class="btn-secondary" onclick="closeActionModal('resolveAdminModal')">Back</button><button type="submit" class="btn-success modal-submit"><i class="fas fa-check mr-1.5"></i> Mark as Resolved</button></div>
             </form>
         </div>
     </div>
@@ -1891,6 +1464,28 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <?php if ($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
     var map = L.map('map').setView([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], MapLayers.getSettings().default_zoom);
     MapLayers.addControl(map);
+    <?php
+    // Show only the geographic outline belonging to this report.
+    $reportMapFeatures = [];
+    $reportMapBarangayKey = strtolower(preg_replace('/[^a-z0-9]+/i', '', (string)($report['barangay_name'] ?? '')));
+    $reportMapFiles = glob(BASE_PATH . 'geojson/barangay/*.geojson') ?: [];
+    foreach ($reportMapFiles as $reportMapFile) {
+        if (!is_file($reportMapFile) || basename($reportMapFile) === 'san-isidro.barangay.geojson' || strpos(basename($reportMapFile), '_with_reports') !== false) continue;
+        $reportMapJson = json_decode((string)file_get_contents($reportMapFile), true);
+        foreach (($reportMapJson['features'] ?? []) as $reportMapFeature) {
+            $reportMapName = $reportMapFeature['properties']['barangay_name'] ?? $reportMapFeature['properties']['name'] ?? pathinfo($reportMapFile, PATHINFO_FILENAME);
+            $reportMapKey = strtolower(preg_replace('/[^a-z0-9]+/i', '', (string)$reportMapName));
+            if ($reportMapBarangayKey !== '' && $reportMapKey === $reportMapBarangayKey && in_array($reportMapFeature['geometry']['type'] ?? '', ['Polygon', 'MultiPolygon'], true)) {
+                $reportMapFeatures[] = $reportMapFeature;
+            }
+        }
+    }
+    ?>
+    var reportMapBoundary = <?php echo json_encode(['type'=>'FeatureCollection', 'features'=>$reportMapFeatures], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+    if (reportMapBoundary.features.length) {
+        MapLayers.addBoundary(map, reportMapBoundary, {interactive:false});
+    }
+
     L.marker([<?php echo $report['latitude']; ?>, <?php echo $report['longitude']; ?>], {
         icon: SierraMapClusters.icon(<?php echo (int)($report['severity_score'] ?? 0); ?>, <?php echo json_encode($report['category_name'] ?? 'Report', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>)
     }).addTo(map);
@@ -1977,9 +1572,9 @@ function proceedConfirmModal() {
 // thank-you suggestions for the resolution note (matched to 'resolved');
 // ESCALATE_TEMPLATES are justification suggestions for the escalation modal
 // (matched to 'escalated_pending'). Clicking a chip inserts its text.
-var NOTE_TEMPLATES = <?php echo json_encode($note_templates, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-var RESOLVE_TEMPLATES = <?php echo json_encode($resolve_templates, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-var ESCALATE_TEMPLATES = <?php echo json_encode($escalate_templates, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+var NOTE_TEMPLATES = <?php echo json_encode($note_templates, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var RESOLVE_TEMPLATES = <?php echo json_encode($resolve_templates, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var ESCALATE_TEMPLATES = <?php echo json_encode($escalate_templates, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 function insertNoteTemplate(listName, index, inputId) {
     var list = window[listName];
     var el = document.getElementById(inputId);
@@ -1995,9 +1590,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var suggestions = document.getElementById('noteQuickSuggestions');
     if (!noteInput || !suggestions) return;
     function toggleNoteSuggestions() {
-        suggestions.classList.toggle('visible', noteInput.value.trim().length > 0);
+        suggestions.classList.toggle('visible', document.activeElement === noteInput || suggestions.contains(document.activeElement) || noteInput.value.trim().length > 0);
     }
     noteInput.addEventListener('input', toggleNoteSuggestions);
+    noteInput.addEventListener('focus', toggleNoteSuggestions);
+    noteInput.addEventListener('click', toggleNoteSuggestions);
+    noteInput.addEventListener('blur', function () { setTimeout(toggleNoteSuggestions, 0); });
+    suggestions.addEventListener('focusout', function () { setTimeout(toggleNoteSuggestions, 0); });
     toggleNoteSuggestions();
 });
 
@@ -2130,14 +1729,19 @@ function syncReportReason(field) {
     if (field === custom && custom.value.trim()) form.querySelector('[name="reason_choice"][value="Other"]').checked = true;
     const selected = form.querySelector('[name="reason_choice"]:checked');
     if (field !== custom && selected && selected.value !== 'Other') custom.value = '';
-    custom.required = !!selected && selected.value === 'Other';
+    const isOther = !!selected && selected.value === 'Other';
+    custom.closest('.report-custom-reason').hidden = !isOther;
+    custom.disabled = !isOther;
+    custom.required = isOther;
+    if (isOther && field !== custom) custom.focus();
     form.querySelector('[name="rejection_reason"]').value = selected ? (selected.value === 'Other' ? custom.value.trim() : selected.value) : '';
 }
 function submitReportReason(event, form) {
     syncReportReason(form.querySelector('[name="custom_reason"]'));
     if (form.querySelector('[name="rejection_reason"]').value.trim().length < 5) {
         event.preventDefault();
-        form.querySelector('[name="custom_reason"]').focus();
+        const target = form.querySelector('[name="reason_choice"]:checked')?.value === 'Other' ? form.querySelector('[name="custom_reason"]') : form.querySelector('[name="reason_choice"]');
+        if (target) target.focus();
         return false;
     }
     return handleReportFormSubmit(event, form);
@@ -2208,8 +1812,8 @@ function handleDownloadPDF() {
     overlay.innerHTML = `
         <div class="pdf-overlay-card">
             <div class="pdf-spinner"></div>
-            <p style="font-weight:700;color:#1f2937;font-size:0.95rem;margin-bottom:4px;">Generating PDF</p>
-            <p style="color:#6b7280;font-size:0.8rem;">Please wait a moment...</p>
+            <p style="font-weight:700;color:var(--sierra-type-primary, #203b31);font-size:0.95rem;margin-bottom:4px;">Generating PDF</p>
+            <p style="color:var(--sierra-type-muted, #63746b);font-size:0.8rem;">Please wait a moment...</p>
         </div>
     `;
     document.body.appendChild(overlay);
@@ -2233,12 +1837,12 @@ function handleDownloadPDF() {
 
     // 4. Show print footer in clone
     const footer = clone.querySelector('.print-footer');
-    if (footer) footer.style.cssText = 'display:block; text-align:center; font-size:6.5pt; color:#9CA3AF; border-top:1px solid #e5e7eb; padding-top:4px; margin-top:6px;';
+    if (footer) footer.style.cssText = 'display:block; text-align:center; font-size:6.5pt; color:var(--sierra-type-muted, #63746b); border-top:1px solid #e5e7eb; padding-top:4px; margin-top:6px;';
 
     // 5. Create off-screen render container with compact width
     const wrapper = document.createElement('div');
     wrapper.id = 'pdf-render-container';
-    wrapper.style.cssText = 'position:fixed; left:-9999px; top:0; width:680px; background:white; z-index:-1; font-family:Manrope,sans-serif; font-size:8.5pt; color:#1f2937; padding:12px;';
+    wrapper.style.cssText = 'position:fixed; left:-9999px; top:0; width:680px; background:white; z-index:-1; font-family:Manrope,sans-serif; font-size:8.5pt; color:var(--sierra-type-primary, #203b31); padding:12px;';
 
     // 6. Apply compact styles to cloned elements
     // Cards
@@ -2246,7 +1850,7 @@ function handleDownloadPDF() {
         c.style.cssText = 'background:white; border:1px solid #e5e7eb; border-radius:8px; padding:7px 9px; margin-bottom:5px; box-shadow:none;';
     });
     clone.querySelectorAll('.card-header').forEach(h => {
-        h.style.cssText = 'font-weight:700; font-size:8pt; color:#4b5563; border-bottom:1px solid #e5e7eb; padding-bottom:3px; margin-bottom:5px; display:flex; align-items:center; gap:5px;';
+        h.style.cssText = 'font-weight:700; font-size:8pt; color:var(--sierra-type-muted, #63746b); border-bottom:1px solid #e5e7eb; padding-bottom:3px; margin-bottom:5px; display:flex; align-items:center; gap:5px;';
     });
     // Two-col layout
     clone.querySelectorAll('.two-col').forEach(g => {
@@ -2274,7 +1878,7 @@ function handleDownloadPDF() {
     const mapEl = clone.querySelector('#map');
     if (mapEl) {
         mapEl.id = 'map-pdf-placeholder';
-        mapEl.style.cssText = 'height:80px; border-radius:8px; border:1px solid #e5e7eb; background:#f0f4f0; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:7pt;';
+        mapEl.style.cssText = 'height:80px; border-radius:8px; border:1px solid #e5e7eb; background:#f0f4f0; display:flex; align-items:center; justify-content:center; color:var(--sierra-type-muted, #63746b); font-size:7pt;';
         mapEl.innerHTML = `<div style="text-align:center;"><i class="fas fa-map-marker-alt" style="color:#10A37F; font-size:14px; display:block; margin-bottom:2px;"></i>GPS: <?php echo number_format($report['latitude'], 6); ?>, <?php echo number_format($report['longitude'], 6); ?><?php if (!empty($report['location_address'])): ?><br><span style="font-size:6pt;"><?php echo htmlspecialchars($report['location_address']); ?></span><?php endif; ?></div>`;
     }
     // Notes

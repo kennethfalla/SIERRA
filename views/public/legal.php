@@ -14,7 +14,7 @@ $content_file = BASE_PATH . 'views/shared/legal/' . ($is_privacy ? 'privacy.php'
     <link href="<?php echo BASE_URL; ?>assets/vendor/manrope/manrope.css" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
-        body { margin: 0; background: #f5fbf6; color: #374151; font: 15px/1.7 'Manrope', sans-serif; }
+        body { margin: 0; background: #f5fbf6; color: var(--sierra-type-primary, #203b31); font: 15px/1.7 'Manrope', sans-serif; }
         header { background: #fff; border-bottom: 1px solid #e5ece8; }
         .wrap { width: min(100% - 32px, 780px); margin: auto; }
         header .wrap { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }

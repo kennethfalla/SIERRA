@@ -106,8 +106,10 @@ if ($residency_filter === 'resident') {
 }
 if ($search_keyword != '') {
     $search = "%$search_keyword%";
-    $where .= " AND (r.title LIKE :search OR r.description LIKE :search OR CONCAT(u.first_name, ' ', u.last_name) LIKE :search)";
+    $where .= " AND (r.title LIKE :search OR r.description LIKE :search OR r.location_address LIKE :search OR b.name LIKE :search OR c.name LIKE :search OR CONCAT(u.first_name, ' ', u.last_name) LIKE :search OR CAST(r.id AS CHAR) = :search_id)";
     $params[':search'] = $search;
+    $id_search = ltrim($search_keyword, '#');
+    $params[':search_id'] = ctype_digit($id_search) ? (string)(int)$id_search : $id_search;
 }
 
 // ============================================================
@@ -128,6 +130,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                           CONCAT(u.first_name, ' ', u.last_name) AS reporter_name
                    FROM reports r
                    JOIN categories c ON r.category_id = c.id
+                   JOIN barangays b ON r.barangay_id = b.id
                    JOIN users u ON r.user_id = u.id
                    WHERE $where
                    ORDER BY r.created_at DESC";
@@ -169,7 +172,7 @@ $limit = 10;
 $offset = ($page - 1) * $limit;
 
 // Total count
-$count_sql = "SELECT COUNT(*) FROM reports r JOIN users u ON r.user_id = u.id WHERE $where";
+$count_sql = "SELECT COUNT(*) FROM reports r JOIN users u ON r.user_id = u.id JOIN categories c ON r.category_id = c.id JOIN barangays b ON r.barangay_id = b.id WHERE $where";
 $count_stmt = $db->prepare($count_sql);
 foreach ($params as $key => $value) {
     $count_stmt->bindValue($key, $value);
@@ -181,10 +184,11 @@ if ($page > $total_pages) $page = $total_pages;
 $offset = ($page - 1) * $limit;
 
 // Fetch reports
-$sql = "SELECT r.*, c.name as category_name, CONCAT(u.first_name, ' ', u.last_name) as user_name,
+$sql = "SELECT r.*, c.name as category_name, b.name as barangay_name, CONCAT(u.first_name, ' ', u.last_name) as user_name,
                (SELECT ri.image_path FROM report_images ri WHERE ri.report_id = r.id AND LOWER(ri.image_path) REGEXP '\\.(jpg|jpeg|png|gif|webp)$' ORDER BY ri.is_primary DESC, ri.id ASC LIMIT 1) as cover_image
         FROM reports r
         JOIN categories c ON r.category_id = c.id
+        JOIN barangays b ON r.barangay_id = b.id
         JOIN users u ON r.user_id = u.id
         WHERE $where
         ORDER BY 
@@ -376,7 +380,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         .status-escalated { background: #FED7AA; color: #9A3412; }
         .status-resolved { background: #D1FAE5; color: #065F46; }
         .status-rejected { background: #FEE2E2; color: #991B1B; }
-        .status-cancelled { background: #F3F4F6; color: #4B5563; }
+        .status-cancelled { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); }
         
         /* Risk Badges */
         .risk-badge {
@@ -461,7 +465,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             line-height: 1;
             border: 1px solid #E5E7EB;
             background: #F3F4F6;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             transition: all 0.2s ease;
             white-space: nowrap;
@@ -491,7 +495,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         }
         .status-chip:not(.active) .status-chip-count {
             background: #E5E7EB;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
         }
         
         /* ===== TOOLBAR ===== */
@@ -531,31 +535,18 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             left: 12px;
             top: 50%;
             transform: translateY(-50%);
-            color: #9CA3AF;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.8rem;
             pointer-events: none;
         }
-        .toolbar-search input {
-            width: 100%;
-            padding: 8px 12px 8px 36px;
-            border: 1.5px solid var(--lt-border-light);
-            border-radius: 8px;
-            font-size: 0.85rem;
-            color: var(--lt-gray-800);
-            background: var(--lt-gray-50);
-            transition: all 0.2s ease;
-            outline: none;
-        }
-        .toolbar-search input:focus {
+
+.toolbar-search input:focus {
             border-color: var(--lt-forest);
             background: var(--lt-white);
             box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.10);
         }
-        .toolbar-search input::placeholder {
-            color: #9CA3AF;
-        }
 
-        .toolbar-select {
+.toolbar-select {
             appearance: none;
             padding: 8px 32px 8px 12px;
             border: 1.5px solid var(--lt-border-light);
@@ -847,7 +838,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         }
         .report-card .report-title {
             font-weight: 600;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             font-size: 0.95rem;
         }
         @media (min-width: 640px) {
@@ -865,7 +856,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             align-items: center;
             gap: 0.35rem;
             font-size: 0.6rem;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
         }
         @media (min-width: 640px) {
             .report-card .meta-item {
@@ -983,7 +974,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             align-items: center;
             gap: 0.35rem;
             font-size: 0.6rem;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
         }
         @media (min-width: 640px) {
             .report-card-grid .meta-item {
@@ -1049,7 +1040,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             font-weight: 500;
             cursor: pointer;
             background: transparent;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
             transition: all 0.2s;
         }
         @media (min-width: 640px) {
@@ -1083,7 +1074,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
             background: white;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -1272,7 +1263,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             .status-chip { flex: 0 0 auto; scroll-snap-align: start; }
             /* page-header tighter on mobile */
             .page-header { padding: 0.75rem 0 0.5rem; }
-            .page-title { font-size: 1.25rem !important; }
             /* hide barangay location badge on mobile (saves space) */
             .location-badge { display: none; }
             /* notification dropdown full-width on mobile */
@@ -1283,8 +1273,9 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/report-list.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/report-list.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/menro-dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/menro-dashboard.css'); ?>">
 </head>
-<body class="bg-[#F5FBF6]">
+<body class="bg-[#F5FBF6] verify-reports-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -1315,7 +1306,7 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
         <?php endif; ?>
         
         <!-- ===== STATISTICS CARDS (matches all_reports.php design) ===== -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6 stat-cards">
+        <div class="report-kpi-grid">
             <?php
             // Define stats array (stat-card style like admin all_reports)
             $stats_metrics = [
@@ -1327,14 +1318,9 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 ['label' => 'Resolved',       'value' => $resolved,     'color' => 'text-emerald-600', 'chip' => 'bg-green-100',     'icon' => 'fa-check-circle'],
             ];
             foreach($stats_metrics as $m): ?>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo $m['label']; ?></p>
-                    <p class="text-xl md:text-2xl font-extrabold <?php echo $m['color']; ?> tracking-tight"><?php echo $m['value']; ?></p>
-                </div>
-                <div class="w-10 h-10 <?php echo $m['chip']; ?> rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas <?php echo $m['icon']; ?> <?php echo $m['color']; ?>"></i>
-                </div>
+            <div class="menro-stat-card menro-stat-<?php echo ['Pending'=>'pending','Under Review'=>'review','In Progress'=>'ongoing','Escalated'=>'escalated','Resolved'=>'resolved'][$m['label']] ?? 'total'; ?>">
+                <i class="fas <?php echo $m['icon']; ?>" aria-hidden="true"></i>
+                <span><?php echo t($m['label']); ?></span><strong><?php echo number_format((int)$m['value']); ?></strong>
             </div>
             <?php endforeach; ?>
         </div>
@@ -1412,27 +1398,6 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             </div>
         </div>
 
-        <!-- Status filter chips (notification-style) -->
-        <?php $status_all_count = array_sum($status_summary); ?>
-        <div class="status-chip-bar" id="statusChipBar">
-            <span class="status-chip-label">Status</span>
-            <input type="hidden" id="toolbarStatus" value="<?php echo htmlspecialchars($status_filter, ENT_QUOTES, 'UTF-8'); ?>">
-            <?php foreach ($status_chip_keys as $sc_key):
-                $sc_active = ($sc_key === $status_filter);
-                if ($sc_key === 'escalated') {
-                    $sc_count = (int)($status_summary['escalated'] ?? 0) + (int)($status_summary['escalated_pending'] ?? 0);
-                } else {
-                    $sc_count = ($sc_key === '') ? $status_all_count : (int)($status_summary[$sc_key] ?? 0);
-                }
-                if (!$sc_active && $sc_count <= 0) continue;
-            ?>
-            <button type="button" class="status-chip<?php echo $sc_active ? ' active' : ''; ?>" data-status="<?php echo htmlspecialchars($sc_key, ENT_QUOTES, 'UTF-8'); ?>">
-                <?php echo htmlspecialchars($status_chip_labels[$sc_key]); ?>
-                <span class="status-chip-count"><?php echo (int)$sc_count; ?></span>
-            </button>
-            <?php endforeach; ?>
-        </div>
-
         <div class="table-container mb-4">
             <div class="table-section-header">
                 <div class="table-section-title">
@@ -1459,6 +1424,26 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             </div>
         </div>
 
+        <!-- Status filter chips (notification-style) -->
+        <?php $status_all_count = array_sum($status_summary); ?>
+        <div class="status-chip-bar" id="statusChipBar">
+            <input type="hidden" id="toolbarStatus" value="<?php echo htmlspecialchars($status_filter, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php foreach ($status_chip_keys as $sc_key):
+                $sc_active = ($sc_key === $status_filter);
+                if ($sc_key === 'escalated') {
+                    $sc_count = (int)($status_summary['escalated'] ?? 0) + (int)($status_summary['escalated_pending'] ?? 0);
+                } else {
+                    $sc_count = ($sc_key === '') ? $status_all_count : (int)($status_summary[$sc_key] ?? 0);
+                }
+                if (!$sc_active && $sc_count <= 0) continue;
+            ?>
+            <button type="button" class="status-chip<?php echo $sc_active ? ' active' : ''; ?>" data-status="<?php echo htmlspecialchars($sc_key, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php echo htmlspecialchars($status_chip_labels[$sc_key]); ?>
+                <span class="status-chip-count"><?php echo (int)$sc_count; ?></span>
+            </button>
+            <?php endforeach; ?>
+        </div>
+
         <!-- Reports Grid -->
         <div id="reportsGrid" class="reports-grid report-feed">
             <?php if(count($reports) > 0): ?>
@@ -1467,10 +1452,10 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             <?php else: ?>
                 <div class="empty-state">
                     <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                        <i class="fas fa-inbox text-xl sm:text-2xl text-gray-400"></i>
+                        <i class="fas fa-inbox text-gray-400 text-2xl"></i>
                     </div>
-                    <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg">No reports found</h3>
-                    <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Try adjusting your filters</p>
+                    <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-lg">No reports found</h3>
+                    <p class="text-gray-400 mb-3 sm:mb-4 text-sm">Try adjusting your filters</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -1480,9 +1465,9 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
             <?php if($total_pages > 1): ?>
             <div class="pagination">
                 <?php if($page > 1): ?>
-                <button onclick="goToPage(<?php echo $page-1; ?>)" class="page-btn"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></button>
+                <button onclick="goToPage(<?php echo $page-1; ?>)" class="page-btn"><i class="fas fa-chevron-left text-[10px] text-xs"></i></button>
                 <?php else: ?>
-                <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></span>
+                <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] text-xs"></i></span>
                 <?php endif; ?>
                 
                 <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
@@ -1490,9 +1475,9 @@ $active_category_name = ($category_filter > 0 && isset($category_name_map[$categ
                 <?php endfor; ?>
                 
                 <?php if($page < $total_pages): ?>
-                <button onclick="goToPage(<?php echo $page+1; ?>)" class="page-btn"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></button>
+                <button onclick="goToPage(<?php echo $page+1; ?>)" class="page-btn"><i class="fas fa-chevron-right text-[10px] text-xs"></i></button>
                 <?php else: ?>
-                <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></span>
+                <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] text-xs"></i></span>
                 <?php endif; ?>
             </div>
             <?php endif; ?>

@@ -107,6 +107,13 @@ if($page === 'forgot-password') {
 // PROTECTED PAGES - Login required
 // ============================================
 if(!isLoggedIn()) {
+    if ($page === 'search' && ($_GET['format'] ?? '') === 'json') {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: private, no-store');
+        echo json_encode(['error'=>'Please sign in again.']);
+        exit();
+    }
     $_SESSION['error'] = "Please login to access this page.";
     header("Location: " . BASE_URL . "index.php?page=login");
     exit();
@@ -139,6 +146,11 @@ if($page === 'reset-password') {
 // ============================================
 // PROFILE PAGE - Accessible to all logged-in users
 // ============================================
+if ($page === 'search') {
+    require_once 'controllers/SearchController.php';
+    exit();
+}
+
 if($page === 'profile') {
     // All profile logic (AJAX, form POSTs, rendering) lives in the controller.
     require_once 'controllers/ProfileController.php';

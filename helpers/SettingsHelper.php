@@ -290,6 +290,8 @@ class SettingsHelper {
             'enable_report_limits' => 1,
             'report_daily_limit' => 5,
             'report_min_interval_minutes' => 10,
+            'enable_report_reminders' => 1,
+            'report_reminder_days' => 3,
 
             // ========================================
             // SEVERITY ALGORITHM
@@ -477,6 +479,13 @@ class SettingsHelper {
             'enabled' => (int)(self::$settings['enable_report_limits'] ?? 1),
             'daily_limit' => (int)(self::$settings['report_daily_limit'] ?? 5),
             'min_interval_minutes' => (int)(self::$settings['report_min_interval_minutes'] ?? 10),
+        ];
+    }
+
+    public static function getReportReminderSettings() {
+        return [
+            'enabled' => self::get('enable_report_reminders', 1) == 1,
+            'days' => max(1, min(365, (int)self::get('report_reminder_days', 3))),
         ];
     }
 

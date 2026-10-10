@@ -70,7 +70,8 @@ foreach ($notifications as $notification) {
         @media (min-width: 640px) { .main-container { padding: 1.5rem; } }
         @media (min-width: 768px) { .main-container { padding: 2rem; } }
 
-        .notif-card { min-width: 0; }
+        .notif-card { min-width:0; padding:20px; background:#fff; border:1px solid #e8eeeb; border-radius:16px; }
+        .notif-card .notif-group-list { border:0; border-radius:0; }
         .notif-group { margin-top: 1.4rem; }
         .notif-group-title { margin: 0 0 .65rem .15rem; color: #7b8a86; font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
         .notif-group-list { overflow: hidden; background: #fff; border: 1px solid #e8eeeb; border-radius: 1rem; }
@@ -87,7 +88,7 @@ foreach ($notifications as $notification) {
         .notif-item:last-child { border-bottom: 0; }
         .notif-item:hover, .notif-item:focus-within { background: #f7fbf9; }
         .notif-item:focus-visible { outline: 2px solid #10a37f; outline-offset: -3px; }
-        .notif-item.unread .notif-title { color: #1e293b; }
+        .notif-item.unread .notif-title { color: var(--sierra-type-primary, #203b31); }
         .notif-item:not(.unread) .notif-title { color: #5a6675; }
 
         .notif-icon {
@@ -100,9 +101,9 @@ foreach ($notifications as $notification) {
             flex-shrink: 0;
         }
         .notif-content { flex: 1; min-width: 0; }
-        .notif-title { font-weight: 700; color: #1e293b; font-size: 0.85rem; }
+        .notif-title { font-weight: 700; color: var(--sierra-type-primary, #203b31); font-size: 0.85rem; }
         .notif-message { color: #85919e; font-size: 0.78rem; line-height: 1.6; margin-top: 3px; overflow-wrap: anywhere; }
-        .notif-time { color: #9CA3AF; font-size: 0.7rem; display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+        .notif-time { color: var(--sierra-type-muted, #63746b); font-size: 0.7rem; display: flex; align-items: center; gap: 4px; margin-top: 6px; }
         .notif-dot {
             width: 8px; height: 8px; border-radius: 50%;
             background: #10A37F; flex-shrink: 0; margin-top: 14px; box-shadow: 0 0 0 3px #e6faf1;
@@ -137,46 +138,24 @@ foreach ($notifications as $notification) {
             gap: 0.65rem;
             flex-wrap: wrap;
         }
-        .nt-chips { display: flex; flex-wrap: wrap; gap: 3px; background: white; border-radius: 999px; padding: 4px; }
-        .nt-toolbar-clear { margin-left: auto; flex-shrink: 0; }
-        .nt-chip {
-            display: inline-flex; align-items: center; gap: 5px;
-            padding: 5px 14px; border-radius: 9999px;
-            font-size: 0.72rem; font-weight: 600; line-height: 1;
-            border: 1px solid transparent; background: transparent; color: #85919e;
-            cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
-        }
-        .nt-chip:hover { border-color: #10A37F; color: #10A37F; background: #F0FDF4; }
-        .nt-chip.active {
-            background: #0d8568; border-color: #0d8568; color: #FFFFFF;
-        }
-        .nt-chip-count {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
-            background: rgba(255, 255, 255, 0.25); font-size: 0.58rem; font-weight: 700;
-        }
-        .nt-chip:not(.active) .nt-chip-count { background: #e1f7ec; color: #0d8568; }
+        .notif-card-actions { display:flex; justify-content:flex-end; align-items:center; padding-bottom:12px; border-bottom:1px solid #e8eeeb; }
         @media (hover: none) { .notif-delete { opacity: 1; } }
         @media (max-width: 640px) {
             .notif-item { padding: 1rem .75rem; gap: .5rem; }
             .notif-dot { width: 6px; height: 6px; }
             .notif-icon { width: 30px; height: 30px; }
-            .notif-title { font-size: .8rem; }
-            .notif-message { font-size: .73rem; }
-            .nt-chips { width: 100%; justify-content: space-between; }
-            .nt-chip { padding: 6px 9px; font-size: .67rem; }
+            .notif-card { padding:14px; }
         }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body>
+<body class="notifications-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container mx-auto">
 
-        <div class="notif-card" id="notifCard">
             <div class="notif-toolbar">
                 <div class="nt-chips" id="ntChips">
                     <button type="button" class="nt-chip active" data-filter="all">All</button>
@@ -184,7 +163,10 @@ foreach ($notifications as $notification) {
                     <button type="button" class="nt-chip" data-filter="reports">Reports<?php if ($reports_count > 0): ?> <span class="nt-chip-count"><?php echo $reports_count; ?></span><?php endif; ?></button>
                     <button type="button" class="nt-chip" data-filter="announcements">Announcements<?php if ($announcements_count > 0): ?> <span class="nt-chip-count"><?php echo $announcements_count; ?></span><?php endif; ?></button>
                 </div>
-                <button type="button" class="notif-text-action nt-toolbar-clear" id="markAllBtn" onclick="markAllAsRead()" <?php echo $unread_count === 0 ? 'disabled' : ''; ?>>
+            </div>
+        <div class="notif-card" id="notifCard">
+            <div class="notif-card-actions">
+                <button type="button" class="notif-text-action" id="markAllBtn" onclick="markAllAsRead()" <?php echo $unread_count === 0 ? 'disabled' : ''; ?>>
                     <i class="fas fa-check-double"></i> Mark all as read
                 </button>
             </div>
@@ -196,6 +178,7 @@ foreach ($notifications as $notification) {
                     <div class="notif-group-list">
                     <?php foreach ($group_notifications as $notif): ?>
                     <div class="notif-item <?php echo $notif['is_read'] ? '' : 'unread'; ?>"
+                         id="notification-<?php echo (int)$notif['id']; ?>"
                          tabindex="0"
                          data-link="<?php echo htmlspecialchars($notif['link'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                          data-id="<?php echo (int)$notif['id']; ?>"

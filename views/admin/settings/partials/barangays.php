@@ -50,7 +50,7 @@ if (!isset($csrf_token)) {
         font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        color: #6b7280;
+        color: var(--sierra-type-muted, #63746b);
         white-space: nowrap;
     }
     
@@ -80,7 +80,7 @@ if (!isset($csrf_token)) {
         border-radius: 0.5rem;
         font-size: 0.85rem;
         background: #f9fafb;
-        color: #1f2937;
+        color: var(--sierra-type-primary, #203b31);
         transition: all 0.2s ease;
     }
     
@@ -113,7 +113,7 @@ if (!isset($csrf_token)) {
         font-weight: 500;
         border: 1px solid #e5e7eb;
         background: white;
-        color: #4b5563;
+        color: var(--sierra-type-muted, #63746b);
         cursor: pointer;
         transition: all 0.2s ease;
         white-space: nowrap;
@@ -265,7 +265,7 @@ if (!isset($csrf_token)) {
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
         }
         .barangay-table tbody td .barangay-input,
         .barangay-table tbody td > input[type="text"] {
@@ -291,7 +291,6 @@ if (!isset($csrf_token)) {
             padding: 0.4rem 0.5rem;
         }
         .barangay-input {
-            font-size: 0.78rem;
             padding: 0.4rem 0.6rem;
         }
 
@@ -321,7 +320,7 @@ if (!isset($csrf_token)) {
     .barangay-empty {
         text-align: center;
         padding: 2rem 1rem;
-        color: #9ca3af;
+        color: var(--sierra-type-muted, #63746b);
     }
     
     .barangay-empty i {
@@ -343,7 +342,7 @@ if (!isset($csrf_token)) {
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         font-size: 14px;
-        color: #1f2937;
+        color: var(--sierra-type-primary, #203b31);
         background: white;
         border-left: 4px solid #10A37F;
         animation: slideIn 0.3s ease;

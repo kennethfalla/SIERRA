@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/ReportReminder.php';
 // models/Notification.php - In-app notification bell (DB-backed, per user)
 class Notification {
     private $conn;
@@ -73,6 +74,9 @@ class Notification {
 
     /** One scoped aggregate for the shared notification poll. */
     public function getSyncSummary($user_id, $role = null, $barangay_id = null) {
+        if (in_array($role, ['admin', 'barangay_official'], true)) {
+            ReportReminder::tick($this->conn, (int)$user_id);
+        }
         $stmt = $this->conn->prepare("SELECT
             COALESCE(SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END), 0) AS unread,
             COALESCE(SUM(CASE WHEN is_read = 0 AND type = 'report' THEN 1 ELSE 0 END), 0) AS reports,

@@ -510,7 +510,7 @@ function getRoleBadge($user_type, $job_title = '') {
         animation: slideUp 0.5s ease-out forwards;
     }
     .stat-card:hover { transform: translateY(-3px); border-color: #10A37F; box-shadow: 0 12px 24px -8px rgba(16, 163, 127, 0.12); }
-    .stat-card .stat-value { font-size: 1.75rem; font-weight: 800; color: #1a2e1a; letter-spacing: -0.02em; }
+    .stat-card .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--sierra-type-primary, #203b31); letter-spacing: -0.02em; }
     @media (min-width: 640px) { .stat-card .stat-value { font-size: 2rem; } }
     .stat-card .stat-label { font-size: 0.7rem; font-weight: 600; color: #8aa38a; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.15rem; }
     @media (min-width: 640px) { .stat-card .stat-label { font-size: 0.75rem; } }
@@ -527,12 +527,12 @@ function getRoleBadge($user_type, $job_title = '') {
 
     /* ===== SUB-TABS ===== */
     .tab-active { border-bottom: 3px solid #10A37F; color: #10A37F; font-weight: 700; }
-    .tab-inactive { color: #6B7280; border-bottom: 3px solid transparent; font-weight: 500; }
+    .tab-inactive { color: var(--sierra-type-muted, #63746b); border-bottom: 3px solid transparent; font-weight: 500; }
     .tab-inactive:hover { color: #10A37F; border-bottom-color: #10A37F; }
     .tab-badge {
         display: inline-flex; align-items: center; justify-content: center;
         min-width: 20px; height: 20px; padding: 0 6px; border-radius: 9999px;
-        font-size: 0.6rem; font-weight: 700; background: #e5e7eb; color: #4b5563;
+        font-size: 0.6rem; font-weight: 700; background: #e5e7eb; color: var(--sierra-type-muted, #63746b);
     }
     .tab-active .tab-badge { background: #10A37F; color: white; }
 
@@ -562,7 +562,7 @@ function getRoleBadge($user_type, $job_title = '') {
     /* ===== TABLE ===== */
     .table-container { background: white; border-radius: 12px; border: 1px solid #eef2f0; overflow: hidden; }
     .table-container thead tr { background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%); }
-    .table-container thead th { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #6B7280; padding: 0.75rem 1rem; border-bottom: 1px solid #E5E7EB; }
+    .table-container thead th { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--sierra-type-muted, #63746b); padding: 0.75rem 1rem; border-bottom: 1px solid #E5E7EB; }
     .table-container tbody td { padding: 0.75rem 1rem; font-size: 0.875rem; border-bottom: 1px solid #E5E7EB; }
     .table-container tbody tr:hover { background: rgba(236, 253, 245, 0.35); }
     .table-container tbody td .action-btn { padding: 3px 8px; }
@@ -605,7 +605,7 @@ function getRoleBadge($user_type, $job_title = '') {
     .action-btn-activate:hover { background: #A7F3D0; }
     .action-btn-delete { background: #FEE2E2; color: #991B1B; }
     .action-btn-delete:hover { background: #FECACA; }
-    .action-btn-disabled { background: #F3F4F6; color: #9CA3AF; cursor: not-allowed; }
+    .action-btn-disabled { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); cursor: not-allowed; }
 
     /* ===== SUB-TABS NAV ===== */
     .sub-tabs-nav { -webkit-overflow-scrolling: touch; scrollbar-width: none; }
@@ -614,7 +614,7 @@ function getRoleBadge($user_type, $job_title = '') {
     /* ===== RESPONSIVE ===== */
     @media (max-width: 1279px) {
         /* Convert table rows into stacked cards */
-        .table-container { overflow: visible; background: transparent; border: none; }
+        .table-container { overflow: visible; border: none; }
         .table-container thead { display: none; }
         .table-container tbody { display: block; }
         .table-container tbody tr {
@@ -626,7 +626,6 @@ function getRoleBadge($user_type, $job_title = '') {
             margin-bottom: 12px;
             overflow: hidden;
         }
-        .table-container tbody tr:hover { background: #fff; }
         .table-container tbody td {
             display: flex;
             flex-direction: column;
@@ -679,12 +678,12 @@ function getRoleBadge($user_type, $job_title = '') {
     }
     @media (max-width: 768px) {
         .modal-overlay { padding: 12px; align-items: flex-end; }
-        .modal-content { border-radius: 16px 16px 0 0; max-height: 88vh; }
+        .modal-content { max-height: 88vh; }
     }
     @media (max-width: 480px) {
         .action-btn { padding: 5px 9px; }
         .action-btn-disabled { padding: 5px 9px; font-size: 0.65rem; }
-        .role-badge, .status-badge { padding: 3px 10px; font-size: 0.65rem; }
+        .role-badge, .status-badge { padding: 3px 10px; }
     }
 </style>
 
@@ -1038,10 +1037,10 @@ function getRoleBadge($user_type, $job_title = '') {
                             <td colspan="<?php echo ($users_tab === 'barangay' || $users_tab === 'citizens') ? 9 : 8; ?>" class="text-center py-12">
                                 <div class="empty-state">
                                     <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                                        <i class="fas fa-users-slash text-xl sm:text-2xl text-gray-400"></i>
+                                        <i class="fas fa-users-slash text-gray-400 text-2xl"></i>
                                     </div>
                                     <h3 class="font-semibold text-gray-700 mb-1 text-base">No <?php echo strtolower($tab_label); ?> found</h3>
-                                    <p class="text-gray-400 text-xs sm:text-sm"><?php echo t('Try adjusting your filters'); ?></p>
+                                    <p class="text-gray-400 text-sm"><?php echo t('Try adjusting your filters'); ?></p>
                                 </div>
                             </td>
                         </tr>

@@ -196,7 +196,7 @@ if (is_dir($barangays_dir)) {
             font-size: 0.9rem;
             transition: all 0.2s;
             background: white;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             min-height: 44px;
             touch-action: manipulation;
         }
@@ -263,7 +263,7 @@ if (is_dir($barangays_dir)) {
             font-family: inherit;
             font-size: 0.9rem;
             line-height: 1.4;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             background: #fff;
             border: 1.5px solid #e5ece8;
             border-radius: 0.75rem;
@@ -274,7 +274,7 @@ if (is_dir($barangays_dir)) {
         .cs-btn:hover { border-color: #10A37F; background: #f5fbf8; }
         .cs-btn:focus { outline: none; border-color: #10A37F; box-shadow: 0 0 0 3px rgba(16,163,127,.18); }
         .cs-label { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .cs-label.is-placeholder { color: #9ca3af; }
+        .cs-label.is-placeholder { color: var(--sierra-type-muted, #63746b); }
         .cs-caret {
             flex: 0 0 auto;
             width: 1rem;
@@ -318,7 +318,7 @@ if (is_dir($barangays_dir)) {
             padding: 0.55rem 0.7rem;
             border-radius: 0.5rem;
             font-size: 0.9rem;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             cursor: pointer;
         }
         .cs-option:hover, .cs-option.is-active { background: #eef8f4; color: #0f766e; }
@@ -423,8 +423,8 @@ if (is_dir($barangays_dir)) {
             background: #fef2f2;
         }
         .impact-option .icon { font-size: 1.25rem; margin-bottom: 0.35rem; }
-        .impact-option .title { font-weight: 700; font-size: 0.85rem; color: #1f2937; line-height: 1.2; }
-        .impact-option .desc { font-size: 0.7rem; color: #6b7280; margin-top: 0.2rem; line-height: 1.35; display: none; }
+        .impact-option .title { font-weight: 700; font-size: 0.85rem; color: var(--sierra-type-primary, #203b31); line-height: 1.2; }
+        .impact-option .desc { font-size: 0.7rem; color: var(--sierra-type-muted, #63746b); margin-top: 0.2rem; line-height: 1.35; display: none; }
         .impact-option.show-desc .desc { display: block; animation: impactDescIn 0.2s ease; }
         @keyframes impactDescIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
         .impact-option .badge-severe { font-size: 0.65rem; display: block; margin-top: 0.25rem; color: #ef4444; font-weight: 600; }
@@ -433,9 +433,6 @@ if (is_dir($barangays_dir)) {
                 padding: 0.6rem 0.35rem;
                 min-height: 88px;
             }
-            .impact-option .title { font-size: 0.7rem; }
-            .impact-option .desc { font-size: 0.55rem; }
-            .impact-option .badge-severe { font-size: 0.6rem; }
         }
 
         /* ===== MAP ===== */
@@ -518,7 +515,7 @@ if (is_dir($barangays_dir)) {
             padding: 0.6rem 1.5rem;
             border-radius: 0.75rem;
             font-weight: 500;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             transition: all 0.2s;
             min-height: 44px;
@@ -561,7 +558,6 @@ if (is_dir($barangays_dir)) {
                 opacity: 1;
                 width: 24px;
                 height: 24px;
-                font-size: 10px;
             }
         }
 
@@ -641,7 +637,7 @@ if (is_dir($barangays_dir)) {
             border-radius: 50%;
             border: none;
             background: #f1f5f9;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.85rem;
             cursor: pointer;
             display: flex;
@@ -650,7 +646,7 @@ if (is_dir($barangays_dir)) {
             transition: all 0.15s;
             flex-shrink: 0;
         }
-        #duplicateModal .dup-close:hover { background: #e2e8f0; color: #334155; }
+        #duplicateModal .dup-close:hover { background: #e2e8f0; color: var(--sierra-type-primary, #203b31); }
         #duplicateModal .dup-list {
             overflow-y: auto;
             padding: 0.75rem 1.25rem;
@@ -667,7 +663,7 @@ if (is_dir($barangays_dir)) {
         }
         #duplicateModal .dup-note {
             font-size: 0.68rem;
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
             text-align: center;
             margin-top: 0.6rem;
         }
@@ -690,7 +686,7 @@ if (is_dir($barangays_dir)) {
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             transition: all 0.2s ease;
             font-size: 18px;
-            color: #334155;
+            color: var(--sierra-type-primary, #203b31);
         }
         #mapFullscreenBtn:hover {
             background: #f8fafc;
@@ -742,12 +738,10 @@ if (is_dir($barangays_dir)) {
             #mapFullscreenBtn {
                 width: 42px;
                 height: 42px;
-                font-size: 18px;
             }
             .custom-map-container.fullscreen #mapFullscreenBtn {
                 width: 50px;
                 height: 50px;
-                font-size: 22px;
                 top: 18px;
                 right: 18px;
             }
@@ -758,7 +752,6 @@ if (is_dir($barangays_dir)) {
             #mapFullscreenBtn {
                 width: 36px;
                 height: 36px;
-                font-size: 16px;
                 top: 8px;
                 right: 8px;
             }
@@ -767,7 +760,6 @@ if (is_dir($barangays_dir)) {
                 right: 16px;
                 width: 44px;
                 height: 44px;
-                font-size: 18px;
             }
         }
         
@@ -776,7 +768,6 @@ if (is_dir($barangays_dir)) {
             #mapFullscreenBtn {
                 width: 34px;
                 height: 34px;
-                font-size: 14px;
                 top: 6px;
                 right: 6px;
             }
@@ -785,7 +776,6 @@ if (is_dir($barangays_dir)) {
                 right: 12px;
                 width: 40px;
                 height: 40px;
-                font-size: 16px;
             }
         }
 
@@ -841,7 +831,7 @@ if (is_dir($barangays_dir)) {
         .nearby-popup-header h4 {
             font-size: 14px;
             font-weight: 700;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             margin: 0;
             flex: 1;
             line-height: 1.3;
@@ -860,7 +850,7 @@ if (is_dir($barangays_dir)) {
             display: flex;
             gap: 12px;
             font-size: 11px;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             margin-bottom: 8px;
             flex-wrap: wrap;
         }
@@ -874,7 +864,7 @@ if (is_dir($barangays_dir)) {
         }
         .nearby-popup-desc {
             font-size: 12px;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
             line-height: 1.4;
             margin-bottom: 10px;
             display: -webkit-box;
@@ -934,16 +924,11 @@ if (is_dir($barangays_dir)) {
             .nearby-popup {
                 padding: 10px;
             }
-            .nearby-popup-header h4 {
-                font-size: 13px;
-            }
             .nearby-popup-distance {
-                font-size: 9px;
                 padding: 2px 6px;
             }
             .nearby-popup-btn {
                 padding: 7px 10px;
-                font-size: 11px;
             }
         }
 
@@ -991,16 +976,16 @@ if (is_dir($barangays_dir)) {
         .dup-title {
             font-size: 0.82rem;
             font-weight: 700;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             display: flex;
             align-items: center;
             gap: 0.4rem;
             flex-wrap: wrap;
         }
-        .dup-meta { font-size: 0.7rem; color: #6b7280; margin-top: 2px; }
+        .dup-meta { font-size: 0.7rem; color: var(--sierra-type-muted, #63746b); margin-top: 2px; }
         .dup-desc {
             font-size: 0.74rem;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             margin-top: 4px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -1090,13 +1075,13 @@ if (is_dir($barangays_dir)) {
         .detail-row .label {
             width: 35%;
             font-weight: 600;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.8rem;
             flex-shrink: 0;
         }
         .detail-row .value {
             width: 65%;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             font-size: 0.85rem;
             word-break: break-word;
         }
@@ -1107,11 +1092,9 @@ if (is_dir($barangays_dir)) {
             }
             .detail-row .label {
                 width: 100%;
-                font-size: 0.7rem;
             }
             .detail-row .value {
                 width: 100%;
-                font-size: 0.8rem;
             }
         }
 
@@ -1289,7 +1272,7 @@ if (is_dir($barangays_dir)) {
         }
         .camera-controls .ctrl-btn.flash.active {
             background: #fbbf24;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
         }
         .camera-controls .ctrl-btn.switch-cam {
             background: rgba(255,255,255,0.08);
@@ -1299,12 +1282,10 @@ if (is_dir($barangays_dir)) {
             .camera-controls .ctrl-btn {
                 width: 48px;
                 height: 48px;
-                font-size: 1rem;
             }
             .camera-controls .ctrl-btn.capture {
                 width: 60px;
                 height: 60px;
-                font-size: 1.5rem;
             }
             .camera-controls {
                 gap: 14px;
@@ -1350,7 +1331,6 @@ if (is_dir($barangays_dir)) {
         @media (max-width: 480px) {
             .camera-mode-toggle .mode-btn {
                 padding: 7px 14px;
-                font-size: 0.75rem;
             }
         }
 
@@ -1454,7 +1434,6 @@ if (is_dir($barangays_dir)) {
         }
         @media (max-width: 480px) {
             .camera-tips-overlay {
-                font-size: 0.65rem;
                 padding: 8px 14px;
                 bottom: 12px;
                 white-space: normal;
@@ -1467,7 +1446,6 @@ if (is_dir($barangays_dir)) {
                 padding: 0.75rem;
             }
             .form-input {
-                font-size: 0.8rem;
                 padding: 0.5rem 0.6rem;
                 min-height: 40px;
             }
@@ -1744,8 +1722,8 @@ if (is_dir($barangays_dir)) {
                 <i class="fas fa-exclamation-triangle text-lg"></i>
             </div>
             <div class="min-w-0">
-                <h3 class="text-base sm:text-lg font-bold text-gray-800 leading-tight"><?php echo t('It looks like this was already reported'); ?></h3>
-                <p class="text-xs sm:text-sm text-gray-500 mt-0.5"><?php echo t('Someone nearby reported a similar issue. Are you reporting the same incident?'); ?></p>
+                <h3 class="font-bold text-gray-800 leading-tight text-lg"><?php echo t('It looks like this was already reported'); ?></h3>
+                <p class="text-gray-500 mt-0.5 text-sm"><?php echo t('Someone nearby reported a similar issue. Are you reporting the same incident?'); ?></p>
             </div>
             <button type="button" class="dup-close" onclick="closeDuplicateModal()" aria-label="<?php echo t('Close'); ?>">
                 <i class="fas fa-times"></i>
@@ -3977,6 +3955,6 @@ if (is_dir($barangays_dir)) {
 
 <script src="<?php echo BASE_URL; ?>assets/js/fetch-timeout.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/modal-a11y.js"></script>
-<script src="<?php echo BASE_URL; ?>assets/js/design-select.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/design-select.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/design-select.js'); ?>"></script>
 </body>
 </html>

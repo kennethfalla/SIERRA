@@ -13,6 +13,7 @@ require_once BASE_PATH . 'helpers/Lang.php';
 
 $current_page = $_GET['page'] ?? 'dashboard';
 $app_page_titles = [
+    'search' => 'Search',
     'dashboard' => 'Dashboard',
     'analytics' => 'Analytics',
     'map' => 'Environmental Map',
@@ -33,6 +34,7 @@ $app_page_titles = [
 ];
 $app_page_title = t($app_page_titles[$current_page] ?? ucwords(str_replace('-', ' ', $current_page)));
 $app_page_subtitles = [
+    'search' => 'Find reports and community updates.',
     'dashboard' => 'Your community at a glance.',
     'analytics' => 'Data analysis and decision support.',
     'map' => 'Explore environmental hazards.',
@@ -321,7 +323,7 @@ if ($user_id && isset($db)) {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: .08em;
-        color: #64748b;
+        color: var(--sierra-type-muted, #63746b);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -339,7 +341,7 @@ if ($user_id && isset($db)) {
         border: none;
         border-radius: 12px;
         background: transparent;
-        color: #374151;
+        color: var(--sierra-type-primary, #203b31);
         cursor: pointer;
         transition: background-color .15s ease, color .15s ease;
     }
@@ -374,7 +376,7 @@ if ($user_id && isset($db)) {
         border: none;
         border-radius: 12px;
         background: transparent;
-        color: #374151;
+        color: var(--sierra-type-primary, #203b31);
         cursor: pointer;
         transition: background-color .15s ease, color .15s ease;
     }
@@ -486,9 +488,9 @@ if ($user_id && isset($db)) {
     .menro-notif-item:last-child { border-bottom: none; }
     .menro-notif-icon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .menro-notif-content { flex: 1; min-width: 0; }
-    .menro-notif-title { font-weight: 600; font-size: .8rem; color: #1F2937; margin-bottom: 2px; }
-    .menro-notif-msg { font-size: .72rem; color: #6B7280; line-height: 1.4; margin-bottom: 4px; word-wrap: break-word; }
-    .menro-notif-time { font-size: .62rem; color: #9CA3AF; display: flex; align-items: center; gap: 4px; }
+    .menro-notif-title { font-weight: 600; font-size: .8rem; color: var(--sierra-type-primary, #203b31); margin-bottom: 2px; }
+    .menro-notif-msg { font-size: .72rem; color: var(--sierra-type-muted, #63746b); line-height: 1.4; margin-bottom: 4px; word-wrap: break-word; }
+    .menro-notif-time { font-size: .62rem; color: var(--sierra-type-muted, #63746b); display: flex; align-items: center; gap: 4px; }
     .menro-notif-dot { width: 6px; height: 6px; background: #10A37F; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
     .menro-notif-actions { display: flex; border-top: 1px solid #F3F4F6; background: #FAFAFA; }
     .menro-notif-actions button { flex: 1; text-align: center; padding: 11px 8px; font-size: .72rem; font-weight: 600; cursor: pointer; transition: all .2s; border: none; background: transparent; color: inherit; }
@@ -587,6 +589,9 @@ if ($user_id && isset($db)) {
         </span>
     </div>
     <div class="app-header-actions">
+        <a href="<?php echo BASE_URL; ?>index.php?page=search" class="app-header-search" aria-label="Open search page" title="Search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7"></circle><path d="m16 16 5 5"></path></svg>
+        </a>
         <?php if (!empty($_SESSION['user_id'])): ?>
         <button type="button" id="<?php echo ($user_role === 'admin') ? 'menroNotifBell' : 'notifBellBtn'; ?>"
                 class="notification-bell sierra-hero-bell radius-12"
@@ -1159,7 +1164,7 @@ if ($user_id && isset($db)) {
 </script>
 
 <!-- ===== REALTIME NOTIFICATIONS (polling + top-center toast, all pages) ===== -->
-<script src="<?php echo BASE_URL; ?>assets/js/notification-polling.js?v=20261001" data-live-url="<?php echo BASE_URL; ?>controllers/LiveSyncController.php"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/notification-polling.js?v=<?php echo filemtime(BASE_PATH . 'assets/js/notification-polling.js'); ?>" data-live-url="<?php echo BASE_URL; ?>controllers/LiveSyncController.php"></script>
 <?php if ($user_role === 'admin'): ?>
 <!-- ===== MENRO NOTIFICATION BELL LOGIC (toggle / mark read / clear) ===== -->
 <script>

@@ -796,7 +796,7 @@ function getDecisionBadge($classification) {
         }
         .kpi-card .kpi-sub {
             font-size: 0.7rem;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             margin-top: 0.25rem;
         }
         .kpi-card .kpi-icon {
@@ -910,7 +910,7 @@ function getDecisionBadge($classification) {
             border: none;
             cursor: pointer;
             background: transparent;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
             transition: all 0.2s;
         }
         .map-toggle button.active {
@@ -928,7 +928,7 @@ function getDecisionBadge($classification) {
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.9rem;
         }
-        .score-row .label { color: #64748b; }
+        .score-row .label { color: var(--sierra-type-muted, #63746b); }
         .score-row .value { font-weight: 600; }
 
         /* Recommendation box */
@@ -980,7 +980,7 @@ function getDecisionBadge($classification) {
         .chart-card .chart-title {
             font-weight: 700;
             font-size: 0.9rem;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             margin-bottom: 0.75rem;
         }
         .chart-container {
@@ -1103,7 +1103,7 @@ function getDecisionBadge($classification) {
             padding: 0.45rem 0.8rem;
             box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
             font-size: 0.72rem;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
         }
         /* Legend shown under the map on phones so it never covers the canvas */
         .map-legend-inline {
@@ -1122,7 +1122,7 @@ function getDecisionBadge($classification) {
             background: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 0.5rem;
-            color: #6b7280;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             transition: all 0.15s ease;
             flex-shrink: 0;
@@ -1154,14 +1154,13 @@ function getDecisionBadge($classification) {
 
         /* Responsive tweaks */
         @media (max-width: 768px) {
-            .kpi-card .kpi-value { font-size: 1.5rem; }
-            .map-toggle button { padding: 0.3rem 0.8rem; font-size: 0.7rem; min-height: 44px; }
+            .map-toggle button { padding: 0.3rem 0.8rem; min-height: 44px; }
             /* Map card compacts for tablets/phones */
             #map-container { padding: 0.85rem; }
             .map-title-wrap { width: 100%; justify-content: space-between; }
             #mapToggle { flex-wrap: nowrap; }
             #mapToggle button { flex: 1; padding: 0.35rem 0.5rem; font-size: 0.72rem; min-width: 44px; }
-            .map-legend { gap: 0.45rem 0.85rem; padding: 0.35rem 0.65rem; font-size: 0.68rem; }
+            .map-legend { gap: 0.45rem 0.85rem; padding: 0.35rem 0.65rem; }
             /* Header tools wrap to their own line on mobile */
             .map-head-tools { width: 100%; justify-content: space-between; }
             /* Timeframe pills become a swipeable strip instead of wrapping */
@@ -1274,7 +1273,7 @@ function getDecisionBadge($classification) {
         .status-escalated { background: #FED7AA; color: #9A3412; }
         .status-resolved { background: #D1FAE5; color: #10A37F; }
         .status-rejected { background: #FEE2E2; color: #DC2626; }
-        .status-cancelled { background: #F3F4F6; color: #4B5563; }
+        .status-cancelled { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); }
 
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard.css'); ?>">
@@ -1321,7 +1320,7 @@ function getDecisionBadge($classification) {
             'search_id'          => 'dashSearchInput',
             'search_value'       => $f_search,
             'search_placeholder' => 'Search reports…',
-            'show_search'        => true,
+            'show_search'        => false,
             'show_active_row'    => false,
             'compact_breakpoint' => 1199,
             'more_icon'          => 'fa-sliders-h',
@@ -2237,8 +2236,8 @@ function loadMapData(mode) {
         const popupContent = `
             <div style="font-family: Manrope; min-width: 200px;">
                 <strong style="font-size: 14px;">${escapeHtml(report.title)}</strong><br>
-                <span style="font-size: 12px; color: #64748b;">Severity: ${score}/20 (${tier})</span><br>
-                <span style="font-size: 12px; color: #64748b;">Reports in cluster: ${report.spatial_density_count || 0}</span><br>
+                <span style="font-size: 12px; color: var(--sierra-type-muted, #63746b);">Severity: ${score}/20 (${tier})</span><br>
+                <span style="font-size: 12px; color: var(--sierra-type-muted, #63746b);">Reports in cluster: ${report.spatial_density_count || 0}</span><br>
             </div>
         `;
 

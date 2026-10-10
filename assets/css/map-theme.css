@@ -7,7 +7,7 @@
 .sev-marker-wrap { position:relative; display:flex; align-items:center; flex-direction:column; gap:4px; }
 .sierra-own-marker { position:absolute; top:-5px; left:calc(50% + 5px); width:15px; height:15px; display:grid; place-items:center; border-radius:50%; background:#fff; color:#0d8568; font-size:11px; box-shadow:0 1px 4px #173f2e30; }
 .sev-marker-dot { width:22px; height:22px; border:3px solid white; border-radius:50%; box-shadow:0 2px 8px #173f2e50; }
-.sev-marker-label { max-width:140px; padding:3px 7px; border-radius:6px; background:#ffffffed; color:#244c3d; box-shadow:0 2px 5px #173f2e20; font:700 10px Manrope,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sev-marker-label { max-width:140px; padding:3px 7px; border-radius:6px; background:#ffffffed; color:var(--sierra-type-primary, #203b31); box-shadow:0 2px 5px #173f2e20; font:700 10px Manrope,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sierra-distance-cluster { display:grid; place-items:center; border:3px solid #fff; border-radius:50%; background:#0d8568; color:white; box-shadow:0 0 0 6px #0d856824; font:800 14px Manrope,sans-serif; }
 .sierra-cluster-reports { display:flex; flex-direction:column; gap:5px; max-height:240px; overflow:auto; min-width:190px; }
 .sierra-cluster-reports button { padding:9px; border:1px solid #dce9e1; border-radius:8px; text-align:left; color:#27513e; background:#f3f9f5; font:700 12px Manrope,sans-serif; cursor:pointer; }
@@ -29,13 +29,13 @@
 .map-report-panel { position:fixed; inset:0 0 0 auto; width:min(520px,100%); box-sizing:border-box; height:100dvh; z-index:10021; background:#fff; box-shadow:-8px 0 32px #173f2e26; transform:translateX(105%); visibility:hidden; transition:transform .25s ease,visibility .25s; display:flex; flex-direction:column; font-family:Manrope,sans-serif; color:#355343; }
 .map-report-panel.open { transform:translateX(0); visibility:visible; }
 .map-report-panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 22px; border-bottom:1px solid #dce9e1; flex-shrink:0; }
-.map-report-panel-head h2 { margin:0; color:#244c3d; font-size:16px; font-weight:800; }
+.map-report-panel-head h2 { margin:0; color:var(--sierra-type-primary, #203b31); font-size:16px; font-weight:800; }
 .map-report-panel-head button { width:36px; height:36px; border:1px solid #dce9e1; border-radius:50%; background:#f1f8f4; color:#27513e; font-size:22px; cursor:pointer; }
 .map-report-panel .drill-body { padding:22px; overflow-y:auto; overscroll-behavior:contain; flex:1; min-height:0; }
-.map-report-title { margin:0 0 12px; color:#244c3d; font-size:20px; font-weight:800; line-height:1.4; overflow-wrap:anywhere; }
+.map-report-title { margin:0 0 12px; color:var(--sierra-type-primary, #203b31); font-size:20px; font-weight:800; line-height:1.4; overflow-wrap:anywhere; }
 .map-report-badges { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
 .map-report-section { margin:0 0 16px; font-size:13px; line-height:1.7; }
-.map-report-section h3 { margin:0 0 5px; font-size:12px; font-weight:800; color:#244c3d; }
+.map-report-section h3 { margin:0 0 5px; font-size:12px; font-weight:800; color:var(--sierra-type-primary, #203b31); }
 .map-report-section p { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
 .map-report-photos { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
 .map-report-photos :is(img,video) { width:100%; height:105px; object-fit:cover; border:1px solid #dce9e1; border-radius:9px; background:#f3f8f5; }

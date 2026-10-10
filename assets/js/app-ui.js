@@ -182,41 +182,76 @@
         placeMenu();
         window.addEventListener('resize', placeMenu);
     }
-    function mobileSearch() {
+    function systemSearch() {
         var header = document.querySelector('.app-mobile-header');
-        if (!header || header.querySelector('.app-header-search')) return;
-        var field = Array.from(document.querySelectorAll('.app-search-field')).find(function (wrap) {
-            return !wrap.closest('dialog,[role="dialog"],.modal,.modal-overlay,.filter-popover,.cs-list,.cs-options,.dropdown-menu,.date-range-popover') && wrap.getClientRects().length;
+        if (!header) return;
+        var link = header.querySelector('.app-header-search');
+        if (!link) return;
+        var current = new URL(location.href);
+        var page = current.searchParams.get('page') || 'dashboard';
+        var scopes = {'my-reports':'My Reports','verify-reports':'Verify Reports','all-reports':'All Reports','manage-reports':'All Reports','announcements':'Announcements','notifications':'Notifications','manage-users':'Users','reporters-directory':'Reporters Directory','audit-logs':'Audit Logs','map':'Map Reports','analytics':'Analytics Reports'};
+        var scope = page === 'search' ? current.searchParams.get('scope') : (scopes[page] ? page : '');
+        var scopeTab = page === 'search' ? current.searchParams.get('scope_tab') : current.searchParams.get(page === 'manage-users' ? 'subtab' : 'tab');
+        // Utility forms (such as archived-record filters) keep their own local
+        // search handlers; never redirect them into unrelated global results.
+        if (page !== 'search' && !scope && page !== 'dashboard' && !document.body.classList.contains('dashboard-page')) {
+            link.hidden = true;
+            return;
+        }
+        link.hidden = false;
+        var destination = new URL(link.href, location.href);
+        if (scope) destination.searchParams.set('scope',scope); else destination.searchParams.delete('scope');
+        if (scopeTab && scope) destination.searchParams.set('scope_tab',scopeTab); else destination.searchParams.delete('scope_tab');
+        if (link.href !== destination.href) link.href = destination.href;
+        var hint = 'Search ' + (scopes[scope] || 'SIERRA') + '…';
+        if (document.body.classList.contains('search-page')) return;
+        var primary = null;
+        document.querySelectorAll('.app-search-field').forEach(function(field) {
+            if (field.closest('dialog,[role="dialog"],.modal,.modal-overlay,.filter-popover,.cs-list,.cs-options,.dropdown-menu,.date-range-popover,.export-filter-sidebar')) return;
+            var input = field.querySelector('input');
+            if (!input) return;
+            if (!primary) primary = field;
+            field.classList.toggle('app-search-duplicate', field !== primary);
+            if (input.dataset.systemSearch) return;
+            input.dataset.systemSearch = '1';
+            input.readOnly = true;
+            input.placeholder = hint;
+            input.setAttribute('aria-label','Open search page');
+            input.setAttribute('role','button');
+            field.classList.add('app-mobile-search-field');
+            var source = field.closest('.toolbar-search,.search-box,.search-bar,.search-wrap');
+            if (source) source.classList.add('app-mobile-search-source');
+            function openSearch(event) {
+                if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+                if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+                event.preventDefault();
+                var url = new URL(link.href,location.href);
+                if (input.value.trim()) url.searchParams.set('q',input.value.trim());
+                window.location.assign(url.href);
+            }
+            input.addEventListener('click',openSearch);
+            input.addEventListener('keydown',openSearch);
         });
-        var actions = header.querySelector('.app-header-actions');
-        if (!field || !actions) return;
-        var input = field.querySelector('input');
-        if (!input) return;
-        field.classList.add('app-mobile-search-field');
-        if (!field.id) field.id = 'appMobileSearchField';
-        var source = field.closest('.toolbar-search,.search-box,.search-bar,.search-wrap');
-        if (source) source.classList.add('app-mobile-search-source');
-        var button = document.createElement('button');
-        button.type = 'button'; button.className = 'app-header-search';
-        button.setAttribute('aria-label','Search this page'); button.setAttribute('aria-expanded','false'); button.setAttribute('aria-controls',field.id);
-        button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7"></circle><path d="m16 16 5 5"></path></svg>';
-        var bell = actions.querySelector('.notification-bell');
-        actions.insertBefore(button, bell || actions.firstChild);
-        function closeSearch() { field.classList.remove('is-open'); button.setAttribute('aria-expanded','false'); }
-        button.addEventListener('click', function () {
-            var open = field.classList.toggle('is-open'); button.setAttribute('aria-expanded',String(open));
-            if (open) input.focus();
-        });
-        document.addEventListener('click', function(event) { if (!field.contains(event.target) && !button.contains(event.target)) closeSearch(); });
-        input.addEventListener('keydown', function(event) { if (event.key === 'Escape') { closeSearch(); button.focus(); } });
-        window.addEventListener('resize', function() { if (window.innerWidth >= 768) closeSearch(); });
-        // Keep the actual field in its form: native Enter submission, page
-        // event delegation and hidden filter values continue to work.
+        // Pages without a local toolbar still have one desktop entry point.
+        // Existing inputs stay in place for their page-specific handlers.
+        var fallback = header.querySelector('.app-desktop-search');
+        if (!primary && !fallback) {
+            fallback = document.createElement('a');
+            fallback.href = link.href;
+            fallback.className = 'app-desktop-search';
+            fallback.setAttribute('aria-label', 'Open search page');
+            fallback.innerHTML = link.innerHTML;
+            var fallbackLabel = document.createElement('span');
+            fallbackLabel.textContent = hint;
+            fallback.appendChild(fallbackLabel);
+            link.parentNode.insertBefore(fallback, link);
+        }
+        if (fallback) fallback.hidden = !!primary;
     }
     function init() {
         enhanceFields(document);
         responsiveHeader();
-        mobileSearch();
+        systemSearch();
         var observer = new MutationObserver(function (records) {
             records.forEach(function (record) {
                 record.addedNodes.forEach(function (node) {
@@ -225,7 +260,7 @@
                     else enhanceFields(node);
                 });
             });
-            mobileSearch();
+            systemSearch();
         });
         observer.observe(document.body, { childList: true, subtree: true });
     }

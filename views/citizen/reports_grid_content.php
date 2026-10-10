@@ -12,13 +12,13 @@
                 <div class="space-y-2">
                     <div class="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] opacity-90 font-semibold">
                         <div class="w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-file-alt text-white/70 text-[10px] md:text-xs"></i>
+                            <i class="fas fa-file-alt text-white/70 text-[10px] text-xs"></i>
                         </div>
                         <span>Report Summary</span>
                     </div>
-                    <h3 class="text-base md:text-lg font-bold leading-tight"><?php echo htmlspecialchars($row['title']); ?></h3>
+                    <h3 class="font-bold leading-tight text-lg"><?php echo htmlspecialchars($row['title']); ?></h3>
                 </div>
-                <div class="text-right text-xs md:text-sm opacity-90">
+                <div class="text-right opacity-90 text-sm">
                     <div>#<?php echo str_pad($row['id'], 6, '0', STR_PAD_LEFT); ?></div>
                     <div class="mt-1"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></div>
                 </div>

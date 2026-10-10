@@ -73,13 +73,13 @@ $placeholders = [
     }
     .template-card .template-label {
         font-weight: 600;
-        color: #1F2937;
+        color: var(--sierra-type-primary, #203b31);
         font-size: 0.9rem;
         margin-bottom: 0.25rem;
     }
     .template-card .template-desc {
         font-size: 0.75rem;
-        color: #6B7280;
+        color: var(--sierra-type-muted, #63746b);
         margin-bottom: 0.5rem;
     }
     .template-card textarea {
@@ -90,7 +90,7 @@ $placeholders = [
         font-size: 0.85rem;
         transition: all 0.2s;
         background: white;
-        color: #1F2937;
+        color: var(--sierra-type-primary, #203b31);
         resize: vertical;
         min-height: 60px;
         font-family: 'Manrope', sans-serif;
@@ -103,7 +103,7 @@ $placeholders = [
     .template-card .char-count {
         text-align: right;
         font-size: 0.7rem;
-        color: #9CA3AF;
+        color: var(--sierra-type-muted, #63746b);
         margin-top: 0.25rem;
     }
     
@@ -120,7 +120,7 @@ $placeholders = [
     }
     .sms-gateway-card .gateway-title {
         font-weight: 700;
-        color: #1F2937;
+        color: var(--sierra-type-primary, #203b31);
         font-size: 1rem;
         margin-bottom: 0.75rem;
         display: flex;
@@ -149,7 +149,7 @@ $placeholders = [
     .form-group label {
         display: block;
         font-weight: 600;
-        color: #374151;
+        color: var(--sierra-type-primary, #203b31);
         font-size: 0.8rem;
         margin-bottom: 0.2rem;
     }
@@ -161,7 +161,7 @@ $placeholders = [
         font-size: 0.85rem;
         transition: all 0.2s;
         background: white;
-        color: #1F2937;
+        color: var(--sierra-type-primary, #203b31);
     }
     .form-group .form-input:focus {
         border-color: #10A37F;
@@ -170,7 +170,7 @@ $placeholders = [
     }
     .form-group .help-text {
         font-size: 0.7rem;
-        color: #6B7280;
+        color: var(--sierra-type-muted, #63746b);
         margin-top: 0.2rem;
     }
     .form-group .help-text a {
@@ -245,7 +245,7 @@ $placeholders = [
     .placeholder-group .group-label {
         font-size: 0.7rem;
         font-weight: 600;
-        color: #6B7280;
+        color: var(--sierra-type-muted, #63746b);
         text-transform: uppercase;
         letter-spacing: 0.04em;
         margin-bottom: 0.25rem;
@@ -268,7 +268,6 @@ $placeholders = [
             gap: 0.2rem;
         }
         .placeholder-badge {
-            font-size: 0.55rem;
             padding: 0.05rem 0.3rem;
         }
     }

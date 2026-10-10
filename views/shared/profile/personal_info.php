@@ -10,7 +10,7 @@ $startEditing = ($_GET['edit'] ?? '') === '1';
                                 <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('Personal Information'); ?></h3>
                             </div>
                             <button id="editToggleBtn"<?php echo $startEditing ? ' style="display:none"' : ''; ?> class="btn-secondary inline-flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-center flex-shrink-0">
-                                <i class="fas fa-pen text-xs md:text-sm"></i> <?php echo t('Edit Profile'); ?>
+                                <i class="fas fa-pen text-sm"></i> <?php echo t('Edit Profile'); ?>
                             </button>
                         </div>
                         

@@ -379,10 +379,10 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
         /* ===== Report page (fixed A4 portrait paper) ===== */
         .report {
             width: 210mm;
-            min-height: 297mm;
+            min-height: auto;
             margin: 0 auto;
             background: #ffffff;
-            padding: 12mm 14mm;
+            padding: 10mm 12mm;
             display: flex;
             flex-direction: column;
         }
@@ -391,9 +391,9 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 14px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #10A37F;
+            gap: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #10A37F;
         }
         .logo-box {
             width: 22mm;
@@ -417,65 +417,66 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
             text-align: center;
         }
         .org-block { flex: 1; text-align: center; padding: 0 6px; }
-        .org-line1 { font-size: 10px; letter-spacing: 0.12em; color: #4b5563; text-transform: uppercase; }
-        .org-name { font-size: 15px; font-weight: 800; color: #111827; margin-top: 2px; line-height: 1.25; }
-        .org-muni { font-size: 11px; color: #374151; margin-top: 2px; font-weight: 600; }
+        .org-line1 { font-size: 9px; letter-spacing: 0.12em; color: #4b5563; text-transform: uppercase; }
+        .org-name { font-size: 14px; font-weight: 800; color: #111827; margin-top: 1px; line-height: 1.2; }
+        .org-muni { font-size: 10px; color: #374151; margin-top: 1px; font-weight: 600; }
 
-        .report-title-block { text-align: center; margin: 12px 0 12px; }
-        .report-title { font-size: 19px; font-weight: 800; letter-spacing: 0.02em; color: #0D8568; }
-        .report-subtitle { font-size: 11px; color: #4b5563; margin-top: 3px; font-weight: 600; }
+        .report-title-block { text-align: center; margin: 10px 0 10px; }
+        .report-title { font-size: 17px; font-weight: 800; letter-spacing: 0.02em; color: #0D8568; }
+        .report-subtitle { font-size: 10px; color: #4b5563; margin-top: 2px; font-weight: 600; }
         .report-meta {
             display: flex;
             justify-content: center;
-            gap: 12px;
+            gap: 8px;
             flex-wrap: wrap;
-            margin-top: 8px;
-            font-size: 10px;
+            margin-top: 6px;
+            font-size: 9.5px;
             color: #6b7280;
         }
         .report-meta span {
             background: #f4faf7;
             border: 1px solid #dff0e9;
             border-radius: 999px;
-            padding: 3px 10px;
+            padding: 2px 8px;
         }
 
         /* ===== Group sections ===== */
-        .group-section { margin-top: 16px; break-inside: avoid; }
+        .group-section { margin-top: 14px; break-inside: avoid; page-break-inside: avoid; }
         .group-heading {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 800;
             color: #0D8568;
             letter-spacing: 0.05em;
             text-transform: uppercase;
-            padding: 6px 10px;
+            padding: 5px 8px;
             background: #f4faf7;
             border: 1px solid #dff0e9;
-            border-left: 5px solid #10A37F;
-            border-radius: 8px;
-            margin-bottom: 6px;
+            border-left: 4px solid #10A37F;
+            border-radius: 6px;
+            margin-bottom: 5px;
         }
         .group-heading .count { float: right; font-weight: 700; }
 
         table.data {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
         }
         table.data th {
             background: #f4faf7;
             color: #374151;
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.03em;
             text-align: left;
-            padding: 5px 7px;
+            padding: 4px 5px;
             border: 1px solid #dff0e9;
         }
         table.data td {
-            padding: 4px 7px;
+            padding: 3px 6px;
             border: 1px solid #e5e7eb;
-            font-size: 10px;
+            font-size: 9.5px;
             vertical-align: top;
         }
         table.data tr:nth-child(even) td { background: #fafcfb; }
@@ -488,7 +489,7 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 40px;
-            margin-top: auto;
+            margin-top: 18px;
             padding-top: 12px;
             border-top: 1px solid #e5e7eb;
         }
@@ -512,7 +513,7 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
         .report-footer-note { margin-top: 6px; text-align: center; font-size: 8px; color: #9ca3af; }
 
         /* ===== Screen-only filter sidebar (main-sidebar style) ===== */
-        .page-wrap { display: flex; align-items: flex-start; min-height: 100vh; }
+        .page-wrap { display: flex; align-items: flex-start; min-height: auto; }
         .filter-sidebar { width: 300px; flex-shrink: 0; background: #fff; border-right: 1px solid rgba(16,163,127,0.12); box-shadow: 2px 0 20px -8px rgba(16,163,127,0.18); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
         .sidebar-head { padding: 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
         .sidebar-head .head-icon { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; box-shadow: 0 4px 10px rgba(16,163,127,0.3); flex-shrink: 0; }
@@ -550,32 +551,34 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
         .btn-reset { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; background: #fff; color: #6b7280; font-size: 12px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
         .btn-reset:hover { color: #EF4444; border-color: #EF4444; background: #FEF2F2; }
         .page-main { flex: 1; min-width: 0; padding: 16px; }
-        @media (max-width: 900px) { .page-wrap { flex-direction: column; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }
+        @media (max-width: 900px) { .page-wrap { flex-direction: column; min-height: auto; } .filter-sidebar { width: 100%; position: static; height: auto; border-right: none; border-bottom: 1px solid rgba(16,163,127,0.12); } }
 
         @page {
             size: A4 portrait;
-            margin: 12mm 14mm 16mm;
+            margin: 10mm 12mm 14mm;
         }
         @media print {
+            html, body { height: auto; }
             body { background: #ffffff !important; }
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
             .filter-sidebar { display: none !important; }
-            .page-wrap { display: block; padding: 0; }
-            .page-main { padding: 0; }
+            .page-wrap { display: block; min-height: auto; padding: 0; }
+            .page-main { padding: 0; min-height: auto; }
             .toolbar { display: none !important; }
             .report {
                 width: 100%;
-                min-height: 0;
+                min-height: auto;
                 margin: 0;
-                padding: 0;
+                padding: 0 4mm;
                 box-shadow: none;
             }
-            .group-section { break-inside: auto; }
-            .group-heading { break-after: avoid; }
-            table.data tr { break-inside: avoid; }
+            .group-section { break-inside: auto; page-break-inside: auto; }
+            .group-heading { break-after: avoid; page-break-after: avoid; }
+            table.data tr { break-inside: avoid; page-break-inside: avoid; }
+            table.data thead { display: table-header-group; }
         }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
@@ -598,9 +601,6 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
                 <div class="sidebar-body">
                     <div class="sidebar-group">
                         <div class="sidebar-group-label">Filters</div>
-                        <div class="filter-field">
-                            <input type="text" name="search" id="sideSearch" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search activity…">
-                        </div>
                         <div class="filter-field">
                             <label for="sideRole">Role</label>
                             <select name="role" id="sideRole">
@@ -742,6 +742,16 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
                     <span class="count"><?php echo count($group['rows']); ?></span>
                 </div>
                 <table class="data">
+                    <colgroup>
+                        <col style="width: 4%;">
+                        <col style="width: 12%;">
+                        <col style="width: 10%;">
+                        <col style="width: 9%;">
+                        <col style="width: 8%;">
+                        <col style="width: 28%;">
+                        <col style="width: 10%;">
+                        <col style="width: 19%;">
+                    </colgroup>
                     <thead>
                         <tr>
                             <th>#</th>
@@ -766,7 +776,7 @@ if ($auditPeriodDesc !== '')  $reportTitle .= ' - ' . $auditPeriodDesc;
                                     $cls = $st === 'FAILED' ? 'status-fail' : ($st === 'UNAUTHORIZED_ATTEMPT' ? 'status-unauth' : 'status-ok'); ?>
                                 <span class="<?php echo $cls; ?>"><?php echo htmlspecialchars($st); ?></span>
                             </td>
-                            <td><?php echo htmlspecialchars($log['description'] ?: '—'); ?></td>
+                            <td style="word-break: break-word; white-space: normal; overflow-wrap: anywhere;"><?php echo htmlspecialchars($log['description'] ?: '—'); ?></td>
                             <td class="mono"><?php echo htmlspecialchars($log['ip_address'] ?: '—'); ?></td>
                             <td><?php echo $log['_device'] ? htmlspecialchars($log['_device']) : '—'; ?></td>
                         </tr>

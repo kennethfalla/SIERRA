@@ -155,14 +155,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </div>
     </section>
     <section class="settings-card">
-    <h3 class="settings-card-title"><?php echo t('Appearance'); ?></h3>
-    <p class="settings-card-sub"><?php echo t('Choose the appearance for this browser.'); ?></p>
-    <label class="form-label" for="appearancePreference"><?php echo t('Color mode'); ?></label>
-    <select id="appearancePreference" class="form-input" data-theme-preference>
-        <option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option>
-    </select>
-    </section>
-    <section class="settings-card">
     <h3 class="settings-card-title"><?php echo t('Live Preview'); ?></h3>
     <p class="settings-card-sub"><?php echo t('Changes take effect immediately after saving. Preview updates in real-time.'); ?></p>
     <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
@@ -201,11 +193,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </div>
     
     </section>
-    <div class="general-settings-actions">
-        <span><?php echo t('Review your changes, then save.'); ?></span>
-        <div><button type="button" class="btn-secondary" onclick="resetForm()"><i class="fas fa-rotate-left" aria-hidden="true"></i> <?php echo t('Reset'); ?></button>
-        <button type="submit" class="btn-primary"><i class="fas fa-check" aria-hidden="true"></i> <?php echo t('Save Changes'); ?></button></div>
-    </div>
+    <button type="submit" hidden><?php echo t('Save Changes'); ?></button>
 </form>
 
 <!-- ============================================ -->
@@ -327,25 +315,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         reader.readAsDataURL(file);
     }
     
-    // ===== RESET FORM =====
-    window.resetForm = function() {
-        window.GB.confirm({
-            message: 'Reset all fields to their saved values? Unsaved changes will be lost.',
-            onConfirm: function () { form.reset(); form.dispatchEvent(new Event('input', {bubbles:true})); location.reload(); }
-        });
-    };
-    
-    // ===== UNSAVED CHANGES WARNING =====
-    let formChanged = false;
-    form.addEventListener('input', function() {
-        formChanged = true;
-    });
-    form.addEventListener('submit', function() {
-        formChanged = false;
-    });
-    
-
-    
     // ===== INITIAL VALIDATION STATE =====
     // Show placeholder styling for empty previews
     if (!systemNameInput.value) {
@@ -418,7 +387,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     }
     .file-label {
         font-size: 0.75rem;
-        color: #9ca3af;
+        color: var(--sierra-type-muted, #63746b);
         margin-top: 0.5rem;
         transition: color 0.2s;
         word-break: break-all;

@@ -1,10 +1,10 @@
 <?php
 // views/admin/settings/partials/reporting.php
-// REPORT SUBMISSION LIMITS (anti-spam)
-// Per-citizen rate limits for new report submissions.
+// Report submission limits and automatic staff follow-ups.
 
 $csrf_token = InputSanitizer::generateCsrfToken();
 $limits = SettingsHelper::getReportLimits();
+$reminders = SettingsHelper::getReportReminderSettings();
 ?>
 <style>
     .rl-card {
@@ -21,7 +21,7 @@ $limits = SettingsHelper::getReportLimits();
     }
     .rl-title {
         font-weight: 700;
-        color: #1f2937;
+        color: var(--sierra-type-primary, #203b31);
         font-size: 0.95rem;
         margin-bottom: 0.3rem;
         display: flex;
@@ -31,7 +31,7 @@ $limits = SettingsHelper::getReportLimits();
     }
     .rl-desc {
         font-size: 0.78rem;
-        color: #6b7280;
+        color: var(--sierra-type-muted, #63746b);
         line-height: 1.45;
         margin-bottom: 0.6rem;
     }
@@ -51,7 +51,7 @@ $limits = SettingsHelper::getReportLimits();
     .rl-form-group label {
         display: block;
         font-weight: 600;
-        color: #374151;
+        color: var(--sierra-type-primary, #203b31);
         font-size: 0.8rem;
         margin-bottom: 0.25rem;
     }
@@ -63,7 +63,7 @@ $limits = SettingsHelper::getReportLimits();
         font-size: 0.9rem;
         transition: all 0.2s;
         background: white;
-        color: #1a2e1a;
+        color: var(--sierra-type-primary, #203b31);
         max-width: 220px;
     }
     .rl-form-group .rl-input:focus {
@@ -73,7 +73,7 @@ $limits = SettingsHelper::getReportLimits();
     }
     .rl-help {
         font-size: 0.7rem;
-        color: #6b7280;
+        color: var(--sierra-type-muted, #63746b);
         margin-top: 0.2rem;
     }
     .toggle-switch {
@@ -133,15 +133,34 @@ $limits = SettingsHelper::getReportLimits();
     }
 </style>
 
-<div class="mb-5 p-4 rounded-xl border border-blue-200 bg-blue-50 text-blue-800 text-sm flex items-start gap-3">
-    <i class="fas fa-shield-halved mt-0.5"></i>
+<div class="rl-preview mb-5 flex items-start gap-3">
+    <i class="fas fa-sliders-h mt-0.5" aria-hidden="true"></i>
     <div>
-        <strong>Anti-spam rate limits.</strong> These limits apply to <strong>citizen report submissions</strong> only (staff are not rate-limited). Both limits run independently and are checked before a report is saved.
+        <strong>Report settings.</strong> Control citizen submission limits and automatic staff follow-up reminders.
     </div>
 </div>
 
 <form method="POST" action="<?php echo BASE_URL; ?>index.php?page=settings&tab=reporting">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+
+    <div class="rl-card">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <div class="rl-title"><i class="fas fa-bell text-[#10A37F]" aria-hidden="true"></i> Report Follow-up Reminders</div>
+                <p class="rl-desc">Notify Barangay about overdue pending reports, and notify MENRO and Barangay about overdue escalated reports.</p>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" name="enable_report_reminders" value="1" aria-label="Enable report follow-up reminders" <?php echo $reminders['enabled'] ? 'checked' : ''; ?>>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="rl-form-group">
+            <label for="report_reminder_days">Remind after (days)</label>
+            <input type="number" class="rl-input" id="report_reminder_days" name="report_reminder_days" min="1" max="365" required value="<?php echo (int)$reminders['days']; ?>">
+            <p class="rl-help">Default: 3 days. Pending time starts at submission; escalated time starts at escalation.</p>
+        </div>
+        <p class="rl-desc">Each report stage sends one in-app reminder. Overdue reports stay on the dashboard until their status changes. Submission limits below work separately.</p>
+    </div>
 
     <!-- Enable Limits Toggle -->
     <div class="rl-card">

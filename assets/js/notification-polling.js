@@ -131,7 +131,9 @@
         polling = true;
         activeRequest = new AbortController();
         var timeout = setTimeout(function () { activeRequest.abort(); }, 15000);
-        fetch(LIVE_URL, { method: 'GET', credentials: 'same-origin', cache: 'no-store', signal: activeRequest.signal })
+        var liveUrl = LIVE_URL;
+        if (document.getElementById('reportFollowups')) liveUrl += (liveUrl.indexOf('?') === -1 ? '?' : '&') + 'dashboard_reminders=1';
+        fetch(liveUrl, { method: 'GET', credentials: 'same-origin', cache: 'no-store', signal: activeRequest.signal })
             .then(function (r) {
                 if (r.status === 401 || r.status === 403) { stopped = true; }
                 if (!r.ok) throw new Error('Notification request failed');
@@ -143,6 +145,7 @@
                 var unread = parseInt(data.unread, 10) || 0;
                 updateBadge(unread);
                 if (window.SierraUI && data.sidebar_counts) window.SierraUI.updateSidebarCounts(data.sidebar_counts);
+                if (data.report_reminders) document.dispatchEvent(new CustomEvent('sierra:report-reminders', {detail: data.report_reminders}));
                 if (baselineSeq !== null && unread > lastUnread && data.latest) showToast(data.latest);
                 baselineSeq = data.notif_seq;
                 lastUnread = unread;

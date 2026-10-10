@@ -73,13 +73,13 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
 
 <style>
     .form-group { margin-bottom: 0.75rem; }
-    .form-group label { display: block; font-weight: 600; color: #374151; font-size: 0.8rem; margin-bottom: 0.2rem; }
+    .form-group label { display: block; font-weight: 600; color: var(--sierra-type-primary, #203b31); font-size: 0.8rem; margin-bottom: 0.2rem; }
     .form-group .form-input {
         width: 100%; padding: 0.5rem 0.75rem; border: 1.5px solid #E5E7EB; border-radius: 0.5rem;
-        font-size: 0.85rem; transition: all 0.2s; background: white; color: #1F2937;
+        font-size: 0.85rem; transition: all 0.2s; background: white; color: var(--sierra-type-primary, #203b31);
     }
     .form-group .form-input:focus { border-color: #10A37F; outline: none; box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.08); }
-    .form-group .help-text { font-size: 0.7rem; color: #6B7280; margin-top: 0.2rem; }
+    .form-group .help-text { font-size: 0.7rem; color: var(--sierra-type-muted, #63746b); margin-top: 0.2rem; }
     .btn-primary {
         background: linear-gradient(135deg, #10A37F, #0D8568); color: white; border: none; transition: all 0.3s ease;
         cursor: pointer; padding: 0.6rem 1.5rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.9rem;
@@ -87,7 +87,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3); }
     .btn-secondary {
         background: white; border: 1px solid #e2e8f0; padding: 0.6rem 1.5rem; border-radius: 0.75rem;
-        font-weight: 500; color: #4b5563; cursor: pointer; transition: all 0.2s;
+        font-weight: 500; color: var(--sierra-type-muted, #63746b); cursor: pointer; transition: all 0.2s;
     }
     .btn-secondary:hover { background: #f8fafc; }
     .card-info {
@@ -128,10 +128,10 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
             flex: 1 1 auto;
         }
     }
-    .setting-row .setting-title { font-weight: 600; color: #1F2937; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
-    .setting-row .setting-desc { font-size: 0.8rem; color: #6B7280; margin-top: 0.2rem; line-height: 1.5; }
+    .setting-row .setting-title { font-weight: 600; color: var(--sierra-type-primary, #203b31); font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+    .setting-row .setting-desc { font-size: 0.8rem; color: var(--sierra-type-muted, #63746b); margin-top: 0.2rem; line-height: 1.5; }
     .badge-active { background: #D1FAE5; color: #065F46; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.5rem; }
-    .badge-inactive { background: #F3F4F6; color: #6B7280; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.5rem; }
+    .badge-inactive { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 0.5rem; }
     .code-block {
         font-family: monospace; font-size: 0.75rem; background: #1F2937; color: #A7F3D0;
         padding: 0.75rem 1rem; border-radius: 0.5rem; overflow-x: auto; margin-top: 0.5rem; word-break: break-all;
@@ -154,7 +154,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     .archive-table thead { background: #f9fafb; border-bottom: 2px solid #e5e7eb; }
     .archive-table thead th {
         padding: 0.75rem 1rem; text-align: left; font-weight: 600; font-size: 0.7rem;
-        text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; white-space: nowrap;
+        text-transform: uppercase; letter-spacing: 0.04em; color: var(--sierra-type-muted, #63746b); white-space: nowrap;
     }
     .archive-table tbody tr { border-bottom: 1px solid #f3f4f6; transition: background 0.15s ease; }
     .archive-table tbody tr:hover { background: #fafafa; }
@@ -165,7 +165,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     .type-announcement { background: #FEF3C7; color: #92400E; }
     .archive-search {
         width: 100%; max-width: 340px; padding: 0.5rem 0.85rem; border: 1.5px solid #E5E7EB;
-        border-radius: 0.5rem; font-size: 0.85rem; transition: all 0.2s; background: white; color: #1F2937;
+        border-radius: 0.5rem; font-size: 0.85rem; transition: all 0.2s; background: white; color: var(--sierra-type-primary, #203b31);
     }
     .archive-search:focus { border-color: #10A37F; outline: none; box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.08); }
     .btn-restore {
@@ -176,11 +176,11 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
     .btn-restore:hover { background: #10A37F; color: white; }
     .btn-view {
         display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem; border-radius: 0.5rem;
-        font-size: 0.72rem; font-weight: 600; border: 1px solid #e5e7eb; background: white; color: #4b5563;
+        font-size: 0.72rem; font-weight: 600; border: 1px solid #e5e7eb; background: white; color: var(--sierra-type-muted, #63746b);
         cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
     }
     .btn-view:hover { background: #f8fafc; border-color: #cbd5e1; }
-    .empty-archive { text-align: center; padding: 2.5rem 1rem; color: #9ca3af; }
+    .empty-archive { text-align: center; padding: 2.5rem 1rem; color: var(--sierra-type-muted, #63746b); }
 
     /* ===== DETAIL MODAL ===== */
     .archive-modal-backdrop {
@@ -198,7 +198,6 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
             padding: 0;
         }
         .archive-modal {
-            border-radius: 1rem 1rem 0 0;
             max-height: 88vh;
         }
     }
@@ -206,21 +205,20 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
         display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem;
         border-bottom: 1px solid #e5e7eb;
     }
-    .archive-modal-header h3 { font-weight: 700; font-size: 1rem; color: #1F2937; }
+    .archive-modal-header h3 { font-weight: 700; font-size: 1rem; color: var(--sierra-type-primary, #203b31); }
     .archive-modal-close {
         width: 2rem; height: 2rem; border: none; background: #f3f4f6; border-radius: 0.5rem;
-        cursor: pointer; color: #4b5563; font-size: 0.9rem; transition: all 0.2s;
+        cursor: pointer; color: var(--sierra-type-muted, #63746b); font-size: 0.9rem; transition: all 0.2s;
     }
     .archive-modal-close:hover { background: #e5e7eb; }
     .archive-modal-body { padding: 1.25rem; }
     .detail-row { margin-bottom: 0.9rem; }
-    .detail-row .k { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin-bottom: 0.15rem; }
-    .detail-row .v { font-size: 0.9rem; color: #1F2937; line-height: 1.5; word-break: break-word; }
+    .detail-row .k { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sierra-type-muted, #63746b); margin-bottom: 0.15rem; }
+    .detail-row .v { font-size: 0.9rem; color: var(--sierra-type-primary, #203b31); line-height: 1.5; word-break: break-word; }
 
     /* ===== MORE RESPONSIVE ===== */
     @media (max-width: 640px) {
         .archive-search { max-width: 100%; }
-        .archive-section-title { font-size: 0.85rem; }
         .archive-modal-body { padding: 1rem; }
         .archive-modal-header { padding: 0.9rem 1rem; }
     }
@@ -261,7 +259,7 @@ $settings_url = BASE_URL . 'controllers/SettingsController.php?tab=archiving';
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             text-align: left;
         }
         .archive-table tbody td[data-label="Actions"] { display: block; padding-top: 0.55rem !important; }

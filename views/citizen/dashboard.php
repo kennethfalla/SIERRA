@@ -220,7 +220,7 @@ if (is_dir($barangays_dir)) {
         .stat-card .stat-value {
             font-size: 1.75rem;
             font-weight: 800;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             letter-spacing: -0.02em;
         }
         @media (min-width: 640px) {
@@ -298,9 +298,9 @@ if (is_dir($barangays_dir)) {
         .status-escalated_pending { background: #FDE68A; color: #92400E; border: 1px solid #F59E0B; }
         .status-escalated { background: #FED7AA; color: #9A3412; }
         .status-resolved { background: #D1FAE5; color: #065F46; }
-        .status-closed { background: #F3F4F6; color: #4B5563; }
+        .status-closed { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); }
         .status-rejected { background: #FEE2E2; color: #991B1B; }
-        .status-cancelled { background: #F3F4F6; color: #6B7280; }
+        .status-cancelled { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); }
         
         .greeting-badge {
             background: linear-gradient(135deg, #10A37F 0%, #0D8568 100%);
@@ -452,7 +452,7 @@ if (is_dir($barangays_dir)) {
         }
         .announce-msg {
             font-weight: 500;
-            color: #1F2937;
+            color: var(--sierra-type-primary, #203b31);
             font-size: 0.8rem;
             line-height: 1.4;
             overflow: hidden;
@@ -756,7 +756,7 @@ if (is_dir($barangays_dir)) {
             border: none;
             cursor: pointer;
             background: transparent;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
             transition: all 0.2s;
         }
         .map-toggle button.active {
@@ -768,7 +768,7 @@ if (is_dir($barangays_dir)) {
 
         .map-popup-title {
             font-weight: 700;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             font-size: 0.85rem;
             line-height: 1.25;
             margin-bottom: 4px;
@@ -969,7 +969,7 @@ if (is_dir($barangays_dir)) {
         .notification-title { 
             font-weight: 600; 
             font-size: 0.8rem; 
-            color: #1F2937; 
+            color: var(--sierra-type-primary, #203b31);
             margin-bottom: 2px; 
         }
         @media (min-width: 640px) {
@@ -979,7 +979,7 @@ if (is_dir($barangays_dir)) {
         }
         .notification-message { 
             font-size: 0.7rem; 
-            color: #6B7280; 
+            color: var(--sierra-type-muted, #63746b);
             line-height: 1.4; 
             margin-bottom: 4px; 
             word-wrap: break-word; 
@@ -991,7 +991,7 @@ if (is_dir($barangays_dir)) {
         }
         .notification-time { 
             font-size: 0.6rem; 
-            color: #9CA3AF; 
+            color: var(--sierra-type-muted, #63746b);
             display: flex; 
             align-items: center; 
             gap: 4px; 
@@ -1112,7 +1112,7 @@ if (is_dir($barangays_dir)) {
         }
         .table-container .table-header h3 {
             font-weight: 600;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             font-size: 0.95rem;
             display: flex;
             align-items: center;
@@ -1179,7 +1179,7 @@ if (is_dir($barangays_dir)) {
             padding: 0.6rem 0.75rem;
             vertical-align: middle;
             font-size: 0.8rem;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
         }
         @media (min-width: 640px) {
             .desktop-table tbody td {
@@ -1190,7 +1190,7 @@ if (is_dir($barangays_dir)) {
         
         .desktop-table .report-title {
             font-weight: 600;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             max-width: 120px;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1204,7 +1204,7 @@ if (is_dir($barangays_dir)) {
         .desktop-table .report-id {
             display: block;
             font-size: 0.55rem;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             font-weight: 400;
             margin-top: 2px;
         }
@@ -1291,13 +1291,13 @@ if (is_dir($barangays_dir)) {
         .report-card-item .card-title {
             font-weight: 600;
             font-size: 0.8rem;
-            color: #1a2e1a;
+            color: var(--sierra-type-primary, #203b31);
             line-height: 1.3;
             flex: 1;
         }
         .report-card-item .card-id {
             font-size: 0.55rem;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
             flex-shrink: 0;
             padding-top: 0.1rem;
         }
@@ -1360,7 +1360,7 @@ if (is_dir($barangays_dir)) {
         .empty-reports {
             padding: 2.5rem 1rem;
             text-align: center;
-            color: #9ca3af;
+            color: var(--sierra-type-muted, #63746b);
         }
         .empty-reports i {
             font-size: 2.5rem;
@@ -1415,33 +1415,8 @@ text-decoration: underline;
         }
         
         @media (max-width: 480px) {
-            .stat-card .stat-value {
-                font-size: 1.5rem;
-            }
-            .greeting-badge .greeting-name {
-                font-size: 1.1rem;
-            }
-            .report-issue-card .issue-title {
-                font-size: 0.95rem;
-            }
-            .report-issue-card .issue-description {
-                font-size: 0.75rem;
-            }
             .btn-report {
-                font-size: 0.8rem;
                 padding: 10px 16px;
-            }
-            .announce-msg {
-                font-size: 0.7rem;
-            }
-            .time-card .time-display {
-                font-size: 0.9rem;
-            }
-            .report-card-item .card-title {
-                font-size: 0.75rem;
-            }
-            .report-card-item .card-detail {
-                font-size: 0.6rem;
             }
             .mobile-cards {
                 padding: 0.25rem 0.5rem;
@@ -1459,11 +1434,9 @@ text-decoration: underline;
             /* ── Greeting badge ── */
             .greeting-badge {
                 padding: 1rem 1rem !important;
-                border-radius: 1rem !important;
                 margin-bottom: 0.85rem !important;
             }
             .greeting-badge .flex.justify-between { gap: 0.6rem; }
-            .greeting-badge .greeting-name { font-size: 1.1rem !important; }
             .greeting-badge .flex.items-center.space-x-2 { margin-bottom: 0.1rem; }
             .greeting-badge .text-sm { font-size: 0.72rem !important; }
             .greeting-badge .text-emerald-100\/80 { font-size: 0.65rem !important; }
@@ -1472,61 +1445,49 @@ text-decoration: underline;
             .notification-bell .fa-bell { font-size: 0.9rem !important; }
             /* Time card */
             .time-card { padding: 0.3rem 0.55rem !important; }
-            .time-card .time-display { font-size: 0.95rem !important; }
-            .time-card .time-period  { font-size: 0.55rem !important; }
 
             /* ── Stat cards ── */
-            .stat-card { padding: 0.75rem 0.65rem !important; border-radius: 0.75rem; }
-            .stat-card .stat-value   { font-size: 1.35rem !important; }
-            .stat-card .stat-label   { font-size: 0.6rem !important; }
-            .stat-card .stat-icon    { width: 2rem !important; height: 2rem !important; border-radius: 0.5rem; }
+            .stat-card { padding: 0.75rem 0.65rem !important; }
+            .stat-card .stat-icon    { width: 2rem !important; height: 2rem !important; }
             .stat-card .stat-icon i  { font-size: 0.75rem !important; }
 
             /* ── Announcement card ── */
             .announce-card {
                 padding: 0.75rem 0.9rem !important;
                 gap: 8px 10px !important;
-                border-radius: 0.75rem!important;
             }
-            .announce-icon { width: 34px !important; height: 34px !important; font-size: 1rem !important; }
-            .announce-label { font-size: 0.58rem !important; }
-            .announce-msg   { font-size: 0.75rem !important; }
-            .btn-announce   { padding: 5px 11px !important; font-size: 0.7rem !important; gap: 4px !important; }
+            .announce-icon { width: 34px !important; height: 34px !important; }
+            .btn-announce   { padding: 5px 11px !important; gap: 4px !important; }
             .announce-card { flex-wrap: nowrap !important; }
             .announce-left { flex: 0 1 auto !important; min-width: 0 !important; }
 
             /* ── Report-issue CTA card ── */
             .report-issue-card {
                 padding: 1rem 1rem !important;
-                border-radius: 1rem !important;
             }
-            .report-issue-card .issue-icon-large { width: 40px !important; height: 40px !important; font-size: 1.15rem !important; }
-            .report-issue-card .issue-title       { font-size: 0.95rem !important; white-space: normal; overflow-wrap: anywhere; }
+            .report-issue-card .issue-icon-large { width: 40px !important; height: 40px !important; }
+            .report-issue-card .issue-title       { white-space: normal; overflow-wrap: anywhere; }
             .report-issue-card .flex, .report-issue-card .flex > div { min-width: 0; }
-            .report-issue-card .issue-description { font-size: 0.75rem !important; margin-bottom: 0.75rem !important; }
-            .btn-report { padding: 9px 14px !important; font-size: 0.78rem !important; gap: 7px !important; }
+            .report-issue-card .issue-description { margin-bottom: 0.75rem !important; }
+            .btn-report { padding: 9px 14px !important; gap: 7px !important; }
 
             /* ── Two-col gap ── */
             .two-col { gap: 0.65rem !important; margin-bottom: 0.85rem !important; }
 
             /* ── Table container header ── */
             .table-container .table-header { padding: 0.6rem 0.75rem !important; }
-            .table-container .table-header h3 { font-size: 0.82rem !important; }
 
             /* ── Mobile report cards ── */
             .mobile-cards { padding: 0.35rem 0.6rem !important; }
             .report-card-item { padding: 0.6rem 0.7rem !important; margin-bottom: 0.4rem !important; }
-            .report-card-item .card-title  { font-size: 0.75rem !important; }
-            .report-card-item .card-id     { font-size: 0.5rem !important; }
-            .report-card-item .card-detail { font-size: 0.6rem !important; }
 
             /* ── Map ── */
             #communityMap { height: 260px !important; }
-            #map-container { padding: 0.65rem !important; border-radius: 1rem !important; }
-            .map-toggle button { padding: 0.3rem 0.75rem !important; font-size: 0.65rem !important; }
+            #map-container { padding: 0.65rem !important; }
+            .map-toggle button { padding: 0.3rem 0.75rem !important; }
 
             /* ── FAB (floating action button) ── */
-            .new-report-fab { width: 50px !important; height: 50px !important; font-size: 1.15rem !important; right: 14px !important; }
+            .new-report-fab { width: 50px !important; height: 50px !important; right: 14px !important; }
         }
     </style>
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/dashboard.css'); ?>">

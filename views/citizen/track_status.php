@@ -108,6 +108,7 @@ if ($report['status'] == 'cancelled' && $_SESSION['user_role'] !== 'admin' && $r
 }
 
 // Get images
+$report = $reportModel->getTimelineDates($report);
 $img_query = "SELECT * FROM report_images WHERE report_id = :report_id ORDER BY is_primary DESC, uploaded_at ASC";
 $img_stmt = $db->prepare($img_query);
 $img_stmt->bindParam(':report_id', $report_id);
@@ -220,89 +221,6 @@ $is_cancelled = ($current_status == 'cancelled');
 $is_rejected = ($current_status == 'rejected');
 $is_resolved = ($current_status == 'resolved');
 $is_pending = ($current_status == 'pending');
-$is_under_review = ($current_status == 'under_review');
-$is_in_progress = ($current_status == 'in_progress' || $current_status == 'escalated_pending' || $current_status == 'escalated');
-
-$step1_completed = true;
-$step2_completed = !in_array($current_status, ['pending', 'cancelled', 'rejected']);
-$step3_completed = in_array($current_status, ['in_progress', 'escalated_pending', 'escalated', 'resolved']);
-$step4_completed = ($is_resolved && $resolution_confirmed == 1) || $is_rejected || $is_cancelled;
-$step4_current = ($is_resolved && $resolution_confirmed == 0);
-
-$step2_class = 'pending';
-if ($is_under_review) {
-    $step2_class = 'current';
-} elseif ($step2_completed) {
-    $step2_class = 'completed';
-}
-
-$step3_class = 'pending';
-if ($is_in_progress && !$is_resolved) {
-    $step3_class = 'current';
-} elseif ($step3_completed) {
-    $step3_class = 'completed';
-}
-
-if ($is_under_review) {
-    $step2_text = 'Under Review';
-} elseif ($step2_completed) {
-    $step2_text = 'Completed';
-} else {
-    $step2_text = 'Pending Review';
-}
-
-if ($current_status == 'escalated') {
-    $step3_text = 'MENRO In Progress';
-} elseif ($current_status == 'escalated_pending') {
-    $step3_text = 'Escalation Pending';
-} elseif ($is_in_progress) {
-    $step3_text = 'Action Being Taken';
-} elseif ($step3_completed) {
-    $step3_text = 'Completed';
-} else {
-    $step3_text = 'Pending';
-}
-
-if ($is_resolved) {
-    $final_label = 'Resolved';
-    $final_icon = 'fa-check-circle';
-    if ($step4_completed) {
-        $final_class = 'completed';
-        $final_text = 'Confirmed ' . date('M d', strtotime($report['resolution_confirmed_at'] ?? 'now'));
-    } else {
-        $final_class = 'resolved-current';
-        $final_text = 'Awaiting Confirmation';
-    }
-} elseif ($is_rejected) {
-    $final_label = 'Rejected';
-    $final_icon = 'fa-times-circle';
-    $final_class = 'rejected-step';
-    $final_text = 'Rejected';
-} elseif ($is_cancelled) {
-    $final_label = 'Cancelled';
-    $final_icon = 'fa-ban';
-    $final_class = 'cancelled-step';
-    $final_text = 'Cancelled';
-} else {
-    $final_label = 'Final';
-    $final_icon = 'fa-flag-checkered';
-    $final_class = 'pending';
-    $final_text = 'Pending';
-}
-
-$submitted_center = 12.5;
-if ($step4_completed) {
-    $progress_width = 87.5 - $submitted_center;
-} elseif ($step3_completed) {
-    $progress_width = 62.5 - $submitted_center;
-} elseif ($step2_completed) {
-    $progress_width = 37.5 - $submitted_center;
-} else {
-    $progress_width = 0;
-}
-if ($step4_current) {
-    $progress_width = 62.5 - $submitted_center;
-}
 
 $display_status = $current_status;
 $status_display = [
@@ -392,91 +310,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             }
         }
         
-        .timeline-container {
-            display: flex;
-            flex-wrap: wrap;
-            position: relative;
-            padding: 0 0.5rem;
-        }
-        .timeline-step { 
-            position: relative; 
-            flex: 1; 
-            text-align: center; 
-            z-index: 2;
-            min-width: 60px;
-        }
-        .timeline-container::before {
-            content: '';
-            position: absolute;
-            top: 28px;
-            left: 12.5%;
-            right: 12.5%;
-            height: 3px;
-            background: #E5E7EB;
-            z-index: 0;
-            border-radius: 8px;
-        }
-        .timeline-progress {
-            position: absolute;
-            top: 28px;
-            left: 12.5%;
-            height: 4px;
-            background: #10A37F;
-            z-index: 1;
-            transition: width 0.6s ease;
-            border-radius: 8px;
-            width: 0%;
-        }
-        .step-icon { 
-            position: relative; 
-            z-index: 2; 
-            width: 56px; 
-            height: 56px; 
-            margin: 0 auto 12px; 
-            background: white; 
-            border: 2px solid #E5E7EB; 
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            transition: all 0.3s ease; 
-        }
-        .step-icon i { color: #9CA3AF; font-size: 1.25rem; }
-        .timeline-step.completed .step-icon { border-color: #10A37F; background: #10A37F; }
-        .timeline-step.completed .step-icon i { color: white; }
-        .timeline-step.current .step-icon { border-color: #10A37F; background: white; animation: stepPulse 2s infinite; }
-        .timeline-step.current .step-icon i { color: #10A37F; }
-        @keyframes stepPulse {
-            0% { box-shadow: 0 0 0 0 rgba(16, 163, 127, 0.4); }
-            70% { box-shadow: 0 0 0 15px rgba(16, 163, 127, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 163, 127, 0); }
-        }
-        .timeline-step.rejected-step .step-icon { border-color: #EF4444; background: #FEE2E2; }
-        .timeline-step.rejected-step .step-icon i { color: #DC2626; }
-        .timeline-step.cancelled-step .step-icon { border-color: #6B7280; background: #F3F4F6; }
-        .timeline-step.cancelled-step .step-icon i { color: #6B7280; }
-        .timeline-step.resolved-current .step-icon { border-color: #10A37F; background: white; animation: none !important; }
-        .timeline-step.resolved-current .step-icon i { color: #10A37F; }
-        
-        .timeline-step .step-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #1F2937;
-            line-height: 1.2;
-        }
-        .timeline-step .step-date {
-            font-size: 0.6rem;
-            color: #9CA3AF;
-            margin-top: 0.2rem;
-        }
-        @media (max-width: 640px) {
-            .timeline-step .step-icon { width: 40px; height: 40px; }
-            .timeline-step .step-icon i { font-size: 1rem; }
-            .timeline-container::before, .timeline-progress { top: 20px; left: 12.5%; right: 12.5%; }
-            .timeline-step .step-label { font-size: 0.6rem; }
-            .timeline-step .step-date { font-size: 0.5rem; }
-        }
-        
         .status-badge { 
             display: inline-flex; 
             align-items: center; 
@@ -493,7 +326,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .status-escalated { background: #FED7AA; color: #9A3412; }
         .status-resolved { background: #D1FAE5; color: #10A37F; }
         .status-rejected { background: #FEE2E2; color: #DC2626; }
-        .status-cancelled { background: #F3F4F6; color: #6B7280; }
+        .status-cancelled { background: #F3F4F6; color: var(--sierra-type-muted, #63746b); }
         
         .risk-low { background: #D1FAE5; color: #065F46; }
         .risk-medium { background: #FEF3C7; color: #92400E; }
@@ -527,7 +360,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
         @media (max-width: 640px) {
             .verify-btn {
-                font-size: 0.8rem;
                 padding: 0.6rem 1.1rem;
                 min-height: 44px;
             }
@@ -540,7 +372,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             opacity: 0.5;
             cursor: not-allowed;
             border-color: #D1D5DB;
-            color: #9CA3AF;
+            color: var(--sierra-type-muted, #63746b);
         }
         .verify-btn.verified {
             background: #D1FAE5;
@@ -552,7 +384,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             align-items: center;
             gap: 0.25rem;
             font-size: 0.8rem;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
         }
         .verification-count i {
             color: #10A37F;
@@ -567,7 +399,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             border-radius: 9999px;
             font-size: 0.65rem;
             font-weight: 500;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
             background: #F3F4F6;
         }
 
@@ -653,11 +485,11 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .card { background: white; border-radius: 1rem; border: 1px solid rgba(16,163,127,0.08); padding: 1.25rem; margin-bottom: 1rem; transition: all 0.25s ease; }
         @media (min-width: 640px) { .card { padding: 1.5rem; } }
         .card:hover { border-color: rgba(16,163,127,0.15); box-shadow: 0 4px 16px -4px rgba(16,163,127,0.08); }
-        .card-header { font-weight: 700; font-size: 0.85rem; color: #4b5563; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .card-header { font-weight: 700; font-size: 0.85rem; color: var(--sierra-type-muted, #63746b); border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         .card-header i { color: #10A37F; }
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1rem; }
         @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
-        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; text-align: center; color: #9CA3AF; }
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; text-align: center; color: var(--sierra-type-muted, #63746b); }
         .empty-state i { font-size: 1.75rem; margin-bottom: 8px; opacity: 0.5; }
 
         /* ===== PHOTO GRID ===== */
@@ -668,17 +500,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         .photo-grid video:hover { transform: scale(1.02); }
         .photo-card { position: relative; }
         .photo-grid-cell { display: flex; flex-direction: column; gap: 6px; }
-        .resolution-note-box {
-            font-size: 0.75rem;
-            color: #374151;
-            background: #F0FDF4;
-            border: 1px solid #A7F3D0;
-            border-radius: 0.5rem;
-            padding: 0.45rem 0.6rem;
-            line-height: 1.45;
-            word-break: break-word;
-            white-space: pre-wrap;
-        }
         /* ===== FULL-BLEED MEDIA CARDS (photos fill the whole card, no gaps) ===== */
         .card-bleed { padding: 0; overflow: hidden; }
         .card-bleed .card-header {
@@ -743,27 +564,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         }
         .supported-verification-card .heart-text {
             color: #E91E63;
-        }
-
-        /* Timeline progress color override for supported */
-        .supported-timeline .timeline-progress {
-            background: #0A7E6B;
-        }
-        .supported-timeline .timeline-step.completed .step-icon {
-            border-color: #0A7E6B;
-            background: #0A7E6B;
-        }
-        .supported-timeline .timeline-step.current .step-icon {
-            border-color: #0A7E6B;
-        }
-        .supported-timeline .timeline-step.current .step-icon i {
-            color: #0A7E6B;
-        }
-        .supported-timeline .timeline-step.resolved-current .step-icon {
-            border-color: #0A7E6B;
-        }
-        .supported-timeline .timeline-step.resolved-current .step-icon i {
-            color: #0A7E6B;
         }
 
         /* Track button for supported */
@@ -936,7 +736,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
 </head>
-<body class="track-status-page bg-[#F5FBF6] <?php echo $can_confirm_resolution ? 'resolution-active' : ''; ?>">
+<body class="track-status-page report-detail-page bg-[#F5FBF6] <?php echo $can_confirm_resolution ? 'resolution-active' : ''; ?>">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
@@ -986,136 +786,47 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         </div>
         
-        <!-- ===== REPORT DETAILS CARD ===== -->
-        <?php if ($is_supporter): ?>
-            <!-- SUPPORTED REPORT HEADER (teal accent) -->
-            <div class="track-report-hero supported-header rounded-2xl shadow-sm overflow-hidden mb-6 md:mb-8">
-                <div class="px-4 md:px-6 py-4 md:py-6">
-                    <div class="flex flex-wrap justify-between items-start gap-4">
-                        <div class="space-y-2">
-                            <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background:rgba(10,126,107,0.12);">
-                                    <i class="fas fa-heart text-sm" style="color:#0A7E6B;"></i>
-                                </div>
-                                 <span class="text-xs uppercase tracking-wider font-semibold" style="color:#0A7E6B;"><?php echo t('You Supported This Report'); ?></span>
-                            </div>
-                            <h2 class="text-xl md:text-2xl font-bold" style="color:#0A7E6B;"><?php echo htmlspecialchars($report['title']); ?></h2>
-                            <div class="flex flex-wrap gap-2 mt-1">
-                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style="background:rgba(10,126,107,0.08);color:#0A7E6B;border:1px solid rgba(10,126,107,0.2);">
-                                    <i class="fas fa-calendar-alt"></i> <?php echo $days_ago; ?> day<?php echo $days_ago != 1 ? 's' : ''; ?> ago
-                                </span>
-                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style="background:rgba(10,126,107,0.08);color:#0A7E6B;border:1px solid rgba(10,126,107,0.2);">
-                                    <?php echo date('M d, Y • H:i', strtotime($report['created_at'])); ?>
-                                </span>
-                            </div>
-                            <?php if($is_cancelled && !empty($report['cancellation_remarks'])): ?>
-                                <div class="mt-2 p-2 rounded-lg text-xs" style="background:rgba(10,126,107,0.08);color:#0A7E6B;border:1px solid rgba(10,126,107,0.2);">
-                                    <i class="fas fa-info-circle mr-1"></i>
-                                    <strong><?php echo t('Cancellation reason:'); ?></strong> <?php echo htmlspecialchars($report['cancellation_remarks']); ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="flex gap-2 flex-wrap">
-                            <?php
-                            $status_icon = '';
-                            if($display_status == 'pending') $status_icon = 'fa-clock';
-                            elseif($display_status == 'under_review') $status_icon = 'fa-search';
-                            elseif($display_status == 'verified') $status_icon = 'fa-search';
-                            elseif($display_status == 'in_progress') $status_icon = 'fa-spinner';
-                            elseif($display_status == 'escalated_pending') $status_icon = 'fa-hourglass-half';
-                            elseif($display_status == 'escalated') $status_icon = 'fa-building';
-                            elseif($display_status == 'resolved') $status_icon = 'fa-check-circle';
-                            elseif($display_status == 'rejected') $status_icon = 'fa-times-circle';
-                            elseif($display_status == 'cancelled') $status_icon = 'fa-ban';
-                            else $status_icon = 'fa-clock';
-                            ?>
-                            <span class="status-badge status-<?php echo $display_status; ?>">
-                                <i class="fas <?php echo $status_icon; ?> mr-1 text-xs"></i>
-                                <?php echo $display_status_label; ?>
-                            </span>
-                            <?php if(!$is_cancelled && !$is_rejected): ?>
-                            <span class="risk-<?php echo $current_risk; ?> px-2 py-0.5 text-xs rounded-full font-medium flex items-center gap-1">
-                                <i class="fas <?php echo $risk_info['icon']; ?> text-xs"></i>
-                                <?php echo $risk_info['label']; ?> Risk
-                            </span>
-                            <?php endif; ?>
-                        </div>
+        <div class="report-detail-sheet">
+        <div class="report-hero">
+            <div class="report-hero-inner">
+                <div>
+                    <span class="report-hero-kicker"><i class="fas <?php echo $is_supporter ? 'fa-heart' : 'fa-file-alt'; ?>"></i>
+                        <?php echo $is_supporter ? t('You Supported This Report') : t('Report'); ?> #<?php echo str_pad($report['id'], 6, '0', STR_PAD_LEFT); ?>
+                    </span>
+                    <h2 class="report-hero-title"><?php echo htmlspecialchars($report['title']); ?></h2>
+                    <div class="report-hero-meta">
+                        <span class="report-hero-chip"><i class="fas fa-calendar-alt"></i> <?php echo date('M d, Y \a\t h:i A', strtotime($report['created_at'])); ?></span>
+                        <span class="report-hero-chip"><i class="far fa-clock"></i> <?php echo $days_ago; ?> day<?php echo $days_ago != 1 ? 's' : ''; ?> ago</span>
                     </div>
+                    <?php if ($is_cancelled && !empty($report['cancellation_remarks'])): ?>
+                        <p class="report-hero-chip mt-3"><strong><?php echo t('Cancellation reason:'); ?></strong> <?php echo htmlspecialchars($report['cancellation_remarks']); ?></p>
+                    <?php endif; ?>
+                </div>
+                <div class="report-hero-badges">
+                    <span class="status-badge status-<?php echo htmlspecialchars($display_status); ?>"><?php echo htmlspecialchars($display_status_label); ?></span>
+                    <?php if (!$is_cancelled && !$is_rejected): ?>
+                        <span class="risk-badge risk-<?php echo htmlspecialchars($current_risk); ?>"><?php echo htmlspecialchars($risk_info['label']); ?> Risk</span>
+                    <?php endif; ?>
                 </div>
             </div>
+        </div>
 
-        <?php else: ?>
-            <!-- OWN REPORT HEADER (default green gradient) -->
-            <div class="track-report-hero bg-gradient-to-r from-[#10A37F] to-[#0D8568] rounded-2xl shadow-xl overflow-hidden mb-6 md:mb-8">
-                <div class="px-4 md:px-6 py-4 md:py-6">
-                    <div class="flex flex-wrap justify-between items-start gap-4">
-                        <div class="space-y-2">
-                            <div class="flex items-center gap-2">
-                                <div class="w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-file-alt text-white/80 text-[10px] md:text-xs"></i>
-                                </div>
-                                 <span class="text-white/80 text-[10px] md:text-xs uppercase tracking-wider font-semibold"><?php echo t('Report Details'); ?></span>
-                            </div>
-                            <h2 class="text-xl md:text-2xl font-bold text-white"><?php echo htmlspecialchars($report['title']); ?></h2>
-                            <div class="flex flex-wrap gap-2 mt-1">
-                                <span class="inline-flex items-center gap-1 px-2 py-1 bg-white/20 rounded-lg text-white text-[10px] md:text-xs">
-                                    <i class="fas fa-calendar-alt"></i> <?php echo $days_ago; ?> day<?php echo $days_ago != 1 ? 's' : ''; ?> ago
-                                </span>
-                                <span class="inline-flex items-center gap-1 px-2 py-1 bg-white/20 rounded-lg text-white text-[10px] md:text-xs">
-                                    <?php echo date('M d, Y • H:i', strtotime($report['created_at'])); ?>
-                                </span>
-                            </div>
-                            <?php if($is_cancelled && !empty($report['cancellation_remarks'])): ?>
-                                <div class="mt-2 p-2 bg-white/20 rounded-lg text-white text-xs">
-                                    <i class="fas fa-info-circle mr-1"></i>
-                                    <strong><?php echo t('Cancellation reason:'); ?></strong> <?php echo htmlspecialchars($report['cancellation_remarks']); ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="flex gap-2 flex-wrap">
-                            <?php
-                            $status_icon = '';
-                            if($display_status == 'pending') $status_icon = 'fa-clock';
-                            elseif($display_status == 'under_review') $status_icon = 'fa-search';
-                            elseif($display_status == 'verified') $status_icon = 'fa-search';
-                            elseif($display_status == 'in_progress') $status_icon = 'fa-spinner';
-                            elseif($display_status == 'escalated_pending') $status_icon = 'fa-hourglass-half';
-                            elseif($display_status == 'escalated') $status_icon = 'fa-building';
-                            elseif($display_status == 'resolved') $status_icon = 'fa-check-circle';
-                            elseif($display_status == 'rejected') $status_icon = 'fa-times-circle';
-                            elseif($display_status == 'cancelled') $status_icon = 'fa-ban';
-                            else $status_icon = 'fa-clock';
-                            ?>
-                            <span class="status-badge status-<?php echo $display_status; ?>">
-                                <i class="fas <?php echo $status_icon; ?> mr-1 text-xs"></i>
-                                <?php echo $display_status_label; ?>
-                            </span>
-                            <?php if(!$is_cancelled && !$is_rejected): ?>
-                            <span class="risk-<?php echo $current_risk; ?> px-2 py-0.5 text-xs rounded-full font-medium flex items-center gap-1">
-                                <i class="fas <?php echo $risk_info['icon']; ?> text-xs"></i>
-                                <?php echo $risk_info['label']; ?> Risk
-                            </span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?>
-        
+        <?php $reportProgressContext = 'citizen'; $reportProgressMode = 'summary'; include BASE_PATH . 'views/shared/report_progress.php'; ?>
+
         <!-- Status, Risk & Verification Row -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        <div class="report-detail-facts grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             <!-- Status Card -->
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-emerald-50">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-sm text-gray-400 mb-1"><?php echo t('Current Status'); ?></p>
-                        <div class="flex items-center gap-2 mt-1">
+                <div class="flex justify-between items-start gap-4">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm text-gray-400 mb-2"><?php echo t('Current Status'); ?></p>
+                        <div class="flex items-center gap-2">
                             <span class="status-badge status-<?php echo $report['status']; ?>">
                                 <i class="fas <?php echo $report['status'] == 'pending' ? 'fa-clock' : ($report['status'] == 'resolved' ? 'fa-check-circle' : 'fa-check'); ?> mr-1 text-xs"></i>
-                                <?php echo ucfirst(str_replace('_', ' ', $report['status'])); ?>
+                                <?php echo t(ucwords(str_replace('_', ' ', $report['status']))); ?>
                             </span>
                         </div>
-                        <p class="text-sm text-gray-500 mt-3 leading-relaxed">
+                        <p class="text-sm text-gray-500 mt-4 leading-relaxed">
                             <?php 
                                 if($report['status'] == 'pending') echo t("Your report is waiting for verification from barangay officials.");
                                 elseif($report['status'] == 'under_review') echo t("Your report is currently under review by barangay officials.");
@@ -1129,7 +840,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             ?>
                         </p>
                     </div>
-                    <div class="w-12 h-12 <?php echo $report['status'] == 'pending' ? 'bg-yellow-50' : ($report['status'] == 'resolved' ? 'bg-green-50' : 'bg-blue-50'); ?> rounded-xl flex items-center justify-center">
+                    <div class="w-12 h-12 shrink-0 <?php echo $report['status'] == 'pending' ? 'bg-yellow-50' : ($report['status'] == 'resolved' ? 'bg-green-50' : 'bg-blue-50'); ?> rounded-xl flex items-center justify-center">
                         <i class="fas <?php echo $report['status'] == 'pending' ? 'fa-clock' : ($report['status'] == 'resolved' ? 'fa-check-circle' : 'fa-spinner'); ?> text-xl <?php echo $report['status'] == 'pending' ? 'text-yellow-500' : ($report['status'] == 'resolved' ? 'text-green-500' : 'text-blue-500'); ?>"></i>
                     </div>
                 </div>
@@ -1137,18 +848,18 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             
             <!-- Risk Card -->
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-emerald-50">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-sm text-gray-400 mb-1"><?php echo t('Severity Level'); ?></p>
-                        <div class="flex items-center gap-2 mt-1">
+                <div class="flex justify-between items-start gap-4">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm text-gray-400 mb-2"><?php echo t('Severity Level'); ?></p>
+                        <div class="flex items-center gap-2">
                             <span class="risk-<?php echo $current_risk; ?> px-2 py-0.5 text-xs rounded-full font-medium flex items-center gap-1">
                                 <i class="fas <?php echo $risk_info['icon']; ?> text-xs"></i>
                                 <?php echo $risk_info['label']; ?> Risk
                             </span>
                         </div>
-                        <p class="text-sm text-gray-500 mt-3 leading-relaxed"><?php echo $risk_info['desc']; ?></p>
+                        <p class="text-sm text-gray-500 mt-4 leading-relaxed"><?php echo $risk_info['desc']; ?></p>
                     </div>
-                    <div class="w-12 h-12 <?php echo $risk_info['bg']; ?> rounded-xl flex items-center justify-center">
+                    <div class="w-12 h-12 shrink-0 <?php echo $risk_info['bg']; ?> rounded-xl flex items-center justify-center">
                         <i class="fas <?php echo $risk_info['icon']; ?> text-xl <?php echo $risk_info['text']; ?>"></i>
                     </div>
                 </div>
@@ -1156,17 +867,17 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 
             <!-- Verification / Support Card (with ownership check) -->
             <div class="bg-white rounded-2xl p-5 shadow-sm border <?php echo $is_supporter ? 'border-[#0A7E6B]' : 'border-emerald-50'; ?>">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-sm text-gray-400 mb-1"><?php echo t('Community Support'); ?></p>
-                        <div class="flex items-center gap-2 mt-1">
+                <div class="flex justify-between items-start gap-4">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm text-gray-400 mb-2"><?php echo t('Community Support'); ?></p>
+                        <div class="flex items-center gap-2">
                             <span class="verification-count">
                                 <i class="fas fa-thumbs-up"></i>
                                 <span class="font-semibold text-gray-700" id="verifyCount"><?php echo (int)$report['verification_count']; ?></span>
                                 <span class="text-gray-400">verification<?php echo $report['verification_count'] != 1 ? 's' : ''; ?></span>
                             </span>
                         </div>
-                        <p class="text-sm mt-3 leading-relaxed <?php echo $is_supporter ? 'text-[#0A7E6B]' : 'text-gray-500'; ?>">
+                        <p class="text-sm mt-4 leading-relaxed <?php echo $is_supporter ? 'text-[#0A7E6B]' : 'text-gray-500'; ?>">
                             <?php if ($report['owner_id'] == $_SESSION['user_id']): ?>
                                 <span class="text-gray-500"><?php echo t('This is your report'); ?></span>
                             <?php elseif ($report['is_verified_by_user'] > 0): ?>
@@ -1176,7 +887,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                             <?php endif; ?>
                         </p>
                     </div>
-                    <div>
+                    <div class="shrink-0">
                         <?php if ($report['owner_id'] == $_SESSION['user_id']): ?>
                             <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
                                 <i class="fas fa-user text-gray-400 text-2xl"></i>
@@ -1201,38 +912,6 @@ $csrf_token = InputSanitizer::generateCsrfToken();
             </div>
         </div>
         
-        <!-- Timeline -->
-        <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8 <?php echo $is_supporter ? 'supported-timeline' : ''; ?>">
-            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 md:mb-6"><?php echo t('Report Progress Timeline'); ?></h3>
-            <div class="timeline-container">
-                <div class="timeline-progress" style="width: <?php echo $progress_width; ?>%;"></div>
-                
-                <div class="timeline-step completed">
-                    <div class="step-icon"><i class="fas fa-check"></i></div>
-                    <div class="step-label"><?php echo t('Submitted'); ?></div>
-                    <div class="step-date"><?php echo date('M d', strtotime($report['created_at'])); ?></div>
-                </div>
-                
-                <div class="timeline-step <?php echo $step2_class; ?>">
-                    <div class="step-icon"><i class="fas <?php echo $step2_class == 'completed' ? 'fa-check' : 'fa-search'; ?>"></i></div>
-                    <div class="step-label"><?php echo t('Under Review'); ?></div>
-                    <div class="step-date"><?php echo $step2_text; ?></div>
-                </div>
-                
-                <div class="timeline-step <?php echo $step3_class; ?>">
-                    <div class="step-icon"><i class="fas <?php echo $step3_class == 'completed' ? 'fa-check' : ($step3_class == 'current' ? 'fa-spinner' : 'fa-spinner'); ?>"></i></div>
-                    <div class="step-label"><?php echo t('In Progress'); ?></div>
-                    <div class="step-date"><?php echo $step3_text; ?></div>
-                </div>
-                
-                <div class="timeline-step <?php echo $final_class; ?>">
-                    <div class="step-icon"><i class="fas <?php echo $final_icon; ?>"></i></div>
-                    <div class="step-label"><?php echo $final_label; ?></div>
-                    <div class="step-date"><?php echo $final_text; ?></div>
-                </div>
-            </div>
-        </div>
-        
         <!-- Resolution Confirmation -->
         <?php if($can_confirm_resolution): ?>
         <div class="resolution-confirm-float">
@@ -1242,8 +921,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <i class="fas fa-check-circle text-green-600 text-xl"></i>
                     </div>
                     <div class="min-w-0">
-                        <h3 class="font-bold text-gray-800 text-sm md:text-base"><?php echo t('Resolution Confirmation Required'); ?></h3>
-                        <p class="text-gray-600 text-xs md:text-sm sm:truncate">
+                        <h3 class="font-bold text-gray-800 text-base"><?php echo t('Resolution Confirmation Required'); ?></h3>
+                        <p class="text-gray-600 sm:truncate text-sm">
                             <?php if($menro_accepted): ?>
                                 <?php echo t('MENRO has marked this report as resolved. Please confirm if you agree with the resolution.'); ?>
                             <?php else: ?>
@@ -1264,47 +943,49 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         <?php endif; ?>
         
         <!-- Report Information -->
-        <div class="grid grid-cols-1 gap-4 md:gap-5 mb-6 md:mb-8">
+        <div class="report-detail-information grid grid-cols-1 gap-4 md:gap-5 mb-6 md:mb-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-white rounded-2xl p-3 md:p-4 shadow-sm border border-emerald-50">
                     <div class="flex items-center gap-2.5">
                         <div class="w-8 h-8 md:w-9 md:h-9 bg-emerald-100 rounded-lg flex items-center justify-center shadow-sm">
-                            <i class="fas fa-tag text-[#10A37F] text-sm md:text-base"></i>
+                            <i class="fas fa-tag text-[#10A37F] text-base"></i>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-semibold"><?php echo t('Category'); ?></p>
-                            <p class="font-semibold text-gray-800 text-sm md:text-base truncate"><?php echo htmlspecialchars($report['category_name']); ?></p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold text-xs"><?php echo t('Category'); ?></p>
+                            <p class="font-semibold text-gray-800 truncate text-base"><?php echo htmlspecialchars($report['category_name']); ?></p>
                         </div>
                     </div>
                 </div>
                 <div class="bg-white rounded-2xl p-3 md:p-4 shadow-sm border border-emerald-50">
                     <div class="flex items-center gap-2.5">
                         <div class="w-8 h-8 md:w-9 md:h-9 bg-emerald-100 rounded-lg flex items-center justify-center shadow-sm">
-                            <i class="fas fa-map-marker-alt text-[#10A37F] text-sm md:text-base"></i>
+                            <i class="fas fa-map-marker-alt text-[#10A37F] text-base"></i>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-semibold"><?php echo t('Barangay'); ?></p>
-                            <p class="font-semibold text-gray-800 text-sm md:text-base truncate"><?php echo htmlspecialchars($report['barangay_name']); ?></p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold text-xs"><?php echo t('Barangay'); ?></p>
+                            <p class="font-semibold text-gray-800 truncate text-base"><?php echo htmlspecialchars($report['barangay_name']); ?></p>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-5 lg:p-6 overflow-hidden">
+            <div class="report-description bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-5 lg:p-6 overflow-hidden">
                 <div class="flex items-center gap-2 mb-3 flex-shrink-0">
                     <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
                         <i class="fas fa-align-left text-[#10A37F] text-sm"></i>
                     </div>
-                    <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider"><?php echo t('Description'); ?></h3>
+                    <h3 class="font-semibold text-gray-400 uppercase tracking-wider text-sm"><?php echo t('Description'); ?></h3>
                 </div>
                 <div class="bg-gradient-to-br from-[#F5FBF6] to-[#EEF8F1] rounded-xl p-4 md:p-5 lg:p-6 border border-emerald-100 min-h-[180px] md:min-h-[220px] overflow-hidden">
-                    <p class="text-gray-700 text-base md:text-lg leading-relaxed break-words whitespace-pre-line overflow-wrap-anywhere max-w-full"><?php echo nl2br(htmlspecialchars($report['description'])); ?></p>
+                    <p class="text-gray-700 leading-relaxed break-words whitespace-pre-line overflow-wrap-anywhere max-w-full text-lg"><?php echo nl2br(htmlspecialchars($report['description'])); ?></p>
                 </div>
             </div>
         </div>
         
+        <?php $reportProgressMode = 'history'; include BASE_PATH . 'views/shared/report_progress.php'; ?>
+
         <!-- Map -->
         <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8">
-            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 md:mb-4"><?php echo t('Report Location'); ?></h3>
+            <h3 class="card-header"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> <?php echo t('Report Location'); ?></h3>
             <?php if($report['latitude'] && $report['longitude'] && $report['latitude'] != 0 && $report['longitude'] != 0): ?>
             <div class="rounded-xl overflow-hidden border border-emerald-100 relative">
                 <div id="reportMap" class="h-64 md:h-80"></div>
@@ -1383,7 +1064,7 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                                     <?php endif; ?>
                                 </div>
                                 <?php if(!empty($ev['caption'])): ?>
-                                    <div class="resolution-note-box"><i class="fas fa-sticky-note mr-1 text-emerald-500"></i><?php echo htmlspecialchars($ev['caption']); ?></div>
+                                    <div class="resolution-note-box"><span class="resolution-note-label">Resolution note</span><p><?php echo htmlspecialchars($ev['caption']); ?></p><?php if (!empty($ev['uploaded_by_name'])): ?><span class="resolution-note-author"><?php echo htmlspecialchars($ev['uploaded_by_name']); ?></span><?php endif; ?></div>
                                 <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
@@ -1404,18 +1085,21 @@ $csrf_token = InputSanitizer::generateCsrfToken();
         
         <!-- Investigation Notes -->
         <div class="bg-white rounded-2xl shadow-sm border border-emerald-50 p-4 md:p-6 mb-6 md:mb-8">
-            <h3 class="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 md:mb-4">
-                <i class="fas fa-sticky-note mr-1"></i> <?php echo t('Investigation Notes'); ?>
+            <h3 class="card-header">
+                <i class="fas fa-comments mr-1"></i> <?php echo t('Investigation Notes'); ?>
             </h3>
-            <div class="space-y-3 max-h-64 overflow-y-auto">
-                <?php if(!empty($notes)): ?>
-                    <?php foreach($notes as $note): ?>
-                    <div class="border-l-4 border-[#10A37F] bg-gray-50 p-4 rounded-xl">
-                        <p class="text-sm text-gray-700"><?php echo htmlspecialchars($note['note']); ?></p>
-                        <p class="text-xs text-gray-400 mt-2">
-                            <i class="fas fa-user-circle mr-1"></i><?php echo htmlspecialchars($note['user_name']); ?> • 
-                            <i class="fas fa-clock ml-2 mr-1"></i><?php echo date('M d, h:i A', strtotime($note['created_at'])); ?>
-                        </p>
+            <div class="note-thread max-h-72 overflow-y-auto">
+                <?php if (!empty($notes)): ?>
+                    <?php foreach ($notes as $note): ?>
+                    <div class="note-item">
+                        <div class="note-avatar" aria-hidden="true"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($note['user_name'], 0, 1))); ?></div>
+                        <div class="note-bubble">
+                            <div class="note-meta">
+                                <span class="note-author"><?php echo htmlspecialchars($note['user_name']); ?></span>
+                                <time class="note-time" datetime="<?php echo date('c', strtotime($note['created_at'])); ?>"><?php echo date('M d, h:i A', strtotime($note['created_at'])); ?></time>
+                            </div>
+                            <p class="note-text"><?php echo htmlspecialchars($note['note']); ?></p>
+                        </div>
                     </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -1423,6 +1107,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                 <?php endif; ?>
             </div>
         </div>
+
+        </div><!-- /report-detail-sheet -->
 
         <?php if($can_cancel): ?>
         <div class="track-cancel-float">
@@ -1432,8 +1118,8 @@ $csrf_token = InputSanitizer::generateCsrfToken();
                         <i class="fas fa-times-circle text-red-600 text-xl"></i>
                     </div>
                     <div class="min-w-0">
-                        <h3 class="font-bold text-gray-800 text-sm md:text-base"><?php echo t('Cancel Report'); ?></h3>
-                        <p class="text-gray-600 text-xs md:text-sm"><?php echo t('You can cancel this report while it is pending.'); ?></p>
+                        <h3 class="font-bold text-gray-800 text-base"><?php echo t('Cancel Report'); ?></h3>
+                        <p class="text-gray-600 text-sm"><?php echo t('You can cancel this report while it is pending.'); ?></p>
                     </div>
                 </div>
                 <button type="button" onclick="openCancelModal()" class="bg-red-600 hover:bg-red-700 text-white px-5 md:px-6 py-2.5 md:py-3 transition-all flex items-center gap-2 text-sm">
@@ -1455,13 +1141,13 @@ $csrf_token = InputSanitizer::generateCsrfToken();
 <!-- Lightbox Modal -->
 <div id="lightboxModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[10000] hidden items-center justify-center p-4" onclick="closeLightbox()" data-modal="1" role="dialog" aria-modal="true" aria-label="<?php echo t('Media viewer'); ?>">
     <button onclick="closeLightbox()" class="absolute top-3 right-3 sm:top-6 sm:right-6 text-white hover:text-gray-300 transition z-10 p-2" aria-label="<?php echo t('Close media viewer'); ?>">
-        <i class="fas fa-times text-2xl sm:text-3xl"></i>
+        <i class="fas fa-times text-3xl"></i>
     </button>
     <button onclick="prevImage()" class="absolute left-1 sm:left-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10 p-2 sm:p-3" aria-label="<?php echo t('Previous media'); ?>">
-        <i class="fas fa-chevron-left text-3xl sm:text-4xl"></i>
+        <i class="fas fa-chevron-left text-4xl"></i>
     </button>
     <button onclick="nextImage()" class="absolute right-1 sm:right-6 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition z-10 p-2 sm:p-3" aria-label="<?php echo t('Next media'); ?>">
-        <i class="fas fa-chevron-right text-3xl sm:text-4xl"></i>
+        <i class="fas fa-chevron-right text-4xl"></i>
     </button>
     <div class="max-w-5xl max-h-[85vh] w-full h-full flex items-center justify-center" onclick="event.stopPropagation()">
         <img id="lightboxImage" src="" alt="<?php echo t('Full size image'); ?>" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl">

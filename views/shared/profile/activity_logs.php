@@ -172,7 +172,7 @@ $al_action_default = ['icon' => 'fa-circle', 'bg' => '#E8F5F0', 'color' => '#10A
     .al-chip-label {
         font-size: 0.7rem;
         font-weight: 700;
-        color: #9CA3AF;
+        color: var(--sierra-type-muted, #63746b);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-right: 2px;
@@ -189,7 +189,7 @@ $al_action_default = ['icon' => 'fa-circle', 'bg' => '#E8F5F0', 'color' => '#10A
         white-space: nowrap;
         border: 1px solid #E5E7EB;
         background: #F3F4F6;
-        color: #6B7280;
+        color: var(--sierra-type-muted, #63746b);
         cursor: pointer;
         transition: all 0.2s ease;
         text-decoration: none;
@@ -220,7 +220,7 @@ $al_action_default = ['icon' => 'fa-circle', 'bg' => '#E8F5F0', 'color' => '#10A
     }
     .al-chip:not(.active) .al-chip-count {
         background: #E5E7EB;
-        color: #6B7280;
+        color: var(--sierra-type-muted, #63746b);
     }
     @media (max-width: 640px) {
         .al-chip-bar {
@@ -265,16 +265,16 @@ $al_action_default = ['icon' => 'fa-circle', 'bg' => '#E8F5F0', 'color' => '#10A
     <!-- Stats -->
     <div class="grid grid-cols-3 gap-3 mb-5 stat-cards">
         <div class="bg-white rounded-lg border border-gray-100 p-3 sm:p-4">
-            <p class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1"><?php echo t('Total Activities'); ?></p>
-            <p class="text-lg sm:text-xl font-extrabold text-gray-800 tracking-tight"><?php echo number_format($al_total_rows); ?></p>
+            <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1 text-xs"><?php echo t('Total Activities'); ?></p>
+            <p class="font-extrabold text-gray-800 tracking-tight text-xl"><?php echo number_format($al_total_rows); ?></p>
         </div>
         <div class="bg-white rounded-lg border border-gray-100 p-3 sm:p-4">
-            <p class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1"><?php echo t('This Month'); ?></p>
-            <p class="text-lg sm:text-xl font-extrabold text-[#10A37F] tracking-tight"><?php echo number_format($al_this_month ?? 0); ?></p>
+            <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1 text-xs"><?php echo t('This Month'); ?></p>
+            <p class="font-extrabold text-[#10A37F] tracking-tight text-xl"><?php echo number_format($al_this_month ?? 0); ?></p>
         </div>
         <div class="bg-white rounded-lg border border-gray-100 p-3 sm:p-4">
-            <p class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1"><?php echo t('Reports Filed'); ?></p>
-            <p class="text-lg sm:text-xl font-extrabold text-blue-600 tracking-tight"><?php echo number_format($al_reports_filed ?? 0); ?></p>
+            <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1 text-xs"><?php echo t('Reports Filed'); ?></p>
+            <p class="font-extrabold text-blue-600 tracking-tight text-xl"><?php echo number_format($al_reports_filed ?? 0); ?></p>
         </div>
     </div>
 
@@ -330,7 +330,7 @@ $al_action_default = ['icon' => 'fa-circle', 'bg' => '#E8F5F0', 'color' => '#10A
                 <i class="fas fa-history text-xl text-[#10A37F]"></i>
             </div>
             <h4 class="font-semibold text-gray-700 mb-1">No activity yet</h4>
-            <p class="text-xs sm:text-sm text-gray-400 max-w-xs mx-auto">Your actions across the site — like filing a report or updating your profile — will appear here.</p>
+            <p class="text-gray-400 max-w-xs mx-auto text-sm">Your actions across the site — like filing a report or updating your profile — will appear here.</p>
         </div>
     <?php endif; ?>
 </div>

@@ -1179,10 +1179,14 @@ class SettingsController {
         SettingsHelper::set('enable_report_limits', $enabled);
         SettingsHelper::set('report_daily_limit', $daily_limit);
         SettingsHelper::set('report_min_interval_minutes', $interval);
+        $reminders_enabled = isset($_POST['enable_report_reminders']) ? 1 : 0;
+        $reminder_days = max(1, min(365, (int)($_POST['report_reminder_days'] ?? 3)));
+        SettingsHelper::set('enable_report_reminders', $reminders_enabled);
+        SettingsHelper::set('report_reminder_days', $reminder_days);
 
         SettingsHelper::clearCache();
-        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated report submission limits (daily_limit=$daily_limit, interval=${interval}min, enabled=$enabled)", null, 'Settings');
-        $_SESSION['success'] = "Report submission limits saved successfully!";
+        $this->activityLog->log($this->user_id, 'Update System Settings', "Updated report settings (daily_limit=$daily_limit, interval=${interval}min, enabled=$enabled, reminders=$reminders_enabled, reminder_days=$reminder_days)", null, 'Settings');
+        $_SESSION['success'] = "Report settings saved successfully!";
         header("Location: " . BASE_URL . "index.php?page=settings&tab=reporting");
         exit();
     }

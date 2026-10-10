@@ -11,7 +11,7 @@ $schema = 'sierra_perf_test_' . bin2hex(random_bytes(6));
 $db->exec("CREATE DATABASE `$schema`");
 $db->exec("USE `$schema`");
 $sandbox = sys_get_temp_dir() . '/' . $schema;
-$files = ['config/database.php', 'helpers/SchemaMigration.php', 'helpers/SettingsHelper.php', 'helpers/EmailQueue.php', 'models/Report.php', 'models/Notification.php', 'models/ActivityLog.php', 'models/UserDevice.php'];
+$files = ['config/database.php', 'helpers/SchemaMigration.php', 'helpers/SettingsHelper.php', 'helpers/EmailQueue.php', 'models/Report.php', 'models/Notification.php', 'models/ReportReminder.php', 'models/ActivityLog.php', 'models/UserDevice.php'];
 mkdir($sandbox);
 foreach (['config', 'helpers', 'models'] as $folder) mkdir($sandbox . '/' . $folder);
 foreach ($files as $file) copy(dirname(__DIR__) . '/' . $file, $sandbox . '/' . $file);
@@ -22,6 +22,7 @@ try {
     $database = new Database();
     $db = $database->getConnection();
     $db->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+    check((int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('report_reminder_deliveries', 'report_reminder_checks')")->fetchColumn() === 2, 'reminder delivery and throttle storage migrate once');
     $migration = new ReflectionMethod(Database::class, 'ensureColumns');
     $migration->setAccessible(true);
     // Avoid unrelated permission bootstrap; fixtures contain no role tables.
@@ -93,6 +94,35 @@ try {
     check($sync['unread'] === 0 && $sync['notif_seq'] === 0, 'empty notification account returns zero counts');
     (new ActivityLog($db))->log(1, 'Test', 'Isolated QA');
     check((new UserDevice($db))->registerLogin(1, 'QA browser', '127.0.0.1')['is_new'] === true, 'activity logs and recognized devices work after centralized migration');
+
+    // Exercise reminder SQL and atomic delivery with native MySQL prepares.
+    require_once dirname(__DIR__) . '/helpers/IdGuard.php';
+    $db->exec('ALTER TABLE users ADD user_type VARCHAR(30), ADD barangay_id INT, ADD is_active TINYINT DEFAULT 1');
+    $db->exec('ALTER TABLE reports ADD escalated_at DATETIME NULL');
+    $db->exec('CREATE TABLE escalations (id INT AUTO_INCREMENT PRIMARY KEY, report_id INT, escalated_at DATETIME)');
+    $db->exec("INSERT INTO users (id,user_type,barangay_id,is_active) VALUES (20,'barangay_personnel',1,1),(21,'menro_staff',NULL,1)");
+    $db->exec("UPDATE reports SET created_at=DATE_SUB(NOW(),INTERVAL 4 DAY), escalated_at=DATE_SUB(NOW(),INTERVAL 4 DAY)");
+    $reminders = new ReportReminder($db);
+    check($reminders->summaryForUser(20)['total'] === 24 && $reminders->summaryForUser(21)['total'] === 16, 'native MySQL reminder scopes separate Barangay pending reports from MENRO escalations');
+    check($reminders->processForUser(20) === 24 && $reminders->processForUser(20, true) === 0, 'native MySQL delivery ledger prevents repeat notifications');
+    check($reminders->processForUser(21) === 16, 'native MySQL reminders reach MENRO independently');
+    $db->exec('DELETE FROM notifications WHERE user_id=20');
+    check($reminders->processForUser(20, true) === 0 && $reminders->summaryForUser(20)['total'] === 24, 'deleting MySQL notifications preserves delivery history and dashboard follow-ups');
+
+    $settingsSource = file_get_contents(dirname(__DIR__) . '/controllers/SettingsController.php');
+    $settingsStart = strpos($settingsSource, '    private function updateReporting() {');
+    $settingsEnd = strpos($settingsSource, '        header(', $settingsStart);
+    // Keep the real handler body, stopping before its browser redirect/exit.
+    $settingsMethod = str_replace('private function', 'public function', substr($settingsSource, $settingsStart, $settingsEnd-$settingsStart)) . "\n    }";
+    eval('class ReportSettingsFixture { public $user_id = 20; public $activityLog; ' . $settingsMethod . '}');
+    $settingsFixture = new ReportSettingsFixture();
+    $settingsFixture->activityLog = new class { public function log(...$args) {} };
+    $_POST = ['enable_report_limits'=>'1','report_daily_limit'=>'8','report_min_interval_minutes'=>'15','enable_report_reminders'=>'1','report_reminder_days'=>'4'];
+    $settingsFixture->updateReporting();
+    check(SettingsHelper::getReportReminderSettings() === ['enabled'=>true,'days'=>4] && SettingsHelper::getReportLimits()['daily_limit'] === 8, 'Report Settings saves independent reminder and submission rules through the real handler');
+    unset($_POST['enable_report_reminders']); $_POST['report_reminder_days']='999';
+    $settingsFixture->updateReporting();
+    check(SettingsHelper::getReportReminderSettings() === ['enabled'=>false,'days'=>365] && SettingsHelper::getReportLimits()['enabled'] === 1, 'server validates reminder days and disabling reminders preserves rate limits');
 
     $queue = new EmailQueue($db); $queue->install();
     check(!$queue->enqueue('invalid', '', 'Test', 'Test'), 'queue rejects invalid recipients');

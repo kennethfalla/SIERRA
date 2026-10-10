@@ -19,7 +19,7 @@ $maintenance_active = $ks('maintenance_mode');
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #6b7280;
+        color: var(--sierra-type-muted, #63746b);
         margin-bottom: 0.6rem;
         display: flex;
         align-items: center;
@@ -70,7 +70,7 @@ $maintenance_active = $ks('maintenance_mode');
     .ks-toggle-body h4 {
         font-size: 0.92rem;
         font-weight: 700;
-        color: #1f2937;
+        color: var(--sierra-type-primary, #203b31);
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -78,7 +78,7 @@ $maintenance_active = $ks('maintenance_mode');
     }
     .ks-toggle-body p {
         font-size: 0.78rem;
-        color: #6b7280;
+        color: var(--sierra-type-muted, #63746b);
         margin-top: 0.15rem;
         line-height: 1.45;
     }

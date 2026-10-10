@@ -1,8 +1,8 @@
 <?php
 // controllers/LiveSyncController.php - Live "Messenger-style" sync endpoint.
-// Read-only: returns unread count, the newest notification, and a data-version
+// Returns unread count, the newest notification, and a data-version
 // stamp so pages can detect new content and update in place without a manual
-// refresh. No CSRF needed because nothing is mutated here.
+// refresh. Staff polling also runs the throttled automatic reminder check.
 
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/helpers/SecurityHelper.php';
@@ -33,6 +33,11 @@ $latest = $notif->getForUser($user_id, 1);
 $latest = $latest[0] ?? null;
 // Notification updates stay separate from own-report and verification counts.
 $dataVersion = $latest['created_at'] ?? null;
+$reportReminders = null;
+if (($_GET['dashboard_reminders'] ?? '') === '1' && in_array($user_role, ['admin', 'barangay_official'], true)) {
+    try { $reportReminders = (new ReportReminder($db))->summaryForUser($user_id); }
+    catch (Throwable $error) { error_log('[Report reminders dashboard] ' . $error->getMessage()); }
+}
 
 echo json_encode([
     'success'      => true,
@@ -50,6 +55,7 @@ echo json_encode([
         'created_at' => $latest['created_at'],
     ] : null,
     'data_version' => $dataVersion,
+    'report_reminders' => $reportReminders,
     'server_time'  => date('Y-m-d H:i:s'),
 ]);
 exit();

@@ -62,8 +62,10 @@ if ($risk_list) {
 }
 if ($search != '') {
     $search_like = "%$search%";
-    $where .= " AND (r.title LIKE :search OR r.description LIKE :search OR CONCAT(u.first_name, ' ', u.last_name) LIKE :search)";
+    $where .= " AND (r.title LIKE :search OR r.description LIKE :search OR r.location_address LIKE :search OR b.name LIKE :search OR c.name LIKE :search OR CONCAT(u.first_name, ' ', u.last_name) LIKE :search OR CAST(r.id AS CHAR) = :search_id)";
     $params[':search'] = $search_like;
+    $id_search = ltrim($search, '#');
+    $params[':search_id'] = ctype_digit($id_search) ? (string)(int)$id_search : $id_search;
 }
 if ($date_from != '') {
     $where .= " AND DATE(r.created_at) >= :date_from";
@@ -261,7 +263,7 @@ if (isset($_GET['export_type']) && $_GET['export_type'] !== '') {
 }
 
 // Total count
-$count_sql = "SELECT COUNT(*) FROM reports r JOIN users u ON r.user_id = u.id WHERE $where";
+$count_sql = "SELECT COUNT(*) FROM reports r JOIN users u ON r.user_id = u.id JOIN categories c ON r.category_id = c.id JOIN barangays b ON r.barangay_id = b.id WHERE $where";
 $count_stmt = $db->prepare($count_sql);
 foreach ($params as $key => $value) {
     $count_stmt->bindValue($key, $value);
@@ -272,20 +274,20 @@ $total_pages = max(1, ceil($total / $limit));
 
 // Get reports
 $sql = "SELECT r.*, c.name as category_name, b.name as barangay_name,
-               CONCAT(u.first_name, ' ', u.last_name) as user_name
+               CONCAT(u.first_name, ' ', u.last_name) as user_name,
+               (SELECT ri.image_path FROM report_images ri WHERE ri.report_id = r.id AND LOWER(ri.image_path) REGEXP '\\.(jpg|jpeg|png|gif|webp)$' ORDER BY ri.is_primary DESC, ri.id ASC LIMIT 1) as cover_image
         FROM reports r
         JOIN categories c ON r.category_id = c.id
         JOIN barangays b ON r.barangay_id = b.id
         JOIN users u ON r.user_id = u.id
         WHERE $where
-        ORDER BY 
-            CASE 
-                WHEN r.status = 'escalated_pending' THEN 0 
-                WHEN r.status = 'pending' THEN 1 
-                WHEN r.status = 'under_review' THEN 2
-                WHEN r.status = 'in_progress' THEN 3 
-                ELSE 4 
-            END,
+        ORDER BY CASE
+            WHEN r.status = 'escalated_pending' THEN 0
+            WHEN r.status = 'escalated' THEN 1
+            WHEN r.status = 'pending' THEN 2
+            WHEN r.status = 'under_review' THEN 3
+            WHEN r.status = 'in_progress' THEN 4
+            ELSE 5 END,
             r.created_at " . ($sort_order === 'oldest' ? 'ASC' : 'DESC') . "
         LIMIT :limit OFFSET :offset";
 $stmt = $db->prepare($sql);
@@ -303,7 +305,24 @@ $barangays = $db->query("SELECT id, name FROM barangays ORDER BY name")->fetchAl
 
 // Escalated reports summary for MENRO admin visibility
 $escalatedCount = $db->query("SELECT COUNT(*) FROM reports WHERE status IN ('escalated_pending','escalated')")->fetchColumn();
-$escalatedReports = $db->query("SELECT r.id, r.title, r.created_at, b.name as barangay_name, r.risk_level FROM reports r LEFT JOIN barangays b ON r.barangay_id = b.id WHERE r.status IN ('escalated_pending','escalated') ORDER BY r.created_at DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
+
+// The first section is a short, actionable queue, independent of the current list page.
+// Apply the same filters so a search never surfaces unrelated priority reports.
+$priorityJoin = 'FROM reports r JOIN users u ON r.user_id = u.id JOIN categories c ON r.category_id = c.id JOIN barangays b ON r.barangay_id = b.id';
+$priorityWhere = "($where) AND r.status IN ('escalated_pending','escalated')";
+$priorityCountStmt = $db->prepare("SELECT COUNT(*) $priorityJoin WHERE $priorityWhere");
+$priorityCountStmt->execute($params);
+$priorityCount = (int)$priorityCountStmt->fetchColumn();
+$priorityReports = [];
+if ($priorityCount > 0) {
+    $priorityStmt = $db->prepare("SELECT r.id, r.title, r.status, r.created_at, r.escalated_at, b.name AS barangay_name
+        $priorityJoin WHERE $priorityWhere
+        ORDER BY CASE WHEN r.status = 'escalated_pending' THEN 0 ELSE 1 END,
+            r.severity_score DESC, COALESCE(r.escalated_at, r.created_at) ASC, r.id ASC LIMIT 3");
+    $priorityStmt->execute($params);
+    $priorityReports = $priorityStmt->fetchAll(PDO::FETCH_ASSOC);
+}
+$priorityUrl = BASE_URL . 'index.php?' . http_build_query(array_merge($_GET, ['page'=>'all-reports', 'status'=>'escalated', 'page_num'=>1]));
 
 // ===== STATS FOR SUMMARY CARDS =====
 $totalReports = $db->query("SELECT COUNT(*) FROM reports")->fetchColumn();
@@ -422,31 +441,18 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             left: 12px;
             top: 50%;
             transform: translateY(-50%);
-            color: #9CA3AF;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.8rem;
             pointer-events: none;
         }
-        .toolbar-search input {
-            width: 100%;
-            padding: 8px 12px 8px 36px;
-            border: 1.5px solid var(--lt-border-light);
-            border-radius: 8px;
-            font-size: 0.85rem;
-            color: var(--lt-gray-800);
-            background: var(--lt-gray-50);
-            transition: all 0.2s ease;
-            outline: none;
-        }
-        .toolbar-search input:focus {
+
+.toolbar-search input:focus {
             border-color: var(--lt-forest);
             background: var(--lt-white);
             box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.10);
         }
-        .toolbar-search input::placeholder {
-            color: #9CA3AF;
-        }
 
-        .toolbar-select {
+.toolbar-select {
             appearance: none;
             padding: 8px 32px 8px 12px;
             border: 1.5px solid var(--lt-border-light);
@@ -740,6 +746,14 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             overflow: hidden;
         }
 
+        body.all-reports-page .table-container.report-list-header-container {
+            overflow: visible;
+        }
+
+        .report-list-header-container .table-section-header {
+            border-radius: inherit;
+        }
+
         .escalated-panel {
             background: linear-gradient(90deg, #FFFBEB, #FFF7ED);
             border: 1px solid #FCD34D;
@@ -774,7 +788,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
             background: white;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
@@ -866,76 +880,56 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
         }
     </style>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/branded-dropdowns.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/branded-dropdowns.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/report-list.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/report-list.css'); ?>">
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/menro-dashboard.css?v=<?php echo filemtime(BASE_PATH . 'assets/css/menro-dashboard.css'); ?>">
 </head>
-<body class="admin-data-page">
+<body class="admin-data-page all-reports-page">
 
 <?php include BASE_PATH . 'views/layouts/sidebar.php'; ?>
 
 <div id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
 
+        <!-- MENRO priority queue -->
+        <?php if ($priorityReports): ?>
+        <section class="menro-priority" aria-labelledby="menroPriorityTitle">
+            <div class="menro-priority-heading">
+                <div><span class="menro-priority-kicker"><?php echo t('MENRO Priority'); ?></span><h2 id="menroPriorityTitle"><?php echo t('Escalated Reports'); ?><span class="menro-priority-count"><?php echo $priorityCount; ?></span></h2></div>
+                <a href="<?php echo htmlspecialchars($priorityUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo t('View all'); ?><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+            </div>
+            <ol class="menro-priority-list">
+                <?php foreach ($priorityReports as $priorityReport):
+                    $priorityReportUrl = BASE_URL . 'index.php?page=manage-report&id=' . rawurlencode(IdGuard::enc((int)$priorityReport['id']));
+                    $priorityPending = $priorityReport['status'] === 'escalated_pending';
+                ?>
+                <li class="menro-priority-row">
+                    <div>
+                        <div class="menro-priority-meta"><span>#<?php echo str_pad((int)$priorityReport['id'],6,'0',STR_PAD_LEFT); ?></span><span><?php echo htmlspecialchars($priorityReport['barangay_name'], ENT_QUOTES, 'UTF-8'); ?></span></div>
+                        <h3><a href="<?php echo htmlspecialchars($priorityReportUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($priorityReport['title'], ENT_QUOTES, 'UTF-8'); ?></a></h3>
+                    </div>
+                    <div class="menro-priority-action">
+                        <span class="status-badge status-<?php echo $priorityPending ? 'escalated_pending' : 'escalated'; ?>"><?php echo t($priorityPending ? 'Awaiting approval' : 'For MENRO action'); ?></span>
+                        <a href="<?php echo htmlspecialchars($priorityReportUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo t($priorityPending ? 'Review' : 'Open report'); ?><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                    </div>
+                </li>
+                <?php endforeach; ?>
+            </ol>
+        </section>
+        <?php endif; ?>
+        <!-- /MENRO priority queue -->
+
         <!-- ===== STATS SUMMARY CARDS ===== -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 mb-6 stat-cards">
-            <!-- Total -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-[#10A37F] transition-all duration-200">
-                <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('Total'); ?></p>
-                    <p class="text-xl md:text-2xl font-extrabold text-[#10A37F] tracking-tight"><?php echo $totalReports; ?></p>
-                </div>
-                <div class="w-10 h-10 bg-[#10A37F]/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-flag text-[#10A37F]"></i>
-                </div>
+        <div class="report-kpi-grid">
+            <?php $reportKpis = [
+                ['Total',$totalReports,'total','fa-flag'], ['Pending',$pendingCount,'pending','fa-clock'],
+                ['Under Review',$underReviewCount,'review','fa-search'], ['In Progress',$inProgressCount,'ongoing','fa-spinner'],
+                ['Escalated',$escalatedCount,'escalated','fa-exclamation-triangle'], ['High Risk',$highRiskCount,'urgent','fa-exclamation-circle'],
+            ]; foreach ($reportKpis as $kpi): ?>
+            <div class="menro-stat-card menro-stat-<?php echo $kpi[2]; ?>">
+                <i class="fas <?php echo $kpi[3]; ?>" aria-hidden="true"></i>
+                <span><?php echo t($kpi[0]); ?></span><strong><?php echo number_format((int)$kpi[1]); ?></strong>
             </div>
-            <!-- Pending -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-yellow-400 transition-all duration-200">
-                <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('Pending'); ?></p>
-                    <p class="text-xl md:text-2xl font-extrabold text-yellow-600 tracking-tight"><?php echo $pendingCount; ?></p>
-                </div>
-                <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-clock text-yellow-600"></i>
-                </div>
-            </div>
-            <!-- Under Review -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-blue-400 transition-all duration-200">
-                <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('Under Review'); ?></p>
-                    <p class="text-xl md:text-2xl font-extrabold text-blue-600 tracking-tight"><?php echo $underReviewCount; ?></p>
-                </div>
-                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-search text-blue-600"></i>
-                </div>
-            </div>
-            <!-- In Progress -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-pink-400 transition-all duration-200">
-                <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('In Progress'); ?></p>
-                    <p class="text-xl md:text-2xl font-extrabold text-pink-600 tracking-tight"><?php echo $inProgressCount; ?></p>
-                </div>
-                <div class="w-10 h-10 bg-pink-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-spinner text-pink-600"></i>
-                </div>
-            </div>
-            <!-- Escalated -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-orange-400 transition-all duration-200">
-                <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('Escalated'); ?></p>
-                    <p class="text-xl md:text-2xl font-extrabold text-orange-600 tracking-tight"><?php echo $escalatedCount; ?></p>
-                </div>
-                <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-orange-600"></i>
-                </div>
-            </div>
-            <!-- High Risk -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-start justify-between gap-3 hover:shadow-md hover:border-red-400 transition-all duration-200">
-                <div>
-                    <p class="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1.5 font-semibold"><?php echo t('High Risk'); ?></p>
-                    <p class="text-xl md:text-2xl font-extrabold text-red-600 tracking-tight"><?php echo $highRiskCount; ?></p>
-                </div>
-                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-exclamation-circle text-red-600"></i>
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
 
         <!-- Flash Messages -->
@@ -948,32 +942,6 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl text-red-700 flex items-center gap-2 text-sm">
                 <i class="fas fa-exclamation-circle text-red-500"></i> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
             </div>
-        <?php endif; ?>
-
-        <!-- Escalated Reports (highlight for MENRO admin) -->
-        <?php if($escalatedCount > 0): ?>
-        <div class="escalated-panel">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="bg-yellow-100 text-yellow-800 rounded-full w-10 h-10 flex items-center justify-center text-lg"><i class="fas fa-exclamation-triangle"></i></div>
-                    <div>
-                        <div class="text-sm font-semibold"><?php echo t('Escalated Reports'); ?></div>
-                        <div class="text-xs text-gray-600"><?php echo (int)$escalatedCount; ?> reports require attention</div>
-                    </div>
-                </div>
-                <div>
-                    <a href="?page=all-reports&status=escalated" class="px-3 py-1 bg-yellow-500 text-white rounded-lg text-sm hover:bg-yellow-600 transition"><?php echo t('View All Escalated'); ?></a>
-                </div>
-            </div>
-            <div class="mt-3">
-                <?php foreach($escalatedReports as $e): ?>
-                <div class="escalated-item hover:bg-white/50 transition rounded-lg">
-                    <div class="truncate"><strong>#<?php echo str_pad($e['id'],5,'0',STR_PAD_LEFT); ?></strong> &nbsp; <?php echo htmlspecialchars(substr($e['title'],0,60)); ?></div>
-                    <div class="text-xs text-gray-500"><?php echo htmlspecialchars($e['barangay_name']); ?> · <?php echo date('M d', strtotime($e['created_at'])); ?></div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
         <?php endif; ?>
 
         <!-- ===== FILTER TOOLBAR (shared partial) ===== -->
@@ -1004,14 +972,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             'search_value'       => $search,
             'search_placeholder' => 'Search reports…',
             'results_text'       => 'Showing <strong id="resultsCountDisplay">' . count($reports) . '</strong> of <strong>' . $total . '</strong> reports',
-            'inline_selects'     => [
-                [
-                    'id'        => 'toolbarStatus',
-                    'value'     => $status_filter,
-                    'min_width' => null,
-                    'options'   => array_merge(['' => 'All Statuses'], $status_labels),
-                ],
-            ],
+            'inline_selects'     => [],
             'filter_by'          => [
                 'active' => ($category_filter > 0 || $barangay_filter > 0 || $risk_filter != '' || $date_from != '' || $date_to != ''),
                 'count'  => $ft_popover_count,
@@ -1026,6 +987,7 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             ],
             'trailing_select'    => [
                 'id'        => 'toolbarLimit',
+                'default'   => '20',
                 'value'     => $limit,
                 'min_width' => '80px',
                 'options'   => ['10' => '10', '20' => '20', '50' => '50'],
@@ -1062,9 +1024,8 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             </div>
         </div>
 
-        <!-- Results Table -->
-        <div id="reportsGrid">
-            <div class="table-container">
+        <!-- Report list header -->
+            <div class="table-container report-list-header-container mb-4">
                 <div class="table-section-header">
                     <div class="table-section-title">
                         <h2><?php echo t('Reports List'); ?></h2>
@@ -1096,83 +1057,25 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                     </div>
                     <?php endif; ?>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full all-reports-table app-data-table">
-                        <thead>
-                            <tr class="border-b" style="background: linear-gradient(90deg,#F0FBF6 0%, #F7FFF9 100%);">
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('ID'); ?></th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Title'); ?></th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Reporter'); ?></th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Category'); ?></th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Barangay'); ?></th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Risk'); ?></th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Status'); ?></th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Date'); ?></th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase"><?php echo t('Action'); ?></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if(count($reports) > 0): ?>
-                                <?php foreach($reports as $row): ?>
-                                <tr class="border-b hover:bg-emerald-50/30 transition">
-                                    <td data-label="<?php echo t('ID'); ?>" class="px-4 py-3 text-sm text-gray-500">#<?php echo str_pad($row['id'], 5, '0', STR_PAD_LEFT); ?></td>
-                                    <td data-label="<?php echo t('Title'); ?>" class="px-4 py-3 text-sm font-semibold text-gray-800"><?php echo htmlspecialchars(substr($row['title'], 0, 40)); ?></td>
-                                    <td data-label="<?php echo t('Reporter'); ?>" class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['user_name']); ?></td>
-                                    <td data-label="<?php echo t('Category'); ?>" class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['category_name']); ?></td>
-                                    <td data-label="<?php echo t('Barangay'); ?>" class="px-4 py-3 text-sm text-gray-600"><?php echo htmlspecialchars($row['barangay_name']); ?></td>
-                                    <td data-label="<?php echo t('Risk'); ?>" class="px-4 py-3">
-                                        <span class="risk-badge risk-<?php echo $row['risk_level']; ?>">
-                                            <?php echo ucfirst($row['risk_level']); ?>
-                                        </span>
-                                    </td>
-                                    <td data-label="<?php echo t('Status'); ?>" class="px-4 py-3">
-                                        <?php 
-                                            $status_class = 'status-' . $row['status'];
-                                            $status_icon = '';
-                                            if ($row['status'] == 'pending') $status_icon = 'fa-clock';
-                                            elseif ($row['status'] == 'under_review') $status_icon = 'fa-search';
-                                            elseif ($row['status'] == 'in_progress') $status_icon = 'fa-spinner';
-                                            elseif ($row['status'] == 'escalated_pending') $status_icon = 'fa-hourglass-half';
-                                            elseif ($row['status'] == 'escalated') $status_icon = 'fa-shield-alt';
-                                            elseif ($row['status'] == 'resolved') $status_icon = 'fa-check-circle';
-                                            elseif ($row['status'] == 'rejected') $status_icon = 'fa-times-circle';
-                                            $status_label = ucfirst(str_replace('_', ' ', $row['status']));
-                                        ?>
-                                        <span class="status-badge <?php echo $status_class; ?>">
-                                            <i class="fas <?php echo $status_icon; ?> text-xs"></i>
-                                            <?php echo $status_label; ?>
-                                        </span>
-                                    </td>
-                                    <td data-label="<?php echo t('Date'); ?>" class="px-4 py-3 text-sm text-gray-500"><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
-                                    <td data-label="<?php echo t('Action'); ?>" class="px-4 py-3">
-                                        <a href="<?php echo BASE_URL; ?>index.php?page=manage-report&id=<?php echo IdGuard::enc((int)$row['id']); ?>" class="report-table-view">
-                                            <i class="fas fa-eye mr-1"></i> <?php echo t('View'); ?>
-                                        </a>
-                                        <?php /* MENRO staff may open any report to view it, but can only
-                                                 MANAGE (add investigation notes, mark resolved, reject
-                                                 escalation) reports escalated to MENRO. That scoping is
-                                                 enforced by PermissionHelper::canManageReport() on the
-                                                 manage-report page and server-side in ReportController. */ ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="9" class="px-4 py-12 text-center">
-                                        <div class="empty-state">
-                                            <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                                                <i class="fas fa-inbox text-xl sm:text-2xl text-gray-400"></i>
-                                            </div>
-                                            <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg"><?php echo t('No reports found'); ?></h3>
-                                            <p class="text-gray-400 text-xs sm:text-sm"><?php echo t('Try adjusting your filters'); ?></p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
             </div>
+        <div class="status-chip-bar" id="statusChipBar">
+            <input type="hidden" id="toolbarStatus" value="<?php echo htmlspecialchars($status_filter, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php
+            $allStatusCounts = $db->query('SELECT status, COUNT(*) AS total FROM reports GROUP BY status')->fetchAll(PDO::FETCH_KEY_PAIR);
+            $allStatusOptions = [''=>'All', 'pending'=>'Pending', 'under_review'=>'Under Review', 'verified'=>'Verified', 'in_progress'=>'In Progress', 'escalated_pending'=>'Escalation Pending', 'escalated'=>'Escalated', 'resolved'=>'Resolved', 'rejected'=>'Rejected', 'cancelled'=>'Cancelled'];
+            foreach ($allStatusOptions as $chipStatus => $chipLabel):
+                $chipCount = $chipStatus === '' ? (int)$totalReports : ($chipStatus === 'escalated' ? (int)$escalatedCount : (int)($allStatusCounts[$chipStatus] ?? 0));
+                if (!$chipCount && $status_filter !== $chipStatus) continue;
+            ?>
+            <button type="button" class="status-chip<?php echo $status_filter === $chipStatus ? ' active' : ''; ?>" data-status="<?php echo $chipStatus; ?>" aria-pressed="<?php echo $status_filter === $chipStatus ? 'true' : 'false'; ?>"><?php echo t($chipLabel); ?><span class="status-chip-count"><?php echo $chipCount; ?></span></button>
+            <?php endforeach; ?>
+        </div>
+        <div id="reportsGrid" class="reports-grid report-feed">
+            <?php if ($reports): ?>
+                <?php $reportListContext = 'all'; foreach ($reports as $listReport) { include BASE_PATH . 'views/shared/report_list_item.php'; } ?>
+            <?php else: ?>
+                <div class="empty-state"><i class="fas fa-inbox" aria-hidden="true"></i><h3><?php echo t('No reports found'); ?></h3><p><?php echo t('Try adjusting your filters'); ?></p></div>
+            <?php endif; ?>
         </div>
 
         <!-- Pagination -->
@@ -1180,9 +1083,9 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
             <?php if($total_pages > 1): ?>
             <div class="pagination">
                 <?php if($page > 1): ?>
-                <a href="?page=all-reports&page_num=<?php echo $page-1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_raw; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></a>
+                <a href="?page=all-reports&page_num=<?php echo $page-1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_raw; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-left text-[10px] text-xs"></i></a>
                 <?php else: ?>
-                <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></span>
+                <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] text-xs"></i></span>
                 <?php endif; ?>
                 
                 <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
@@ -1190,9 +1093,9 @@ $active_barangay_name = ($barangay_filter > 0) ? (array_column($barangays, 'name
                 <?php endfor; ?>
                 
                 <?php if($page < $total_pages): ?>
-                <a href="?page=all-reports&page_num=<?php echo $page+1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_raw; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></a>
+                <a href="?page=all-reports&page_num=<?php echo $page+1; ?>&status=<?php echo $status_filter; ?>&category=<?php echo $category_raw; ?>&barangay=<?php echo $barangay_filter; ?>&risk=<?php echo $risk_filter; ?>&search=<?php echo urlencode($search); ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>&sort=<?php echo $sort_order; ?>&limit=<?php echo $limit; ?>" class="page-btn"><i class="fas fa-chevron-right text-[10px] text-xs"></i></a>
                 <?php else: ?>
-                <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></span>
+                <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] text-xs"></i></span>
                 <?php endif; ?>
             </div>
             <?php endif; ?>
@@ -1231,6 +1134,13 @@ function applyFilters() {
     
     window.location.href = '?' + params.toString();
 }
+
+document.querySelectorAll('#statusChipBar .status-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+        document.getElementById('toolbarStatus').value = chip.dataset.status || '';
+        applyFilters();
+    });
+});
 
 // ===== EXPORT FUNCTIONALITY =====
 function toggleExportDropdown() {

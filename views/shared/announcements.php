@@ -97,10 +97,17 @@ if ($is_admin) {
 }
 
 if($search_query != '') {
-    $search = '%' . addslashes($search_query) . '%';
+    $search = '%' . $search_query . '%';
     $where .= " AND (a.title LIKE ? OR a.content LIKE ?)";
     $params[] = $search;
     $params[] = $search;
+}
+
+// A search result opens its exact post while retaining the role visibility scope.
+$focused_announcement = filter_var($_GET['focus'] ?? null,FILTER_VALIDATE_INT);
+if ($focused_announcement && $focused_announcement > 0) {
+    $where .= ' AND a.id = ?';
+    $params[] = $focused_announcement;
 }
 
 if($category_filter != 'all') {
@@ -359,7 +366,7 @@ if ($broadcast_barangay > 0) $active_filters++;
             border-color: #10A37F;
             box-shadow: 0 12px 24px -8px rgba(16, 163, 127, 0.12);
         }
-        .stat-card .stat-value { font-size: 1.75rem; font-weight: 800; color: #1a2e1a; letter-spacing: -0.02em; }
+        .stat-card .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--sierra-type-primary, #203b31); letter-spacing: -0.02em; }
         @media (min-width: 640px) { .stat-card .stat-value { font-size: 2rem; } }
         .stat-card .stat-label { font-size: 0.7rem; font-weight: 600; color: #8aa38a; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.15rem; }
         @media (min-width: 640px) { .stat-card .stat-label { font-size: 0.75rem; } }
@@ -404,7 +411,7 @@ if ($broadcast_barangay > 0) $active_filters++;
             border-color: #10A37F;
             box-shadow: 0 8px 20px -8px rgba(16, 163, 127, 0.12);
         }
-        .announcement-card .report-title { font-weight: 600; color: #1a2e1a; font-size: 0.95rem; }
+        .announcement-card .report-title { font-weight: 600; color: var(--sierra-type-primary, #203b31); font-size: 0.95rem; }
         @media (min-width: 640px) { .announcement-card .report-title { font-size: 1rem; } }
         .announcement-card .report-description { color: #4b5a4a; font-size: 0.8rem; line-height: 1.4; }
         .announcement-card .meta-item {
@@ -412,7 +419,7 @@ if ($broadcast_barangay > 0) $active_filters++;
             align-items: center;
             gap: 0.35rem;
             font-size: 0.6rem;
-            color: #64748b;
+            color: var(--sierra-type-muted, #63746b);
         }
         @media (min-width: 640px) { .announcement-card .meta-item { font-size: 0.7rem; gap: 0.5rem; } }
         .announcement-card .meta-icon {
@@ -781,7 +788,7 @@ if ($broadcast_barangay > 0) $active_filters++;
             font-size: 1.08rem;
             line-height: 1.2;
             font-weight: 900;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             letter-spacing: -0.025em;
         }
         .composer-modal-title p {
@@ -793,12 +800,12 @@ if ($broadcast_barangay > 0) $active_filters++;
         .composer-author-copy strong {
             display: block;
             font-size: 0.95rem;
-            color: #1F2937;
+            color: var(--sierra-type-primary, #203b31);
         }
         .composer-author-copy span {
             display: block;
             font-size: 0.78rem;
-            color: #6B7280;
+            color: var(--sierra-type-muted, #63746b);
             line-height: 1.35;
         }
         .composer-title-box {
@@ -812,7 +819,7 @@ if ($broadcast_barangay > 0) $active_filters++;
             border: 0;
             outline: 0;
             background: transparent;
-            color: #1F2937;
+            color: var(--sierra-type-primary, #203b31);
             font-size: 1.05rem;
             font-weight: 700;
         }
@@ -873,7 +880,7 @@ if ($broadcast_barangay > 0) $active_filters++;
         }
         .composer-attachment-box .form-label {
             margin-bottom: 0.65rem;
-            color: #1F2937;
+            color: var(--sierra-type-primary, #203b31);
         }
         .composer-upload-strip.upload-area {
             display: flex;
@@ -936,7 +943,6 @@ if ($broadcast_barangay > 0) $active_filters++;
             .composer-modal .composer-card {
                 width: 100%;
                 max-height: 94vh;
-                border-radius: 1.25rem 1.25rem 0 0;
             }
             .composer-meta-grid {
                 grid-template-columns: 1fr;
@@ -1025,14 +1031,14 @@ if ($broadcast_barangay > 0) $active_filters++;
         .ql-editor { min-height: 120px; font-size: 0.95rem; font-family: 'Manrope', sans-serif; }
         .ql-editor p { margin-bottom: 0.5rem; }
 
-        .content-preview { font-size: 0.95rem; line-height: 1.7; color: #374151; }
+        .content-preview { font-size: 0.95rem; line-height: 1.7; color: var(--sierra-type-primary, #203b31); }
         .content-preview p { margin-bottom: 0.6rem; }
         .content-preview ul, .content-preview ol { padding-left: 1.5rem; margin-bottom: 0.6rem; }
         .content-preview h1, .content-preview h2, .content-preview h3 { font-weight: 700; margin-bottom: 0.4rem; }
         .content-preview h1 { font-size: 1.4rem; }
         .content-preview h2 { font-size: 1.2rem; }
         .content-preview h3 { font-size: 1.05rem; }
-        .content-preview blockquote { border-left: 4px solid #10A37F; padding-left: 1rem; color: #4B5563; margin: 0.6rem 0; }
+        .content-preview blockquote { border-left: 4px solid #10A37F; padding-left: 1rem; color: var(--sierra-type-muted, #63746b); margin: 0.6rem 0; }
         .content-preview code { background: #F3F4F6; padding: 0.15rem 0.4rem; border-radius: 8px; font-family: monospace; font-size: 0.9em; }
         .content-preview pre { background: #1F2937; color: #F9FAFB; padding: 0.8rem; border-radius: 8px; overflow-x: auto; margin: 0.6rem 0; }
         .content-preview pre code { background: transparent; padding: 0; color: inherit; }
@@ -1058,7 +1064,7 @@ if ($broadcast_barangay > 0) $active_filters++;
             border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
             background: white;
-            color: #1f2937;
+            color: var(--sierra-type-primary, #203b31);
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -1092,17 +1098,15 @@ if ($broadcast_barangay > 0) $active_filters++;
             .fb-photo-grid.grid-5 .fb-photo-item:nth-child(4),
             .fb-photo-grid.grid-5 .fb-photo-item:nth-child(5) { max-height: 90px; }
             .fb-photo-grid { gap: 1px; }
-            .lightbox-nav { width: 40px; height: 40px; font-size: 14px; }
+            .lightbox-nav { width: 40px; height: 40px; }
             .lightbox-nav.prev { left: 10px; }
             .lightbox-nav.next { right: 10px; }
-            .lightbox-close { top: 10px; right: 10px; width: 40px; height: 40px; font-size: 18px; }
+            .lightbox-close { top: 10px; right: 10px; width: 40px; height: 40px; }
             .lightbox-content img { max-width: 95vw; max-height: 80vh; }
-            .lightbox-counter { font-size: 0.75rem; padding: 0.3rem 1rem; bottom: 15px; }
+            .lightbox-counter { padding: 0.3rem 1rem; bottom: 15px; }
         }
         @media (max-width: 480px) {
-            .stat-card .stat-value { font-size: 1.5rem; }
             .stat-card { padding: 1rem; }
-            .page-title { font-size: 1.25rem; }
         }
         .announcement-post-body { padding: 1.4rem; }
         .announcement-author-row { margin: 1.1rem 0 .9rem; gap: .75rem; }
@@ -1177,8 +1181,8 @@ if ($broadcast_barangay > 0) $active_filters++;
             .announcement-create-card .btn-primary { width: auto; }
         }
         @media (max-width: 640px) {
-            body.announcements-page { padding-top: 118px !important; }
-            .announcements-page .app-mobile-header { flex-wrap: wrap; height: auto; min-height: 110px; padding: 8px 14px; }
+            body.announcements-page { padding-top: var(--sierra-header-space, 64px) !important; }
+            .announcements-page .app-mobile-header { flex-wrap: wrap; height: auto; min-height: 56px; padding: 8px 14px; }
             .announcements-page .app-page-title-wrap { flex: 1 1 0; }
             .announcements-page .app-mobile-header .app-header-actions { order: 2; margin-left: auto; }
             .announcements-page .app-mobile-header #dashHeaderExtras { order: 4; margin: 0; flex: 1 1 100%; }
@@ -1186,8 +1190,6 @@ if ($broadcast_barangay > 0) $active_filters++;
             .announcement-side-column { grid-template-columns: minmax(0, 1fr); }
             .announcement-composer-author { flex-wrap: wrap; }
             .announcement-composer-author > .announcement-public-tag { margin-left: 0; }
-            .announcement-composer-prompt { font-size: .75rem; }
-            .announcement-card h3 { font-size: 1rem; }
             .announcement-card .content-preview { font-size: .82rem !important; }
             .fb-photo-grid { gap: 6px; }
         }
@@ -1229,7 +1231,7 @@ if ($broadcast_barangay > 0) $active_filters++;
                         <div class="stat-label">Total Posts</div>
                     </div>
                     <div class="stat-icon bg-emerald-100">
-                        <i class="fas fa-newspaper text-[#10A37F] text-base md:text-lg"></i>
+                        <i class="fas fa-newspaper text-[#10A37F] text-lg"></i>
                     </div>
                 </div>
             </div>
@@ -1240,7 +1242,7 @@ if ($broadcast_barangay > 0) $active_filters++;
                         <div class="stat-label">This Month</div>
                     </div>
                     <div class="stat-icon bg-blue-50">
-                        <i class="fas fa-calendar-alt text-blue-500 text-base md:text-lg"></i>
+                        <i class="fas fa-calendar-alt text-blue-500 text-lg"></i>
                     </div>
                 </div>
             </div>
@@ -1251,7 +1253,7 @@ if ($broadcast_barangay > 0) $active_filters++;
                         <div class="stat-label">Photos</div>
                     </div>
                     <div class="stat-icon bg-purple-50">
-                        <i class="fas fa-image text-purple-500 text-base md:text-lg"></i>
+                        <i class="fas fa-image text-purple-500 text-lg"></i>
                     </div>
                 </div>
             </div>
@@ -1262,7 +1264,7 @@ if ($broadcast_barangay > 0) $active_filters++;
                         <div class="stat-label"><?php echo $is_admin ? 'Active Barangays' : 'Showing'; ?></div>
                     </div>
                     <div class="stat-icon bg-amber-50">
-                        <i class="fas fa-eye text-amber-500 text-base md:text-lg"></i>
+                        <i class="fas fa-eye text-amber-500 text-lg"></i>
                     </div>
                 </div>
             </div>
@@ -1310,8 +1312,9 @@ if ($broadcast_barangay > 0) $active_filters++;
         $ft_popover_count = (($date_from != '') ? 1 : 0) + (($date_to != '') ? 1 : 0);
         $ft = [
             'search_id'          => 'searchInput',
-            'search_value'       => htmlspecialchars($search_query),
+            'search_value'       => $search_query,
             'search_placeholder' => 'Search announcements…',
+            'show_filter_by'     => !$is_citizen,
             'results_text'       => '',
             'inline_selects'     => [
                 [
@@ -1500,12 +1503,12 @@ if ($broadcast_barangay > 0) $active_filters++;
             <?php else: ?>
                 <div class="empty-state" style="grid-column: 1 / -1;">
                     <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                        <i class="fas fa-inbox text-xl sm:text-2xl text-gray-400"></i>
+                        <i class="fas fa-inbox text-gray-400 text-2xl"></i>
                     </div>
-                    <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-base sm:text-lg">No announcements found</h3>
-                    <p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Try adjusting your filters or create a new post.</p>
+                    <h3 class="font-semibold text-gray-700 mb-1 sm:mb-2 text-lg">No announcements found</h3>
+                    <p class="text-gray-400 mb-3 sm:mb-4 text-sm">Try adjusting your filters or create a new post.</p>
                     <?php if ($can_create): ?>
-                        <button onclick="openCreateModal()" class="btn-primary inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                        <button onclick="openCreateModal()" class="btn-primary inline-flex items-center gap-1.5 sm:gap-2 text-sm">
                             <i class="fas fa-plus-circle"></i> Create Post
                         </button>
                     <?php endif; ?>
@@ -1517,9 +1520,9 @@ if ($broadcast_barangay > 0) $active_filters++;
         <?php if($total_pages > 1): ?>
         <div class="pagination">
             <?php if($page > 1): ?>
-                <button onclick="goToPage(<?php echo $page-1; ?>)" class="page-btn"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></button>
+                <button onclick="goToPage(<?php echo $page-1; ?>)" class="page-btn"><i class="fas fa-chevron-left text-[10px] text-xs"></i></button>
             <?php else: ?>
-                <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] sm:text-xs"></i></span>
+                <span class="page-btn disabled"><i class="fas fa-chevron-left text-[10px] text-xs"></i></span>
             <?php endif; ?>
 
             <?php for($i = max(1, $page-2); $i <= min($total_pages, $page+2); $i++): ?>
@@ -1527,9 +1530,9 @@ if ($broadcast_barangay > 0) $active_filters++;
             <?php endfor; ?>
 
             <?php if($page < $total_pages): ?>
-                <button onclick="goToPage(<?php echo $page+1; ?>)" class="page-btn"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></button>
+                <button onclick="goToPage(<?php echo $page+1; ?>)" class="page-btn"><i class="fas fa-chevron-right text-[10px] text-xs"></i></button>
             <?php else: ?>
-                <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] sm:text-xs"></i></span>
+                <span class="page-btn disabled"><i class="fas fa-chevron-right text-[10px] text-xs"></i></span>
             <?php endif; ?>
         </div>
         <?php endif; ?>
@@ -2013,6 +2016,7 @@ document.addEventListener('keydown', function(e) {
 
 function applyFilters() {
     const params = new URLSearchParams(window.location.search);
+    params.delete('focus');
     const search = document.getElementById('searchInput').value;
     const category = document.getElementById('toolbarCategory').value;
     const dateFrom = document.getElementById('popoverDateFrom').value;

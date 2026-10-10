@@ -16,4 +16,4 @@
 .resolution-trend-summary strong { font-size:28px; font-weight:800; letter-spacing:-1px; color:#27513e; }
 .resolution-trend-chart { position:relative; height:220px; min-height:220px; width:100%; }
 .chart-unavailable { padding:20px; color:#6d8072; font-size:12px; text-align:center; }
-@media(max-width:600px){.reporter-demographics{gap:14px}.reporter-demographics-chart{width:104px;height:104px;flex-basis:104px}.reporter-demographics-legend dt{font-size:11px}.reporter-demographics-legend dd{gap:6px}.reporter-demographics-legend>div{gap:6px}}
+@media(max-width:600px){.reporter-demographics{gap:14px}.reporter-demographics-chart{width:104px;height:104px;flex-basis:104px}.reporter-demographics-legend dd{gap:6px}.reporter-demographics-legend>div{gap:6px}}

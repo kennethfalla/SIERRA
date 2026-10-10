@@ -104,7 +104,7 @@ $permissionRisk = [
 }
 .create-role-head p {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: var(--sierra-type-muted, #63746b);
     margin-top: 0.1rem;
 }
 .create-role-icon {
@@ -167,7 +167,7 @@ $permissionRisk = [
     flex-shrink: 0;
     border-radius: 0.5rem;
     background: #f3f4f6;
-    color: #6b7280;
+    color: var(--sierra-type-muted, #63746b);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -182,13 +182,13 @@ $permissionRisk = [
     display: block;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--sierra-type-primary, #203b31);
     line-height: 1.2;
 }
 .perm-option-desc {
     display: block;
     font-size: 0.68rem;
-    color: #9ca3af;
+    color: var(--sierra-type-muted, #63746b);
     margin-top: 0.15rem;
     line-height: 1.35;
 }
@@ -213,7 +213,7 @@ $permissionRisk = [
 .roles-section-title {
     font-size: 1.05rem;
     font-weight: 800;
-    color: #1f2937;
+    color: var(--sierra-type-primary, #203b31);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -221,7 +221,7 @@ $permissionRisk = [
 .roles-section-title i { color: #10A37F; font-size: 0.95rem; }
 .roles-section-sub {
     font-size: 0.78rem;
-    color: #6b7280;
+    color: var(--sierra-type-muted, #63746b);
     margin-top: 0.15rem;
 }
 
@@ -271,11 +271,11 @@ $permissionRisk = [
 .role-item-name {
     font-size: 0.92rem;
     font-weight: 800;
-    color: #111827;
+    color: var(--sierra-type-primary, #203b31);
 }
 .role-item-desc {
     font-size: 0.73rem;
-    color: #9ca3af;
+    color: var(--sierra-type-muted, #63746b);
     margin-top: 0.12rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -303,7 +303,7 @@ $permissionRisk = [
     border-radius: 0.5rem;
     border: none;
     background: #f3f4f6;
-    color: #6b7280;
+    color: var(--sierra-type-muted, #63746b);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -346,7 +346,7 @@ $permissionRisk = [
 .role-perm-panel-title {
     font-size: 0.8rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--sierra-type-primary, #203b31);
 }
 .perm-counter {
     display: flex;
@@ -354,7 +354,7 @@ $permissionRisk = [
     gap: 0.4rem;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--sierra-type-muted, #63746b);
 }
 
 /* ================================================================
@@ -381,7 +381,7 @@ $permissionRisk = [
     align-items: center;
     justify-content: center;
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--sierra-type-muted, #63746b);
     flex-shrink: 0;
     transition: all 0.2s;
 }
@@ -389,10 +389,10 @@ $permissionRisk = [
 .perm-label {
     font-size: 0.875rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--sierra-type-primary, #203b31);
     margin-bottom: 0.1rem;
 }
-.perm-desc { font-size: 0.75rem; color: #9ca3af; }
+.perm-desc { font-size: 0.75rem; color: var(--sierra-type-muted, #63746b); }
 
 /* ===== RISK BADGES ===== */
 .risk-badge {
@@ -452,7 +452,7 @@ $permissionRisk = [
     font-size: 0.75rem;
     font-weight: 600;
     width: 30px;
-    color: #9ca3af;
+    color: var(--sierra-type-muted, #63746b);
     transition: color 0.2s;
 }
 
@@ -531,7 +531,6 @@ $permissionRisk = [
     .role-item-head .role-item-count { order: 3; }
     .role-item-head .role-item-actions { order: 4; margin-left: auto; }
     .role-item-head .role-item-chevron { order: 5; }
-    .role-item-count { font-size: 0.7rem; }
     .perm-actions .btn-primary,
     .perm-actions .btn-secondary { flex: 1 1 45%; justify-content: center; text-align: center; }
     .create-role-actions { flex-direction: column; }

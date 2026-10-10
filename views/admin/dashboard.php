@@ -54,6 +54,7 @@ try {
 <main id="main-content" tabindex="-1" class="lg:ml-72 min-h-screen" role="main">
     <div class="main-container max-w-7xl mx-auto">
         <?php include BASE_PATH . 'views/shared/dashboard_hero.php'; ?>
+        <?php include BASE_PATH . 'views/shared/dashboard_report_reminders.php'; ?>
         <div class="menro-dash-heading"><div><span><?php echo t('Current situation'); ?></span><h1><?php echo t('Environmental Overview'); ?></h1><p><?php echo t('What needs attention across San Isidro today.'); ?></p></div><?php if (PermissionHelper::userHasPermission('can_view_analytics')): ?><a href="<?php echo BASE_URL; ?>index.php?page=analytics"><?php echo t('Explore Analytics'); ?> <i class="fas fa-arrow-right"></i></a><?php endif; ?></div>
         <section class="menro-stat-grid" aria-label="Current report statistics">
             <?php foreach ([

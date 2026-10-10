@@ -85,7 +85,7 @@ $reqList[] = 'No spaces allowed';
             font-size: 0.875rem;
             transition: all 0.2s;
             background: #ffffff;
-            color: #1e293b;
+            color: var(--sierra-type-primary, #203b31);
             height: 48px;
         }
         .input-field:focus {
@@ -101,7 +101,7 @@ $reqList[] = 'No spaces allowed';
             left: 0.875rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.875rem;
             pointer-events: none;
             z-index: 2;
@@ -111,7 +111,7 @@ $reqList[] = 'No spaces allowed';
             left: 2.5rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
             font-size: 0.875rem;
             pointer-events: none;
             transition: all 0.2s ease;
@@ -133,7 +133,7 @@ $reqList[] = 'No spaces allowed';
             right: 0.875rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             background: none;
             border: none;
@@ -158,7 +158,7 @@ $reqList[] = 'No spaces allowed';
             border-radius: 0.75rem;
             transition: all 0.2s;
             background: white;
-            color: #1e293b;
+            color: var(--sierra-type-primary, #203b31);
         }
         .otp-input:focus {
             border-color: #10A37F;
@@ -188,7 +188,7 @@ $reqList[] = 'No spaces allowed';
             padding: 0.6rem 1.5rem;
             border-radius: 0.75rem;
             font-weight: 500;
-            color: #4b5563;
+            color: var(--sierra-type-muted, #63746b);
             cursor: pointer;
             transition: all 0.2s;
             width: 100%;
@@ -221,7 +221,7 @@ $reqList[] = 'No spaces allowed';
         .step-label {
             font-size: 0.6rem;
             font-weight: 600;
-            color: #94a3b8;
+            color: var(--sierra-type-muted, #63746b);
             text-align: center;
             margin-top: 0.25rem;
             text-transform: uppercase;
@@ -252,7 +252,7 @@ $reqList[] = 'No spaces allowed';
             font-size: 0.6875rem;
         }
         .requirement.met { color: #10A37F; }
-        .requirement.unmet { color: #94a3b8; }
+        .requirement.unmet { color: var(--sierra-type-muted, #63746b); }
         
         .flash-message {
             padding: 0.75rem 1rem;
@@ -268,7 +268,7 @@ $reqList[] = 'No spaces allowed';
         @media (max-width: 640px) {
             .brand-logo { max-height: 50px; }
             .otp-container { gap: 0.5rem; }
-            .otp-input { width: 40px; height: 50px; font-size: 1.2rem; }
+            .otp-input { width: 40px; height: 50px; }
             .step-line { width: 20px; }
         }
         .register-spinner {

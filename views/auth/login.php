@@ -330,7 +330,7 @@ $demo_access_enabled = (int)SettingsHelper::get('demo_access_enabled', 1) === 1;
                     <img src="<?php echo htmlspecialchars($logo_url); ?>" alt="<?php echo htmlspecialchars($system_name); ?> Logo" class="brand-logo-form">
                 <?php endif; ?>
 
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">Welcome</h2>
+                <h2 class="font-extrabold text-gray-900 leading-tight text-4xl">Welcome</h2>
                 <p class="text-gray-500 text-sm mt-2 mb-6">Sign in with your email or mobile number</p>
 
                 <!-- ============================================ -->
